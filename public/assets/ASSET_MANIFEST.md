@@ -13,3 +13,13 @@ Ao adicionar assets, preencher:
 
 | Arquivo | Origem/autor | Licença/comprovação | Bytes | Uso/otimizações |
 |---|---|---|---:|---|
+
+## Ícones originais do PWA
+
+Os ícones abaixo foram criados especificamente para este protótipo por código, sem ativos de terceiros. Não se tratam de modelos 3D nem de imagens geradas para simular gameplay.
+
+| Arquivo | Origem/autor | Licença/comprovação | Bytes | Uso/otimizações |
+|---|---|---|---:|---|
+| `public/icons/icon-192.png` | Arte geométrica original produzida para o Web Lab | Sem dependências de terceiros; ícone do próprio projeto | 9.500 | PNG indexado de 2 bits, 192×192 |
+| `public/icons/icon-512.png` | Arte geométrica original produzida para o Web Lab | Sem dependências de terceiros; ícone do próprio projeto | 66.145 | PNG indexado de 2 bits, 512×512 |
+
