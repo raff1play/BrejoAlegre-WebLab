@@ -137,3 +137,15 @@ Ler `AGENTS.md` e `docs/NEXT_TASK_FOR_FABLE.md` (agora descreve a tarefa seguint
 - Log do deploy: `Evaluated environment url: https://raff1play.github.io/BrejoAlegre-WebLab/`.
 - O link foi confirmado pelo GitHub Actions, mas uma requisição HTTP independente do ambiente deste chat não pôde ser concluída; **o Chrome Android real ainda precisa comprovar** instalação, janela standalone sem aviso cinza, orientação horizontal e fallback online/offline.
 - A `main` permanece intocada e o PR #1 segue em rascunho.
+
+## Mudança W007 — navegador e analógico (11/11/2026)
+
+**Pedido atual:** desativar PWA por enquanto e substituir controles de esquerda/direita por joystick analógico real.
+
+- **Implementado no código:** removidos manifesto e CTA de instalação da interface; inicialização PWA desativada; worker antigo substituído por arquivo de desativação e `src/features/display/disablePwa.ts` para desregistrar somente o escopo do jogo e apagar caches com prefixo exclusivo. Ativos históricos permanecem, sem registro ativo.
+- **Implementado no código:** joystick virtual em `src/features/controls/virtualJoystick.ts` e matemática pura em `src/core/analogStick.ts`; steering X proporcional na moto, movimento X/Y em 360° a pé, aceleração/freio à direita, teclado intacto.
+- **Testes alterados:** `tests/analogStick.test.ts`, `tests/pwa.test.ts`, `tests/landscape.test.ts`; roteiro `tests/e2e/play.cjs` agora simula steering/caminhada pelo stick.
+- **Estado:** até esta edição, CI da HEAD final e deploy final ainda requerem consulta explícita. A última publicação do Pages antes desta mudança ainda contém PWA. Não tratar novo código no GitHub como site atualizado.
+- **Android real:** joystick, reset de multi-toque e limpeza do SW precisam de validação manual; PWA instalado anteriormente pode exigir remoção manual do ícone do Android.
+- **Governança:** branch `setup/weblab-foundation`, PR #1; `main` sem merge.
+
