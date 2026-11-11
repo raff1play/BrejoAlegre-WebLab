@@ -14,3 +14,5 @@
 | B010 | Baixa | PENDENTE | Perfil gráfico mobile/desktop com ajustes baseados em medição, não apenas sinalizador de ambiente. |
 
 Não marcar bloqueio como corrigido sem evidência de execução, timestamp e, quando aplicável, SHA/PR.
+
+- **R-PERF-001 (aberto):** bundle JS principal do build staging ~7,2 MB pré-gzip; priorizar imports Babylon específicos, lazy loading onde justificável e medições reais de carregamento em Chrome Android. Não confundir tamanho do bundle com FPS medido.
