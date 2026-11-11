@@ -61,3 +61,12 @@ Próximas mudanças devem registrar PR/SHA e resultados verificáveis.
 - Testes novos cobrindo manifesto, ícones, detecção de modo aplicativo, fallback e comportamento instalado sem fullscreen.
 - Instalação/rotação reais no Android não verificadas até teste físico; páginas publicadas dependem do workflow de preview.
 
+## 2026-11-11 — Retorno ao navegador e analógico real
+
+- Pedido do usuário: desativar o PWA, continuar pelo Chrome e trocar setas por um joystick analógico eficiente.
+- Removido link de manifesto, botões de instalar e `initializePwa()` da inicialização; serviço anterior substituído por worker de desativação e código que remove somente registration/caches do Web Lab. `public/manifest.webmanifest` e ícones históricos permanecem no repositório, mas não são anunciados na página.
+- Joystick 2D com Pointer Events, captura por dedo, zona morta radial de 12%, alcance limitado, sinal contínuo [-1,1], reset ao soltar, cancelar ou perder foco.
+- Na moto: joystick X controla apenas esterço; acelerar/frear à direita. A pé: joystick X/Y move em 360° e varia velocidade proporcionalmente. Teclado preservado.
+- Atualizados testes unitários e roteiro `tests/e2e/play.cjs` para tocar no analógico, não nas setas removidas.
+- **Ainda depende de CI para a HEAD final e de teste físico no Galaxy S24; não afirmar melhora ergonômica/FPS sem medir.**
+
