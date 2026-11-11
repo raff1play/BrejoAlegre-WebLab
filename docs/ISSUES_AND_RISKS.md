@@ -34,3 +34,11 @@ Não marcar bloqueio como corrigido sem evidência de execução, timestamp e, q
 - **B018 — TESTE PENDENTE:** validar retomada do aplicativo, atualização de versão e fallback offline do service worker sem cache desatualizado.
 - **B019 — LIMITE DE SUPORTE:** o evento `beforeinstallprompt` não é universal; oferecer instruções de menu nativo do navegador quando indisponível.
 
+## Pendências após W007 — navegador e analógico
+
+- **B016–B019 (SUBSTITUÍDAS por W007):** a experiência PWA foi cancelada para o Web Lab; os testes de instalação não são mais critérios de aceite desta versão.
+- **B020 (TESTE PENDENTE):** testar no Galaxy S24 se joystick responde proporcionalmente, se há desvio involuntário e se two-thumb (joystick + acelerar/frear) funciona sem lag.
+- **B021 (TESTE PENDENTE):** verificar reset de `pointercancel`, `lostpointercapture`, bloqueio/troca de aba e posição dos botões em diferentes orientações.
+- **B022 (TESTE PENDENTE):** confirmar que instalação PWA anterior foi desregistrada e seu cache exclusivo foi removido após carregar a nova página. O ícone já instalado no Android deve ser removido manualmente pelo usuário.
+- **B023 (LIMITAÇÃO):** roteiro Playwright do navegador foi atualizado para o joystick, mas não é executado pela CI padrão; testes unitários/build não equivalem a ergonomia real.
+
