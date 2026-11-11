@@ -28,7 +28,7 @@ html, body { padding: 0; margin: 0; height: 100%; overflow: hidden; overscroll-b
 .status-panel { left: var(--edge-l); top: calc(var(--edge-t) + 54px); padding: 8px 12px; display: grid; gap: 3px; max-width: 290px; }
 .status-panel strong { font-size: 14px; }
 .status-panel span { font-size: 11px; color: #c3cedb; }
-.status-line { display: flex; gap: 10px; align-items: center; }
+.status-line { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 #fps { color: #8ed0a2; font-variant-numeric: tabular-nums; }
 .toast {
   left: 50%; top: 24%; transform: translate(-50%, -6px); padding: 10px 16px; font-size: 14px; font-weight: 700;
@@ -61,13 +61,24 @@ button.active { background: #e8ae3c; color: #142232; }
 .portrait-message { width: min(100%, 420px); display: grid; gap: 12px; justify-items: center; }
 .portrait-message strong { font-size: clamp(22px, 5vw, 28px); }
 .portrait-message p { margin: 0; font-weight: 500; line-height: 1.5; color: #d4dee8; }
+.portrait-message .install-app,
 .portrait-message .landscape-start {
-  min-height: 56px; width: min(100%, 320px); padding: 13px 20px;
-  background: #e8b348; color: #172231; border: 1px solid #f5cf7b;
-  border-radius: 14px; font-size: 17px; touch-action: manipulation;
+  min-height: 54px; width: min(100%, 320px); padding: 12px 18px;
+  border-radius: 14px; font-size: 16px; touch-action: manipulation;
 }
+.portrait-message .install-app {
+  background: #e8b348; color: #172231; border: 1px solid #f5cf7b;
+}
+.portrait-message .landscape-start {
+  background: rgba(255,255,255,.10); color: #f8fafc;
+  border: 1px solid rgba(255,255,255,.38);
+}
+.portrait-message .install-app:disabled,
 .portrait-message .landscape-start:disabled { opacity: .7; }
-.portrait-message .landscape-feedback { font-size: 13px; min-height: 38px; color: #d0d9e5; }
+.portrait-message .landscape-feedback,
+.portrait-message .install-feedback { font-size: 12px; line-height: 1.45; min-height: 32px; color: #d0d9e5; }
+.portrait-message .portrait-divider { font-size: 12px; color: #aeb9c5; font-weight: 500; }
+button[hidden] { display: none !important; }
 @media (orientation: portrait) and (max-width: 900px) { .portrait-warning { display: flex; } }
 
 /* Touch devices: on-screen buttons replace the keyboard hints. */
