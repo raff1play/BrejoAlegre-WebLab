@@ -22,3 +22,15 @@ export function stickAxes(dx: number, dy: number, radius: number, deadzone = STI
 export function blendAxis(keyboard: number, analog: number): number {
   return Math.max(-1, Math.min(1, keyboard + analog));
 }
+
+/** More responsive MOTORCYCLE steering curve, preserving a smooth neutral center.
+ * Walking and keyboard controls do not use this curve.
+ * 25% physical stick deflection yields about 45% steering authority; 75% yields ~96%.
+ */
+export function responsiveMotoSteer(value: number): number {
+  if (!Number.isFinite(value)) return 0;
+  const x = Math.max(-1, Math.min(1, value));
+  if (x === 0) return 0;
+  const shaped = Math.min(1, 1.18 * Math.pow(Math.abs(x), 0.7));
+  return Math.sign(x) * shaped;
+}
