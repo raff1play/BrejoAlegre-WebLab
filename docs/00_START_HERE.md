@@ -18,7 +18,8 @@
 4. `product/ORIGINAL_GODOT_SPEC.md`: decisões 01–17 do produto futuro.
 5. `DECISIONS.md`: decisões web W001–W005, abertas e fechadas.
 6. `ARCHITECTURE.md`, `ENVIRONMENTS.md`, `WORKFLOW.md`, `QUALITY_GATES.md`.
-7. `VISUAL_DIRECTION.md`: objetivo visual e limites das imagens de IA não versionadas.\n8. `NEXT_TASK_FOR_FABLE.md`: escopo da próxima implementação.
+7. `VISUAL_DIRECTION.md`: objetivo visual e limites das imagens de IA não versionadas.
+8. `NEXT_TASK_FOR_FABLE.md`: escopo da próxima implementação.
 9. `GITHUB_UPLOAD_BLOCKER.md`: histórico do 403 resolvido; não presumir bloqueio atual.
 10. `AGENT_HANDOFF.md`: resumo curto verificável para iniciar em outra LLM.
 
