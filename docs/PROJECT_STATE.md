@@ -167,3 +167,11 @@ Ler `AGENTS.md` e `docs/NEXT_TASK_FOR_FABLE.md` (agora descreve a tarefa seguint
 - **Ainda não comprovado:** se a nova dirigibilidade agrada no Galaxy S24; comparar por teste com a versão anterior e ajustar novamente se necessário.
 - **Status de CI e deploy:** a ser atualizado após consultar o GitHub Actions e o preview da HEAD publicada; não confundir commits com deploy.
 
+## Publicação W008 — direção mais ágil (11/11/2026)
+
+- GitHub Pages: workflow de preview [43118602693](https://github.com/raff1play/BrejoAlegre-WebLab/actions/runs/43118602693) terminou **success**.
+- SHA do build publicado: `cd003b1fabb4d6f7df3612e2702b8b50b1cd8eba` (branch `setup/weblab-foundation`).
+- Runner: `npm ci`, validação de repositório, **44/44 testes unitários**, `build:staging` + TypeScript e deploy do Pages concluídos sem erros.
+- Endereço de preview declarado pelo GitHub: https://raff1play.github.io/BrejoAlegre-WebLab/
+- Teste subjetivo no Galaxy S24 **pendente**: avaliar manobras a baixa/média velocidade, joystick parcial, retorno ao centro, colisões e FPS. CI passou, mas não equivale a dirigibilidade validada no dispositivo.
+- `main` permanece sem merge; PR #1 continua em rascunho.
