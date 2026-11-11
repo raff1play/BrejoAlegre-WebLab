@@ -4,10 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
     <meta name="theme-color" content="#101b27" />
-    <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png" />
-    <link rel="apple-touch-icon" href="./icons/icon-192.png" />
-    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="description" content="Laboratório visual 3D de direção — Brejo Alegre Delivery Simulator. Protótipo web fictício e experimental." />
     <title>Brejo Alegre — Web Lab</title>
   </head>
@@ -22,13 +19,14 @@
         <span id="tips"></span>
         <span class="status-line"><span id="fps">— FPS</span>
           <button type="button" data-action="graphics" class="link" aria-label="Alternar perfil gráfico">Gráficos</button>
-          <button type="button" id="pwa-install-hud" data-pwa-install class="link" hidden>Instalar app</button></span>
+</span>
         <span class="keys">Q/E girar · Z/X zoom · arrastar gira a câmera</span>
       </div>
       <div id="toast" class="toast" role="status" aria-live="polite"></div>
-      <div class="pad pad-left" aria-label="Direção">
-        <button type="button" data-control="left" aria-label="Esquerda">◀</button>
-        <button type="button" data-control="right" aria-label="Direita">▶</button>
+      <div id="movement-stick" class="joystick-zone" role="group" aria-label="Analógico virtual de movimento e direção">
+        <div class="joystick-ring" aria-hidden="true"></div>
+        <div id="movement-stick-thumb" class="joystick-thumb" aria-hidden="true"></div>
+        <span class="joystick-caption" aria-hidden="true">ANALÓGICO</span>
       </div>
       <div class="pad pad-right" aria-label="Aceleração">
         <button type="button" data-action="mount" class="primary wide">Descer</button>
@@ -46,11 +44,8 @@
     <div class="portrait-warning" role="group" aria-label="Iniciar jogo na horizontal">
       <div class="portrait-message">
         <strong>Jogue na horizontal</strong>
-        <p>Instale para abrir como aplicativo, sem a faixa cinza de tela cheia do Chrome.</p>
-        <button type="button" id="pwa-install-portrait" class="install-app" data-pwa-install>Instalar app</button>
-        <p id="pwa-install-feedback" class="install-feedback" role="status" aria-live="polite">Depois, abra pelo ícone criado na tela inicial.</p>
-        <span class="portrait-divider">ou continue pelo navegador</span>
-        <button id="landscape-start" type="button" class="landscape-start">Jogar na horizontal (Chrome)</button>
+        <p>Gire o celular ou toque abaixo para tentar iniciar em tela cheia.</p>
+        <button id="landscape-start" type="button" class="landscape-start">Jogar na horizontal</button>
         <p id="landscape-feedback" class="landscape-feedback" role="status" aria-live="polite">Se não funcionar, ative Rotação automática e vire o celular.</p>
       </div>
     </div>
