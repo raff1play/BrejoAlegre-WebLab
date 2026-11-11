@@ -12,6 +12,7 @@ import { IsometricCameraRig } from './features/camera/isometricCamera';
 import { OcclusionFader } from './features/camera/occlusionFader';
 import { GameInput, type Action } from './features/controls/input';
 import { enableLandscapeButton } from './features/display/landscape';
+import { initializePwa } from './features/display/pwa';
 import { Motorcycle, PLAYER_LOOK } from './features/driving/motorcycle';
 import { Hud, type HudMode } from './features/hud/hud';
 import { Pedestrian } from './features/walking/pedestrian';
@@ -163,6 +164,7 @@ function fail(message: string): void {
 }
 
 // User-initiated fullscreen + landscape lock; harmless on unsupported browsers.
+initializePwa(document, window);
 enableLandscapeButton(document, window.screen);
 
 const canvas = document.querySelector<HTMLCanvasElement>('#renderCanvas');
