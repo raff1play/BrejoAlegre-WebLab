@@ -19,7 +19,10 @@ export async function requestLandscapeMode(
     }
   }
 
-  const orientation = display.orientation;
+  // TypeScript's DOM library in this project does not yet expose this browser API.
+  const orientation = display.orientation as (ScreenOrientation & {
+    lock?: (mode: 'landscape') => Promise<void>;
+  }) | undefined;
   if (!orientation || typeof orientation.lock !== 'function') return 'fullscreen-only';
 
   try {
