@@ -42,7 +42,6 @@ button {
 }
 button.link { padding: 6px 8px; margin: -4px 0; border-radius: 8px; font-size: 11px; color: #cfe3ff; background: rgba(255, 255, 255, .08); box-shadow: none; }
 .pad { position: absolute; bottom: var(--edge-b); display: grid; gap: 10px; }
-.pad-left { left: var(--edge-l); grid-template-columns: repeat(2, var(--pad)); }
 .pad-right { right: var(--edge-r); grid-template-columns: repeat(2, var(--pad)); }
 .pad button { height: var(--pad); border-radius: 20px; font-size: clamp(22px, 5vh, 30px); line-height: 1; }
 .pad button small { display: block; font-size: 8px; letter-spacing: .02em; margin-top: 4px; }
@@ -50,6 +49,35 @@ button.link { padding: 6px 8px; margin: -4px 0; border-radius: 8px; font-size: 1
 button.primary { background: #e8b348; color: #172231; border-color: #f5cf7b; }
 button.primary.unavailable { background: rgba(120, 112, 92, .78); color: #e9e2cf; border-color: rgba(255, 255, 255, .25); }
 button.active { background: #e8ae3c; color: #142232; }
+/* Lightweight analog: one DOM position update on pointer move, no per-frame styling.
+ * Large thumb ring is anchored in the lower-left safe area, away from throttle. */
+.joystick-zone {
+  position: absolute; left: var(--edge-l); bottom: calc(var(--edge-b) + 6px);
+  width: clamp(118px, 22vh, 148px); height: clamp(118px, 22vh, 148px);
+  border-radius: 50%; pointer-events: auto; touch-action: none; user-select: none;
+  -webkit-user-select: none; cursor: grab; isolation: isolate;
+}
+.joystick-zone.engaged { cursor: grabbing; }
+.joystick-ring {
+  position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle at center, rgba(24, 43, 59, .62) 0 32%, rgba(16, 28, 42, .68) 34% 62%, rgba(14, 25, 37, .84) 100%);
+  border: 2px solid rgba(255, 255, 255, .45);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, .3), inset 0 0 0 8px rgba(255, 255, 255, .055);
+}
+.joystick-thumb {
+  position: absolute; left: 50%; top: 50%;
+  width: 43%; height: 43%; border-radius: 50%;
+  transform: translate(-50%, -50%); will-change: transform; pointer-events: none;
+  background: radial-gradient(circle at 34% 29%, #f8d68d, #dba135 78%);
+  border: 3px solid rgba(255, 245, 208, .87);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, .35), inset 0 0 0 3px rgba(34, 47, 59, .12);
+}
+.joystick-zone.engaged .joystick-ring { border-color: rgba(248, 203, 114, .85); }
+.joystick-caption {
+  position: absolute; left: 50%; bottom: -14px; transform: translateX(-50%);
+  font-size: 9px; color: rgba(244, 245, 247, .85); letter-spacing: .08em;
+  font-weight: 800; pointer-events: none;
+}
 .camera-bar { position: absolute; left: 50%; transform: translateX(-50%); bottom: var(--edge-b); display: flex; gap: 8px; }
 .camera-bar button { width: clamp(46px, 11vh, 58px); height: clamp(46px, 11vh, 58px); border-radius: 14px; font-size: 22px; }
 
@@ -61,24 +89,13 @@ button.active { background: #e8ae3c; color: #142232; }
 .portrait-message { width: min(100%, 420px); display: grid; gap: 12px; justify-items: center; }
 .portrait-message strong { font-size: clamp(22px, 5vw, 28px); }
 .portrait-message p { margin: 0; font-weight: 500; line-height: 1.5; color: #d4dee8; }
-.portrait-message .install-app,
 .portrait-message .landscape-start {
   min-height: 54px; width: min(100%, 320px); padding: 12px 18px;
   border-radius: 14px; font-size: 16px; touch-action: manipulation;
-}
-.portrait-message .install-app {
   background: #e8b348; color: #172231; border: 1px solid #f5cf7b;
 }
-.portrait-message .landscape-start {
-  background: rgba(255,255,255,.10); color: #f8fafc;
-  border: 1px solid rgba(255,255,255,.38);
-}
-.portrait-message .install-app:disabled,
 .portrait-message .landscape-start:disabled { opacity: .7; }
-.portrait-message .landscape-feedback,
-.portrait-message .install-feedback { font-size: 12px; line-height: 1.45; min-height: 32px; color: #d0d9e5; }
-.portrait-message .portrait-divider { font-size: 12px; color: #aeb9c5; font-weight: 500; }
-button[hidden] { display: none !important; }
+.portrait-message .landscape-feedback { font-size: 12px; line-height: 1.45; min-height: 32px; color: #d0d9e5; }
 @media (orientation: portrait) and (max-width: 900px) { .portrait-warning { display: flex; } }
 
 /* Touch devices: on-screen buttons replace the keyboard hints. */
@@ -90,5 +107,5 @@ button[hidden] { display: none !important; }
   .telemetry { min-width: 88px; }
   #tips, .keys { display: none; }
 }
-/* Mouse and keyboard: the pads are still usable but smaller, keeping the street in view. */
+/* Mouse and keyboard: touch UI stays usable without blocking the street. */
 @media (pointer: fine) and (min-height: 481px) { :root { --pad: 60px; } .pad, .camera-bar { opacity: .82; } }
