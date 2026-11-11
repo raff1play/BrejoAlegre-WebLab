@@ -39,7 +39,14 @@
       </nav>
     </div>
     <div id="fatal" class="fatal" role="alert" hidden></div>
-    <div class="portrait-warning" role="status">Gire o celular para jogar na horizontal.</div>
+    <div class="portrait-warning" role="group" aria-label="Iniciar jogo na horizontal">
+      <div class="portrait-message">
+        <strong>Jogue na horizontal</strong>
+        <p>Toque no botão para tentar virar a tela automaticamente e jogar em tela cheia.</p>
+        <button id="landscape-start" type="button" class="landscape-start">Jogar na horizontal</button>
+        <p id="landscape-feedback" class="landscape-feedback" role="status" aria-live="polite">Se não funcionar, ative Rotação automática e vire o celular.</p>
+      </div>
+    </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
