@@ -58,6 +58,16 @@ button.active { background: #e8ae3c; color: #142232; }
   text-align: center; padding: 25px; font-weight: 700; display: flex;
 }
 .fatal[hidden], .portrait-warning { display: none; }
+.portrait-message { width: min(100%, 420px); display: grid; gap: 12px; justify-items: center; }
+.portrait-message strong { font-size: clamp(22px, 5vw, 28px); }
+.portrait-message p { margin: 0; font-weight: 500; line-height: 1.5; color: #d4dee8; }
+.portrait-message .landscape-start {
+  min-height: 56px; width: min(100%, 320px); padding: 13px 20px;
+  background: #e8b348; color: #172231; border: 1px solid #f5cf7b;
+  border-radius: 14px; font-size: 17px; touch-action: manipulation;
+}
+.portrait-message .landscape-start:disabled { opacity: .7; }
+.portrait-message .landscape-feedback { font-size: 13px; min-height: 38px; color: #d0d9e5; }
 @media (orientation: portrait) and (max-width: 900px) { .portrait-warning { display: flex; } }
 
 /* Touch devices: on-screen buttons replace the keyboard hints. */
