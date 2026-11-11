@@ -224,12 +224,15 @@ async function phone(browser) {
   const layout = await page.evaluate(() => {
     const rect = (el) => { const r = el.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height, id: el.dataset.control || el.dataset.action }; };
     const buttons = [...document.querySelectorAll('.pad button, .camera-bar button')].map(rect);
+    const stick = rect(document.querySelector('#movement-stick'));
+    stick.id = 'stick';
+    buttons.push(stick);
     const overlap = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
     const collisions = [];
     for (let i = 0; i < buttons.length; i++) for (let j = i + 1; j < buttons.length; j++) if (overlap(buttons[i], buttons[j])) collisions.push(`${buttons[i].id}/${buttons[j].id}`);
     const inside = buttons.every((b) => b.x >= 0 && b.y >= 0 && b.x + b.w <= innerWidth && b.y + b.h <= innerHeight);
     const centre = { x: innerWidth * 0.3, y: innerHeight * 0.25, w: innerWidth * 0.4, h: innerHeight * 0.5 };
-    const panels = [...document.querySelectorAll('.brand, .telemetry, .status-panel, .pad, .camera-bar')].map(rect);
+    const panels = [...document.querySelectorAll('.brand, .telemetry, .status-panel, .pad, .joystick-zone, .camera-bar')].map(rect);
     return { buttons, collisions, inside, centreFree: !panels.some((p) => overlap(p, centre)), portrait: getComputedStyle(document.querySelector('.portrait-warning')).display };
   });
   const smallest = Math.min(...layout.buttons.map((b) => Math.min(b.w, b.h)));
@@ -245,6 +248,11 @@ async function phone(browser) {
   // CDP models every finger in one event stream: adding a finger is a touchStart with all points.
   const press = async (id, control) => { fingers.set(id, { ...centreOf(control), id }); await send('touchStart'); };
   const lift = async (id) => { fingers.delete(id); await send('touchEnd'); };
+  const tiltStick = async (id, dx, dy) => {
+    const point = centreOf('stick');
+    fingers.set(id, { x: point.x + dx, y: point.y + dy, id });
+    await send('touchMove');
+  };
 
   await press(1, 'accelerate');
   s = await until((v) => v.moto.speed > 2.5);
@@ -252,7 +260,8 @@ async function phone(browser) {
   const pressed = await page.evaluate(() => document.querySelector('[data-control="accelerate"]').classList.contains('active'));
   check('[toque] botão mostra estado pressionado', pressed);
   const yaw0 = s.moto.yaw;
-  await press(2, 'right');
+  await press(2, 'stick');
+  await tiltStick(2, 38, 0);
   s = await until((v) => v.moto.yaw > yaw0 + 0.25, 15000);
   check('[toque] dois dedos: acelerar + virar ao mesmo tempo', s.moto.yaw > yaw0 + 0.25 && s.moto.speed > 1, `Δyaw=${fx(s.moto.yaw - yaw0)}`);
   await shot('07-celular-emulado-pilotando.jpg');
@@ -307,12 +316,14 @@ async function phone(browser) {
   s = await snap();
   check('[toque] botão Descer funciona parado', s.mode === 'walking');
   const w0 = s.walker;
-  await press(10, 'left');
+  await press(10, 'stick');
+  await tiltStick(10, -35, 0);
   s = await until((v) => Math.hypot(v.walker.x - w0.x, v.walker.z - w0.z) > 0.8, 20000);
   await lift(10);
-  check('[toque] personagem anda pelos botões', Math.hypot(s.walker.x - w0.x, s.walker.z - w0.z) > 0.5 && s.moto.speed === 0);
+  check('[toque] personagem anda pelo analógico', Math.hypot(s.walker.x - w0.x, s.walker.z - w0.z) > 0.5 && s.moto.speed === 0);
   await shot('08-celular-emulado-a-pe.jpg');
-  await press(11, 'right');
+  await press(11, 'stick');
+  await tiltStick(11, 35, 0);
   await until((v) => Math.hypot(v.walker.x - v.moto.x, v.walker.z - v.moto.z) < 1.6, 20000);
   await lift(11);
   await page.touchscreen.tap(centreOf('mount').x, centreOf('mount').y);
