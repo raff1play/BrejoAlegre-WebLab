@@ -12,7 +12,7 @@ import { IsometricCameraRig } from './features/camera/isometricCamera';
 import { OcclusionFader } from './features/camera/occlusionFader';
 import { GameInput, type Action } from './features/controls/input';
 import { enableLandscapeButton } from './features/display/landscape';
-import { initializePwa } from './features/display/pwa';
+import { disableWebLabPwa } from './features/display/disablePwa';
 import { Motorcycle, PLAYER_LOOK } from './features/driving/motorcycle';
 import { Hud, type HudMode } from './features/hud/hud';
 import { Pedestrian } from './features/walking/pedestrian';
@@ -100,7 +100,7 @@ function start(canvas: HTMLCanvasElement): void {
       moto.update(dt, {
         throttle: input.isDown('accelerate') ? 1 : 0,
         brake: input.isDown('brake') ? 1 : 0,
-        steer: input.axis('right', 'left'),
+        steer: input.steer(),
       }, world.guard, ground(m.x, m.z));
       const lead = m.speed * 0.28;
       cameraTarget.set(m.x + Math.sin(m.yaw) * lead, moto.root.position.y + 0.95, m.z + Math.cos(m.yaw) * lead);
@@ -108,7 +108,7 @@ function start(canvas: HTMLCanvasElement): void {
     } else {
       moto.update(dt, idle, world.guard, ground(m.x, m.z));
       const w = walker.state;
-      walker.update(dt, { forward: input.axis('accelerate', 'brake'), right: input.axis('right', 'left') },
+      walker.update(dt, input.walkingAxes(),
         rig.viewYaw, walkerGuard, ground(w.x, w.z));
       cameraTarget.set(w.x, walker.root.position.y + 1.05, w.z);
       playerCentre.copyFrom(cameraTarget);
@@ -163,8 +163,9 @@ function fail(message: string): void {
   if (box) { box.textContent = message; box.hidden = false; }
 }
 
-// User-initiated fullscreen + landscape lock; harmless on unsupported browsers.
-initializePwa(document, window);
+// Deactivate the previous installation experiment without affecting other sites.
+void disableWebLabPwa(window, import.meta.env.BASE_URL);
+// Browser-only fullscreen/orientation is still optional and user initiated.
 enableLandscapeButton(document, window.screen);
 
 const canvas = document.querySelector<HTMLCanvasElement>('#renderCanvas');
