@@ -22,11 +22,11 @@ test('retirement service worker unregisters and does not intercept fetch', () =>
 });
 
 test('old PWA cleanup matches only this project registration scope', () => {
-  const origin = 'https://raff1play.github.io';
-  const base = '/BrejoAlegre-WebLab/';
-  assert.equal(isWebLabRegistration(origin + base, origin, base), true);
-  assert.equal(isWebLabRegistration(origin + '/AnotherProject/', origin, base), false);
-  assert.equal(isWebLabRegistration('https://elsewhere.test' + base, origin, base), false);
+  const page = 'https://raff1play.github.io/BrejoAlegre-WebLab/';
+  const base = './';
+  assert.equal(isWebLabRegistration(page, page, base), true);
+  assert.equal(isWebLabRegistration('https://raff1play.github.io/AnotherProject/', page, base), false);
+  assert.equal(isWebLabRegistration('https://elsewhere.test/BrejoAlegre-WebLab/', page, base), false);
   assert.equal(WEBLAB_CACHE_PREFIX, 'brejo-weblab-');
 });
 
