@@ -45,7 +45,7 @@ async function open(browser, options, query) {
   const shot = async (name) => {
     const play = page.viewportSize();
     if (options.shotSize) { await page.setViewportSize(options.shotSize); await page.waitForTimeout(1200); }
-    await page.screenshot({ path: path.join(OUT, name) });
+    await page.screenshot({ path: path.join(OUT, name), type: 'jpeg', quality: 88 });
     if (options.shotSize) { await page.setViewportSize(play); await page.waitForTimeout(300); }
   };
   return { context, page, errors, snap, until, shot };
@@ -59,7 +59,7 @@ async function desktop(browser) {
   check('abre sem erro e inicia pilotando na vaga', g.errors.length === 0 && s.mode === 'riding' && s.moto.speed === 0, g.errors.join(' | '));
   const label = await page.textContent('.prototype-label');
   check('aviso de área temporária visível na tela', /ÁREA TEMPORÁRIA DE TESTE — NÃO REPRESENTA BREJO ALEGRE/.test(label));
-  await shot('01-inicio-estacionamento.png');
+  await shot('01-inicio-estacionamento.jpg');
 
   // Accelerate out of the bay (heading west) and check that speed builds up progressively.
   const start = s.moto;
@@ -89,7 +89,7 @@ async function desktop(browser) {
   check('inclinação visual moderada na curva', Math.abs(leaned) > 0.02 && Math.abs(leaned) < 0.45, `lean=${fx(leaned)} rad`);
   // Ride north along the houses, keeping near the lane with small corrections.
   s = await until((v) => v.moto.z > -4 || v.moto.speed === 0, 30000);
-  await shot('02-pilotando-rua.png');
+  await shot('02-pilotando-rua.jpg');
   s = await until((v) => v.moto.z > 12 || v.moto.speed === 0, 30000);
   await key.up('KeyW');
   check('moto percorre a rua', s.moto.z > 5, `z=${fx(s.moto.z)}, v=${fx(s.moto.speed)}`);
@@ -119,7 +119,7 @@ async function desktop(browser) {
   await key.up('KeyZ');
   const near = (await snap()).camera.radius;
   check('câmera aproxima', near < cam0.radius - 2, `raio ${fx(cam0.radius)} → ${fx(near)}`);
-  await shot('03-camera-proxima.png');
+  await shot('03-camera-proxima.jpg');
   await page.mouse.move(320, 150);
   for (let i = 0; i < 8; i++) await page.mouse.wheel(0, 240);
   const far = (await until((v) => v.camera.radius > near + 6, 15000)).camera.radius;
@@ -133,7 +133,7 @@ async function desktop(browser) {
   check('câmera gira arrastando na cena', Math.abs(s.camera.alpha - alphaBeforeDrag) > 0.5);
   s = await until((v) => Math.hypot(v.camera.target[0] - v.moto.x, v.camera.target[2] - v.moto.z) < 0.3, 15000);
   check('câmera acompanha a moto', Math.hypot(s.camera.target[0] - s.moto.x, s.camera.target[2] - s.moto.z) < 1.5);
-  await shot('04-camera-afastada.png');
+  await shot('04-camera-afastada.jpg');
 
   // Dismount, walk, try to drive (must not move the bike), come back and mount.
   await key.press('KeyF');
@@ -155,7 +155,7 @@ async function desktop(browser) {
   const walked = Math.hypot(s.walker.x - walk0.x, s.walker.z - walk0.z);
   check('personagem caminha', awayKey !== null && walked > 0.8, `${fx(walked)} m com ${awayKey}`);
   check('moto não se move enquanto a pé', s.moto.x === parked.x && s.moto.z === parked.z && s.moto.speed === 0);
-  await shot('05-a-pe.png');
+  await shot('05-a-pe.jpg');
   // Farther away, mounting must be refused.
   await key.down(awayKey || 'KeyW');
   s = await until((v) => dist(v) > 3.2, 12000);
@@ -187,7 +187,7 @@ async function desktop(browser) {
   await key.up('KeyW');
   check('moto chega ao muro e não atravessa muros nem casas', maxX > 4.4 && maxX < 5.9, `x máximo ${fx(maxX)}; face do muro em x=6.2`);
   check('moto sobe na calçada (meio-fio)', s.moto.y > 0.1 || maxX < 4.6, `y=${fx(s.moto.y)}`);
-  await shot('06-colisao-muro.png');
+  await shot('06-colisao-muro.jpg');
 
   // Lost focus must release every held control: hold reverse, blur, and the bike must settle.
   await key.down('KeyS');
@@ -255,7 +255,7 @@ async function phone(browser) {
   await press(2, 'right');
   s = await until((v) => v.moto.yaw > yaw0 + 0.25, 15000);
   check('[toque] dois dedos: acelerar + virar ao mesmo tempo', s.moto.yaw > yaw0 + 0.25 && s.moto.speed > 1, `Δyaw=${fx(s.moto.yaw - yaw0)}`);
-  await shot('07-celular-emulado-pilotando.png');
+  await shot('07-celular-emulado-pilotando.jpg');
   await lift(2);
   await lift(1);
   await page.waitForTimeout(300);
@@ -311,7 +311,7 @@ async function phone(browser) {
   s = await until((v) => Math.hypot(v.walker.x - w0.x, v.walker.z - w0.z) > 0.8, 20000);
   await lift(10);
   check('[toque] personagem anda pelos botões', Math.hypot(s.walker.x - w0.x, s.walker.z - w0.z) > 0.5 && s.moto.speed === 0);
-  await shot('08-celular-emulado-a-pe.png');
+  await shot('08-celular-emulado-a-pe.jpg');
   await press(11, 'right');
   await until((v) => Math.hypot(v.walker.x - v.moto.x, v.walker.z - v.moto.z) < 1.6, 20000);
   await lift(11);
