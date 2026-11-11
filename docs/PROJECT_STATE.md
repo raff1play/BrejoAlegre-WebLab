@@ -117,3 +117,14 @@ Ler `AGENTS.md` e `docs/NEXT_TASK_FOR_FABLE.md` (agora descreve a tarefa seguint
 - O link publicado é `https://raff1play.github.io/BrejoAlegre-WebLab/`; a ferramenta de consulta web deste chat não conseguiu carregá-lo diretamente, então o carregamento/resultado do botão no Galaxy S24 **continua NÃO TESTADO**.
 - Para validar: abrir no Chrome Android em retrato, tocar em **Jogar na horizontal**, verificar tela cheia + rotação; testar saída de tela cheia e fallback manual. Não declarar orientação forçada como garantida.
 - Preservados PR #1 em rascunho e `main` sem merge.
+
+## PWA instalável — implementação 11/11/2026
+
+- Pedido explícito do usuário: instalar como aplicativo para evitar o aviso cinza que o Chrome exibe ao entrar em `requestFullscreen()` na aba.
+- Adicionados `public/manifest.webmanifest` (modo `standalone`, preferência `landscape`), ícones PNG originais `public/icons/icon-{192,512}.png`, `public/sw.js` e `src/features/display/pwa.ts`.
+- Tela vertical e HUD oferecem botão **Instalar app**; `beforeinstallprompt` quando permitido, instruções do menu do Chrome como alternativa. Jogo normal no navegador continua funcional.
+- Em modo aplicativo instalado, o botão de orientação **não solicita browser fullscreen**; tenta orientação diretamente com fallback manual.
+- Service worker com rede primeiro, fallback de cache e escopo do próprio projeto. Nenhum servidor extra, conta, API key ou custo criado.
+- **CI verificada na HEAD `5fda84ea40c7fb967d56e2084f31785421d257f3` (run `43047036838`): success; `npm ci`, validação, **38/38 testes unitários**, typecheck e Vite staging build.** Posteriores commits de docs exigem reconferir a nova HEAD.
+- **PENDENTE:** Chrome Android instalar por prompt/menu, lançamento via ícone em paisagem, ausência real do aviso cinza, testes offline, atualizações e tela cheia pós-instalação.
+- A publicação de preview é controlada separadamente por `.github/workflows/preview.yml`; build verde não significa novo deploy concluído.
