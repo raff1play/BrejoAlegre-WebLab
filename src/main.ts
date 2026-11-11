@@ -11,6 +11,7 @@ import { heightAt } from './core/terrain';
 import { IsometricCameraRig } from './features/camera/isometricCamera';
 import { OcclusionFader } from './features/camera/occlusionFader';
 import { GameInput, type Action } from './features/controls/input';
+import { enableLandscapeButton } from './features/display/landscape';
 import { Motorcycle, PLAYER_LOOK } from './features/driving/motorcycle';
 import { Hud, type HudMode } from './features/hud/hud';
 import { Pedestrian } from './features/walking/pedestrian';
@@ -160,6 +161,9 @@ function fail(message: string): void {
   const box = document.querySelector<HTMLElement>('#fatal');
   if (box) { box.textContent = message; box.hidden = false; }
 }
+
+// User-initiated fullscreen + landscape lock; harmless on unsupported browsers.
+enableLandscapeButton(document, window.screen);
 
 const canvas = document.querySelector<HTMLCanvasElement>('#renderCanvas');
 if (!canvas) throw new Error('Canvas #renderCanvas não encontrado');
