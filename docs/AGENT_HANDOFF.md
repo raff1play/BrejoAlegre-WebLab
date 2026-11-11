@@ -11,3 +11,5 @@
 **Testes locais e remoto (11/11/2026):** validação dos 18 arquivos obrigatórios e 6 testes unitários passaram em Node 22.16; fontes TypeScript tiveram sintaxe verificada. A integração GitHub foi corrigida, 55 arquivos foram versionados na branch `setup/weblab-foundation` e o PR #1 foi aberto como rascunho. **Não houve** instalação npm local, typecheck completo, build Vite, teste de jogo no navegador, APK, merge nem deploy. Reinspecionar o estado do PR e a CI ao retomar.
 
 **Instrução de próxima implementação:** `docs/NEXT_TASK_FOR_FABLE.md`. Ler `AGENTS.md` por completo. Fazer branch+PR sem merge, rodar testes reais, registrar resultados em `docs/PROJECT_STATE.md`. Não produzir só plano. Não inventar sucesso ou FPS.
+
+**Atualização CI (11/11/2026):** a execução https://github.com/raff1play/BrejoAlegre-WebLab/actions/runs/43022020392 concluiu **success**, com npm install, validação, 6 testes unitários e build de staging incluindo TypeScript. Gerou artefato; bundle principal ~7,2 MB pré-gzip, precisa otimização. Ainda não há teste real de browser/Android, FPS, merge ou deploy. Conferir CI da HEAD mais recente em cada retomada.
