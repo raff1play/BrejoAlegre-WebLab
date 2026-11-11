@@ -80,3 +80,16 @@ A CI roda `npm ci`, `validate:repo`, `test:unit` e `build:staging` e guarda o `d
 Ler `AGENTS.md` e `docs/NEXT_TASK_FOR_FABLE.md` (agora descreve a tarefa seguinte: validação em Android real e ajustes guiados por medição). Não fazer merge nem publicar Pages sem autorização do usuário.
 
 **Terminologia:** IMPLEMENTADO = código presente; TESTADO = comando ou ação reproduzida; NÃO TESTADO = sem execução; BLOQUEADO = tentou e falhou; APROVADO = usuário aceitou com evidência.
+
+
+## Tentativa de publicar prévia no GitHub Pages — 11/11/2026
+
+- **Autorização explícita do usuário:** solicitou publicar a prévia.
+- Criado `.github/workflows/preview.yml` exclusivamente na branch `setup/weblab-foundation` para staging; `main` e workflow de produção preservados.
+- Workflow tentativa: https://github.com/raff1play/BrejoAlegre-WebLab/actions/runs/43038148198 .
+- **Resultado: failure na etapa `actions/configure-pages@v5`**: `Get Pages site failed ... repository has Pages enabled and configured to build using GitHub Actions ... Not Found`.
+- **Antes da falha passaram:** `npm ci`, `validate:repo`, `test:unit`, `build:staging`.
+- **Não houve deploy**; não afirmar URL pública funcionando. O site `https://raff1play.github.io/BrejoAlegre-WebLab/` é somente o endereço esperado.
+- **Ação manual necessária:** proprietário abre `https://github.com/raff1play/BrejoAlegre-WebLab/settings/pages` → *Build and deployment* → *Source* = **GitHub Actions**, salvar.
+- Quando Pages estiver habilitado, reexecutar o workflow falho (job `130582420706`) e checar sucesso + URL antes de dizer PUBLICADO. A integração GitHub neste chat não possui ação administrativa de ativação do Pages.
+- A publicação temporária está aprovada apenas para teste; nenhum merge autorizado para `main`.
