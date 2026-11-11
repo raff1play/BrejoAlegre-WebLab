@@ -42,3 +42,9 @@ Não marcar bloqueio como corrigido sem evidência de execução, timestamp e, q
 - **B022 (TESTE PENDENTE):** confirmar que instalação PWA anterior foi desregistrada e seu cache exclusivo foi removido após carregar a nova página. O ícone já instalado no Android deve ser removido manualmente pelo usuário.
 - **B023 (LIMITAÇÃO):** roteiro Playwright do navegador foi atualizado para o joystick, mas não é executado pela CI padrão; testes unitários/build não equivalem a ergonomia real.
 
+## W008 — Validação da dirigibilidade leve
+
+- **B024 — PENDENTE:** confirmar em Galaxy S24 a suavidade do primeiro quarto do analógico, curvas de esquina a 10–25 km/h, retorno do guidão após soltar o dedo e capacidade de fazer retorno em espaço limitado.
+- **B025 — PENDENTE:** comparar curvas antes/depois, repetindo o mesmo trecho, para identificar exagero de sensibilidade ou colisões não previstas após aumentar o esterço/aderência.
+- **B026 — PENDENTE:** monitorar FPS durante manobras e não atribuir à calibração física variações de hardware sem medir.
+
