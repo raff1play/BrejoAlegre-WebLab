@@ -1,52 +1,54 @@
-# Estado factual do projeto — atualizar em todo PR
+# Estado factual — Brejo Alegre Web Lab
 
-**Última revisão:** 2026-11-11. **Fonte:** inspeção local da base gerada + consulta ao GitHub com o conector disponível.
+**Atualização:** 11/11/2026, após auditoria de documentos. Este é um registro datado, não substitui consulta à HEAD atual do GitHub.
 
-## GitHub remoto (verificado em 11/11/2026)
+## Repositório, branch e revisão
 
-- Conta conectada: `raff1play`; repositório público: `raff1play/BrejoAlegre-WebLab`.
-- `main` não foi alterada; commit inicial observado: `2c55f700b7b9e195068a354699607d15381a245d`.
-- **Erro 403 resolvido:** a integração GitHub permitiu criar a branch e enviar os arquivos.
-- Branch de preparação: `setup/weblab-foundation`; commit base: `dc0a7219007d2528bd99e5eb11ede9e3688dc3bf`.
-- **55 arquivos de texto versionados**, incluindo código, regras dos agentes, especificação e workflows de CI/Pages.
-- PR em rascunho: https://github.com/raff1play/BrejoAlegre-WebLab/pull/1 — sem merge, sem deploy.
-- Os três documentos `docs/archive/` e o JPG `docs/assets/visual_references_AI.jpg` ainda não estão nesta branch; são material opcional, não necessário para instalação inicial.
+- Repositório público: https://github.com/raff1play/BrejoAlegre-WebLab
+- `main`: commit inicial `2c55f700b7b9e195068a354699607d15381a245d` na inspeção; não houve merge do protótipo.
+- Branch de preparação: `setup/weblab-foundation`, com a estrutura de 55 arquivos iniciais versionados.
+- PR de revisão: https://github.com/raff1play/BrejoAlegre-WebLab/pull/1 — rascunho, ainda sem merge ou publicação.
+- O incidente 403 do conector GitHub foi **resolvido**; branch e arquivos foram criados remotamente.
+- Documentação revisada após os testes de CI; **consulte a HEAD e seu workflow vigente**, sem atribuir automaticamente o resultado de um commit anterior a um novo commit.
 
-## Conteúdo da branch (não confundir código publicado com funcionalidade validada)
+## Evidências de automação verificadas
 
-| Item | Estado | Evidência / limite |
-|---|---|---|
-| Arquivos de base Babylon/Vite/TypeScript | Versionados na branch | Código textual presente; não é comprovação de compilação |
-| Subpastas por feature e config ambiente | Versionadas na branch | `src/features/`, `src/config/`, `src/core/` |
-| Mundo temporário, moto, caminhar, HUD | Código fonte presente | `src/`; ainda sem ensaio real de gameplay |
-| Colisão aproximada 2D com casas | Código e testes unitários | `npm run test:unit`: **6/6 passaram** em Node.js 22.16.0 local; não equivale a teste de física no navegador |
-| Regras de agentes e fonte de verdade | Escritas | `AGENTS.md`, `CLAUDE.md`, `docs/` |
-| Validação de documentação | TESTADA localmente | `node scripts/validate-repository.mjs`: 18 arquivos obrigatórios presentes |
-| Transpilação de sintaxe TS | TESTADA localmente | `typescript.transpileModule`: 9 fontes TS sem erros sintáticos; não é typecheck completo |
-| CI staging e Pages manual | CI remoto aprovado na execução 43022020392 | Build staging e artefato confirmados; Pages NÃO publicado |
-| npm install e compilação completa | **PASSARAM no CI GitHub**; local bloqueado | Runner instalou dependências e executou typecheck+Vite build; ambiente local continua sem registro npm |
-| package-lock.json | **NÃO EXISTE** | Precisa ser gerado por npm install real, depois versionado |
-| Testes Android/Chrome/FPS | **NÃO EXECUTADOS** | Sem evidências de dispositivo ou browser |
-| Gameplay completo, mapa real, logística | **NÃO IMPLEMENTADOS** | Fora de 0.1 |
+| Evidência | Situação |
+|---|---|
+| CI da HEAD `a4201daeb50399830a318a2428076072ad44f8e0` | **SUCCESS** em https://github.com/raff1play/BrejoAlegre-WebLab/actions/runs/43022470633 |
+| Instalação de pacotes no runner CI | Executada com sucesso no workflow citado |
+| `npm run validate:repo` | Aprovado nessa CI |
+| `npm run test:unit` | 6/6 aprovados nessa CI |
+| `npm run build:staging` | Aprovado nessa CI; inclui `tsc --noEmit` e Vite build |
+| Testes locais preparatórios | 6/6 testes unitários; ver histórico de preparação. Instalação npm local bloqueada por EAI_AGAIN |
+| `package-lock.json` | **AUSENTE** no starter; gerar, versionar e substituir `npm install` por `npm ci` em CI/Pages |
+| Artefato do build CI | Houve artefato de staging em CI; isso **não equivale a deploy** |
+| Render e interação no Chrome real | **NÃO TESTADOS** |
+| Touch e FPS no Galaxy S24 | **NÃO TESTADOS** |
+| Desempenho 30/60 FPS | **METAS**, não resultados |
+| Página publicada no GitHub Pages | **NÃO PUBLICADA** |
 
-## Validação remota verificada — GitHub Actions (11/11/2026)
+A primeira CI verificada foi https://github.com/raff1play/BrejoAlegre-WebLab/actions/runs/43022020392, também aprovada. O bundle principal reportado nessa execução era de ~7,2 MB pré-gzip (~1,6 MB gzip). Trata-se de tamanho JS de build, **não medição de FPS ou desempenho em aparelho**.
 
-- Execução: https://github.com/raff1play/BrejoAlegre-WebLab/actions/runs/43022020392
-- **Resultado final: success**, job `verify`.
-- Confirmados no runner limpo: `npm install`, `npm run validate:repo`, `npm run test:unit` (6 testes), `npm run build:staging` (inclui `tsc --noEmit` e Vite build).
-- Artefato staging compilado: https://github.com/raff1play/BrejoAlegre-WebLab/actions/runs/43022020392/artifacts/13855880624
-- Principal chunk Vite: aproximadamente **7,2 MB** antes de gzip (**1,6 MB gzip**); avaliar imports modulares e desempenho de carregamento, especialmente no celular.
-- **Não há teste real de navegador/Android, medição de FPS, gameplay aprovado, merge ou deploy**. O sucesso da build apenas confirma empacotamento e verificações automatizadas.
-- Esta é uma execução observada; depois de novos commits, confirmar a CI correspondente à HEAD atual.
+## Código que existe
 
-## Evidências que precisam constar após o Fable
+- `src/main.ts`: composição da cena e loop.
+- `src/world/temporaryWorld.ts`: rua, casas e loja fictícias, geometria em primitivas; colisores aproximados.
+- `src/features/driving/motorcycle.ts`: moto simplificada e movimento cinemático, **não física real**.
+- `src/features/walking/pedestrian.ts`: personagem primitivo e locomoção básica.
+- `src/features/camera/`, `src/features/controls/`: câmera e entradas de teclado/touch escritas; execução ainda não validada no navegador.
+- `src/core/collision.ts`, `tests/collision.test.ts`: guardas determinísticos de movimento e testes básicos.
+- `docs/product/ORIGINAL_GODOT_SPEC.md`: visão futura, preservada sem alterar decisões D01–D17.
+- `docs/product/WEBLAB_SCOPE.md` + `docs/DECISIONS.md`: exceções aprovadas para protótipo web.
 
-- URL da branch e do PR, SHA do commit.
-- Saída de `npm run validate:repo`, `npm run test:unit`, `npm run typecheck`, `npm run build:staging`.
-- Captura **real** do navegador, identificação da versão e confirmação dos controles.
-- Se teste Android: modelo, navegador, FPS medido, resolução, orientação, problemas touch e temperatura.
-- Lista de itens não testados, falhas, riscos e aceites.
+## Arte e o que NÃO existe
 
-## NOTA PARA NOVAS IAs
+- Não há modelos 3D premium prontos, mapa real de Brejo Alegre, servidor, multiplayer, scanner, economia nem operações logísticas na 0.1.
+- As imagens/vídeos de IA criados em conversas anteriores **não estão na branch**; ver `docs/VISUAL_DIRECTION.md` para direção textual e limites.
+- Nenhum APK, teste Android, FPS medido ou captura de gameplay foi produzido/comprovado.
 
-O conteúdo deste documento é histórico e não verifica automaticamente estados futuros. Antes de agir, **reinspecione** branch, PR, CI e diretório. Se a execução mudar, atualize fatos aqui com data e evidência. Nunca substitua fatos por memória de chat.
+## Próximo agente
+
+Seguir `AGENTS.md` e `docs/NEXT_TASK_FOR_FABLE.md`. Confirmar branch/PR/CI atuais. Corrigir, testar no navegador, gerar lockfile, melhorar uma rua e documentação. Depois da tarefa, registrar SHA real, CI da nova HEAD, screenshots verdadeiros, status Android e bloqueios.
+
+**Terminologia:** IMPLEMENTADO = código presente; TESTADO = comando ou ação reproduzida; NÃO TESTADO = sem execução; BLOQUEADO = tentou e falhou; APROVADO = usuário aceitou com evidência.
