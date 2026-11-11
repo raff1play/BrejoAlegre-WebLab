@@ -18,7 +18,7 @@ Provar, a custo baixo, se o Brejo Alegre Delivery Simulator é visualmente convi
 ## Marco 0.0 — Starter técnico preparado neste kit
 
 - Projeto organizado, scripts de desenvolvimento/build, protótipo 3D em primitivas, controles teclado/touch, câmera e modo a pé.
-- **Não há certificação de compilação/runtime** porque o ambiente que gerou o kit não tinha acesso ao npm para instalar dependências.
+- **Build e typecheck foram comprovados na CI remota do GitHub em 11/11/2026** (execução 43022470633), mas **não houve demonstração de runtime real** no navegador ou Android. A instalação npm local original teve EAI_AGAIN.
 
 ## Marco 0.1 — Entrega esperada do Fable
 
@@ -28,12 +28,12 @@ Provar, a custo baixo, se o Brejo Alegre Delivery Simulator é visualmente convi
 4. Implementar/ajustar colisões básicas para impedir atravessar paredes; não anunciar física de moto real antes de implementar.
 5. Instrumentar FPS, 2 perfis gráficos (mobile/desktop), resize e prevenção de bugs de touch/tecla presa.
 6. Validar com `npm run build` e teste manual no navegador; testar em Android real se houver acesso, sem inventar resultados.
-7. Gerar instruções e executar deploy gratuito no GitHub Pages somente se houver repositório público, permissões e autorização pertinentes.
+7. Preparar instruções de deploy gratuito no GitHub Pages, mas **NÃO publicar** sem autorização explícita posterior.
 8. Não criar backend, sistemas de pacote, pagamentos, mapa real nem outros sistemas fora do escopo.
 
 ## Requisitos de controle
 
 - Alterações isoladas em `raff1play/BrejoAlegre-WebLab` se ele existir; não tocar em RadarPro, Ofertou, Mapa-051-V2, Labirinto13 ou SSF.
-- Criar branch `feat/weblab-0.1` quando o repositório permitir.
+- Nesta tarefa inicial, continuar na branch existente `setup/weblab-foundation` e atualizar o PR #1, sem duplicar a estrutura nem fazer merge/deploy.
 - Entregar código, teste e evidências; não entregar apenas relatório, mockup ou vídeo AI.
 - Não gastar dinheiro; não criar contas ou serviços externos sem autorização adicional.
