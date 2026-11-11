@@ -1,4 +1,6 @@
 import { InputState } from '../../core/inputState';
+import { blendAxis } from '../../core/analogStick.ts';
+import { VirtualJoystick } from './virtualJoystick';
 
 export type Control =
   | 'accelerate' | 'brake' | 'left' | 'right'
@@ -26,9 +28,11 @@ const ACTION_KEYS: Record<string, Action> = { KeyF: 'mount', Enter: 'mount', Key
  */
 export class GameInput {
   readonly state = new InputState<Control>();
+  readonly joystick: VirtualJoystick;
   private readonly buttons = new Map<Control, HTMLElement[]>();
 
   constructor(root: ParentNode, private readonly onAction: (action: Action) => void) {
+    this.joystick = new VirtualJoystick(root);
     window.addEventListener('keydown', (event) => {
       if (event.ctrlKey || event.metaKey || event.altKey) { this.state.releaseSource(KEYBOARD); this.paint(); return; }
       const control = HOLD_KEYS[event.code];
@@ -78,9 +82,19 @@ export class GameInput {
   }
 
   axis(positive: Control, negative: Control): number { return this.state.axis(positive, negative); }
+  /** Proportional steering while riding; keyboard remains fully functional. */
+  steer(): number { return blendAxis(this.axis('right', 'left'), this.joystick.axes.x); }
+  /** Full 360-degree movement while on foot. */
+  walkingAxes(): { forward: number; right: number } {
+    return {
+      forward: blendAxis(this.axis('accelerate', 'brake'), this.joystick.axes.y),
+      right: blendAxis(this.axis('right', 'left'), this.joystick.axes.x),
+    };
+  }
   isDown(control: Control): boolean { return this.state.isDown(control); }
 
   reset(): void {
+    this.joystick.reset();
     this.state.clear();
     this.paint();
   }
