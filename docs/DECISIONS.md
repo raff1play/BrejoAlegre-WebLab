@@ -25,3 +25,12 @@
 - D15 começar com assets provisórios; D16 demo visual primeiro; D17 congelar decisões, explicitar pendências.
 
 **Pendências históricas** (saída antecipada após expedição, preços de veículos, verificação de setores e mapas, reconexão) permanecem sem aprovação. Não completar lacunas silenciosamente.
+
+## W006 — Instalação PWA para teste (confirmada em 11/11/2026)
+
+- Pedido explícito: transformar o laboratório web em aplicativo instalável para evitar o aviso cinza do Chrome ao solicitar fullscreen pela aba.
+- Implementação aprovada **apenas para o Web Lab**: manifesto PWA com `display: standalone` e `orientation: landscape`, ícones originais, botão **Instalar app** e service worker de cache limitado ao projeto.
+- O modo instalado **não** usa `requestFullscreen()` ao tocar no controle de rotação; a orientação é uma preferência sujeita às políticas Android/Chrome.
+- Manter alternativa pelo navegador, sem inventar bloqueio forçado de rotação ou instalação já validada no Galaxy S24.
+- Não altera nenhuma decisão D01–D17 da futura versão Godot, nem autoriza merge da `main` ou serviços pagos.
+
