@@ -109,3 +109,11 @@ Ler `AGENTS.md` e `docs/NEXT_TASK_FOR_FABLE.md` (agora descreve a tarefa seguint
 - Testes unitários de caminhos suportados/negados adicionados em `tests/landscape.test.ts`; a CI passou na HEAD de código `1ffd0b8f394ee811d0a0cafd0075fcad61f5f69c`.
 - **NÃO TESTADO em Android real**. O usuário deve testar tocando no botão em Chrome Android e relatar se o celular gira automaticamente.
 - O Pages só inclui o novo botão depois de nova publicação explícita do workflow de preview. Não equiparar push a deploy.
+
+### Publicação do botão horizontal — 11/11/2026
+
+- A execução de preview `43043876785` terminou **success**, incluindo `npm ci`, testes unitários, `build:staging`, configuração e deploy do Pages. Log do GitHub: `Evaluated environment url: https://raff1play.github.io/BrejoAlegre-WebLab/`.
+- Commit efetivamente implantado: `2bbbd14edab115fafadf0c47a028f90d33ecf991`.
+- O link publicado é `https://raff1play.github.io/BrejoAlegre-WebLab/`; a ferramenta de consulta web deste chat não conseguiu carregá-lo diretamente, então o carregamento/resultado do botão no Galaxy S24 **continua NÃO TESTADO**.
+- Para validar: abrir no Chrome Android em retrato, tocar em **Jogar na horizontal**, verificar tela cheia + rotação; testar saída de tela cheia e fallback manual. Não declarar orientação forçada como garantida.
+- Preservados PR #1 em rascunho e `main` sem merge.
