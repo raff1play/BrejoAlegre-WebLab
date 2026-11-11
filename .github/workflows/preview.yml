@@ -1,0 +1,49 @@
+name: Preview Web Lab 0.1 - Pages (explicit trigger)
+
+on:
+  push:
+    branches:
+      - setup/weblab-foundation
+    paths:
+      - .github/workflows/preview.yml
+      - docs/PREVIEW_DEPLOY_TRIGGER.md
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages-weblab-preview
+  cancel-in-progress: false
+
+jobs:
+  deploy-preview:
+    # Never deploy pull-request events or other branches.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/setup/weblab-foundation'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install reproducibly
+        run: npm ci --no-audit --no-fund
+      - run: npm run validate:repo
+      - run: npm run test:unit
+      - name: Build preview (not production)
+        run: npm run build:staging
+      - name: Configure Pages (repository must have GitHub Actions source enabled)
+        uses: actions/configure-pages@v5
+      - name: Upload static site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist
+      - name: Deploy preview
+        id: deploy
+        uses: actions/deploy-pages@v4
