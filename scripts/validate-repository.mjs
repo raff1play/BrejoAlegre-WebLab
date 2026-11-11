@@ -5,6 +5,8 @@ const required = [
   'docs/PROJECT_STATE.md','docs/product/ORIGINAL_GODOT_SPEC.md',
   'docs/product/WEBLAB_SCOPE.md','docs/DECISIONS.md','docs/ARCHITECTURE.md',
   'docs/ENVIRONMENTS.md','docs/QUALITY_GATES.md','docs/NEXT_TASK_FOR_FABLE.md',
+  'docs/AGENT_HANDOFF.md','docs/ISSUES_AND_RISKS.md','docs/VISUAL_DIRECTION.md',
+  'docs/ASSETS_AND_LICENSES.md','docs/WORKFLOW.md','SECURITY.md',
   'src/main.ts','src/features/driving/motorcycle.ts','src/features/controls/input.ts',
   'src/core/collision.ts','.github/workflows/ci.yml','.github/workflows/pages.yml'
 ];
