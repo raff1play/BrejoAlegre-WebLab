@@ -149,3 +149,12 @@ Ler `AGENTS.md` e `docs/NEXT_TASK_FOR_FABLE.md` (agora descreve a tarefa seguint
 - **Android real:** joystick, reset de multi-toque e limpeza do SW precisam de validação manual; PWA instalado anteriormente pode exigir remoção manual do ícone do Android.
 - **Governança:** branch `setup/weblab-foundation`, PR #1; `main` sem merge.
 
+## Publicação W007 — navegador e analógico (11/11/2026)
+
+- **Deploy confirmado pelo GitHub Actions:** workflow preview `43050803631` — `completed / success`; commit efetivamente implantado `d3754acec91d7978d1db58fbd9f8b1d72101cc8a`.
+- **Validação do mesmo commit:** `npm ci`, validação documental, **41 testes unitários aprovados**, typecheck e `build:staging`. CI pushes `43050803541` e `43050820689` também concluídas `success`.
+- URL confirmada no log do deploy: https://raff1play.github.io/BrejoAlegre-WebLab/ .
+- O novo build remove botões/manifesto de instalação PWA, migra o touch esquerdo para joystick proporcional, mantém teclado/acelerador/freio, desregistra somente o worker antigo do jogo e limpa somente caches prefixados `brejo-weblab-`.
+- **Não comprovado em dispositivo físico:** reação aos gestos do Galaxy S24, conforto, FPS depois da mudança, ausência de controles presos. Os testes unitários não substituem essa avaliação; o teste de navegador emulado após W007 não foi executado automaticamente.
+- O usuário que tiver instalado o PWA antigo deve removê-lo manualmente do Android e abrir o endereço no Chrome.
+- `main` intocada e PR #1 em rascunho; deploy limitado à branch `setup/weblab-foundation`.
