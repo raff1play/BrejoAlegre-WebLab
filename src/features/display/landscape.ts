@@ -3,7 +3,7 @@
  * (typically after a user gesture and while fullscreen). This is a best-effort
  * request, not a bypass of Android rotation settings.
  */
-import { isAppDisplayMode } from './pwa';
+import { isAppDisplayMode } from './pwa.ts';
 
 export type LandscapeMode = 'locked' | 'fullscreen-only' | 'manual';
 
