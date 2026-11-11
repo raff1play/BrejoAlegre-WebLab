@@ -42,3 +42,12 @@
 - **Na moto:** analógico X = esterço proporcional. Acelerar e frear continuam separados, à direita. **A pé:** analógico X/Y = caminhada em 360° com velocidade proporcional, mantendo teclado no PC.
 - Continuar com animação de câmera, colisões e controles existentes, sem servidor ou serviços pagos. Medir ergonomia/FPS no aparelho real antes de dizer que melhorou.
 - A `main` e o jogo Godot final não são alterados. Publicar somente na prévia autorizada do Pages, após testes aprovados.
+
+## W008 — Calibração da moto com direção mais leve (confirmada em 11/11/2026)
+
+- Pedido explícito após testar W007 no celular: "Ficou muito pesado, difícil manobrar a moto".
+- **Somente moto:** aplicar curva não linear à intensidade horizontal do analógico (25% do stick ≈ 45% do comando de direção), mantendo centro neutro e saturação em [-1,1].
+- No núcleo da simulação, reduzir a demora de resposta do guidão (taxa de entrada 3,2 → 5,0/s e retorno 5,5 → 8,0/s); aumentar o esterço máximo (0,56 → 0,67 rad) e o limite de aceleração lateral (6,5 → 8,0 m/s²) para melhorar manobras em baixa/média velocidade, sem aumentar a velocidade máxima.
+- **Não modificar** velocidade do pedestre, analógico ao caminhar, acelerador/freio, teclado, colisões, câmera, PWA suspenso ou decisões do jogo Godot.
+- A alteração só é considerada **aprovada ergonomicamente** quando o usuário testar a nova versão em aparelho real; CI verde prova regressões automatizadas, não conforto de direção.
+
