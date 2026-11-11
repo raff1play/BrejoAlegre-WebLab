@@ -27,3 +27,7 @@ Em **Build and deployment > Source**, selecionar **GitHub Actions** e salvar. En
 - PR #1 continua aberto, main intocada, sem merge.
 
 **Importante:** a nova publicação é um preview; a política de deploy estável de `.github/workflows/pages.yml` não foi revogada.
+
+## Nova tentativa após ativação do Pages
+
+- 11/11/2026: usuário confirmou visualmente Source = GitHub Actions no repositório. Uma tentativa de reexecutar a execução antiga terminou antes de iniciar um runner; será feita tentativa nova a partir da HEAD atual para distinguir erro de configuração anterior de restrição do ambiente.
