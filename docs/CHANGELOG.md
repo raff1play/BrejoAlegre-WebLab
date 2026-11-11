@@ -42,3 +42,12 @@ Próximas mudanças devem registrar PR/SHA e resultados verificáveis.
 - `f1615d9`: roteiro de navegador `tests/e2e/play.cjs` (44/44 no build de staging) e capturas reais em `docs/evidence/`.
 - Correções de bugs encontrados ao executar: direção invertida do starter, texturas dinâmicas em modo clamp, ré disparando ao segurar o freio, HUD lendo o DOM antes do construtor.
 - **Não feito:** teste em Android real, medição de FPS em aparelho, deploy no Pages, merge.
+
+## 2026-11-11 — Botão para tentar iniciar em horizontal
+
+- Implementado no overlay vertical o botão **Jogar na horizontal**.
+- Clique do usuário solicita Fullscreen API e depois `ScreenOrientation.lock('landscape')`, com fallback explícito quando o navegador/SO recusa.
+- Arquivos: `index.html`, `src/style.css`, `src/main.ts`, `src/features/display/landscape.ts`, `tests/landscape.test.ts`.
+- Testes de sucesso, fullscreen já ativo, APIs ausentes e recusas de fullscreen/orientação acrescentados; CI da HEAD `1ffd0b8f394ee811d0a0cafd0075fcad61f5f69c` passou em push e PR.
+- **Sem comprovação de bloqueio de orientação no Galaxy S24 real**; requer teste pelo usuário em Chrome Android. Não é rotação garantida nem automática sem interação.
+- A publicação do preview da nova versão deve ser registrada com SHA e execução em `docs/PROJECT_STATE.md`.
