@@ -160,3 +160,14 @@ test('math helpers', () => {
   assert.equal(segmentIntersectsBox({ x: -5, y: 9, z: 1 }, { x: 5, y: 6, z: 1 }, box), false);
   assert.equal(segmentIntersectsBox({ x: -5, y: 1, z: 1 }, { x: -1, y: 1, z: 1 }, box), false);
 });
+
+test('light-handling tune gives fast response and retains upright parking', () => {
+  const state = createMotoState(0, 0, 0);
+  stepMotorcycle(state, { throttle: 0, brake: 0, steer: 1 }, 0.1, open);
+  assert.ok(state.steer >= 0.48, `steer responds within a tenth of a second: ${state.steer}`);
+  assert.equal(state.yaw, 0, 'motorcycle still cannot pivot in place');
+  assert.equal(state.speed, 0);
+  stepMotorcycle(state, { throttle: 0, brake: 0, steer: 0 }, 0.1, open);
+  assert.ok(state.steer < 0.01, 'steering recentres within a tenth of a second');
+  assert.equal(state.lean, 0);
+});
