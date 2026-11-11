@@ -158,3 +158,12 @@ Ler `AGENTS.md` e `docs/NEXT_TASK_FOR_FABLE.md` (agora descreve a tarefa seguint
 - **Não comprovado em dispositivo físico:** reação aos gestos do Galaxy S24, conforto, FPS depois da mudança, ausência de controles presos. Os testes unitários não substituem essa avaliação; o teste de navegador emulado após W007 não foi executado automaticamente.
 - O usuário que tiver instalado o PWA antigo deve removê-lo manualmente do Android e abrir o endereço no Chrome.
 - `main` intocada e PR #1 em rascunho; deploy limitado à branch `setup/weblab-foundation`.
+
+## Ajuste W008 — moto mais leve de manobrar (11/11/2026)
+
+- Relato após testar W007: **direção da moto pesada; dificuldade para manobrar**.
+- Corrigida hipótese em dois pontos: comando analógico exigia grande deslocamento do polegar, e a física limitava entrada/raio de curva. Implementada curva de resposta do analógico **apenas para pilotagem** em `src/core/analogStick.ts` e `src/features/controls/input.ts`; modificada a calibração física em `src/core/motorcyclePhysics.ts`.
+- Novos testes de resposta/simetria/recentralização em `tests/analogStick.test.ts` e `tests/simulation.test.ts`.
+- **Ainda não comprovado:** se a nova dirigibilidade agrada no Galaxy S24; comparar por teste com a versão anterior e ajustar novamente se necessário.
+- **Status de CI e deploy:** a ser atualizado após consultar o GitHub Actions e o preview da HEAD publicada; não confundir commits com deploy.
+
