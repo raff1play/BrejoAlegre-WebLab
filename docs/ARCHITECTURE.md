@@ -18,21 +18,30 @@ config/environment.ts <- .env.development / .env.staging / .env.production
 
 `src/core/` contém regras puras que não importam Babylon.js; `tests/` exercita essas regras sem renderer. `src/features/` possui comportamento e controle; `src/world/` constrói o cenário provisório; `src/main.ts` faz a composição, não deve absorver mecânicas de gameplay futuras. `src/config/` só define ambiente e flags de apresentação.
 
-## Caminho da requisição para o teste
+## Caminho da entrada até a tela (0.1)
 
-Teclado/touch → `GameInput.pressed` → controlador moto/pedestre → proposta de posição → `MotionGuard` do mundo → atualização de posição → cena/câmera/HUD → render no canvas.
+Teclado/toque → `GameInput` (`InputState` por fonte: teclado ou um ponteiro por dedo) → `main.ts` converte em controles → `stepMotorcycle` ou `stepWalker` (puros, com `dt`) consultando o `MotionGuard` do mundo → os modelos (`Motorcycle`, `Pedestrian`) copiam o estado para os nós → `IsometricCameraRig` segue o alvo → `OcclusionFader` e sombra → HUD → render.
+
+Só um corpo recebe controles por vez (`mode` em `main.ts`); ao trocar, as entradas mantidas são zeradas.
+
+## Mundo
+
+`src/world/layout.ts` é a planta **fictícia** em dados puros (lotes, colisores, áreas elevadas, oclusores, árvores, postes). Os testes verificam a planta sem renderizador. `temporaryWorld.ts` desenha a partir dela, fundindo a geometria estática por material (`geometry.ts`), com cor por vértice para superfícies pintadas; isso mantém ≈ 160 draw calls por quadro.
 
 ## Limitações PROPOSITADAS
 
-- Colisão é teste determinístico de círculo contra retângulo, em X/Z: **não é solver de física de moto, nem colisão dinâmica**.
-- Arte em primitivas; sem modelo de carga, combustível ou sistema de NPC. Não ocultar essa diferença.
-- Não há backend. O bundle deve poder executar em hospedagem estática sem servidor próprio.
-- Salvar progresso, inventário e domínio de pacotes **não existem na 0.1**; se protótipos futuros os testarem, priorizar módulos locais e testes puros.
-- Não reservar trabalho para sincronização ENet/UDP nesta fase: seria complexidade descartável.
+- Moto: modelo cinemático de bicicleta com limite de aceleração lateral. **Não é corpo rígido**: sem suspensão, derrapagem ou queda.
+- Colisão: círculos contra caixas alinhadas aos eixos em X/Z, com deslizamento por eixo. Sem colisão dinâmica entre objetos móveis (só pedestre × moto estacionada).
+- Arte em primitivas e texturas procedurais; sem carga, combustível, NPCs ou tráfego.
+- Não há backend. O bundle roda em hospedagem estática.
+- Sem salvamento de progresso; `localStorage` guarda apenas o perfil gráfico escolhido.
+- Não reservar trabalho para sincronização de rede nesta fase.
 
 ## Restrições técnicas
 
-- Módulos importam em uma direção simples: `features` pode importar `core`; `core` NÃO importa `features`, Babylon ou DOM.
+- Módulos importam em uma direção simples: `features` e `world` podem importar `core`; `core` NÃO importa `features`, `world`, Babylon ou DOM. Arquivos de `core/` e `world/layout.ts` usam imports com extensão `.ts` para rodarem direto no `node --test`.
+- Importar o Babylon sempre por caminho específico (`@babylonjs/core/Meshes/mesh`), nunca pelo índice `@babylonjs/core`: isso reduziu o bundle de 7,2 MB para 1,3 MB.
+- `DynamicTexture` vem em modo clamp; texturas que repetem precisam de `WRAP_ADDRESSMODE` (ver `paintTexture`).
 - Configuração via `VITE_*` é pública no bundle. Nunca adicionar chaves privadas em `.env` do Vite.
 - Scripts de migração/infraestrutura e segredos são proibidos no protótipo local sem decisão explícita.
 - Não carregar assets pesados antes de provar FPS e orçamento gráfico no celular.

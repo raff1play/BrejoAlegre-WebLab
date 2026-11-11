@@ -8,7 +8,8 @@ const required = [
   'docs/AGENT_HANDOFF.md','docs/ISSUES_AND_RISKS.md','docs/VISUAL_DIRECTION.md',
   'docs/ASSETS_AND_LICENSES.md','docs/WORKFLOW.md','SECURITY.md',
   'src/main.ts','src/features/driving/motorcycle.ts','src/features/controls/input.ts',
-  'src/core/collision.ts','.github/workflows/ci.yml','.github/workflows/pages.yml'
+  'src/core/collision.ts','src/core/motorcyclePhysics.ts','src/world/layout.ts','package-lock.json',
+  'tests/e2e/play.cjs','.github/workflows/ci.yml','.github/workflows/pages.yml'
 ];
 for(const file of required){
   assert.ok(existsSync(file),`Required file missing: ${file}`);
@@ -20,4 +21,7 @@ assert.match(original,/Brejo Alegre/);
 const scope=readFileSync('docs/product/WEBLAB_SCOPE.md','utf8');
 assert.match(scope,/Babylon/);
 assert.match(scope,/single-player/);
+// The mandatory disclaimer must stay on screen, and CI must install from the lockfile.
+assert.match(readFileSync('index.html','utf8'),/ÁREA TEMPORÁRIA DE TESTE — NÃO REPRESENTA BREJO ALEGRE/);
+for(const wf of ['ci.yml','pages.yml']) assert.match(readFileSync(`.github/workflows/${wf}`,'utf8'),/npm ci/);
 console.log(`Repository integrity checks passed (${required.length} required text files).`);

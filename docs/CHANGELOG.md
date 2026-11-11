@@ -28,3 +28,17 @@ Próximas mudanças devem registrar PR/SHA e resultados verificáveis.
 - A CI remota da HEAD `a4201daeb50399830a318a2428076072ad44f8e0` passou (run 43022470633): instalação, validação documental, 6 testes e build de staging com typecheck.
 - Revisada a próxima tarefa do Fable para trabalhar na branch e PR existentes; fonte de verdade, riscos, estado e direção visual corrigidos.
 - Não houve testes reais em navegador/Android, captura de gameplay, lockfile nem deploy.
+
+## 2026-11-11 — Web Lab 0.1 jogável
+
+- `c0795b9`: `package-lock.json` versionado; CI e Pages passam a usar `npm ci`.
+- `37a7d31`: primeira versão jogável.
+  - Simulação pura em `src/core/`: moto (aceleração progressiva, freio, ré lenta, direção limitada por aderência, inclinação visual), pedestre relativo à câmera, montar/desmontar, colisão com deslizamento e subpassos, altura de terreno, estado de entrada sem tecla presa.
+  - Rua fictícia nova em `src/world/`: 10 casas com telhado/muro/portão, mercearia genérica com vagas de moto, praça, cruzamento com faixas e PARE, postes com fiação, árvores, cavaletes no fim da área e placas "ÁREA TEMPORÁRIA DE TESTE — NÃO REPRESENTA BREJO ALEGRE".
+  - Texturas procedurais (sem assets de terceiros), sol com sombra que acompanha o jogador, céu e névoa.
+  - Câmera isométrica com giro, zoom, arrasto, pinça e fade de construções que escondem o jogador.
+  - Controles de teclado e multitoque, HUD para paisagem, perfis gráficos desktop/mobile (`?gfx=mobile|desktop` ou botão no HUD).
+  - Bundle principal 7,2 MB → 1,32 MB com imports específicos do Babylon.
+- `f1615d9`: roteiro de navegador `tests/e2e/play.cjs` (44/44 no build de staging) e capturas reais em `docs/evidence/`.
+- Correções de bugs encontrados ao executar: direção invertida do starter, texturas dinâmicas em modo clamp, ré disparando ao segurar o freio, HUD lendo o DOM antes do construtor.
+- **Não feito:** teste em Android real, medição de FPS em aparelho, deploy no Pages, merge.
