@@ -1,12 +1,15 @@
 # Qualidade: gates obrigatórios por etapa
 
 ## Gate A — Estrutura (starter)
-- [ ] Arquivos e fontes de verdade presentes (`npm run validate:repo`)
-- [ ] Testes determinísticos (`npm run test:unit`)
-- [ ] Dependências instaladas com sucesso, sem erros
+
+Marcação abaixo referente à **CI da HEAD a4201dae (execução 43022470633)**, não à HEAD após posteriores alterações nem à execução do jogo no browser.
+
+- [x] Arquivos e fontes de verdade presentes (`npm run validate:repo`) — CI
+- [x] Testes determinísticos (`npm run test:unit`) — 6/6 CI
+- [x] Dependências instaladas com sucesso no runner CI
 - [ ] `package-lock.json` gerado e versionado; CI alterado para `npm ci`
-- [ ] TypeScript estrito (`npm run typecheck`)
-- [ ] `npm run build:staging` funcional
+- [x] TypeScript estrito (`npm run typecheck`), executado pelo `build:staging` na CI
+- [x] `npm run build:staging` funcional no runner CI
 
 ## Gate B — Jogabilidade 0.1
 - [ ] Render real no Chrome desktop e captura de tela **não IA**
