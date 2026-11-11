@@ -101,3 +101,11 @@ Ler `AGENTS.md` e `docs/NEXT_TASK_FOR_FABLE.md` (agora descreve a tarefa seguint
 - Versão implantada: commit `a72f14c0946b51c0410c2b38d72f0d7f4ca39398`, branch `setup/weblab-foundation`.
 - **Status:** Publicação confirmada pelo GitHub Actions; teste HTTP externo direto neste ambiente indisponível (ferramenta web recusou abrir URL, container sem DNS externo). Ainda falta o usuário abrir pelo Chrome Android para validar carregamento, controles e FPS.
 - A `main` não foi alterada; PR #1 continua em rascunho. O workflow está restrito a alterações explícitas em `docs/PREVIEW_DEPLOY_TRIGGER.md` ou `.github/workflows/preview.yml`; novos commits comuns NÃO republicam automaticamente.
+
+## Alteração de orientação horizontal — 11/11/2026
+
+- Implementado um botão **Jogar na horizontal** no aviso de retrato; ao tocar solicita fullscreen e tenta `screen.orientation.lock('landscape')`.
+- Em navegadores que não suportam ou recusam as APIs, mantém alternativa de giro manual; não altera as opções de orientação do sistema.
+- Testes unitários de caminhos suportados/negados adicionados em `tests/landscape.test.ts`; a CI passou na HEAD de código `1ffd0b8f394ee811d0a0cafd0075fcad61f5f69c`.
+- **NÃO TESTADO em Android real**. O usuário deve testar tocando no botão em Chrome Android e relatar se o celular gira automaticamente.
+- O Pages só inclui o novo botão depois de nova publicação explícita do workflow de preview. Não equiparar push a deploy.
