@@ -31,3 +31,9 @@ Em **Build and deployment > Source**, selecionar **GitHub Actions** e salvar. En
 ## Nova tentativa após ativação do Pages
 
 - 11/11/2026: usuário confirmou visualmente Source = GitHub Actions no repositório. Uma tentativa de reexecutar a execução antiga terminou antes de iniciar um runner; será feita tentativa nova a partir da HEAD atual para distinguir erro de configuração anterior de restrição do ambiente.
+
+## Publicação autorizada — botão horizontal
+
+- 11/11/2026: usuário pediu adicionar ao jogo um botão para solicitar modo horizontal ao iniciar no celular.
+- Esta atualização dispara o workflow de preview existente para tornar o recurso disponível no Pages, sem merge na main.
+- Critério: publicar somente se instalação/testes/build e deploy passarem. A rotação real continua dependendo de suporte do Chrome/Android, com fallback manual.
