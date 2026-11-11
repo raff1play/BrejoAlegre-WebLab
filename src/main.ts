@@ -1,86 +1,171 @@
 import './style.css';
-import { Color4, DirectionalLight, Engine, HemisphericLight, Scene, Vector3 } from '@babylonjs/core';
-import { GameInput } from './features/controls/input';
-import { Motorcycle } from './features/driving/motorcycle';
-import { Pedestrian } from './features/walking/pedestrian';
-import { buildTemporaryWorld } from './world/temporaryWorld';
+import { Engine } from '@babylonjs/core/Engines/engine';
+import { Vector3 } from '@babylonjs/core/Maths/math.vector';
+import { Scene } from '@babylonjs/core/scene';
 import { currentEnvironment } from './config/environment';
-import {createIsometricCamera,rotateCamera,zoomCamera} from './features/camera/isometricCamera';
+import { resolveGraphicsProfile, switchGraphicsProfile } from './config/graphics';
+import type { MotionGuard } from './core/collision';
+import { canMount, findDismountSpot } from './core/mounting';
+import { MOTO, isMotoStopped } from './core/motorcyclePhysics';
+import { heightAt } from './core/terrain';
+import { IsometricCameraRig } from './features/camera/isometricCamera';
+import { OcclusionFader } from './features/camera/occlusionFader';
+import { GameInput, type Action } from './features/controls/input';
+import { Motorcycle, PLAYER_LOOK } from './features/driving/motorcycle';
+import { Hud, type HudMode } from './features/hud/hud';
+import { Pedestrian } from './features/walking/pedestrian';
+import { setupEnvironment } from './world/environment';
+import { CURB_H, PARKED_PROP, SPAWN } from './world/layout';
+import { buildTemporaryWorld } from './world/temporaryWorld';
 
-const canvas=document.querySelector<HTMLCanvasElement>('#renderCanvas');
-if(!canvas) throw new Error('Canvas #renderCanvas não encontrado');
+/** Composition root: wires input → simulation → presentation. Game rules live in core/ and features/. */
+function start(canvas: HTMLCanvasElement): void {
+  const profile = resolveGraphicsProfile();
+  const engine = new Engine(canvas, true, { stencil: false, powerPreference: 'high-performance' }, false);
+  const applyResolution = () => {
+    engine.setHardwareScalingLevel(1 / Math.min(window.devicePixelRatio || 1, profile.maxPixelRatio));
+    engine.resize();
+  };
+  const scene = new Scene(engine);
+  scene.skipPointerMovePicking = true;
+  const environment = setupEnvironment(scene, profile);
+  const world = buildTemporaryWorld(scene, profile);
+  const ground = (x: number, z: number) => heightAt(x, z, world.raised);
 
-const engine=new Engine(canvas,true,{stencil:true,antialias:true,preserveDrawingBuffer:false});
-engine.setHardwareScalingLevel(Math.min(2,Math.max(1,window.devicePixelRatio || 1)));
-const scene=new Scene(engine);
-scene.clearColor=new Color4(.70,.83,.94,1);
-const ambient=new HemisphericLight('skylight',new Vector3(0,1,0),scene);
-ambient.intensity=.9;
-const sun=new DirectionalLight('sun',new Vector3(-.5,-1,.3),scene);
-sun.intensity=1.15;
-
-const mayMove = buildTemporaryWorld(scene);
-const moto=new Motorcycle(scene);
-const onFoot=new Pedestrian(scene);
-const input=new GameInput();
-let isRiding=true;
-const camera=createIsometricCamera(scene,moto.root.position.clone());
-scene.activeCamera=camera;
-
-function updateMode():void {
-  const mode=document.querySelector<HTMLElement>('#mode');
-  const tips=document.querySelector<HTMLElement>('#tips');
-  const action=document.querySelector<HTMLButtonElement>('[data-action="mount"]');
-  if(mode) mode.textContent=isRiding?'Pilotando':'A pé';
-  if(tips) tips.textContent=isRiding?'WASD ou setas: condução · F: descer':'WASD ou setas: andar · F: montar perto da moto';
-  if(action) action.textContent=isRiding?'Descer':'Montar';
-}
-function toggleMount():void {
-  if(isRiding) {
-    if(Math.abs(moto.state.speedMps)>.4)return;
-    isRiding=false;
-    moto.setRiderVisible(false);
-    onFoot.root.position=moto.root.position.add(new Vector3(-1.4,0,0));
-    onFoot.root.setEnabled(true);
-  } else {
-    if(Vector3.Distance(onFoot.root.position,moto.root.position)>3.4)return;
-    isRiding=true;
-    onFoot.root.setEnabled(false);
-    moto.setRiderVisible(true);
+  const moto = new Motorcycle(scene, world.materials, PLAYER_LOOK, SPAWN.x, SPAWN.z, SPAWN.yaw, ground(SPAWN.x, SPAWN.z));
+  const parkedProp = new Motorcycle(scene, world.materials, { paint: '#1f6a45', box: '#d2cdbf', helmet: '#222' },
+    PARKED_PROP.x, PARKED_PROP.z, PARKED_PROP.yaw, CURB_H, false);
+  const walker = new Pedestrian(scene, world.materials, PLAYER_LOOK.helmet);
+  for (const mesh of [...world.shadowCasters, ...moto.meshes, ...parkedProp.meshes, ...walker.meshes]) {
+    environment.shadows.addShadowCaster(mesh, false);
   }
-  input.reset();updateMode();
-}
-window.addEventListener('keydown',event=>{
-  if(event.key.toLowerCase()==='f') {event.preventDefault();if(!event.repeat)toggleMount();}
-  else if(event.key.toLowerCase()==='q')rotateCamera(camera,-.16);
-  else if(event.key.toLowerCase()==='e')rotateCamera(camera,.16);
-});
-for(const btn of document.querySelectorAll<HTMLButtonElement>('[data-action]')) {
-  btn.addEventListener('click',()=>{
-    switch(btn.dataset.action) {
-      case 'mount':toggleMount();break;
-      case 'camera-left':rotateCamera(camera,-.18);break;
-      case 'camera-right':rotateCamera(camera,.18);break;
-      case 'zoom-in':zoomCamera(camera,-3);break;
-      case 'zoom-out':zoomCamera(camera,3);break;
+
+  // On foot, the parked bike is solid too.
+  const walkerGuard: MotionGuard = (x, z, r) => {
+    if (!world.guard(x, z, r)) return false;
+    const s = moto.state;
+    const ox = Math.sin(s.yaw) * MOTO.bodyOffset;
+    const oz = Math.cos(s.yaw) * MOTO.bodyOffset;
+    const reach = r + MOTO.bodyRadius - 0.08;
+    return Math.hypot(x - s.x - ox, z - s.z - oz) > reach && Math.hypot(x - s.x + ox, z - s.z + oz) > reach
+      && Math.hypot(x - s.x, z - s.z) > reach;
+  };
+
+  const hud = new Hud(document);
+  hud.setVersion(currentEnvironment.version, currentEnvironment.name);
+  hud.setGraphics(profile.name);
+  let mode: HudMode = 'riding';
+
+  const toggleMount = (): void => {
+    if (mode === 'riding') {
+      if (!isMotoStopped(moto.state)) { hud.toast('Pare a moto para descer'); return; }
+      const spot = findDismountSpot(moto.state, world.guard);
+      if (!spot) { hud.toast('Sem espaço para descer aqui'); return; }
+      moto.state.speed = 0;
+      moto.state.steer = 0;
+      moto.setRidden(false);
+      walker.place(spot.x, spot.z, moto.state.yaw, ground(spot.x, spot.z));
+      walker.root.setEnabled(true);
+      mode = 'walking';
+    } else {
+      if (!canMount(walker.state, moto.state)) { hud.toast('Chegue mais perto da moto'); return; }
+      walker.root.setEnabled(false);
+      moto.setRidden(true);
+      mode = 'riding';
     }
+    // Held keys never carry over from one body to the other.
+    input.reset();
+  };
+  const onAction = (action: Action): void => {
+    if (action === 'mount') toggleMount();
+    else switchGraphicsProfile(profile);
+  };
+  const input = new GameInput(document, onAction);
+
+  const startFocus = new Vector3(SPAWN.x, 1, SPAWN.z);
+  const narrow = Math.min(window.innerWidth, window.innerHeight) < 520;
+  const rig = new IsometricCameraRig(scene, canvas, startFocus, narrow ? 15 : 18);
+  const fader = new OcclusionFader(world.occluders);
+  const cameraTarget = new Vector3();
+  const playerCentre = new Vector3();
+  const idle = { throttle: 0, brake: 0, steer: 0 };
+
+  scene.onBeforeRenderObservable.add(() => {
+    // Clamp the step so a hitch or a background tab cannot teleport anything.
+    const dt = Math.min(0.05, engine.getDeltaTime() / 1000);
+    const m = moto.state;
+    if (mode === 'riding') {
+      moto.update(dt, {
+        throttle: input.isDown('accelerate') ? 1 : 0,
+        brake: input.isDown('brake') ? 1 : 0,
+        steer: input.axis('right', 'left'),
+      }, world.guard, ground(m.x, m.z));
+      const lead = m.speed * 0.28;
+      cameraTarget.set(m.x + Math.sin(m.yaw) * lead, moto.root.position.y + 0.95, m.z + Math.cos(m.yaw) * lead);
+      playerCentre.set(m.x, moto.root.position.y + 1.0, m.z);
+    } else {
+      moto.update(dt, idle, world.guard, ground(m.x, m.z));
+      const w = walker.state;
+      walker.update(dt, { forward: input.axis('accelerate', 'brake'), right: input.axis('right', 'left') },
+        rig.viewYaw, walkerGuard, ground(w.x, w.z));
+      cameraTarget.set(w.x, walker.root.position.y + 1.05, w.z);
+      playerCentre.copyFrom(cameraTarget);
+    }
+    rig.update(dt, cameraTarget, input.axis('camera-right', 'camera-left'), input.axis('zoom-out', 'zoom-in'));
+    fader.update(dt, rig.camera.position, playerCentre);
+    environment.focusShadows(playerCentre.x, playerCentre.z);
+    const available = mode === 'riding' ? isMotoStopped(m) : canMount(walker.state, m);
+    hud.update(mode, mode === 'riding' ? Math.abs(m.speed) * 3.6 : 0, engine.getFps(), available);
+  });
+
+  applyResolution();
+  engine.runRenderLoop(() => scene.render());
+  window.addEventListener('resize', applyResolution);
+  window.addEventListener('orientationchange', applyResolution);
+  new ResizeObserver(() => engine.resize()).observe(canvas);
+
+  if (import.meta.env.DEV) {
+    // Development-only aids for inspecting the scene; stripped from staging/production builds.
+    Object.defineProperty(window, '__scene', { value: scene });
+    Object.defineProperty(window, '__debug', {
+      value: {
+        teleport: (x: number, z: number, yaw: number) => Object.assign(moto.state, { x, z, yaw, speed: 0 }),
+        camera: (alpha: number, beta: number, radius: number) => rig.debugSet(alpha, beta, radius),
+      },
+    });
+  }
+
+  // Read-only probe used by the browser smoke test (tests/e2e) and for manual debugging.
+  Object.defineProperty(window, '__weblab', {
+    value: Object.freeze({
+      snapshot: () => ({
+        version: currentEnvironment.version,
+        environment: currentEnvironment.name,
+        graphics: profile.name,
+        mode,
+        moto: { ...moto.state, y: moto.root.position.y },
+        walker: { ...walker.state, y: walker.root.position.y },
+        camera: { alpha: rig.camera.alpha, beta: rig.camera.beta, radius: rig.camera.radius, target: rig.camera.target.asArray() },
+        fadedBuildings: fader.fadedCount,
+        fps: engine.getFps(),
+        drawCalls: scene.getEngine()._drawCalls?.current ?? null,
+        activeMeshes: scene.getActiveMeshes().length,
+        renderSize: [engine.getRenderWidth(), engine.getRenderHeight()],
+      }),
+    }),
   });
 }
-canvas.addEventListener('wheel',e=>{
-  e.preventDefault();
-  zoomCamera(camera,e.deltaY>0?2:-2);
-},{passive:false});
-const speedEl=document.querySelector<HTMLElement>('#speed');
-const fpsEl=document.querySelector<HTMLElement>('#fps');
-scene.onBeforeRenderObservable.add(()=>{
-  const dt=Math.min(.05,engine.getDeltaTime()/1000);
-  if(isRiding)moto.update(dt,input,mayMove);
-  else onFoot.update(dt,input,mayMove);
-  const target=(isRiding?moto.root:onFoot.root).position.add(new Vector3(0,1.1,0));
-  camera.setTarget(Vector3.Lerp(camera.target,target,Math.min(1,dt*4)));
-  if(speedEl) speedEl.textContent=String(Math.round(Math.abs(isRiding?moto.state.speedMps:0)*3.6));
-  if(fpsEl) fpsEl.textContent=`FPS: ${engine.getFps().toFixed(0)} · ${currentEnvironment.name}`;
-});
-engine.runRenderLoop(()=>scene.render());
-window.addEventListener('resize',()=>engine.resize());
-updateMode();
+
+function fail(message: string): void {
+  const box = document.querySelector<HTMLElement>('#fatal');
+  if (box) { box.textContent = message; box.hidden = false; }
+}
+
+const canvas = document.querySelector<HTMLCanvasElement>('#renderCanvas');
+if (!canvas) throw new Error('Canvas #renderCanvas não encontrado');
+try {
+  start(canvas);
+} catch (error) {
+  console.error(error);
+  fail('Não foi possível iniciar o gráfico 3D (WebGL) neste navegador. Atualize o navegador ou tente outro aparelho.');
+}

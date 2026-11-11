@@ -1,62 +1,142 @@
-import { MeshBuilder, Scene, Vector3 } from '@babylonjs/core';
-import { solid } from './materials';
-import { createMotionGuard, type Box2D } from '../core/collision';
+import type { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
+import type { Mesh } from '@babylonjs/core/Meshes/mesh';
+import type { Scene } from '@babylonjs/core/scene';
+import { createMotionGuard, type Box2D, type MotionGuard } from '../core/collision';
+import type { Box3D } from '../core/math';
+import type { RaisedArea } from '../core/terrain';
+import type { GraphicsProfile } from '../config/graphics';
+import { buildHouse, buildShop, type Building } from './buildings';
+import { BatchSet } from './geometry';
+import { Materials } from './materials';
+import { buildBenches, buildPoles, buildSigns, buildTrees } from './props';
+import {
+  CROSS_NORTH, CROSS_SOUTH, CROSS_Z, CURB_H, EXTENT, HOUSES, PARKING, PLAZA, PLAZA_BEDS, ROAD_HALF, SHOP, SHOP_PROPS,
+  WALL_RUNS, WORLD_BOUNDS, buildColliders, buildOccluders, buildRaisedAreas, sidewalkStrips,
+} from './layout';
 
-/** Fictional placeholder! Do not represent this as verified cartography of Brejo Alegre. */
-export function buildTemporaryWorld(scene: Scene): ReturnType<typeof createMotionGuard> {
-  const blockers: Box2D[] = [];
-  const grass = solid(scene, 'capim', '#7b966b');
-  const road = solid(scene, 'asfalto', '#404750');
-  const roadMark = solid(scene, 'faixas', '#dec980');
-  const sidewalk = solid(scene, 'calcada', '#b9b3a3');
-  const wall = solid(scene, 'muro', '#e0d6bf');
-  const roof = solid(scene, 'telha', '#a9573a');
-  const trunkMat = solid(scene, 'tronco', '#594432');
-  const foliage = solid(scene, 'folhagem', '#557a45');
-  const houseColors = ['#e6d6bd', '#d5dbd0', '#f2e4cf', '#f0d3bf'];
-  const ground = MeshBuilder.CreateGround('terrain', { width: 130, height: 130 }, scene);
-  ground.material = grass;
-  const street = MeshBuilder.CreateGround('street', { width: 9.5, height: 120 }, scene);
-  street.position.y = 0.015; street.material = road;
-  const cross = MeshBuilder.CreateGround('crossroad', { width: 120, height: 8.2 }, scene);
-  cross.position.y = 0.016; cross.position.z = -23; cross.material = road;
-  for (const x of [-5.3, 5.3]) {
-    const curb = MeshBuilder.CreateBox(`sidewalk-${x}`, {width: 1.8, height: .17, depth: 120}, scene);
-    curb.position.set(x, .09, 0); curb.material = sidewalk;
+export type World = {
+  materials: Materials;
+  bounds: Box2D;
+  colliders: Box2D[];
+  guard: MotionGuard;
+  raised: RaisedArea[];
+  /** Buildings that are faded when they stand between the camera and the player. */
+  occluders: { box: Box3D; meshes: Mesh[] }[];
+  shadowCasters: AbstractMesh[];
+};
+
+function buildGround(set: BatchSet, mats: Materials): void {
+  const far = EXTENT + 80;
+  set.box(mats.grass, -far, far, -0.06, -0.03, -far, far, { sides: false });
+  set.box(mats.asphalt, -ROAD_HALF, ROAD_HALF, -0.05, 0, -EXTENT, EXTENT, { sides: false });
+  set.box(mats.asphalt, -EXTENT, -ROAD_HALF, -0.05, 0, CROSS_SOUTH, CROSS_NORTH, { sides: false });
+  set.box(mats.asphalt, ROAD_HALF, EXTENT, -0.05, 0, CROSS_SOUTH, CROSS_NORTH, { sides: false });
+
+  for (const s of sidewalkStrips()) set.box(mats.pavement, s.minX, s.maxX, 0, CURB_H, s.minZ, s.maxZ);
+  // Kerb stones along every roadway edge.
+  const k = 0.16;
+  for (const sx of [-1, 1]) {
+    const x0 = sx === 1 ? ROAD_HALF : -ROAD_HALF - k;
+    set.box(mats.curb, x0, x0 + k, 0, CURB_H + 0.012, CROSS_NORTH, EXTENT);
+    set.box(mats.curb, x0, x0 + k, 0, CURB_H + 0.012, -EXTENT, CROSS_SOUTH);
+    const [a, b] = sx === 1 ? [ROAD_HALF, EXTENT] : [-EXTENT, -ROAD_HALF];
+    set.box(mats.curb, a, b, 0, CURB_H + 0.012, CROSS_NORTH, CROSS_NORTH + k);
+    set.box(mats.curb, a, b, 0, CURB_H + 0.012, CROSS_SOUTH - k, CROSS_SOUTH);
   }
-  for (let i=-55; i<=55; i+=7) {
-    if (Math.abs(i + 23) < 6) continue;
-    const stripe = MeshBuilder.CreateBox(`stripe-${i}`, { width: .13, height: .025, depth: 3 }, scene);
-    stripe.position.set(0, .03, i); stripe.material = roadMark;
+
+  const lot = SHOP.lot;
+  set.box(mats.plazaPaving, lot.minX, lot.maxX, 0, CURB_H, lot.minZ, lot.maxZ);
+  set.box(mats.plazaPaving, PLAZA.minX, PLAZA.maxX, 0, CURB_H, PLAZA.minZ, PLAZA.maxZ);
+  for (const bed of PLAZA_BEDS) {
+    set.box(mats.curb, bed.minX - 0.12, bed.maxX + 0.12, CURB_H, CURB_H + 0.1, bed.minZ - 0.12, bed.maxZ + 0.12);
+    set.box(mats.grass, bed.minX, bed.maxX, CURB_H, CURB_H + 0.115, bed.minZ, bed.maxZ, { sides: false });
   }
-  for (let side of [-1, 1]) {
-    for (let i=0; i<10; i++) {
-      const z = -49 + i*11.5;
-      if (Math.abs(z + 23) < 7 || (side === -1 && i === 6)) continue;
-      const x = side * (10.5 + (i%2)*1.1);
-      const house = MeshBuilder.CreateBox(`house-${side}-${i}`, {width: 7, height: 3.4, depth: 7}, scene);
-      house.position.set(x, 1.79, z);
-      blockers.push({minX:x-3.5,maxX:x+3.5,minZ:z-3.5,maxZ:z+3.5});
-      house.material = solid(scene, `wall-${side}-${i}`, houseColors[i%4]);
-      const top = MeshBuilder.CreateBox(`roof-${side}-${i}`, {width: 7.8, height: .34, depth: 7.8}, scene);
-      top.position.set(x, 3.62, z); top.material = roof;
-      const garage = MeshBuilder.CreateBox(`gate-${side}-${i}`, {width: .12, height: 2.2, depth: 2.4}, scene);
-      garage.position.set(x - side*3.57, 1.2, z); garage.material = wall;
-      const treeX = side * 18.6;
-      if (i%2===0) {
-        const trunk = MeshBuilder.CreateCylinder(`tree-trunk-${side}-${i}`, {height: 2.8, diameter: .34}, scene);
-        trunk.position.set(treeX, 1.4, z+4); trunk.material = trunkMat;
-        const crown = MeshBuilder.CreateSphere(`tree-crown-${side}-${i}`, {diameter: 3.4, segments: 8}, scene);
-        crown.position.set(treeX, 3.55, z+4); crown.material = foliage;
-      }
-    }
+}
+
+function buildRoadPaint(set: BatchSet, mats: Materials): void {
+  const y = 0.008;
+  const flat = { sides: false } as const;
+  const white = mats.lineWhite;
+  const yellow = mats.lineYellow;
+  // Dashed centre lines, interrupted around the junction.
+  for (let z = -EXTENT + 2; z < EXTENT - 3; z += 6) {
+    if (z > CROSS_SOUTH - 9.5 && z < CROSS_NORTH + 7) continue;
+    set.box(yellow, -0.06, 0.06, 0, y, z, z + 3, flat);
   }
-  // A simple distinctive shop for driving landmark; not an operational pickup site.
-  const shop = MeshBuilder.CreateBox('placeholder-shop', {width: 8.7, height: 4.1, depth: 8.5},scene);
-  shop.position = new Vector3(-10.9, 2.15, 20);
-  blockers.push({minX:-15.25,maxX:-6.55,minZ:15.75,maxZ:24.25});
-  shop.material = solid(scene, 'shop-cream', '#f7d4ac');
-  const awning = MeshBuilder.CreateBox('shop-awning', {width: 3.7, height: .3, depth: 8.7},scene);
-  awning.position = new Vector3(-5.75, 2.7, 20); awning.material = solid(scene,'shop-awning-red','#b24c34');
-  return createMotionGuard({minX:-64,maxX:64,minZ:-64,maxZ:64},blockers);
+  for (let x = -EXTENT + 2; x < EXTENT - 3; x += 6) {
+    if (x > -ROAD_HALF - 5 && x < ROAD_HALF + 2) continue;
+    set.box(yellow, x, x + 3, 0, y, CROSS_Z - 0.06, CROSS_Z + 0.06, flat);
+  }
+  // Zebra crossings and stop lines on the main street, which yields to the cross street.
+  for (const z0 of [CROSS_NORTH + 2.6, CROSS_SOUTH - 5.6]) {
+    for (let x = -3.6; x <= 3.61; x += 0.8) set.box(white, x - 0.2, x + 0.2, 0, y, z0, z0 + 3, flat);
+  }
+  set.box(white, 0.15, ROAD_HALF - 0.2, 0, y, CROSS_SOUTH - 6.6, CROSS_SOUTH - 6.25, flat);
+  set.box(white, -ROAD_HALF + 0.2, -0.15, 0, y, CROSS_NORTH + 6.25, CROSS_NORTH + 6.6, flat);
+  // Motorcycle bays on the shop forecourt.
+  const half = PARKING.bayWidth / 2;
+  const [x0, x1] = [PARKING.x - PARKING.bayLength / 2, PARKING.x + PARKING.bayLength / 2];
+  const edges = [...PARKING.bayZ.map((z) => z + half), PARKING.bayZ[PARKING.bayZ.length - 1]! - half];
+  for (const z of edges) set.box(white, x0, x1, CURB_H, CURB_H + y, z - 0.04, z + 0.04, flat);
+  set.box(white, x1 - 0.08, x1, CURB_H, CURB_H + y, edges[edges.length - 1]!, edges[0]!, flat);
+  // Darker asphalt repairs, as found on any neighbourhood street.
+  const patch = mats.asphaltPatch;
+  for (const [x, z, w, d] of [[-1.8, 12, 1.6, 2.4], [2.2, 31, 1.2, 3.2], [-2.6, -38, 1.8, 1.4], [1.4, 47, 2.0, 1.2], [18, CROSS_Z + 1.5, 3.0, 1.3], [-24, CROSS_Z - 2, 2.2, 1.6]] as const) {
+    set.box(patch, x - w / 2, x + w / 2, 0, 0.004, z - d / 2, z + d / 2, flat);
+  }
+}
+
+function buildWallsAndProps(set: BatchSet, mats: Materials): void {
+  for (const run of WALL_RUNS) {
+    const b = run.box;
+    if (run.raw) set.box(mats.blockwork, b.minX, b.maxX, 0, 2.3, b.minZ, b.maxZ);
+    else set.box(mats.plaster(run.color), b.minX, b.maxX, 0, 2.3, b.minZ, b.maxZ, { fitV: true });
+  }
+  // Ice freezer and stacked drink crates outside the shop.
+  const [freezer, crates] = [SHOP_PROPS[0]!, SHOP_PROPS[1]!];
+  set.box(mats.paint('#eef1f2', 0.3), freezer.minX, freezer.maxX, CURB_H, CURB_H + 0.92, freezer.minZ, freezer.maxZ);
+  set.box(mats.paint('#2a66a8', 0.3), freezer.minX - 0.02, freezer.maxX + 0.02, CURB_H + 0.92, CURB_H + 0.98, freezer.minZ - 0.02, freezer.maxZ + 0.02);
+  const colors = ['#c23b2e', '#e0a422', '#c23b2e'];
+  colors.forEach((color, i) => {
+    set.box(mats.paint(color), crates.minX + 0.04, crates.maxX - 0.04, CURB_H + i * 0.32, CURB_H + i * 0.32 + 0.3, crates.minZ + 0.04, crates.maxZ - 0.04);
+  });
+}
+
+/** Builds the FICTIONAL test street. It does not represent Brejo Alegre. */
+export function buildTemporaryWorld(scene: Scene, profile: GraphicsProfile): World {
+  const materials = new Materials(scene, profile);
+  const flat = new BatchSet();
+  const upright = new BatchSet();
+  buildGround(flat, materials);
+  buildRoadPaint(flat, materials);
+  buildWallsAndProps(upright, materials);
+  buildPoles(scene, upright, materials);
+  buildBenches(upright, materials);
+  buildSigns(scene, upright, materials);
+
+  const occluderBoxes = buildOccluders();
+  const shared = { flat, upright };
+  const buildings: Building[] = [...HOUSES.map((spec) => buildHouse(scene, materials, spec, shared)), buildShop(scene, materials)];
+  const occluders = buildings.map((building, i) => ({ box: occluderBoxes[i]!.box, meshes: building.body }));
+  const flatMeshes = flat.build('chao', scene);
+  const uprightMeshes = upright.build('urbano', scene);
+  const bodies = buildings.flatMap((b) => b.body);
+  const trees = buildTrees(scene, materials, profile.backdropDensity);
+
+  for (const mesh of [...flatMeshes, ...uprightMeshes, ...bodies]) {
+    mesh.computeWorldMatrix(true);
+    mesh.freezeWorldMatrix();
+    mesh.doNotSyncBoundingInfo = true;
+  }
+
+  const colliders = buildColliders();
+  return {
+    materials,
+    bounds: WORLD_BOUNDS,
+    colliders,
+    guard: createMotionGuard(WORLD_BOUNDS, colliders),
+    raised: buildRaisedAreas(),
+    occluders,
+    shadowCasters: [...uprightMeshes, ...bodies, ...trees],
+  };
 }

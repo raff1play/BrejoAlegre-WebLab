@@ -1,39 +1,94 @@
-export type DriveKey = 'accelerate' | 'brake' | 'left' | 'right';
+import { InputState } from '../../core/inputState';
 
+export type Control =
+  | 'accelerate' | 'brake' | 'left' | 'right'
+  | 'camera-left' | 'camera-right' | 'zoom-in' | 'zoom-out';
+export type Action = 'mount' | 'graphics';
+
+const KEYBOARD = 'keyboard';
+/** Physical key positions (event.code), so WASD works on any keyboard layout. */
+const HOLD_KEYS: Record<string, Control> = {
+  KeyW: 'accelerate', ArrowUp: 'accelerate',
+  KeyS: 'brake', ArrowDown: 'brake', Space: 'brake',
+  KeyA: 'left', ArrowLeft: 'left',
+  KeyD: 'right', ArrowRight: 'right',
+  KeyQ: 'camera-left', KeyE: 'camera-right',
+  KeyZ: 'zoom-in', Equal: 'zoom-in', NumpadAdd: 'zoom-in',
+  KeyX: 'zoom-out', Minus: 'zoom-out', NumpadSubtract: 'zoom-out',
+};
+const ACTION_KEYS: Record<string, Action> = { KeyF: 'mount', Enter: 'mount', KeyG: 'graphics' };
+
+/**
+ * Keyboard and touch input. Hold controls come from `[data-control]` buttons, one-shot actions
+ * from `[data-action]` buttons. Each finger is its own source, so multi-touch works and releasing,
+ * cancelling or losing a pointer can never leave a control stuck. Everything is released when the
+ * page loses focus or is hidden.
+ */
 export class GameInput {
-  private readonly keyboard = new Set<DriveKey>();
-  private readonly touch = new Set<DriveKey>();
-  private keyMap: Record<string, DriveKey> = {
-    arrowup: 'accelerate', w: 'accelerate',
-    arrowdown: 'brake', s: 'brake',
-    arrowleft: 'left', a: 'left',
-    arrowright: 'right', d: 'right',
-  };
+  readonly state = new InputState<Control>();
+  private readonly buttons = new Map<Control, HTMLElement[]>();
 
-  constructor() {
+  constructor(root: ParentNode, private readonly onAction: (action: Action) => void) {
     window.addEventListener('keydown', (event) => {
-      const key = this.keyMap[event.key.toLowerCase()];
-      if (key) { event.preventDefault(); this.keyboard.add(key); }
+      if (event.ctrlKey || event.metaKey || event.altKey) { this.state.releaseSource(KEYBOARD); this.paint(); return; }
+      const control = HOLD_KEYS[event.code];
+      const action = ACTION_KEYS[event.code];
+      if (!control && !action) return;
+      event.preventDefault();
+      if (event.repeat) return;
+      if (control) { this.state.press(KEYBOARD, control); this.paint(); }
+      if (action) this.onAction(action);
     });
     window.addEventListener('keyup', (event) => {
-      const key = this.keyMap[event.key.toLowerCase()];
-      if (key) { event.preventDefault(); this.keyboard.delete(key); }
+      const control = HOLD_KEYS[event.code];
+      if (!control) return;
+      event.preventDefault();
+      this.state.release(KEYBOARD, control);
+      this.paint();
     });
     window.addEventListener('blur', () => this.reset());
+    window.addEventListener('pagehide', () => this.reset());
     document.addEventListener('visibilitychange', () => { if (document.hidden) this.reset(); });
-    for (const btn of document.querySelectorAll<HTMLButtonElement>('[data-control]')) {
-      const action = btn.dataset.control as DriveKey;
-      const release = () => { this.touch.delete(action); btn.classList.remove('active'); };
-      btn.addEventListener('pointerdown', (event) => {
-        event.preventDefault(); btn.setPointerCapture(event.pointerId);
-        this.touch.add(action); btn.classList.add('active');
+    document.addEventListener('contextmenu', (event) => event.preventDefault());
+
+    for (const button of root.querySelectorAll<HTMLElement>('[data-control]')) {
+      const control = button.dataset.control as Control;
+      this.buttons.set(control, [...(this.buttons.get(control) ?? []), button]);
+      const release = (event: PointerEvent) => {
+        this.state.releaseSource(`pointer-${event.pointerId}`);
+        this.paint();
+      };
+      button.addEventListener('pointerdown', (event) => {
+        event.preventDefault();
+        try { button.setPointerCapture(event.pointerId); } catch { /* pointer already gone */ }
+        this.state.press(`pointer-${event.pointerId}`, control);
+        this.paint();
       });
-      btn.addEventListener('pointerup', release);
-      btn.addEventListener('pointercancel', release);
-      btn.addEventListener('lostpointercapture', release);
+      button.addEventListener('pointerup', release);
+      button.addEventListener('pointercancel', release);
+      button.addEventListener('lostpointercapture', release);
+    }
+    for (const button of root.querySelectorAll<HTMLElement>('[data-action]')) {
+      button.addEventListener('click', (event) => {
+        event.preventDefault();
+        this.onAction(button.dataset.action as Action);
+        button.blur();
+      });
     }
   }
 
-  pressed(key: DriveKey): boolean { return this.keyboard.has(key) || this.touch.has(key); }
-  reset(): void { this.keyboard.clear(); this.touch.clear(); document.querySelectorAll('[data-control]').forEach(e => e.classList.remove('active')); }
+  axis(positive: Control, negative: Control): number { return this.state.axis(positive, negative); }
+  isDown(control: Control): boolean { return this.state.isDown(control); }
+
+  reset(): void {
+    this.state.clear();
+    this.paint();
+  }
+
+  private paint(): void {
+    for (const [control, buttons] of this.buttons) {
+      const down = this.state.isDown(control);
+      for (const button of buttons) button.classList.toggle('active', down);
+    }
+  }
 }

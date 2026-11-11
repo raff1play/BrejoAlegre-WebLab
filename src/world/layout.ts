@@ -1,0 +1,286 @@
+import type { Box2D } from '../core/collision.ts';
+import type { Box3D } from '../core/math.ts';
+import type { RaisedArea } from '../core/terrain.ts';
+
+/**
+ * FICTIONAL placeholder street plan. Pure data and geometry (no renderer imports) so collisions and
+ * scene requirements can be unit-tested. It is NOT cartography of Brejo Alegre.
+ *
+ * Axes: +x east, +z north, units in metres. The main street runs north-south along x = 0 and a
+ * cross street runs east-west along z = CROSS_Z.
+ */
+export const ROAD_HALF = 4;
+export const SIDEWALK = 2.2;
+export const CURB_H = 0.15;
+/** Distance from the main street axis to the front of the lots. */
+export const FRONT = ROAD_HALF + SIDEWALK;
+export const CROSS_Z = -20;
+export const CROSS_NORTH = CROSS_Z + ROAD_HALF;
+export const CROSS_SOUTH = CROSS_Z - ROAD_HALF;
+/** Lot fronts along the cross street. */
+export const CROSS_FRONT_N = CROSS_NORTH + SIDEWALK;
+export const CROSS_FRONT_S = CROSS_SOUTH - SIDEWALK;
+/** How far the streets are drawn; the playable area ends earlier, at WORLD_BOUNDS. */
+export const EXTENT = 90;
+export const WORLD_BOUNDS: Box2D = { minX: -46, maxX: 46, minZ: -56, maxZ: 56 };
+
+export const LOT_WIDTH = 12;
+export const LOT_DEPTH = 20;
+export const WALL_T = 0.2;
+export const WALL_H = 2.0;
+
+/**
+ * A building frame: local +x runs along the frontage, local +z goes into the lot, the facade is at
+ * local z = 0. side = 1 means the lot lies east of its front line (facade looks west).
+ */
+export type Frame = Readonly<{ ox: number; oz: number; side: 1 | -1 }>;
+
+export function frameRect(frame: Frame, lx0: number, lx1: number, lz0: number, lz1: number): Box2D {
+  if (frame.side === 1) {
+    return { minX: frame.ox + lz0, maxX: frame.ox + lz1, minZ: frame.oz - lx1, maxZ: frame.oz - lx0 };
+  }
+  return { minX: frame.ox - lz1, maxX: frame.ox - lz0, minZ: frame.oz + lx0, maxZ: frame.oz + lx1 };
+}
+
+export type RoofKind = 'hip-x' | 'hip-z' | 'parapet' | 'shed';
+export type FrontKind = 'wall' | 'railing' | 'open';
+
+export type HouseSpec = Readonly<{
+  id: string;
+  frame: Frame;
+  wallColor: string;
+  bandColor: string;
+  gateColor: string;
+  roof: RoofKind;
+  front: FrontKind;
+  /** -1: garage on the low-x side of the lot, 1: on the high-x side. */
+  garageSide: 1 | -1;
+  setback: number;
+  carport: boolean;
+  waterTank: boolean;
+}>;
+
+export const HOUSE_WIDTH = 8;
+export const HOUSE_DEPTH = 9.5;
+export const HOUSE_WALL_H = 3;
+
+/** Local x-range of the house body inside its lot. */
+export function houseSpan(spec: HouseSpec): [number, number] {
+  return spec.garageSide === -1 ? [LOT_WIDTH - 0.7 - HOUSE_WIDTH, LOT_WIDTH - 0.7] : [0.7, 0.7 + HOUSE_WIDTH];
+}
+
+type Style = Omit<HouseSpec, 'id' | 'frame'>;
+const EAST_STYLES: Style[] = [
+  { wallColor: '#e9d8a6', bandColor: '#b98d55', gateColor: '#7d8389', roof: 'hip-x', front: 'wall', garageSide: -1, setback: 4.2, carport: true, waterTank: false },
+  { wallColor: '#a9c6d3', bandColor: '#5f8498', gateColor: '#e8e6df', roof: 'parapet', front: 'railing', garageSide: 1, setback: 3.6, carport: false, waterTank: true },
+  { wallColor: '#e3a98f', bandColor: '#a8644d', gateColor: '#5a4636', roof: 'hip-z', front: 'open', garageSide: -1, setback: 5, carport: true, waterTank: false },
+  { wallColor: '#ece7dc', bandColor: '#8a9a6b', gateColor: '#3f6b4f', roof: 'hip-x', front: 'wall', garageSide: 1, setback: 4, carport: false, waterTank: true },
+  { wallColor: '#b9d3b0', bandColor: '#6f9068', gateColor: '#8b8f93', roof: 'shed', front: 'wall', garageSide: -1, setback: 3.4, carport: true, waterTank: true },
+];
+const WEST_STYLES: Style[] = [
+  { wallColor: '#e7c27a', bandColor: '#a9743a', gateColor: '#4a4f55', roof: 'hip-z', front: 'railing', garageSide: 1, setback: 4.4, carport: true, waterTank: false },
+  { wallColor: '#d9d2c5', bandColor: '#8d5b4a', gateColor: '#7a3b32', roof: 'hip-x', front: 'wall', garageSide: -1, setback: 3.8, carport: false, waterTank: true },
+  { wallColor: '#c9b8d8', bandColor: '#80699a', gateColor: '#e8e6df', roof: 'parapet', front: 'wall', garageSide: 1, setback: 3.5, carport: true, waterTank: true },
+  { wallColor: '#f0dcc0', bandColor: '#c18f5c', gateColor: '#3f6b4f', roof: 'hip-x', front: 'open', garageSide: -1, setback: 5, carport: true, waterTank: false },
+  { wallColor: '#9fc0c9', bandColor: '#53808c', gateColor: '#7d8389', roof: 'hip-z', front: 'wall', garageSide: 1, setback: 4.1, carport: false, waterTank: true },
+];
+
+const FIRST_LOT_Z = CROSS_FRONT_N;
+export const HOUSES: readonly HouseSpec[] = [
+  ...EAST_STYLES.map((style, i): HouseSpec => ({
+    ...style, id: `casa-leste-${i + 1}`,
+    frame: { ox: FRONT, oz: FIRST_LOT_Z + (i + 1) * LOT_WIDTH, side: 1 },
+  })),
+  ...WEST_STYLES.map((style, i): HouseSpec => ({
+    ...style, id: `casa-oeste-${i + 1}`,
+    frame: { ox: -FRONT, oz: FIRST_LOT_Z + i * LOT_WIDTH, side: -1 },
+  })),
+];
+export const LOTS_END_Z = FIRST_LOT_Z + EAST_STYLES.length * LOT_WIDTH;
+
+/** Generic corner shop, set back from the main street behind a forecourt with motorcycle bays. */
+export const SHOP = Object.freeze({
+  frame: { ox: 13, oz: -30, side: 1 } as Frame,
+  width: 14,
+  depth: 14,
+  height: 4.4,
+  lot: { minX: FRONT, maxX: 30, minZ: -46, maxZ: CROSS_FRONT_S } as Box2D,
+});
+
+/** Motorcycle bays on the forecourt, bikes parked nose-out towards the street. */
+export const PARKING = Object.freeze({
+  x: 11.4,
+  bayZ: [-40.2, -41.6, -43.0] as readonly number[],
+  bayWidth: 1.4,
+  bayLength: 2.6,
+  yaw: -Math.PI / 2,
+});
+export const SPAWN = Object.freeze({ x: PARKING.x, z: PARKING.bayZ[0]!, yaw: PARKING.yaw });
+/** A second, static bike parked two bays away, purely decorative but solid. */
+export const PARKED_PROP = Object.freeze({ x: PARKING.x, z: PARKING.bayZ[2]!, yaw: PARKING.yaw });
+
+export const PLAZA: Box2D = { minX: -34, maxX: -FRONT, minZ: -50, maxZ: CROSS_FRONT_S };
+
+export type TreeSpec = Readonly<{ x: number; z: number; kind: 'oiti' | 'ipe'; scale: number; solid: boolean }>;
+export type PoleSpec = Readonly<{ x: number; z: number; lamp: 1 | -1; transformer: boolean; axis: 'z' | 'x' }>;
+export type BenchSpec = Readonly<{ x: number; z: number; alongX: boolean }>;
+export type WallRun = Readonly<{ box: Box2D; color: string; raw: boolean }>;
+export type Occluder = Readonly<{ id: string; box: Box3D }>;
+
+const TREE_X = ROAD_HALF + 0.75;
+export const TREES: readonly TreeSpec[] = [
+  // Street trees in front of some lots, clear of the gates.
+  { x: TREE_X, z: 2.2, kind: 'oiti', scale: 1.0, solid: true },
+  { x: TREE_X, z: 26.4, kind: 'ipe', scale: 1.05, solid: true },
+  { x: TREE_X, z: 39.6, kind: 'oiti', scale: 0.9, solid: true },
+  { x: -TREE_X, z: -6.4, kind: 'oiti', scale: 1.1, solid: true },
+  { x: -TREE_X, z: 17.8, kind: 'oiti', scale: 0.95, solid: true },
+  { x: -TREE_X, z: 41.6, kind: 'ipe', scale: 1.0, solid: true },
+  // Square.
+  { x: -11, z: -31, kind: 'ipe', scale: 1.25, solid: true },
+  { x: -22, z: -30.5, kind: 'oiti', scale: 1.2, solid: true },
+  { x: -29.5, z: -38, kind: 'ipe', scale: 1.1, solid: true },
+  { x: -12, z: -45, kind: 'oiti', scale: 1.3, solid: true },
+  { x: -23, z: -46, kind: 'ipe', scale: 1.15, solid: true },
+  { x: -18, z: -38.5, kind: 'oiti', scale: 1.0, solid: true },
+  // Backdrop behind walls, unreachable.
+  { x: 34, z: -6, kind: 'oiti', scale: 1.5, solid: false },
+  { x: 44, z: 6, kind: 'ipe', scale: 1.4, solid: false },
+  { x: 33, z: 30, kind: 'oiti', scale: 1.6, solid: false },
+  { x: 40, z: 50, kind: 'oiti', scale: 1.4, solid: false },
+  { x: -33, z: 4, kind: 'oiti', scale: 1.6, solid: false },
+  { x: -42, z: 24, kind: 'ipe', scale: 1.3, solid: false },
+  { x: -34, z: 48, kind: 'oiti', scale: 1.5, solid: false },
+  { x: 14, z: 58, kind: 'oiti', scale: 1.5, solid: false },
+  { x: -15, z: 62, kind: 'ipe', scale: 1.4, solid: false },
+  { x: 40, z: -36, kind: 'oiti', scale: 1.6, solid: false },
+  { x: 36, z: -52, kind: 'ipe', scale: 1.3, solid: false },
+  { x: 16, z: -56, kind: 'oiti', scale: 1.5, solid: false },
+  { x: -42, z: -34, kind: 'oiti', scale: 1.5, solid: false },
+  { x: -40, z: -52, kind: 'oiti', scale: 1.4, solid: false },
+  { x: -18, z: -60, kind: 'ipe', scale: 1.4, solid: false },
+  { x: -52, z: -8, kind: 'oiti', scale: 1.6, solid: false },
+  { x: 54, z: -8, kind: 'oiti', scale: 1.5, solid: false },
+];
+
+const POLE_X = ROAD_HALF + 0.45;
+export const POLES: readonly PoleSpec[] = [
+  { x: POLE_X, z: -52, lamp: -1, transformer: false, axis: 'z' },
+  { x: POLE_X, z: -27.6, lamp: -1, transformer: false, axis: 'z' },
+  { x: POLE_X, z: -9.6, lamp: -1, transformer: true, axis: 'z' },
+  { x: POLE_X, z: 20.4, lamp: -1, transformer: false, axis: 'z' },
+  { x: POLE_X, z: 50, lamp: -1, transformer: false, axis: 'z' },
+  { x: 32, z: CROSS_NORTH + 0.45, lamp: -1, transformer: false, axis: 'x' },
+  { x: -30, z: CROSS_NORTH + 0.45, lamp: -1, transformer: false, axis: 'x' },
+];
+
+export const BENCHES: readonly BenchSpec[] = [
+  { x: -14.5, z: -35, alongX: true },
+  { x: -26, z: -34, alongX: false },
+  { x: -17, z: -42.5, alongX: true },
+];
+
+/** Blank boundary walls of the unbuilt lots that close the playable area. */
+export const WALL_RUNS: readonly WallRun[] = [
+  { box: { minX: FRONT, maxX: FRONT + WALL_T, minZ: LOTS_END_Z, maxZ: 70 }, color: '#d8cdb8', raw: false },
+  { box: { minX: FRONT, maxX: FRONT + WALL_T, minZ: 70, maxZ: EXTENT }, color: '#c9b79c', raw: true },
+  { box: { minX: -FRONT - WALL_T, maxX: -FRONT, minZ: LOTS_END_Z, maxZ: 64 }, color: '#c9b79c', raw: true },
+  { box: { minX: -FRONT - WALL_T, maxX: -FRONT, minZ: 64, maxZ: EXTENT }, color: '#e1d6c3', raw: false },
+  { box: { minX: FRONT + LOT_DEPTH, maxX: 52, minZ: CROSS_FRONT_N, maxZ: CROSS_FRONT_N + WALL_T }, color: '#e4dccb', raw: false },
+  { box: { minX: 52, maxX: EXTENT, minZ: CROSS_FRONT_N, maxZ: CROSS_FRONT_N + WALL_T }, color: '#c9b79c', raw: true },
+  { box: { minX: -48, maxX: -FRONT - LOT_DEPTH, minZ: CROSS_FRONT_N, maxZ: CROSS_FRONT_N + WALL_T }, color: '#c9b79c', raw: true },
+  { box: { minX: -EXTENT, maxX: -48, minZ: CROSS_FRONT_N, maxZ: CROSS_FRONT_N + WALL_T }, color: '#dfd3bd', raw: false },
+  { box: { minX: 30, maxX: 30 + WALL_T, minZ: -46, maxZ: CROSS_FRONT_S }, color: '#d5cbb9', raw: false },
+  { box: { minX: FRONT, maxX: 30 + WALL_T, minZ: -46 - WALL_T, maxZ: -46 }, color: '#c9b79c', raw: true },
+  { box: { minX: 30 + WALL_T, maxX: EXTENT, minZ: CROSS_FRONT_S - WALL_T, maxZ: CROSS_FRONT_S }, color: '#e1d6c3', raw: false },
+  { box: { minX: FRONT, maxX: FRONT + WALL_T, minZ: -EXTENT, maxZ: -46 - WALL_T }, color: '#dccfb6', raw: false },
+  { box: { minX: -34 - WALL_T, maxX: -34, minZ: -50 - WALL_T, maxZ: CROSS_FRONT_S }, color: '#c9b79c', raw: true },
+  { box: { minX: -34, maxX: -FRONT, minZ: -50 - WALL_T, maxZ: -50 }, color: '#e4dccb', raw: false },
+  { box: { minX: -EXTENT, maxX: -34 - WALL_T, minZ: CROSS_FRONT_S - WALL_T, maxZ: CROSS_FRONT_S }, color: '#d8cdb8', raw: false },
+  { box: { minX: -FRONT - WALL_T, maxX: -FRONT, minZ: -EXTENT, maxZ: -50 - WALL_T }, color: '#c9b79c', raw: true },
+];
+
+/** Crates and a freezer by the shop door. Solid. */
+export const SHOP_PROPS: readonly Box2D[] = [
+  { minX: 12.1, maxX: 12.9, minZ: -37.4, maxZ: -36.1 },
+  { minX: 12.2, maxX: 12.9, minZ: -31.4, maxZ: -30.5 },
+];
+
+function around(x: number, z: number, half: number): Box2D {
+  return { minX: x - half, maxX: x + half, minZ: z - half, maxZ: z + half };
+}
+
+function houseColliders(spec: HouseSpec): Box2D[] {
+  const f = spec.frame;
+  if (spec.front !== 'open') return [frameRect(f, 0, LOT_WIDTH, 0, LOT_DEPTH)];
+  const [x0, x1] = houseSpan(spec);
+  return [
+    frameRect(f, x0, x1, spec.setback, spec.setback + HOUSE_DEPTH),
+    frameRect(f, 0, WALL_T, 0, LOT_DEPTH),
+    frameRect(f, LOT_WIDTH - WALL_T, LOT_WIDTH, 0, LOT_DEPTH),
+    frameRect(f, 0, LOT_WIDTH, LOT_DEPTH - WALL_T, LOT_DEPTH),
+  ];
+}
+
+export function parkedPropCollider(): Box2D {
+  return { minX: PARKED_PROP.x - 1.05, maxX: PARKED_PROP.x + 1.05, minZ: PARKED_PROP.z - 0.4, maxZ: PARKED_PROP.z + 0.4 };
+}
+
+export function buildColliders(): Box2D[] {
+  const shop = SHOP.frame;
+  return [
+    ...HOUSES.flatMap(houseColliders),
+    frameRect(shop, 0, SHOP.width, 0, SHOP.depth),
+    ...WALL_RUNS.map((w) => w.box),
+    ...SHOP_PROPS,
+    parkedPropCollider(),
+    ...TREES.filter((t) => t.solid).map((t) => around(t.x, t.z, 0.24 * t.scale)),
+    ...POLES.map((p) => around(p.x, p.z, 0.17)),
+    ...BENCHES.map((b) => (b.alongX
+      ? { minX: b.x - 0.9, maxX: b.x + 0.9, minZ: b.z - 0.28, maxZ: b.z + 0.28 }
+      : { minX: b.x - 0.28, maxX: b.x + 0.28, minZ: b.z - 0.9, maxZ: b.z + 0.9 })),
+  ];
+}
+
+/** Pavement strips beside both streets, interrupted by the junction. */
+export function sidewalkStrips(): Box2D[] {
+  const strips: Box2D[] = [];
+  for (const sx of [-1, 1]) {
+    const minX = sx === 1 ? ROAD_HALF : -FRONT;
+    const maxX = sx === 1 ? FRONT : -ROAD_HALF;
+    strips.push({ minX, maxX, minZ: CROSS_NORTH, maxZ: EXTENT }, { minX, maxX, minZ: -EXTENT, maxZ: CROSS_SOUTH });
+    const outerMin = sx === 1 ? FRONT : -EXTENT;
+    const outerMax = sx === 1 ? EXTENT : -FRONT;
+    strips.push(
+      { minX: outerMin, maxX: outerMax, minZ: CROSS_NORTH, maxZ: CROSS_FRONT_N },
+      { minX: outerMin, maxX: outerMax, minZ: CROSS_FRONT_S, maxZ: CROSS_SOUTH },
+    );
+  }
+  return strips;
+}
+
+/** Grass beds of the square (visual only; trees stand in them). */
+export const PLAZA_BEDS: readonly Box2D[] = [
+  { minX: -33.5, maxX: -27, minZ: -49.5, maxZ: -27 },
+  { minX: -25, maxX: -8, minZ: -33, maxZ: -27.2 },
+  { minX: -26, maxX: -8, minZ: -49.5, maxZ: -44 },
+  { minX: -20, maxX: -16, minZ: -40.5, maxZ: -36.5 },
+];
+
+export function buildRaisedAreas(): RaisedArea[] {
+  // Lots sit at pavement level too, so walking into an open front yard has no step.
+  const lots = HOUSES.map((house) => frameRect(house.frame, 0, LOT_WIDTH, 0, LOT_DEPTH));
+  return [...sidewalkStrips(), SHOP.lot, PLAZA, ...lots].map((box) => ({ box, height: CURB_H }));
+}
+
+/** Volumes that may hide the player from the camera; the renderer fades whatever is in the way. */
+export function buildOccluders(): Occluder[] {
+  const list: Occluder[] = HOUSES.map((spec) => {
+    const [x0, x1] = houseSpan(spec);
+    const b = frameRect(spec.frame, x0, x1, spec.setback, spec.setback + HOUSE_DEPTH);
+    return { id: spec.id, box: { ...b, minY: 0, maxY: HOUSE_WALL_H + 1.6 } };
+  });
+  const s = frameRect(SHOP.frame, 0, SHOP.width, 0, SHOP.depth);
+  list.push({ id: 'loja', box: { ...s, minY: 0, maxY: SHOP.height + 0.8 } });
+  return list;
+}

@@ -1,30 +1,73 @@
-:root { font-family: system-ui, -apple-system, Segoe UI, sans-serif; color: #f8fafc; background: #101b27; font-synthesis: none; }
-* { box-sizing: border-box; }
-html, body { padding: 0; margin: 0; height: 100%; overflow: hidden; touch-action: none; }
-#renderCanvas { display: block; width: 100vw; height: 100dvh; outline: none; touch-action: none; }
-.hud { position: fixed; inset: 0; pointer-events: none; z-index: 2; }
-.hud-header { position: absolute; left: max(16px,env(safe-area-inset-left)); top: max(12px,env(safe-area-inset-top)); right: max(16px,env(safe-area-inset-right)); display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
-.brand, .telemetry, .status-panel, .prototype-label { background: rgba(14,26,39,.76); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,.16); border-radius: 12px; box-shadow: 0 8px 22px rgba(0,0,0,.2); }
-.brand { font-weight: 900; letter-spacing: .05em; padding: 11px 14px; font-size: 14px; }
-.brand small { display: block; color: #f5c25a; font-size: 10px; letter-spacing: .15em; margin-top: 3px; }
-.brand-mark { color: #f2b844; font-size: 18px; }
-.telemetry { padding: 6px 18px; text-align: right; }
-.telemetry strong { font-size: 30px; font-variant-numeric: tabular-nums; }
-.telemetry span { font-size: 12px; color: #b8c2cf; }
-.prototype-label { position: absolute; top: 90px; left: max(16px,env(safe-area-inset-left)); color: #ffde96; font-size: 10px; letter-spacing: .07em; padding: 8px 10px; max-width: 42vw; }
-.status-panel { position: absolute; left: max(16px,env(safe-area-inset-left)); top: 132px; padding: 11px 13px; display: grid; gap: 3px; max-width: 300px; }
+:root {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: #f8fafc; background: #101b27; font-synthesis: none;
+  --edge-l: max(12px, env(safe-area-inset-left)); --edge-r: max(12px, env(safe-area-inset-right));
+  --edge-t: max(10px, env(safe-area-inset-top)); --edge-b: max(10px, env(safe-area-inset-bottom));
+  --pad: clamp(60px, 15vh, 92px);
+  --panel: rgba(13, 24, 36, .72);
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { padding: 0; margin: 0; height: 100%; overflow: hidden; overscroll-behavior: none; touch-action: none; }
+#renderCanvas { display: block; width: 100vw; height: 100vh; height: 100dvh; outline: none; touch-action: none; }
+
+/* The HUD never intercepts touches except on its buttons, so dragging the scene orbits the camera. */
+.hud { position: fixed; inset: 0; pointer-events: none; z-index: 2; user-select: none; -webkit-user-select: none; }
+.brand, .telemetry, .status-panel, .prototype-label, .toast {
+  position: absolute; background: var(--panel); border: 1px solid rgba(255, 255, 255, .16); border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .22); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.brand { left: var(--edge-l); top: var(--edge-t); font-weight: 900; letter-spacing: .05em; padding: 8px 12px; font-size: 13px; line-height: 1.15; }
+.brand small { display: block; color: #f5c25a; font-size: 9px; letter-spacing: .14em; margin-top: 3px; font-weight: 700; }
+.brand-mark { color: #f2b844; }
+.prototype-label {
+  top: var(--edge-t); left: 50%; transform: translateX(-50%); max-width: min(52vw, 520px); text-align: center;
+  color: #ffe08f; border-color: rgba(255, 214, 110, .5); font-size: clamp(9px, 1.25vw, 12px); font-weight: 800; letter-spacing: .06em; padding: 7px 12px;
+}
+.telemetry { right: var(--edge-r); top: var(--edge-t); padding: 4px 14px 6px; text-align: right; min-width: 104px; }
+.telemetry strong { font-size: clamp(24px, 6vh, 34px); font-variant-numeric: tabular-nums; }
+.telemetry span { font-size: 11px; color: #b8c2cf; }
+.status-panel { left: var(--edge-l); top: calc(var(--edge-t) + 54px); padding: 8px 12px; display: grid; gap: 3px; max-width: 290px; }
 .status-panel strong { font-size: 14px; }
-.status-panel span { font-size: 11px; color: #bdc9d9; }
-#fps { color: #8ed0a2; }
-.touch-ui { position: absolute; bottom: 72px; left: max(18px,env(safe-area-inset-left)); right: max(18px,env(safe-area-inset-right)); display: flex; justify-content: space-between; pointer-events: none; }
-.touch-left, .touch-right { display: flex; align-items: end; gap: 9px; }
-button { touch-action: none; user-select: none; -webkit-user-select: none; cursor: pointer; color: #fff; background: rgba(15,27,39,.72); border: 1px solid rgba(255,255,255,.3); box-shadow: 0 4px 12px #0003; font-weight: 800; }
-.touch-ui button { width: clamp(54px,8vw,82px); height: clamp(54px,8vw,82px); border-radius: 19px; font-size: 24px; pointer-events: auto; }
-.touch-ui button small { display: block; font-size: 8px; letter-spacing: .04em; margin-top: 2px; }
+.status-panel span { font-size: 11px; color: #c3cedb; }
+.status-line { display: flex; gap: 10px; align-items: center; }
+#fps { color: #8ed0a2; font-variant-numeric: tabular-nums; }
+.toast {
+  left: 50%; top: 24%; transform: translate(-50%, -6px); padding: 10px 16px; font-size: 14px; font-weight: 700;
+  opacity: 0; transition: opacity .18s, transform .18s; color: #fff3d0;
+}
+.toast.visible { opacity: 1; transform: translate(-50%, 0); }
+
+button {
+  font: inherit; touch-action: none; cursor: pointer; pointer-events: auto; color: #fff; background: var(--panel);
+  border: 1px solid rgba(255, 255, 255, .32); box-shadow: 0 4px 12px rgba(0, 0, 0, .22); font-weight: 800;
+}
+button.link { padding: 6px 8px; margin: -4px 0; border-radius: 8px; font-size: 11px; color: #cfe3ff; background: rgba(255, 255, 255, .08); box-shadow: none; }
+.pad { position: absolute; bottom: var(--edge-b); display: grid; gap: 10px; }
+.pad-left { left: var(--edge-l); grid-template-columns: repeat(2, var(--pad)); }
+.pad-right { right: var(--edge-r); grid-template-columns: repeat(2, var(--pad)); }
+.pad button { height: var(--pad); border-radius: 20px; font-size: clamp(22px, 5vh, 30px); line-height: 1; }
+.pad button small { display: block; font-size: 8px; letter-spacing: .02em; margin-top: 4px; }
+.pad button.wide { grid-column: 1 / -1; height: clamp(48px, 12vh, 56px); font-size: 15px; border-radius: 14px; }
+button.primary { background: #e8b348; color: #172231; border-color: #f5cf7b; }
+button.primary.unavailable { background: rgba(120, 112, 92, .78); color: #e9e2cf; border-color: rgba(255, 255, 255, .25); }
 button.active { background: #e8ae3c; color: #142232; }
-.action-bar { position: absolute; right: max(14px,env(safe-area-inset-right)); bottom: max(10px,env(safe-area-inset-bottom)); display: flex; gap: 6px; pointer-events: auto; }
-.action-bar button { border-radius: 10px; min-width: 39px; min-height: 36px; padding: 7px 12px; font-size: 15px; }
-.action-bar button.primary { background: #e8b348; color: #172231; border-color: #f5cf7b; }
-.portrait-warning { display: none; position: fixed; inset: 0; z-index: 9; background: #101b27; align-items: center; justify-content: center; text-align: center; padding: 25px; font-weight: 700; }
+.camera-bar { position: absolute; left: 50%; transform: translateX(-50%); bottom: var(--edge-b); display: flex; gap: 8px; }
+.camera-bar button { width: clamp(46px, 11vh, 58px); height: clamp(46px, 11vh, 58px); border-radius: 14px; font-size: 22px; }
+
+.fatal, .portrait-warning {
+  position: fixed; inset: 0; z-index: 9; background: #101b27; align-items: center; justify-content: center;
+  text-align: center; padding: 25px; font-weight: 700; display: flex;
+}
+.fatal[hidden], .portrait-warning { display: none; }
 @media (orientation: portrait) and (max-width: 900px) { .portrait-warning { display: flex; } }
-@media (max-height: 450px) { .prototype-label { top: 69px; max-width: 60vw; } .status-panel { top: 107px; } .brand { padding: 8px 12px; } .touch-ui { bottom: 54px; } .touch-ui button { height: 56px; width: 57px; } .action-bar button { min-height: 32px; padding: 4px 10px; } }
+
+/* Touch devices: on-screen buttons replace the keyboard hints. */
+@media (pointer: coarse) { #tips, .keys { display: none; } }
+/* Short landscape screens (phones): tighter top row, compact status. */
+@media (max-height: 480px) {
+  .brand { padding: 6px 10px; font-size: 11px; }
+  .status-panel { top: calc(var(--edge-t) + 46px); padding: 6px 10px; }
+  .telemetry { min-width: 88px; }
+  #tips, .keys { display: none; }
+}
+/* Mouse and keyboard: the pads are still usable but smaller, keeping the street in view. */
+@media (pointer: fine) and (min-height: 481px) { :root { --pad: 60px; } .pad, .camera-bar { opacity: .82; } }
