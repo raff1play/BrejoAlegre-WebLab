@@ -15,10 +15,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      # Starter has no lockfile because npm registry was unreachable during preparation.
-      # First successful npm install MUST commit package-lock.json and switch this to npm ci.
-      - name: Install (temporary until lockfile exists)
-        run: npm install --no-audit --no-fund
+          cache: npm
+      - name: Install (lockfile reproduzível)
+        run: npm ci --no-audit --no-fund
       - run: npm run validate:repo
       - run: npm run test:unit
       - run: npm run build:staging
