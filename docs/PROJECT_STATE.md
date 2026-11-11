@@ -128,3 +128,12 @@ Ler `AGENTS.md` e `docs/NEXT_TASK_FOR_FABLE.md` (agora descreve a tarefa seguint
 - **CI verificada na HEAD `5fda84ea40c7fb967d56e2084f31785421d257f3` (run `43047036838`): success; `npm ci`, validação, **38/38 testes unitários**, typecheck e Vite staging build.** Posteriores commits de docs exigem reconferir a nova HEAD.
 - **PENDENTE:** Chrome Android instalar por prompt/menu, lançamento via ícone em paisagem, ausência real do aviso cinza, testes offline, atualizações e tela cheia pós-instalação.
 - A publicação de preview é controlada separadamente por `.github/workflows/preview.yml`; build verde não significa novo deploy concluído.
+
+## Publicação PWA — resultado confirmado no GitHub Actions (11/11/2026)
+
+- Preview workflow `43047390148`: **completed / success** (https://github.com/raff1play/BrejoAlegre-WebLab/actions/runs/43047390148).
+- Commit do build implantado: `c749d27d171b782de269e3218bb0f8c5b70947b3`.
+- No runner: instalação, validação de repositório, **38/38 testes unitários**, typecheck, build staging, configure-pages, upload e deploy aprovados.
+- Log do deploy: `Evaluated environment url: https://raff1play.github.io/BrejoAlegre-WebLab/`.
+- O link foi confirmado pelo GitHub Actions, mas uma requisição HTTP independente do ambiente deste chat não pôde ser concluída; **o Chrome Android real ainda precisa comprovar** instalação, janela standalone sem aviso cinza, orientação horizontal e fallback online/offline.
+- A `main` permanece intocada e o PR #1 segue em rascunho.
