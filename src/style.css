@@ -1,0 +1,30 @@
+:root { font-family: system-ui, -apple-system, Segoe UI, sans-serif; color: #f8fafc; background: #101b27; font-synthesis: none; }
+* { box-sizing: border-box; }
+html, body { padding: 0; margin: 0; height: 100%; overflow: hidden; touch-action: none; }
+#renderCanvas { display: block; width: 100vw; height: 100dvh; outline: none; touch-action: none; }
+.hud { position: fixed; inset: 0; pointer-events: none; z-index: 2; }
+.hud-header { position: absolute; left: max(16px,env(safe-area-inset-left)); top: max(12px,env(safe-area-inset-top)); right: max(16px,env(safe-area-inset-right)); display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.brand, .telemetry, .status-panel, .prototype-label { background: rgba(14,26,39,.76); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,.16); border-radius: 12px; box-shadow: 0 8px 22px rgba(0,0,0,.2); }
+.brand { font-weight: 900; letter-spacing: .05em; padding: 11px 14px; font-size: 14px; }
+.brand small { display: block; color: #f5c25a; font-size: 10px; letter-spacing: .15em; margin-top: 3px; }
+.brand-mark { color: #f2b844; font-size: 18px; }
+.telemetry { padding: 6px 18px; text-align: right; }
+.telemetry strong { font-size: 30px; font-variant-numeric: tabular-nums; }
+.telemetry span { font-size: 12px; color: #b8c2cf; }
+.prototype-label { position: absolute; top: 90px; left: max(16px,env(safe-area-inset-left)); color: #ffde96; font-size: 10px; letter-spacing: .07em; padding: 8px 10px; max-width: 42vw; }
+.status-panel { position: absolute; left: max(16px,env(safe-area-inset-left)); top: 132px; padding: 11px 13px; display: grid; gap: 3px; max-width: 300px; }
+.status-panel strong { font-size: 14px; }
+.status-panel span { font-size: 11px; color: #bdc9d9; }
+#fps { color: #8ed0a2; }
+.touch-ui { position: absolute; bottom: 72px; left: max(18px,env(safe-area-inset-left)); right: max(18px,env(safe-area-inset-right)); display: flex; justify-content: space-between; pointer-events: none; }
+.touch-left, .touch-right { display: flex; align-items: end; gap: 9px; }
+button { touch-action: none; user-select: none; -webkit-user-select: none; cursor: pointer; color: #fff; background: rgba(15,27,39,.72); border: 1px solid rgba(255,255,255,.3); box-shadow: 0 4px 12px #0003; font-weight: 800; }
+.touch-ui button { width: clamp(54px,8vw,82px); height: clamp(54px,8vw,82px); border-radius: 19px; font-size: 24px; pointer-events: auto; }
+.touch-ui button small { display: block; font-size: 8px; letter-spacing: .04em; margin-top: 2px; }
+button.active { background: #e8ae3c; color: #142232; }
+.action-bar { position: absolute; right: max(14px,env(safe-area-inset-right)); bottom: max(10px,env(safe-area-inset-bottom)); display: flex; gap: 6px; pointer-events: auto; }
+.action-bar button { border-radius: 10px; min-width: 39px; min-height: 36px; padding: 7px 12px; font-size: 15px; }
+.action-bar button.primary { background: #e8b348; color: #172231; border-color: #f5cf7b; }
+.portrait-warning { display: none; position: fixed; inset: 0; z-index: 9; background: #101b27; align-items: center; justify-content: center; text-align: center; padding: 25px; font-weight: 700; }
+@media (orientation: portrait) and (max-width: 900px) { .portrait-warning { display: flex; } }
+@media (max-height: 450px) { .prototype-label { top: 69px; max-width: 60vw; } .status-panel { top: 107px; } .brand { padding: 8px 12px; } .touch-ui { bottom: 54px; } .touch-ui button { height: 56px; width: 57px; } .action-bar button { min-height: 32px; padding: 4px 10px; } }

@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+    <meta name="theme-color" content="#101b27" />
+    <meta name="description" content="Laboratório visual 3D de direção — Brejo Alegre Delivery Simulator. Protótipo web fictício e experimental." />
+    <title>Brejo Alegre — Web Lab</title>
+  </head>
+  <body>
+    <canvas id="renderCanvas" aria-label="Mundo 3D de teste"></canvas>
+    <div id="hud" class="hud">
+      <header class="hud-header">
+        <div class="brand"><span class="brand-mark">◈</span> BREJO ALEGRE <small>WEB LAB / 0.0.1</small></div>
+        <div class="telemetry"><strong id="speed">0</strong> <span>km/h</span></div>
+      </header>
+      <div class="prototype-label">ÁREA TEMPORÁRIA DE TESTE — NÃO REPRESENTA BREJO ALEGRE</div>
+      <div class="status-panel">
+        <strong id="mode">Pilotando</strong>
+        <span id="tips">WASD ou setas para dirigir · F para descer</span>
+        <span id="fps">FPS: —</span>
+      </div>
+      <div class="touch-ui" aria-label="Controles do jogo">
+        <div class="touch-left">
+          <button type="button" data-control="left" aria-label="Virar à esquerda">◀</button>
+          <button type="button" data-control="right" aria-label="Virar à direita">▶</button>
+        </div>
+        <div class="touch-right">
+          <button type="button" data-control="accelerate" aria-label="Acelerar">▲ <small>ACELERAR</small></button>
+          <button type="button" data-control="brake" aria-label="Frear">▼ <small>FREAR</small></button>
+        </div>
+      </div>
+      <nav class="action-bar" aria-label="Ações e câmera">
+        <button type="button" data-action="camera-left" aria-label="Girar câmera à esquerda">↶</button>
+        <button type="button" data-action="camera-right" aria-label="Girar câmera à direita">↷</button>
+        <button type="button" data-action="zoom-in" aria-label="Aproximar câmera">＋</button>
+        <button type="button" data-action="zoom-out" aria-label="Afastar câmera">－</button>
+        <button type="button" data-action="mount" class="primary">Descer</button>
+      </nav>
+    </div>
+    <div class="portrait-warning" role="status">Gire o celular para jogar na horizontal.</div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

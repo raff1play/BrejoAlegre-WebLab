@@ -1,0 +1,12 @@
+node_modules/
+dist/
+coverage/
+.vite/
+.DS_Store
+*.log
+.env.local
+.env.*.local
+# Never put access tokens, personal data or signing keys in public source.
+*.pem
+*.key
+.secrets/

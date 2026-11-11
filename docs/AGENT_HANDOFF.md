@@ -1,0 +1,13 @@
+# Handoff de uma página — cole este arquivo ou leia direto do repo
+
+**Projeto:** Brejo Alegre Web Lab (`raff1play/BrejoAlegre-WebLab`), protótipo temporário Babylon.js + TypeScript + Vite, single-player no Chrome desktop/Android. Se validado, o jogo final será REESCRITO em Godot. Não misturar os projetos.
+
+**Não inferir de memória:** tudo que é aprovado está em `docs/product/ORIGINAL_GODOT_SPEC.md` (D01–D17) e `docs/product/WEBLAB_SCOPE.md` (prototipagem). Exceções e novas decisões em `docs/DECISIONS.md`. Status verdadeiro em `docs/PROJECT_STATE.md`.
+
+**Escopo imediato:** uma rua fictícia em 3D, moto com controles, câmera, caminhar, colisão e visual brasileiro otimizado. Proibidos backend, multiconta, multiplayer, loja operativa, pacotes, pagamentos e mapa geográfico final nesta etapa.
+
+**Ambientes:** `src/features/` por mecânica, `src/core/` regras puras, `src/config/` modo; dev via `npm run dev`, staging via `npm run build:staging`, produção com `npm run build:production` + deploy manual aprovado, tudo **com o mesmo src/**. `dist/` não versionado.
+
+**Testes locais realizados durante montagem:** validação de 18 arquivos; 6 testes unitários passaram em Node 22.16; 9 fontes TS transpilaram sem erros de sintaxe. **Não houve** instalação npm (EAI_AGAIN), typecheck completo, build nem teste de jogo no browser. **Não houve** upload no GitHub: criar branch e gravar arquivo deram 403. Reinspecionar estado e tratar bloqueios antes de agir.
+
+**Instrução de próxima implementação:** `docs/NEXT_TASK_FOR_FABLE.md`. Ler `AGENTS.md` por completo. Fazer branch+PR sem merge, rodar testes reais, registrar resultados em `docs/PROJECT_STATE.md`. Não produzir só plano. Não inventar sucesso ou FPS.
