@@ -82,24 +82,22 @@ docs/                 # requisitos, decisões, estado e handoff
 
 ## Estado de validação
 
-Ver `docs/PROJECT_STATE.md`. Na preparação local o npm registry retornou `EAI_AGAIN`, por isso o `package-lock.json` não pôde ser criado. **A compilação completa passou no runner do GitHub Actions**; o que continua pendente é testar o jogo de fato em Chrome e Android. Na próxima execução de instalação no projeto, **versionar o `package-lock.json` e trocar o CI de `npm install` para `npm ci`**.
+Ver `docs/PROJECT_STATE.md` para os testes e a versão publicada. O `package-lock.json` já está versionado, e a CI utiliza `npm ci`. Build aprovado não substitui teste de jogabilidade no aparelho.
 
 ## Licenciamento e gastos
 
 Babylon.js e ferramentas abertas não exigem assinatura do motor. Não utilizar assets, marcas oficiais ou dados privados sem licença/consentimento. Não contratar serviços nem publicar sem aprovação. Repositório público **não significa** que todos os arquivos de arte tenham licença aberta; não supor permissões de redistribuição.
 
-## Instalar como aplicativo no Android (PWA)
+## Testar no navegador (modo atual)
 
-A versão web pode ser instalada sem APK, sem Play Store e sem assinatura. A instalação **não transforma o protótipo em jogo Android nativo**; continua sendo o mesmo Babylon.js rodando pelo Chrome.
+O Brejo Alegre Web Lab **não oferece instalação PWA nesta versão de teste**. A instalação e o cache offline anteriores foram desativados por decisão do usuário; a lógica histórica continua preservada no GitHub para eventual reativação explícita.
 
-1. No **Chrome Android**, abra https://raff1play.github.io/BrejoAlegre-WebLab/ .
-2. Toque em **Instalar app**. Se o Chrome ainda não oferecer a instalação automática, abra o menu **⋮ → Instalar app** (ou **Adicionar à tela inicial**).
-3. Depois de instalar, **abra pelo ícone Brejo Alegre** na tela inicial ou na lista de apps, **não** pela aba normal do Chrome.
-4. O manifesto solicita modo `standalone` e orientação `landscape`. No modo aplicativo, não chamamos `requestFullscreen()`; isso evita provocar o aviso cinza de segurança do Chrome quando ele não é necessário.
-5. Se o sistema mantiver a orientação vertical, ative **Rotação automática** ou use o botão manual; a preferência de paisagem depende do navegador/Android e **não é garantida**.
-6. Se um atalho antigo continuar abrindo uma aba do navegador, remova esse **atalho** e instale a nova versão pelo menu do Chrome.
+- Jogue diretamente no Chrome: https://raff1play.github.io/BrejoAlegre-WebLab/
+- Se estiver no celular, gire para horizontal ou toque em **Jogar na horizontal** (o aviso de tela cheia pertence ao Chrome).
+- **Analógico esquerdo:** na moto, deslize lateralmente para esterçar com intensidade proporcional; aceleração e freio continuam nos botões direitos.
+- **A pé:** o mesmo analógico move o personagem em 360°, com velocidade proporcional ao deslocamento do dedo.
+- Soltar o analógico, cancelar o toque, trocar de app ou perder o foco zera imediatamente o controle.
+- Teclado WASD/setas continua funcionando no PC. A câmera permanece por gesto de arrastar, pinça ou botões dedicados.
+- Caso você tenha **instalado** o PWA anteriormente, desinstale o ícone/aplicativo antigo do Android e abra o endereço no Chrome. A página nova também tenta encerrar somente o service worker e o cache específicos deste projeto.
 
-O service worker usa rede primeiro e cache como alternativa para recursos próprios do jogo, com escopo restrito a `/BrejoAlegre-WebLab/`. O primeiro acesso requer internet; conteúdo offline e atualização após nova versão **ainda precisam ser testados em aparelho real**.
-
-A implementação está em `public/manifest.webmanifest`, `public/sw.js`, `public/icons/` e `src/features/display/pwa.ts`. Os testes unitários de manifesto, ícones e modo standalone ficam em `tests/pwa.test.ts`.
-
+O PWA está **desativado**, não apagado do histórico. Não há nova assinatura, conta ou serviço externo.
