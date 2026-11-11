@@ -4,8 +4,9 @@
  */
 export const WEBLAB_CACHE_PREFIX = 'brejo-weblab-';
 
-export function isWebLabRegistration(scope: string, origin: string, basePath: string): boolean {
-  return scope === new URL(basePath, origin).href;
+export function isWebLabRegistration(scope: string, pageUrl: string, basePath: string): boolean {
+  // Vite uses base './'. Resolve relative to the current page path, not origin root.
+  return scope === new URL(basePath, pageUrl).href;
 }
 
 export async function disableWebLabPwa(win: Window, basePath: string): Promise<void> {
@@ -13,7 +14,7 @@ export async function disableWebLabPwa(win: Window, basePath: string): Promise<v
     if ('serviceWorker' in win.navigator) {
       const registrations = await win.navigator.serviceWorker.getRegistrations();
       await Promise.all(registrations
-        .filter((entry) => isWebLabRegistration(entry.scope, win.location.origin, basePath))
+        .filter((entry) => isWebLabRegistration(entry.scope, win.location.href, basePath))
         .map((entry) => entry.unregister()));
     }
   } catch (error) {
