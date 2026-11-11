@@ -70,3 +70,11 @@ Próximas mudanças devem registrar PR/SHA e resultados verificáveis.
 - Atualizados testes unitários e roteiro `tests/e2e/play.cjs` para tocar no analógico, não nas setas removidas.
 - **Ainda depende de CI para a HEAD final e de teste físico no Galaxy S24; não afirmar melhora ergonômica/FPS sem medir.**
 
+## 2026-11-11 — Direção da moto mais leve (W008)
+
+- Recalibrada a curva do analógico **somente na moto**: deslocamentos intermediários produzem mais esterço sem perder centro neutro.
+- Resposta de direção mais rápida (`steerInRate` 3,2 → 5,0/s; `steerOutRate` 5,5 → 8,0/s), curvas mais fechadas em baixa velocidade (`maxSteerAngle` 0,56 → 0,67 rad) e aderência arcade levemente maior (`maxLateralAccel` 6,5 → 8,0 m/s²).
+- Preservados velocidade máxima, teclas, pedestre, aceleração/freio, colisões, visual e navegador sem PWA.
+- Testes incrementados para resposta parcial, simetria, ausência de NaN, moto parada sem girar e recentralização.
+- Avaliação ergonômica e FPS no Galaxy S24 dependem de teste presencial; não confundir melhora esperada com resultado medido.
+
