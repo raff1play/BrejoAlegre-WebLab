@@ -28,10 +28,10 @@ export const MOTO = Object.freeze({
   reverseSpeed: 1.8,
   reverseAcceleration: 2.5,
   wheelbase: 1.32,
-  maxSteerAngle: 0.56,     // rad, ~32° at walking pace
-  maxLateralAccel: 6.5,    // m/s², caps the turn rate at speed
-  steerInRate: 3.2,        // how fast steering builds up (1/s)
-  steerOutRate: 5.5,       // how fast it recentres (1/s)
+  maxSteerAngle: 0.67,     // rad, ~38° at walking pace for tighter low-speed turns
+  maxLateralAccel: 8.0,    // m/s², agile arcade grip limit; still caps high-speed turning
+  steerInRate: 5.0,        // quicker response to finger input (1/s)
+  steerOutRate: 8.0,       // recentres promptly when thumb is released (1/s)
   maxLean: 0.42,           // ~24°, a moderate visual lean
   bodyRadius: 0.42,
   bodyOffset: 0.55,        // front/rear collision circles along the bike
