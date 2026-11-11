@@ -6,6 +6,8 @@
 
 **Importante:** O antigo erro 403 da integração GitHub foi resolvido; o registro histórico está em `docs/GITHUB_UPLOAD_BLOCKER.md`. Para começar, leia `docs/PROJECT_STATE.md` e `docs/NEXT_TASK_FOR_FABLE.md`. Não fazer merge/deploy sem aprovação.
 
+**CI remoto (11/11/2026):** [execução #43022020392](https://github.com/raff1play/BrejoAlegre-WebLab/actions/runs/43022020392) passou na validação, testes e build de staging. **Ainda não há teste real no navegador ou no Android, nem deploy.**
+
 **Leia antes de implementar:** [`AGENTS.md`](AGENTS.md) → [`docs/00_START_HERE.md`](docs/00_START_HERE.md) → [`docs/NEXT_TASK_FOR_FABLE.md`](docs/NEXT_TASK_FOR_FABLE.md). Essas referências foram criadas para outros chats e outras IAs trabalharem sem acesso a memória externa.
 
 ## Rodar no computador
