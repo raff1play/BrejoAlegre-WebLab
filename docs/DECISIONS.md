@@ -34,3 +34,11 @@
 - Manter alternativa pelo navegador, sem inventar bloqueio forçado de rotação ou instalação já validada no Galaxy S24.
 - Não altera nenhuma decisão D01–D17 da futura versão Godot, nem autoriza merge da `main` ou serviços pagos.
 
+## W007 — Navegador primeiro e analógico proporcional (confirmada em 11/11/2026)
+
+- Usuário pediu **cancelar/desativar o PWA por enquanto**, mantendo o jogo no navegador. W007 prevalece sobre W006 **somente para o estado operacional do Web Lab**; preservar o histórico da tentativa PWA.
+- Remover `rel=manifest`, chamadas de instalação/registro e botões **Instalar app** do jogo. Encerrar apenas o antigo service worker do Web Lab e limpar apenas caches com prefixo exclusivo `brejo-weblab-`. Não tocar nos caches de outros apps ou no armazenamento de progresso.
+- Substituir as setas na parte inferior esquerda por **analógico virtual real**, com movimento contínuo, zona morta, limite radial e reset ao soltar/cancelar o toque, perder foco ou mudar de modo.
+- **Na moto:** analógico X = esterço proporcional. Acelerar e frear continuam separados, à direita. **A pé:** analógico X/Y = caminhada em 360° com velocidade proporcional, mantendo teclado no PC.
+- Continuar com animação de câmera, colisões e controles existentes, sem servidor ou serviços pagos. Medir ergonomia/FPS no aparelho real antes de dizer que melhorou.
+- A `main` e o jogo Godot final não são alterados. Publicar somente na prévia autorizada do Pages, após testes aprovados.
