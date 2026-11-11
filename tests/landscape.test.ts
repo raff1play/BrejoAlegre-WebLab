@@ -45,3 +45,19 @@ test('rejected orientation lock: keep fullscreen with manual rotation fallback',
   const screen = mockScreen(async () => { throw Error('NotSupportedError'); });
   assert.equal(await requestLandscapeMode(mockDocument({}, async () => {}), screen), 'fullscreen-only');
 });
+
+test('installed PWA requests landscape without entering browser fullscreen', async () => {
+  const events: string[] = [];
+  const doc = mockDocument(null, async () => { events.push('fullscreen'); });
+  const screen = mockScreen(async (mode) => { events.push(`lock:${mode}`); });
+  assert.equal(await requestLandscapeMode(doc, screen, true), 'locked');
+  assert.deepEqual(events, ['lock:landscape']);
+});
+
+test('installed PWA falls back to manual rotation without Chrome fullscreen', async () => {
+  const events: string[] = [];
+  const doc = mockDocument(null, async () => { events.push('fullscreen'); });
+  const screen = mockScreen(async () => { throw Error('NotAllowedError'); });
+  assert.equal(await requestLandscapeMode(doc, screen, true), 'manual');
+  assert.deepEqual(events, []);
+});
