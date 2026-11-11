@@ -19,7 +19,7 @@
 5. `DECISIONS.md`: decisões web W001–W005, abertas e fechadas.
 6. `ARCHITECTURE.md`, `ENVIRONMENTS.md`, `WORKFLOW.md`, `QUALITY_GATES.md`.
 7. `NEXT_TASK_FOR_FABLE.md`: escopo da próxima implementação.
-8. `GITHUB_UPLOAD_BLOCKER.md`: publicação segura se o GitHub da IA continuar devolvendo 403.
+8. `GITHUB_UPLOAD_BLOCKER.md`: histórico do 403 resolvido; não presumir bloqueio atual.
 9. `AGENT_HANDOFF.md`: resumo curto verificável para iniciar em outra LLM.
 
 ## Como atualizar este contexto

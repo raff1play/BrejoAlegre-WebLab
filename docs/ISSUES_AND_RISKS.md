@@ -2,7 +2,7 @@
 
 | ID | Prioridade | Status | Ação / decisão |
 |---|---|---|---|
-| B001 | Alta | BLOQUEIO | Integração GitHub não permite criar branch/arquivo (403). Reautorizar permissões ou fazer push manual sem mudar `main` diretamente. |
+| B001 | Alta | RESOLVIDO em 11/11/2026 | Integração GitHub voltou a criar branch/arquivos; verificar PR #1. Não realizar push manual duplicado. |
 | B002 | Alta | BLOQUEIO | npm registry indisponível localmente (EAI_AGAIN). Instalação, lock, compilação e build dependem de ambiente com acesso. |
 | B003 | Alta | NÃO TESTADO | Renderização, controles, colisões e câmera no navegador real. |
 | B004 | Alta | NÃO TESTADO | Chrome Android/Galaxy S24, FPS, termal, toque em landscape. |

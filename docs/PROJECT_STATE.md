@@ -2,26 +2,28 @@
 
 **Última revisão:** 2026-11-11. **Fonte:** inspeção local da base gerada + consulta ao GitHub com o conector disponível.
 
-## GitHub remoto (verificado)
+## GitHub remoto (verificado em 11/11/2026)
 
-- Conta conectada `raff1play`; repositório: `raff1play/BrejoAlegre-WebLab`.
-- Visibilidade: **público**; branch-padrão: `main`.
-- Commit da `main` observado: `2c55f700b7b9e195068a354699607d15381a245d` (README inicial somente).
-- Tentativas reais de criar `setup/weblab-foundation` e criar arquivo na branch pela integração: **ambas HTTP 403 — Resource not accessible by integration**.
-- **Conclusão: os arquivos desta base NÃO foram enviados ao remoto e nenhum PR/deploy foi criado.** Será necessário reautorizar escrita no GitHub ou fazer push manual/por um agente autorizado.
+- Conta conectada: `raff1play`; repositório público: `raff1play/BrejoAlegre-WebLab`.
+- `main` não foi alterada; commit inicial observado: `2c55f700b7b9e195068a354699607d15381a245d`.
+- **Erro 403 resolvido:** a integração GitHub permitiu criar a branch e enviar os arquivos.
+- Branch de preparação: `setup/weblab-foundation`; commit base: `dc0a7219007d2528bd99e5eb11ede9e3688dc3bf`.
+- **55 arquivos de texto versionados**, incluindo código, regras dos agentes, especificação e workflows de CI/Pages.
+- PR em rascunho: https://github.com/raff1play/BrejoAlegre-WebLab/pull/1 — sem merge, sem deploy.
+- Os três documentos `docs/archive/` e o JPG `docs/assets/visual_references_AI.jpg` ainda não estão nesta branch; são material opcional, não necessário para instalação inicial.
 
-## Preparação local (não confundir com repositório publicado)
+## Conteúdo da branch (não confundir código publicado com funcionalidade validada)
 
 | Item | Estado | Evidência / limite |
 |---|---|---|
-| Arquivos de base Babylon/Vite/TypeScript | Criados localmente | Código textual presente; não é comprovação de compilação |
-| Subpastas por feature e config ambiente | Criadas localmente | `src/features/`, `src/config/`, `src/core/` |
+| Arquivos de base Babylon/Vite/TypeScript | Versionados na branch | Código textual presente; não é comprovação de compilação |
+| Subpastas por feature e config ambiente | Versionadas na branch | `src/features/`, `src/config/`, `src/core/` |
 | Mundo temporário, moto, caminhar, HUD | Código fonte presente | `src/`; ainda sem ensaio real de gameplay |
 | Colisão aproximada 2D com casas | Código e testes unitários | `npm run test:unit`: **6/6 passaram** em Node.js 22.16.0 local; não equivale a teste de física no navegador |
 | Regras de agentes e fonte de verdade | Escritas | `AGENTS.md`, `CLAUDE.md`, `docs/` |
 | Validação de documentação | TESTADA localmente | `node scripts/validate-repository.mjs`: 18 arquivos obrigatórios presentes |
 | Transpilação de sintaxe TS | TESTADA localmente | `typescript.transpileModule`: 9 fontes TS sem erros sintáticos; não é typecheck completo |
-| CI staging e Pages manual | Arquivos escritos | Workflows NÃO enviados/habilitados no GitHub |
+| CI staging e Pages manual | Arquivos versionados na branch | CI remoto pode rodar automaticamente; resultados ainda precisam ser verificados; Pages não foi publicado |
 | npm install e compilação completa | **BLOQUEADOS** | npm registry indisponível (`EAI_AGAIN`) durante preparação |
 | package-lock.json | **NÃO EXISTE** | Precisa ser gerado por npm install real, depois versionado |
 | Testes Android/Chrome/FPS | **NÃO EXECUTADOS** | Sem evidências de dispositivo ou browser |

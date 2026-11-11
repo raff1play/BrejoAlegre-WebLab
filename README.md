@@ -1,10 +1,10 @@
 # Brejo Alegre Web Lab — protótipo single-player no navegador
 
-> **Estado: BASE LOCAL PREPARADA, NÃO TESTADA NO NAVEGADOR.** A conta GitHub é `raff1play` e o repositório já existe em https://github.com/raff1play/BrejoAlegre-WebLab. Na auditoria de 11/11/2026, a `main` remota tinha apenas README. A integração GitHub recusou criar branch e arquivo (HTTP 403), portanto estes arquivos **não estão publicados no remoto**. Leia `docs/PROJECT_STATE.md`.
+> **Estado: FUNDAÇÃO PUBLICADA NA BRANCH `setup/weblab-foundation`, AINDA NÃO TESTADA NO NAVEGADOR.** Repositório: https://github.com/raff1play/BrejoAlegre-WebLab. PR em rascunho: https://github.com/raff1play/BrejoAlegre-WebLab/pull/1. A `main` não foi alterada. O código foi versionado, mas compilação completa, browser, Android e FPS continuam sem evidências.
 
 **O que é:** laboratório 3D descartável (Babylon.js 9.35.0 + TypeScript 5.9.3 + Vite 7.3.0), feito para experimentar direção, interações e direção de arte por navegador desktop ou Android. Não é o jogo final em Godot e não existe multiplayer ou backend nesta fase.
 
-**Importante:** O arquivo `docs/GITHUB_UPLOAD_BLOCKER.md` explica por que ainda não houve push e inclui scripts opcionais para importar em branch isolada.
+**Importante:** O antigo erro 403 da integração GitHub foi resolvido; o registro histórico está em `docs/GITHUB_UPLOAD_BLOCKER.md`. Para começar, leia `docs/PROJECT_STATE.md` e `docs/NEXT_TASK_FOR_FABLE.md`. Não fazer merge/deploy sem aprovação.
 
 **Leia antes de implementar:** [`AGENTS.md`](AGENTS.md) → [`docs/00_START_HERE.md`](docs/00_START_HERE.md) → [`docs/NEXT_TASK_FOR_FABLE.md`](docs/NEXT_TASK_FOR_FABLE.md). Essas referências foram criadas para outros chats e outras IAs trabalharem sem acesso a memória externa.
 
@@ -66,7 +66,7 @@ docs/                 # requisitos, decisões, estado e handoff
 - Cena fictícia de rua, 3D em formas básicas, moto simplificada e personagem básico. Colisão com edifícios é aproximação por retângulos; não é física Havok.
 - Ainda faltam modelos realistas, iluminação melhor, refinamento dos controles e testes num Android verdadeiro.
 - A meta de 30 FPS em dispositivo intermediário é **alvo**, não número medido.
-- Referências de IA em `docs/assets/visual_references_AI.jpg` são imagens artísticas, nunca prova de renderização Babylon.
+- As imagens do Runway são referências artísticas, nunca prova de renderização Babylon. **O JPG de referência não foi versionado neste primeiro commit**; solicitar a imagem original quando precisar de uma comparação visual.
 - Mapa geograficamente fiel, NPCs logísticos, entrega, inventário, scanner, economia e multiplayer são etapas posteriores.
 
 ## Estado de validação
