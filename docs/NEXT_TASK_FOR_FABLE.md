@@ -1,4 +1,4 @@
-# Próxima tarefa — testar no Galaxy S24 o Web Lab no navegador, com analógico (W007)
+# Próxima tarefa — validar no Galaxy S24 a direção recalibrada da moto (W008)
 
 **Fonte da verdade:** `AGENTS.md`, `docs/DECISIONS.md`, `docs/PROJECT_STATE.md`, `docs/ISSUES_AND_RISKS.md`.
 
@@ -7,7 +7,7 @@
 O Web Lab é um protótipo **single-player no navegador**. A instalação PWA foi suspensa por W007; NÃO oferecer botões/manifesto/service worker novo sem pedido explícito.
 
 Controles móveis:
-- Analógico inferior esquerdo: direção proporcional da moto (eixo X); a pé: 360° + intensidade de velocidade (X/Y).
+- Analógico inferior esquerdo: **direção da moto recalibrada em W008** — curva responsiva para pequeno/médio movimento do polegar; guidão reage mais rápido e curva mais fechado em baixa/média velocidade. A pé: 360° e velocidade proporcional (W007), sem alteração.
 - Na moto, acelerar e frear permanecem à direita.
 - Descer/Montar, câmera/zoom e teclas desktop permanecem. Zona morta radial de 12% e reset após `pointerup`, `pointercancel`, perda de foco e mudança de personagem.
 
@@ -18,8 +18,8 @@ Os arquivos de código da funcionalidade estão em `src/core/analogStick.ts`, `s
 No Galaxy S24, abrir https://raff1play.github.io/BrejoAlegre-WebLab/ no Chrome em paisagem depois da última publicação do Pages.
 
 1. As setas antigas desapareceram? O analógico aparece embaixo, à esquerda, e não tampa o personagem?
-2. Acelerar segurando o botão direito e arrastar o analógico com o polegar esquerdo esterça gradualmente? Meio percurso vira menos que o percurso completo?
-3. Soltar o analógico centraliza a esfera e zera o esterço; não há comando preso após interromper toque ou troca de aplicativo?
+2. Acelerar segurando o botão direito e inclinar o analógico levemente; verificar se a moto esterça com facilidade sem puxões. Comparar meio percurso com percurso completo; testar retornos e curvas em baixa/média velocidade.
+3. Soltar o analógico centraliza a esfera e zera rapidamente o esterço; não há comando preso nem correção excessiva após interromper toque ou trocar de aplicativo?
 4. Parar e descer da moto; andar em todas as direções/diagonais com velocidade variável; aproximar-se e montar novamente.
 5. Testar câmera, zoom, pedestre, colisões e aceleração/freio como antes.
 6. Medir FPS do HUD nos perfis gráficos leve/alto após 3–5 minutos. Registrar capturas, orientação, ergonomia e problemas.
