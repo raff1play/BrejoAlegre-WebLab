@@ -23,11 +23,21 @@
 | Regras de agentes e fonte de verdade | Escritas | `AGENTS.md`, `CLAUDE.md`, `docs/` |
 | Validação de documentação | TESTADA localmente | `node scripts/validate-repository.mjs`: 18 arquivos obrigatórios presentes |
 | Transpilação de sintaxe TS | TESTADA localmente | `typescript.transpileModule`: 9 fontes TS sem erros sintáticos; não é typecheck completo |
-| CI staging e Pages manual | Arquivos versionados na branch | CI remoto pode rodar automaticamente; resultados ainda precisam ser verificados; Pages não foi publicado |
-| npm install e compilação completa | **BLOQUEADOS** | npm registry indisponível (`EAI_AGAIN`) durante preparação |
+| CI staging e Pages manual | CI remoto aprovado na execução 43022020392 | Build staging e artefato confirmados; Pages NÃO publicado |
+| npm install e compilação completa | **PASSARAM no CI GitHub**; local bloqueado | Runner instalou dependências e executou typecheck+Vite build; ambiente local continua sem registro npm |
 | package-lock.json | **NÃO EXISTE** | Precisa ser gerado por npm install real, depois versionado |
 | Testes Android/Chrome/FPS | **NÃO EXECUTADOS** | Sem evidências de dispositivo ou browser |
 | Gameplay completo, mapa real, logística | **NÃO IMPLEMENTADOS** | Fora de 0.1 |
+
+## Validação remota verificada — GitHub Actions (11/11/2026)
+
+- Execução: https://github.com/raff1play/BrejoAlegre-WebLab/actions/runs/43022020392
+- **Resultado final: success**, job `verify`.
+- Confirmados no runner limpo: `npm install`, `npm run validate:repo`, `npm run test:unit` (6 testes), `npm run build:staging` (inclui `tsc --noEmit` e Vite build).
+- Artefato staging compilado: https://github.com/raff1play/BrejoAlegre-WebLab/actions/runs/43022020392/artifacts/13855880624
+- Principal chunk Vite: aproximadamente **7,2 MB** antes de gzip (**1,6 MB gzip**); avaliar imports modulares e desempenho de carregamento, especialmente no celular.
+- **Não há teste real de navegador/Android, medição de FPS, gameplay aprovado, merge ou deploy**. O sucesso da build apenas confirma empacotamento e verificações automatizadas.
+- Esta é uma execução observada; depois de novos commits, confirmar a CI correspondente à HEAD atual.
 
 ## Evidências que precisam constar após o Fable
 
