@@ -1,6 +1,6 @@
 # AGENTS.md — Contrato obrigatório para qualquer IA neste repositório
 
-**Ler antes de atuar:** `docs/00_START_HERE.md` → `docs/PROJECT_STATE.md` → `docs/product/WEBLAB_SCOPE.md` → `docs/product/ORIGINAL_GODOT_SPEC.md` → `docs/ARCHITECTURE.md` → `docs/QUALITY_GATES.md` → tarefa em `docs/NEXT_TASK_FOR_FABLE.md`.
+**Ler antes de atuar:** `docs/00_START_HERE.md` → `docs/PROJECT_STATE.md` → `docs/product/WEBLAB_SCOPE.md` → `docs/product/ORIGINAL_GODOT_SPEC.md` → `docs/ARCHITECTURE.md` → `docs/QUALITY_GATES.md` → `docs/VISUAL_DIRECTION.md` → tarefa em `docs/NEXT_TASK_FOR_FABLE.md`.
 
 ## Identidade e limites
 - Projeto **Brejo Alegre Web Lab**, protótipo SINGLE-PLAYER 3D descartável em Babylon.js + TypeScript + Vite. NÃO é a futura implementação Godot/Android, nem RadarPro/Mapa-051/SSF/Labirinto13.
@@ -16,7 +16,7 @@
 - Se um dado não estiver no repositório, diga **não documentado**; não deduza de conversas anteriores. Mantenha `docs/PROJECT_STATE.md` atualizado somente com fatos verificáveis, logs e URLs reais.
 
 ## Fluxo de engenharia
-- Toda mudança em branch `feat/`, `fix/`, `docs/` ou `setup/`; PR para `main`; não fazer merge ou deploy sem aprovação explícita.
+- Toda mudança em branch `feat/`, `fix/`, `docs/` ou `setup/`; PR para `main` ou outra base de trabalho existente quando documentado. **Para a tarefa 0.1 usar `setup/weblab-foundation` e atualizar o PR #1**, como fixado em `docs/NEXT_TASK_FOR_FABLE.md`; não fazer merge ou deploy sem aprovação explícita.
 - `src/features/` é código por funcionalidade; `src/world/` cenário de teste; `src/core/` regras puras; `src/config/` diferencia ambiente. Não criar um segundo jogo ou duplicar código em pasta `production`.
 - `development` = Vite local; `staging` = build de PR como artefato de CI, **não site publicado**; `production` = build estático de `main`, deploy Pages apenas MANUAL e autorizado. `dist/` é saída gerada e nunca commitada.
 - Componentes pequenos, TypeScript strict, cálculos puros testados, módulos separados, nenhuma chave no front-end. Não instalar dependências sem justificar licença, custo, segurança e ganho.
