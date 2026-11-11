@@ -26,3 +26,11 @@ Não marcar bloqueio como corrigido sem evidência de execução, timestamp e, q
 - **R-TEST-001 (aberto):** o Chromium headless usa GPU por software (4–9 FPS). Os testes de navegador provam comportamento, não desempenho.
 
 - **R-VISUAL-002 (aberto):** as imagens conceituais anteriores não foram incluídas no GitHub; referência textual em `docs/VISUAL_DIRECTION.md`. Não fingir que o agente viu imagens não versionadas.
+
+## Pendências PWA — 11/11/2026
+
+- **B016 — TESTE PENDENTE:** instalar o app no Galaxy S24 via Chrome, abrir pelo ícone e confirmar se abre sem aviso cinza de fullscreen.
+- **B017 — TESTE PENDENTE:** confirmar se o Android respeita `orientation: landscape` com rotação automática ligada/desligada; o manifesto não garante o resultado.
+- **B018 — TESTE PENDENTE:** validar retomada do aplicativo, atualização de versão e fallback offline do service worker sem cache desatualizado.
+- **B019 — LIMITE DE SUPORTE:** o evento `beforeinstallprompt` não é universal; oferecer instruções de menu nativo do navegador quando indisponível.
+
