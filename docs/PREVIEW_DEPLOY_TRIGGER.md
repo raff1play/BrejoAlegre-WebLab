@@ -51,3 +51,10 @@ Em **Build and deployment > Source**, selecionar **GitHub Actions** e salvar. En
 - Evidência anterior a este trigger: CI da HEAD `a3e54d57a39a81e26a81e2bca7fcdb0792689da9` finalizou **success** (runs `43050655204`, `43050667863`).
 - A nova publicação terá: remoção da instalação PWA, limpeza restrita de cache/SW antigo, joystick X para esterço na moto e X/Y para caminhar em 360°, freio/acelerador à direita e teclado preservado.
 - Verificar o workflow da nova HEAD e registrar SHA efetivamente implantado. Teste de sensibilidade e controle por toque no Galaxy S24 permanece pendente.
+
+## Preview autorizado — W008, direção mais leve (11/11/2026)
+
+- Usuário testou W007 e relatou "Ficou muito pesado, difícil manobrar a moto". Autorização de atualização funcional para calibrar condução e publicar no mesmo ambiente experimental já utilizado.
+- W008 melhora resposta do analógico e calibração de esterço da moto, sem modificar caminhada, velocidade máxima, câmera, PWA, main ou recursos pagos.
+- A CI da HEAD `652a7e84d28e19514bc3622ea9cc17f5197ae626` passou em `43118499685`: 44/44 testes e build de staging.
+- Este commit no arquivo de trigger aciona o deploy do preview. Validar execução do workflow da HEAD e sucesso antes de afirmar que está publicado.
