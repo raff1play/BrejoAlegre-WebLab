@@ -93,3 +93,11 @@ Ler `AGENTS.md` e `docs/NEXT_TASK_FOR_FABLE.md` (agora descreve a tarefa seguint
 - **Ação manual necessária:** proprietário abre `https://github.com/raff1play/BrejoAlegre-WebLab/settings/pages` → *Build and deployment* → *Source* = **GitHub Actions**, salvar.
 - Quando Pages estiver habilitado, reexecutar o workflow falho (job `130582420706`) e checar sucesso + URL antes de dizer PUBLICADO. A integração GitHub neste chat não possui ação administrativa de ativação do Pages.
 - A publicação temporária está aprovada apenas para teste; nenhum merge autorizado para `main`.
+
+## Preview GitHub Pages publicado — atualização 11/11/2026
+
+- Após o usuário habilitar Source = GitHub Actions e liberar a branch do ambiente Pages, a execução `43038890916` (tentativa 2) concluiu **SUCCESS**: dependências, 25 testes, build, configure-pages, upload e deploy.
+- Log do GitHub Actions confirmou `Evaluated environment url: https://raff1play.github.io/BrejoAlegre-WebLab/`.
+- Versão implantada: commit `a72f14c0946b51c0410c2b38d72f0d7f4ca39398`, branch `setup/weblab-foundation`.
+- **Status:** Publicação confirmada pelo GitHub Actions; teste HTTP externo direto neste ambiente indisponível (ferramenta web recusou abrir URL, container sem DNS externo). Ainda falta o usuário abrir pelo Chrome Android para validar carregamento, controles e FPS.
+- A `main` não foi alterada; PR #1 continua em rascunho. O workflow está restrito a alterações explícitas em `docs/PREVIEW_DEPLOY_TRIGGER.md` ou `.github/workflows/preview.yml`; novos commits comuns NÃO republicam automaticamente.
