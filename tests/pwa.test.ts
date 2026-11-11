@@ -42,3 +42,11 @@ test('service worker cache rules remain scoped to this app', () => {
   assert.ok(sw.includes('url.pathname.startsWith(APP_SCOPE.pathname)'));
   assert.ok(sw.includes('fetch(request)'));
 });
+
+test('HTML includes PWA metadata, install actions and browser fallback', () => {
+  const html = read('../index.html').toString('utf8');
+  assert.match(html, /rel="manifest" href="\.\/manifest\.webmanifest"/);
+  assert.match(html, /id="pwa-install-hud"/);
+  assert.match(html, /id="pwa-install-portrait"/);
+  assert.match(html, /id="landscape-start"/);
+});
