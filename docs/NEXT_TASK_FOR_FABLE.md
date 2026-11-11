@@ -1,57 +1,36 @@
-# Tarefa atual — Validar a 0.1 em aparelho real e ajustar por medição
+# Próxima tarefa — testar no Galaxy S24 o Web Lab no navegador, com analógico (W007)
 
-**ESTADO REAL ao escrever (11/11/2026):** a versão 0.1 está implementada na branch `setup/weblab-foundation` (PR #1, rascunho, sem merge e sem deploy) e foi testada em Chromium headless: 25 testes unitários e 44 verificações de navegador (`docs/evidence/`). **Android real, GPU real e FPS não foram testados.** Ver `docs/PROJECT_STATE.md`.
+**Fonte da verdade:** `AGENTS.md`, `docs/DECISIONS.md`, `docs/PROJECT_STATE.md`, `docs/ISSUES_AND_RISKS.md`.
 
-A tarefa anterior ("Implementar Web Lab 0.1 no navegador") está concluída no que o ambiente de nuvem permitia.
+## Estado aprovado
 
-## Antes de qualquer coisa
+O Web Lab é um protótipo **single-player no navegador**. A instalação PWA foi suspensa por W007; NÃO oferecer botões/manifesto/service worker novo sem pedido explícito.
 
-Ler `AGENTS.md`, `docs/00_START_HERE.md`, `docs/PROJECT_STATE.md`, `docs/ISSUES_AND_RISKS.md`. Não recriar o projeto, não abrir outro PR, não tocar em `main`, não fazer merge nem publicar no Pages sem autorização explícita do usuário.
+Controles móveis:
+- Analógico inferior esquerdo: direção proporcional da moto (eixo X); a pé: 360° + intensidade de velocidade (X/Y).
+- Na moto, acelerar e frear permanecem à direita.
+- Descer/Montar, câmera/zoom e teclas desktop permanecem. Zona morta radial de 12% e reset após `pointerup`, `pointercancel`, perda de foco e mudança de personagem.
 
-## Passo 1 — o usuário testa no computador e no celular (depende de pessoa, não de IA)
+Os arquivos de código da funcionalidade estão em `src/core/analogStick.ts`, `src/features/controls/virtualJoystick.ts`, `src/features/controls/input.ts`, `src/main.ts`; limpeza de PWA antigo em `src/features/display/disablePwa.ts`.
 
-```sh
-npm ci
-npm run dev
-```
+## Próximo teste humano
 
-Computador: abrir http://localhost:5173. Celular na mesma rede Wi-Fi: abrir `http://IP_DO_COMPUTADOR:5173` no Chrome, em paisagem.
+No Galaxy S24, abrir https://raff1play.github.io/BrejoAlegre-WebLab/ no Chrome em paisagem depois da última publicação do Pages.
 
-Checklist a preencher e devolver (anotar aparelho, versão do Android e do Chrome):
+1. As setas antigas desapareceram? O analógico aparece embaixo, à esquerda, e não tampa o personagem?
+2. Acelerar segurando o botão direito e arrastar o analógico com o polegar esquerdo esterça gradualmente? Meio percurso vira menos que o percurso completo?
+3. Soltar o analógico centraliza a esfera e zera o esterço; não há comando preso após interromper toque ou troca de aplicativo?
+4. Parar e descer da moto; andar em todas as direções/diagonais com velocidade variável; aproximar-se e montar novamente.
+5. Testar câmera, zoom, pedestre, colisões e aceleração/freio como antes.
+6. Medir FPS do HUD nos perfis gráficos leve/alto após 3–5 minutos. Registrar capturas, orientação, ergonomia e problemas.
+7. A interface não apresenta mais **Instalar app**; o Chrome não registra novo service worker. Se houve PWA instalado no passado, remover manualmente o ícone/aplicativo Android.
 
-1. A cena abre? Quanto tempo até aparecer?
-2. FPS mostrado no HUD parado, pilotando e na praça, com "Gráficos: leve" e "Gráficos: alto" (botão no painel).
-3. ▲ acelera, ▼ freia, ◀ ▶ viram? Dá para acelerar e virar com dois polegares ao mesmo tempo?
-4. Algum botão fica preso depois de soltar, ou ao receber notificação/trocar de app?
-5. "Descer" só funciona parado? A pé os quatro botões andam? "Montar" funciona perto da moto?
-6. ↶ ↷ ＋ － funcionam? Arrastar a cena gira e a pinça dá zoom?
-7. Os botões têm bom tamanho e posição? O HUD tampa algo importante?
-8. O aparelho esquenta ou o FPS cai depois de 5 minutos?
-9. A moto é agradável de dirigir? (aceleração, raio de curva, freio, inclinação, velocidade máxima de 55 km/h)
-10. Capturas de tela reais do aparelho.
+## Continuidade do desenvolvimento
 
-## Passo 2 — ajustes guiados pelas respostas
+- Trabalhar na branch `setup/weblab-foundation`, atualizando PR #1; **não fazer merge**.
+- Antes de qualquer publicação executar `npm ci`, `npm run validate:repo`, `npm run test:unit`, `npm run typecheck`, `npm run build:staging`.
+- O roteiro `tests/e2e/play.cjs` foi atualizado para eventos do analógico, mas **não roda na CI**; se acessível executar em Chromium com Playwright e documentar evidências reais.
+- Publicar preview somente com autorização e após CI verde, usando `.github/workflows/preview.yml`, sem alterar a `main`.
+- Atualizar `docs/PROJECT_STATE.md`, `docs/ISSUES_AND_RISKS.md`, `docs/CHANGELOG.md`, registrando SHA e testes de fato executados.
 
-- **FPS abaixo de 30 no perfil leve:** em `src/config/graphics.ts`, reduzir `maxPixelRatio` (1,5 → 1,25/1), `shadowMapSize`, `shadowRange`; se ainda faltar, sombra do cenário estática. Registrar antes/depois medidos.
-- **Dirigibilidade:** constantes em `MOTO` (`src/core/motorcyclePhysics.ts`); manter os testes de `tests/simulation.test.ts` verdes.
-- **Ergonomia de toque:** `src/style.css` (`--pad`, `.pad`, `.camera-bar`) e `index.html`.
-- Pendências menores em `docs/ISSUES_AND_RISKS.md` (B011–B015).
-
-## Passo 3 — somente com autorização do usuário
-
-- Marcar o PR #1 como pronto, fazer merge em `main` e disparar o workflow manual do Pages.
-- Melhorar a arte com modelos licenciados (moto, piloto, vegetação), registrando cada um em `public/assets/ASSET_MANIFEST.md`.
-
-## Continua proibido
-
-Backend, login, multiplayer, economia, scanner, coletas, entregas, mapa definitivo de Brejo Alegre, tráfego, NPCs, Play Store, serviços pagos, assets comprados, outros repositórios.
-
-## Como validar alterações
-
-```sh
-npm run validate:repo && npm run test:unit && npm run typecheck && npm run build:staging
-npm run preview                                  # em outro terminal
-WEBLAB_URL=http://localhost:4173 npm run test:e2e  # exige Playwright + Chromium no ambiente
-```
-
-Ao terminar, atualizar `docs/PROJECT_STATE.md`, `docs/ISSUES_AND_RISKS.md` e `docs/CHANGELOG.md` com SHA, CI e o que foi realmente medido.
+Não adicionar backend, login, multiplayer, economia, scanner ou mapa definitivo nessa etapa. Sem novas assinaturas, serviços pagos ou assets comprados.
