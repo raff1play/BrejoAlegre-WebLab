@@ -1,14 +1,14 @@
 # Brejo Alegre Web Lab — protótipo single-player no navegador
 
-> **Estado: FUNDAÇÃO PUBLICADA NA BRANCH `setup/weblab-foundation`, AINDA NÃO TESTADA NO NAVEGADOR.** Repositório: https://github.com/raff1play/BrejoAlegre-WebLab. PR em rascunho: https://github.com/raff1play/BrejoAlegre-WebLab/pull/1. A `main` não foi alterada. O código foi versionado, mas compilação completa, browser, Android e FPS continuam sem evidências.
+> **Estado: FUNDAÇÃO PUBLICADA NA BRANCH `setup/weblab-foundation`, AINDA NÃO TESTADA NO NAVEGADOR.** Repositório: https://github.com/raff1play/BrejoAlegre-WebLab. PR em rascunho: https://github.com/raff1play/BrejoAlegre-WebLab/pull/1. A `main` não foi alterada. O código está versionado e a compilação completa passou no GitHub Actions; **browser, Android e FPS continuam sem evidências de execução real**.
 
 **O que é:** laboratório 3D descartável (Babylon.js 9.35.0 + TypeScript 5.9.3 + Vite 7.3.0), feito para experimentar direção, interações e direção de arte por navegador desktop ou Android. Não é o jogo final em Godot e não existe multiplayer ou backend nesta fase.
 
 **Importante:** O antigo erro 403 da integração GitHub foi resolvido; o registro histórico está em `docs/GITHUB_UPLOAD_BLOCKER.md`. Para começar, leia `docs/PROJECT_STATE.md` e `docs/NEXT_TASK_FOR_FABLE.md`. Não fazer merge/deploy sem aprovação.
 
-**CI remoto (11/11/2026):** [execução #43022020392](https://github.com/raff1play/BrejoAlegre-WebLab/actions/runs/43022020392) passou na validação, testes e build de staging. **Ainda não há teste real no navegador ou no Android, nem deploy.**
+**CI remoto (11/11/2026):** [execução #43022470633](https://github.com/raff1play/BrejoAlegre-WebLab/actions/runs/43022470633) passou na validação, testes e build de staging na HEAD `a4201dae`; alterações posteriores exigem nova verificação. **Ainda não há teste real no navegador ou no Android, nem deploy.**
 
-**Leia antes de implementar:** [`AGENTS.md`](AGENTS.md) → [`docs/00_START_HERE.md`](docs/00_START_HERE.md) → [`docs/NEXT_TASK_FOR_FABLE.md`](docs/NEXT_TASK_FOR_FABLE.md). Essas referências foram criadas para outros chats e outras IAs trabalharem sem acesso a memória externa.
+**Leia antes de implementar:** [`AGENTS.md`](AGENTS.md) → [`docs/00_START_HERE.md`](docs/00_START_HERE.md) → [`docs/PROJECT_STATE.md`](docs/PROJECT_STATE.md) → [`docs/VISUAL_DIRECTION.md`](docs/VISUAL_DIRECTION.md) → [`docs/NEXT_TASK_FOR_FABLE.md`](docs/NEXT_TASK_FOR_FABLE.md). Essas referências foram criadas para outros chats e outras IAs trabalharem sem acesso a memória externa.
 
 ## Rodar no computador
 
