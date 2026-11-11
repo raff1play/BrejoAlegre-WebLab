@@ -73,7 +73,7 @@ docs/                 # requisitos, decisões, estado e handoff
 
 ## Estado de validação
 
-Ver `docs/PROJECT_STATE.md`. Durante a preparação o npm registry retornou `EAI_AGAIN`, por isso nenhum `package-lock.json` confiável pôde ser criado e a compilação completa depende de ambiente com acesso ao npm. Na primeira instalação bem-sucedida, **versionar o `package-lock.json` e trocar o CI de `npm install` para `npm ci`**.
+Ver `docs/PROJECT_STATE.md`. Na preparação local o npm registry retornou `EAI_AGAIN`, por isso o `package-lock.json` não pôde ser criado. **A compilação completa passou no runner do GitHub Actions**; o que continua pendente é testar o jogo de fato em Chrome e Android. Na próxima execução de instalação no projeto, **versionar o `package-lock.json` e trocar o CI de `npm install` para `npm ci`**.
 
 ## Licenciamento e gastos
 
