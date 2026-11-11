@@ -51,3 +51,13 @@ Próximas mudanças devem registrar PR/SHA e resultados verificáveis.
 - Testes de sucesso, fullscreen já ativo, APIs ausentes e recusas de fullscreen/orientação acrescentados; CI da HEAD `1ffd0b8f394ee811d0a0cafd0075fcad61f5f69c` passou em push e PR.
 - **Sem comprovação de bloqueio de orientação no Galaxy S24 real**; requer teste pelo usuário em Chrome Android. Não é rotação garantida nem automática sem interação.
 - A publicação do preview da nova versão deve ser registrada com SHA e execução em `docs/PROJECT_STATE.md`.
+
+## 2026-11-11 — PWA instalável (implementação para teste)
+
+- Manifesto web: nome, identidade, `standalone`, preferência horizontal e ícones PNG originais 192/512.
+- Botões **Instalar app** na tela vertical e no HUD, com `beforeinstallprompt` opcional e alternativa do menu Chrome.
+- Em modo instalado, não solicitar fullscreen do navegador para orientar a tela. Opção manual preservada para o navegador comum.
+- Service worker restrito ao escopo do GitHub Pages, rede primeiro e cache para fallback.
+- Testes novos cobrindo manifesto, ícones, detecção de modo aplicativo, fallback e comportamento instalado sem fullscreen.
+- Instalação/rotação reais no Android não verificadas até teste físico; páginas publicadas dependem do workflow de preview.
+
