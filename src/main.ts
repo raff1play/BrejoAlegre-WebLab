@@ -8,6 +8,7 @@ import type { MotionGuard } from './core/collision';
 import { canMount, findDismountSpot } from './core/mounting';
 import { MOTO, isMotoStopped } from './core/motorcyclePhysics';
 import { heightAt } from './core/terrain';
+import { dragonEnabled } from './core/dragonSurprise';
 import { IsometricCameraRig } from './features/camera/isometricCamera';
 import { OcclusionFader } from './features/camera/occlusionFader';
 import { GameInput, type Action } from './features/controls/input';
@@ -95,6 +96,18 @@ function start(canvas: HTMLCanvasElement): void {
   const cameraTarget = new Vector3();
   const playerCentre = new Vector3();
   const idle = { throttle: 0, brake: 0, steer: 0 };
+  // Explicit opt-in visual Easter egg: remove ?dragon=1 to restore the exact normal game.
+  // Babylon particle meshes live in a separate lazy-loaded chunk and do not affect
+  // normal performance, physics, controls, save data or the inactive game.
+  let dragonSurprise: import('./features/easterEgg/dragonSurprise').DragonSurprise | null = null;
+  if (dragonEnabled(window.location.search)) {
+    void import('./features/easterEgg/dragonSurprise')
+      .then(({ DragonSurprise }) => {
+        dragonSurprise = new DragonSurprise(scene, rig.camera, (message) => hud.toast(message));
+      })
+      .catch((error: unknown) => console.warn('Efeito opcional do dragão indisponível:', error));
+  }
+
 
   scene.onBeforeRenderObservable.add(() => {
     // Clamp the step so a hitch or a background tab cannot teleport anything.
@@ -120,6 +133,11 @@ function start(canvas: HTMLCanvasElement): void {
     rig.update(dt, cameraTarget, input.axis('camera-right', 'camera-left'), input.axis('zoom-out', 'zoom-in'));
     fader.update(dt, rig.camera.position, playerCentre);
     environment.focusShadows(playerCentre.x, playerCentre.z);
+    // No collision, damage or gameplay changes: visual-only at forward speed >= 45 km/h.
+    dragonSurprise?.update(dt, {
+      x: m.x, y: moto.root.position.y, z: m.z, yaw: m.yaw,
+      speed: m.speed, riding: mode === 'riding',
+    });
     const available = mode === 'riding' ? isMotoStopped(m) : canMount(walker.state, m);
     hud.update(mode, mode === 'riding' ? Math.abs(m.speed) * 3.6 : 0, engine.getFps(), available);
   });

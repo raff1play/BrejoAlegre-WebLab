@@ -86,3 +86,11 @@ Próximas mudanças devem registrar PR/SHA e resultados verificáveis.
 - Skinning rígido na GPU (`src/features/shared/rigidSkin.ts`) devolve os draw calls ao nível da W008; triângulos ativos ≈ +85–90%.
 - `src/features/shared/modelParts.ts` → `src/world/modelParts.ts`; materiais `chrome()`, `lacquer()`, luzes num material único; logs de `docs/evidence/` passam a ser versionados.
 - Física, controles, câmera, colisões existentes e PWA desativado: sem alteração. Sem publicação no Pages. Android real não testado.
+
+## 2026-11-11 — Dragão e fogos opcionais (W010, experimento)
+
+- Incluído `?dragon=1` para carregar sob demanda uma cena curta de dragão 3D, baforada de fogo, foguete saindo do escapamento e texto “Marcos Pato” formado por pontos brilhantes no céu.
+- Gatilho determinístico de **45 km/h de velocidade positiva**, uma vez por carregamento; duração ≈ 11,5 s e descarte das malhas, partículas, texturas e materiais após o evento.
+- Padrão `?dragon=0` ou URL sem parâmetro mantém o Web Lab anterior sem carregar os gráficos extras; física e controles inalterados.
+- Sem pacotes externos, PWA, persistência ou alterações no jogo definitivo.
+- Testes unitários cobrem opção ativada/desativada, limiar de velocidade, fases e import dinâmico. Teste físico de desempenho/visual no Galaxy S24 pendente.

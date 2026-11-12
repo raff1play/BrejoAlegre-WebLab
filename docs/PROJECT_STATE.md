@@ -224,3 +224,12 @@ Bundle principal: 1,33 MB (W008) → 1,38 MB (≈ 344 kB gzip). FPS no headless 
 - Galaxy S24 / Chrome Android real: aparência, FPS, aquecimento e skinning na GPU do aparelho — **NÃO TESTADO**.
 - Chrome desktop com GPU real — **NÃO TESTADO**.
 - Avaliação humana da nova aparência — **pendente**.
+
+## W010 — Evento visual experimental do dragão (11/11/2026)
+
+- **Escopo autorizado:** teste temporário, sem alterar regras reais do simulador. Efeito opcional `?dragon=1`, totalmente desligado ao remover o parâmetro. O evento usa um módulo independente importado sob demanda, e apenas duas ligações mínimas no `src/main.ts`.
+- Sequência planejada e implementada: ao alcançar 45 km/h para frente, dragão procedimental entra em cena, cospe partículas de fogo, foguete de fogos sobe a partir do escapamento e revela “Marcos Pato” com estrelas na textura de um objeto 3D voltado à câmera; descarte após ~11,5 s. Uma execução por carregamento.
+- Núcleo determinístico em `src/core/dragonSurprise.ts`; efeito em `src/features/easterEgg/dragonSurprise.ts`; testes em `tests/dragonSurprise.test.ts`.
+- **Estado de CI e preview:** verificar após o commit; não inferir aprovação ou publicação antes de conferir GitHub Actions. Android/Chrome real e consumo de FPS no evento ainda sem teste.
+- **Reversão imediata no celular:** usar o URL normal, sem `?dragon=1`. **Remoção permanente do repositório:** reverter o commit isolado da W010 e publicar novamente o preview.
+- `main` e PR #1 mantidos sem merge. Sem serviços novos ou custos.

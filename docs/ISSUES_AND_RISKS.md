@@ -58,3 +58,10 @@ Não marcar bloqueio como corrigido sem evidência de execução, timestamp e, q
 - **B029 — LIMITAÇÃO:** só cinco fachadas receberam o tratamento completo; as demais casas ganharam apenas cumeeiras, molduras, padrão de energia e sombras de contato.
 - **B030 — RESOLVIDO no roteiro:** a verificação de colisão lateral do `tests/e2e/play.cjs` falhava quando a curva terminava diante de uma árvore/poste da calçada; agora aceita esses sólidos e registra `z`.
 - **B031 — CORRIGIDO:** logs de `docs/evidence/` eram ignorados pelo `*.log` do `.gitignore`, então o log da 0.1 citado no estado nunca foi versionado; exceção adicionada.
+
+## W010 — Riscos do teste do dragão
+
+- **B032 — PENDENTE:** verificar no Galaxy S24 se o dragão e a palavra “Marcos Pato” aparecem dentro do enquadramento na câmera isométrica, especialmente em diferentes zooms.
+- **B033 — PENDENTE:** conferir FPS durante 11,5 s do evento; partículas, geometria e textura dinâmica são carregadas apenas com `?dragon=1`.
+- **B034 — PENDENTE:** validar eliminação completa de malhas/partículas/texturas após o evento, sem acúmulo, e que a URL sem parâmetro se comporte como a W009.
+- **B035 — PENDENTE:** checar legibilidade das letras no céu e sincronização do foguete com o escapamento em curva ou movimento, após publicação de preview.

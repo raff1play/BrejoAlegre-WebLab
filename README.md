@@ -101,3 +101,13 @@ O Brejo Alegre Web Lab **não oferece instalação PWA nesta versão de teste**.
 - Caso você tenha **instalado** o PWA anteriormente, desinstale o ícone/aplicativo antigo do Android e abra o endereço no Chrome. A página nova também tenta encerrar somente o service worker e o cache específicos deste projeto.
 
 O PWA está **desativado**, não apagado do histórico. Não há nova assinatura, conta ou serviço externo.
+
+## Easter egg temporário: dragão a 45 km/h (W010)
+
+Este teste **não faz parte da simulação oficial**. O jogo comum permanece inalterado:
+- Jogo normal, SEM dragão: https://raff1play.github.io/BrejoAlegre-WebLab/
+- **Ativar o evento:** https://raff1play.github.io/BrejoAlegre-WebLab/?dragon=1
+
+Na versão de teste, conduza a moto para frente até alcançar 45 km/h. Um dragão aparece, cospe fogo sem causar dano, um foguete sai do escapamento e fogos formam **Marcos Pato** no céu. É um espetáculo de aproximadamente 11,5 segundos, executado uma vez por abertura da página; atualizar permite repetir.
+
+**Desativação imediata:** remova `?dragon=1` da URL (ou use `?dragon=0`). O código visual fica em um módulo carregado apenas com a opção ativa. **Remoção permanente:** `git revert` no commit isolado da W010 e nova publicação do preview. Não há custos, PWA, dados salvos ou alterações de física.

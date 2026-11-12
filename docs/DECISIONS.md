@@ -60,3 +60,11 @@
 - Sem assets externos: tudo é geometria e textura procedural do repositório. Sem dependências novas.
 - Decisão de engenharia associada: modelos articulados usam **skinning rígido na GPU** (`src/features/shared/rigidSkin.ts`) para manter os draw calls no nível da W008.
 - Metas de 60 FPS no Galaxy S24 (perfil leve) e 30 FPS em aparelho intermediário seguem **não medidas**. Não altera D01–D17 nem W001–W008; não autoriza merge nem publicação no Pages.
+
+## W010 — Easter egg opcional do dragão (teste isolado, 11/11/2026)
+
+- Pedido explícito: ao atingir **45 km/h em velocidade para frente na moto**, um dragão 3D aparece e cospe fogo visualmente na direção do piloto. Em seguida, fogos de artifício saem do escapamento e formam a expressão exata **“Marcos Pato”** no céu.
+- **Somente efeito visual**; nenhum dano, alteração da física, colisão, condução, pontuação, personagem, cidade ou câmera. Evento temporário, uma vez por carregamento, descarregado ao finalizar.
+- O efeito é **desativado por padrão**, habilitado apenas pela URL `?dragon=1`. Para reverter instantaneamente: abrir o endereço normal ou usar `?dragon=0`. O módulo gráfico é carregado dinamicamente apenas em modo de teste.
+- A alteração deve ficar contida em um commit isolado, de forma a permitir `git revert` se a experiência não agradar, sem tocar em W001–W009. Nenhuma dependência, conta ou serviço pago.
+- Autorizada publicação somente no preview já existente do GitHub Pages para o usuário testar, sem merge em `main`. O teste em Chrome Android real continua pendente.
