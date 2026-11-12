@@ -64,19 +64,20 @@ function blotches(ctx: Ctx, size: number, random: () => number, count: number, c
 }
 
 export const paintAsphalt: Painter = (ctx, size, random) => {
-  ctx.fillStyle = '#626365';
+  // CORE-010: darker, cleaner asphalt with fine aggregate and only a few faint repairs/cracks.
+  ctx.fillStyle = '#4e5054';
   ctx.fillRect(0, 0, size, size);
-  blotches(ctx, size, random, 12, 'rgba(40,40,42,0.16)', 0.16);
-  blotches(ctx, size, random, 10, 'rgba(140,136,128,0.12)', 0.2);
-  speckle(ctx, size, random, size * 26, ['#525355', '#747577', '#85837f', '#4a4b4d', '#6e6a64'], 2);
-  ctx.strokeStyle = 'rgba(30,30,32,0.45)';
-  ctx.lineWidth = Math.max(1, size / 380);
-  for (let i = 0; i < 5; i++) {
+  blotches(ctx, size, random, 8, 'rgba(30,30,34,0.14)', 0.2);
+  blotches(ctx, size, random, 6, 'rgba(120,118,112,0.08)', 0.22);
+  speckle(ctx, size, random, size * 40, ['#45474b', '#5b5d61', '#66676a', '#3e4044', '#58564f'], 1.6);
+  ctx.strokeStyle = 'rgba(28,28,30,0.3)';
+  ctx.lineWidth = Math.max(1, size / 512);
+  for (let i = 0; i < 3; i++) {
     let x = random() * size;
     let y = random() * size;
     ctx.beginPath();
     ctx.moveTo(x, y);
-    for (let j = 0; j < 9; j++) { x += (random() - 0.5) * size * 0.09; y += (random() - 0.2) * size * 0.06; ctx.lineTo(x, y); }
+    for (let j = 0; j < 7; j++) { x += (random() - 0.5) * size * 0.07; y += (random() - 0.2) * size * 0.05; ctx.lineTo(x, y); }
     ctx.stroke();
   }
 };
@@ -149,7 +150,7 @@ export const paintRoofTiles: Painter = (ctx, size, random) => {
     for (let c = 0; c < cols; c++) {
       const tone = 0.8 + random() * 0.3;
       const g = ctx.createLinearGradient(c * cw, 0, (c + 1) * cw, 0);
-      const shade = (k: number) => `rgb(${Math.round(196 * tone * k)},${Math.round(98 * tone * k)},${Math.round(62 * tone * k)})`;
+      const shade = (k: number) => `rgb(${Math.min(255, Math.round(218 * tone * k))},${Math.round(112 * tone * k)},${Math.round(58 * tone * k)})`;
       g.addColorStop(0, shade(0.55));
       g.addColorStop(0.35, shade(1.02));
       g.addColorStop(0.6, shade(1.1));
@@ -158,13 +159,36 @@ export const paintRoofTiles: Painter = (ctx, size, random) => {
       ctx.fillRect(c * cw, r * rh, cw + 1, rh + 1);
     }
     const lap = ctx.createLinearGradient(0, r * rh, 0, r * rh + rh * 0.22);
-    lap.addColorStop(0, 'rgba(40,16,8,0.6)');
+    lap.addColorStop(0, 'rgba(60,22,8,0.55)');
     lap.addColorStop(1, 'rgba(40,16,8,0)');
     ctx.fillStyle = lap;
     ctx.fillRect(0, r * rh, size, rh * 0.22);
   }
-  blotches(ctx, size, random, 10, 'rgba(50,40,30,0.22)', 0.14);
-  blotches(ctx, size, random, 5, 'rgba(120,125,95,0.14)', 0.1);
+  blotches(ctx, size, random, 7, 'rgba(70,40,25,0.16)', 0.14);
+  blotches(ctx, size, random, 4, 'rgba(120,125,95,0.1)', 0.1);
+};
+
+/**
+ * House number plates (CORE-010): `rows` white enamel plates stacked vertically, each with the
+ * fictional street name and a number. Shared atlas, so all plates cost one material.
+ */
+export const paintHousePlates = (numbers: readonly string[]): Painter => (ctx, size) => {
+  const w = size / 2;
+  const h = size / numbers.length;
+  numbers.forEach((n, i) => {
+    const y = i * h;
+    ctx.fillStyle = '#1d3f7a';
+    ctx.fillRect(0, y, w, h);
+    ctx.fillStyle = '#f7f6f1';
+    ctx.fillRect(w * 0.03, y + h * 0.07, w * 0.94, h * 0.86);
+    ctx.fillStyle = '#1d3f7a';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = `700 ${h * 0.2}px Arial, sans-serif`;
+    ctx.fillText('R. PROVISÓRIA', w / 2, y + h * 0.28, w * 0.86);
+    ctx.font = `800 ${h * 0.5}px Arial, sans-serif`;
+    ctx.fillText(n, w / 2, y + h * 0.66, w * 0.86);
+  });
 };
 
 export const paintGrass: Painter = (ctx, size, random) => {
@@ -299,25 +323,28 @@ export const paintSign = (background: string, border: string, lines: SignLine[],
 export const paintSky: Painter = (ctx, size, random) => {
   const w = size * 2;
   const g = ctx.createLinearGradient(0, 0, 0, size);
-  g.addColorStop(0, '#2f6fb7');
-  g.addColorStop(0.3, '#5f9bd6');
-  g.addColorStop(0.47, '#b9d6ea');
-  g.addColorStop(0.5, '#dfe7e6');
-  g.addColorStop(1, '#dfe7e6');
+  g.addColorStop(0, '#2c6dc4');
+  g.addColorStop(0.28, '#5a9ae0');
+  g.addColorStop(0.44, '#a9cdea');
+  g.addColorStop(0.49, '#f0e3c4');
+  g.addColorStop(0.5, '#e8dfc9');
+  g.addColorStop(1, '#e8dfc9');
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, w, size);
-  for (let i = 0; i < 22; i++) {
+  // Fluffy cumulus: bright sunlit tops, warm-grey undersides.
+  for (let i = 0; i < 26; i++) {
     const cx = random() * w;
-    const cy = size * (0.2 + random() * 0.24);
-    const scale = size * (0.03 + random() * 0.05);
-    for (let k = 0; k < 9; k++) {
-      const x = cx + (random() - 0.5) * scale * 5;
-      const y = cy + (random() - 0.5) * scale * 0.8;
+    const cy = size * (0.16 + random() * 0.27);
+    const scale = size * (0.025 + random() * 0.045) * (1 + (cy / size - 0.16) * 1.5);
+    for (let k = 0; k < 11; k++) {
+      const x = cx + (random() - 0.5) * scale * 5.5;
+      const y = cy + (random() - 0.7) * scale * 1.1;
       const r = scale * (0.6 + random() * 0.9);
       for (const ox of [-w, 0, w]) {
-        const c = ctx.createRadialGradient(x + ox, y, 0, x + ox, y, r);
-        c.addColorStop(0, 'rgba(255,255,255,0.5)');
-        c.addColorStop(1, 'rgba(255,255,255,0)');
+        const c = ctx.createRadialGradient(x + ox, y - r * 0.3, 0, x + ox, y, r);
+        c.addColorStop(0, 'rgba(255,250,240,0.75)');
+        c.addColorStop(0.6, 'rgba(236,228,220,0.45)');
+        c.addColorStop(1, 'rgba(200,196,200,0)');
         ctx.fillStyle = c;
         ctx.fillRect(x + ox - r, y - r, r * 2, r * 2);
       }
@@ -449,4 +476,36 @@ export const paintContactShadow: Painter = (ctx, size) => {
   r.addColorStop(1, 'rgba(0,0,0,0)');
   ctx.fillStyle = r;
   ctx.fillRect(size, 0, size, size);
+};
+
+/**
+ * Leaf cluster for alpha-tested foliage cards (CORE-010): many small overlapping leaves (and
+ * optional blossoms) inside a ragged round silhouette, transparent elsewhere.
+ */
+export const paintLeafCluster = (leaves: string[], blossoms: string[], blossomShare: number): Painter => (ctx, size, random) => {
+  ctx.clearRect(0, 0, size, size);
+  const c = size / 2;
+  for (let i = 0; i < size * 2.2; i++) {
+    const a = random() * Math.PI * 2;
+    const r = Math.sqrt(random()) * c * 0.92;
+    const x = c + Math.cos(a) * r;
+    const y = c + Math.sin(a) * r * 0.9;
+    const flower = random() < blossomShare;
+    const palette = flower ? blossoms : leaves;
+    // Lower leaves darker, upper ones lighter: baked in-cluster shading.
+    const shade = 0.75 + (1 - y / size) * 0.45;
+    const base = palette[Math.floor(random() * palette.length)]!;
+    ctx.fillStyle = base;
+    ctx.globalAlpha = 1;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(random() * Math.PI);
+    const len = size * (flower ? 0.022 : 0.036) * (0.7 + random() * 0.6);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, len, len * (flower ? 0.9 : 0.45), 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = `rgba(${shade > 1 ? '255,255,235' : '0,0,0'},${Math.abs(shade - 1) * 0.5})`;
+    ctx.fill();
+    ctx.restore();
+  }
 };

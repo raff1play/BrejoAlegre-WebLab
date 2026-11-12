@@ -8,7 +8,8 @@ import type { GraphicsProfile } from '../config/graphics';
 import { buildHouse, buildShop, type Building } from './buildings';
 import { BatchSet } from './geometry';
 import { Materials } from './materials';
-import { buildBenches, buildPoles, buildShowcasePlants, buildSigns, buildTrees } from './props';
+import { buildBackdrop } from './backdrop';
+import { buildBenches, buildPoles, buildShowcasePlants, buildSigns, buildStreetFurniture, buildTrees } from './props';
 import { contactBlot } from './buildings';
 import {
   TREES, CROSS_NORTH, CROSS_SOUTH, CROSS_Z, CURB_H, EXTENT, HOUSES, PARKING, PLAZA, PLAZA_BEDS, ROAD_HALF, SHOP, SHOP_PROPS,
@@ -67,6 +68,12 @@ function buildRoadPaint(set: BatchSet, mats: Materials): void {
   for (let x = -EXTENT + 2; x < EXTENT - 3; x += 6) {
     if (x > -ROAD_HALF - 5 && x < ROAD_HALF + 2) continue;
     set.box(yellow, x, x + 3, 0, y, CROSS_Z - 0.06, CROSS_Z + 0.06, flat);
+  }
+  // CORE-010: continuous white edge lines along the main street (interrupted at the junction).
+  for (const ex of [-(ROAD_HALF - 0.55), ROAD_HALF - 0.55]) {
+    for (const [z0, z1] of [[CROSS_NORTH + 0.5, EXTENT - 2], [-EXTENT + 2, CROSS_SOUTH - 0.5]] as const) {
+      set.box(white, ex - 0.06, ex + 0.06, 0, y, z0, z1, flat);
+    }
   }
   // Zebra crossings and stop lines on the main street, which yields to the cross street.
   for (const z0 of [CROSS_NORTH + 2.6, CROSS_SOUTH - 5.6]) {
@@ -153,6 +160,7 @@ export function buildTemporaryWorld(scene: Scene, profile: GraphicsProfile): Wor
   buildWallsAndProps(upright, materials);
   buildPoles(scene, upright, materials);
   buildBenches(upright, materials);
+  const furniture = buildStreetFurniture(scene, upright, materials);
   buildSigns(scene, upright, materials);
 
   const occluderBoxes = buildOccluders();
@@ -164,6 +172,7 @@ export function buildTemporaryWorld(scene: Scene, profile: GraphicsProfile): Wor
   const bodies = buildings.flatMap((b) => b.body);
   const trees = buildTrees(scene, materials, profile.backdropDensity);
   const plants = buildShowcasePlants(scene, materials);
+  buildBackdrop(scene, materials);
 
   for (const mesh of [...flatMeshes, ...uprightMeshes, ...bodies]) {
     mesh.computeWorldMatrix(true);
@@ -179,6 +188,6 @@ export function buildTemporaryWorld(scene: Scene, profile: GraphicsProfile): Wor
     guard: createMotionGuard(WORLD_BOUNDS, colliders),
     raised: buildRaisedAreas(),
     occluders,
-    shadowCasters: [...uprightMeshes, ...bodies, ...trees, ...(profile.detailShadows ? plants : [])],
+    shadowCasters: [...uprightMeshes, ...bodies, ...trees, ...(profile.detailShadows ? [...plants, ...furniture] : [])],
   };
 }

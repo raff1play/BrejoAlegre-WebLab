@@ -2,8 +2,6 @@ import { CreateCylinder } from '@babylonjs/core/Meshes/Builders/cylinderBuilder'
 import { CreateIcoSphere } from '@babylonjs/core/Meshes/Builders/icoSphereBuilder';
 import { CreateBox } from '@babylonjs/core/Meshes/Builders/boxBuilder';
 import { CreateLineSystem } from '@babylonjs/core/Meshes/Builders/linesBuilder';
-import { VertexBuffer } from '@babylonjs/core/Buffers/buffer';
-import { VertexData } from '@babylonjs/core/Meshes/mesh.vertexData';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
@@ -11,10 +9,11 @@ import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import type { Scene } from '@babylonjs/core/scene';
 import '@babylonjs/core/Meshes/instancedMesh';
 import { BatchSet, type P3 } from './geometry';
+import { buildCards } from './foliage';
 import type { Materials } from './materials';
 import {
   BENCHES, CROSS_NORTH, CROSS_SOUTH, CURB_H, HOUSES, HOUSE_WALL_H, POLES, ROAD_HALF, TREES,
-  WORLD_BOUNDS, frameRect, houseSpan, showcasePlants, type PlantKind, type PoleSpec, type TreeSpec,
+  WORLD_BOUNDS, frameRect, houseSpan, showcasePlants, showcaseStreetItems, type PlantKind, type PoleSpec, type TreeSpec,
 } from './layout';
 
 function seeded(seed: number): () => number {
@@ -24,41 +23,31 @@ function seeded(seed: number): () => number {
 
 /** One lumpy canopy + trunk per species; every tree in the scene is a GPU instance of it. */
 function treePrototype(scene: Scene, mats: Materials, kind: TreeSpec['kind']): Mesh[] {
-  const random = seeded(kind === 'oiti' ? 7 : 13);
   const set = new BatchSet();
-  const bark = mats.paint(kind === 'oiti' ? '#5b4835' : '#6b5a48');
-  const trunkHeight = kind === 'oiti' ? 2.5 : 3.1;
-  const trunk = CreateCylinder('tronco', { diameterTop: 0.2, diameterBottom: 0.36, height: trunkHeight, tessellation: 8 }, scene);
+  const bark = mats.paint(kind === 'oiti' ? '#4f3e2e' : '#5e5042');
+  const trunkHeight = kind === 'oiti' ? 2.3 : 2.9;
+  const trunk = CreateCylinder('tronco', { diameterTop: 0.2, diameterBottom: 0.38, height: trunkHeight, tessellation: 8 }, scene);
   trunk.position.y = trunkHeight / 2;
   set.absorb(bark, trunk);
-  const blobs: [number, number, number, number][] = kind === 'oiti'
-    ? [[0, 3.7, 0, 1.75], [1.0, 3.4, 0.4, 1.25], [-0.9, 3.5, -0.5, 1.3], [0.2, 3.3, -1.0, 1.15], [-0.2, 4.5, 0.3, 1.2]]
-    : [[0, 4.3, 0, 1.5], [1.2, 4.0, 0.2, 1.1], [-1.1, 4.1, -0.3, 1.15], [0.3, 3.9, 1.1, 1.0], [-0.2, 4.0, -1.2, 1.05], [0.1, 5.0, 0, 1.0]];
-  for (const [x, y, z, r] of blobs) {
-    const blob = CreateIcoSphere('copa', { radius: r, subdivisions: 2, flat: false }, scene);
-    const positions = blob.getVerticesData(VertexBuffer.PositionKind)!;
-    for (let i = 0; i < positions.length; i += 3) {
-      // Deterministic per-direction bump so shared vertices stay welded.
-      const n = Math.sin(positions[i]! * 5.1 + positions[i + 1]! * 3.7) * Math.cos(positions[i + 2]! * 4.3 + positions[i]! * 2.9);
-      const k = 1 + n * 0.16 + (random() - 0.5) * 0.02;
-      positions[i] = positions[i]! * k; positions[i + 1] = positions[i + 1]! * k * 0.82; positions[i + 2] = positions[i + 2]! * k;
-    }
-    const normals: number[] = [];
-    VertexData.ComputeNormals(positions, blob.getIndices(), normals);
-    blob.setVerticesData(VertexBuffer.PositionKind, positions);
-    blob.setVerticesData(VertexBuffer.NormalKind, normals);
-    blob.position.set(x, y, z);
-    set.absorb(mats.foliage(kind), blob);
+  for (let i = 0; i < 3; i++) {
+    const a = (i / 3) * Math.PI * 2 + 0.4;
+    const limb = CreateCylinder('galho', { diameterTop: 0.07, diameterBottom: 0.15, height: 1.6, tessellation: 6 }, scene);
+    limb.position.set(Math.cos(a) * 0.38, trunkHeight + 0.45, Math.sin(a) * 0.38);
+    limb.rotation.set(Math.sin(a) * 0.65, 0, -Math.cos(a) * 0.65);
+    set.absorb(bark, limb);
   }
-  if (kind === 'ipe') {
-    for (const [dx, dz, lean] of [[0.5, 0.2, 0.5], [-0.5, -0.3, -0.5]] as const) {
-      const branch = CreateCylinder('galho', { diameterTop: 0.08, diameterBottom: 0.16, height: 1.5, tessellation: 6 }, scene);
-      branch.position.set(dx, 3.3, dz);
-      branch.rotation.z = -lean;
-      set.absorb(bark, branch);
-    }
-  }
+  // CORE-010: a dark low-poly core keeps the crown opaque; leaf cards give the soft silhouette.
+  const centreY = trunkHeight + (kind === 'oiti' ? 1.4 : 1.6);
+  const [rx, ry] = kind === 'oiti' ? [2.2, 1.55] : [2.0, 1.45];
+  const core = CreateIcoSphere('miolo', { radius: 1, subdivisions: 2 }, scene);
+  core.scaling.set(rx * 0.78, ry * 0.72, rx * 0.78);
+  core.position.y = centreY;
+  const coreColour = kind === 'oiti' ? '#2f5124' : kind === 'ipe' ? '#8f7420' : '#6e4d7c';
+  set.absorb(mats.paint(coreColour), core);
   const meshes = set.build(`arvore-${kind}`, scene);
+  meshes.push(buildCards(scene, `arvore-${kind}-folhas`, mats.leafCards(kind), [
+    { centre: [0, centreY, 0], radii: [rx, ry, rx], count: kind === 'oiti' ? 46 : 40, cardSize: kind === 'oiti' ? 1.7 : 1.55, seed: kind.length * 97 },
+  ]));
   for (const mesh of meshes) mesh.isVisible = false;
   return meshes;
 }
@@ -70,14 +59,11 @@ function treePrototype(scene: Scene, mats: Materials, kind: TreeSpec['kind']): M
 function plantPrototype(scene: Scene, mats: Materials, kind: PlantKind): Mesh[] {
   const set = new BatchSet();
   if (kind === 'arbusto') {
-    const leaves = mats.foliage('oiti');
-    for (const [x, y, z, r] of [[0, 0.42, 0, 0.42], [0.24, 0.32, 0.12, 0.3], [-0.22, 0.34, -0.1, 0.31], [0.05, 0.62, -0.05, 0.28]] as const) {
-      const blob = CreateIcoSphere('arbusto', { radius: r, subdivisions: 1 }, scene);
-      blob.position.set(x, y, z);
-      blob.scaling.y = 0.85;
-      set.absorb(leaves, blob);
-    }
-  } else if (kind === 'palmeira') {
+    const core = CreateIcoSphere('arbusto', { radius: 1, subdivisions: 1 }, scene);
+    core.scaling.set(0.42, 0.34, 0.42);
+    core.position.y = 0.38;
+    set.absorb(mats.paint('#2c4d22'), core);
+    } else if (kind === 'palmeira') {
     const trunk = mats.paint('#8a7a66');
     for (let i = 0; i < 6; i++) {
       const seg = CreateCylinder('estipe', { diameterTop: 0.2 - i * 0.012, diameterBottom: 0.24 - i * 0.012, height: 0.75, tessellation: 7 }, scene);
@@ -95,6 +81,12 @@ function plantPrototype(scene: Scene, mats: Materials, kind: PlantKind): Mesh[] 
         set.absorb(frond, leaf);
       }
     }
+  } else if (kind === 'buganvilia') {
+    // Woody stems on the wall top; the flowering mass is made of draped leaf cards (below).
+    const core = CreateIcoSphere('buganvilia', { radius: 1, subdivisions: 1 }, scene);
+    core.scaling.set(1.1, 0.22, 0.28);
+    core.position.set(0, 0.15, 0.02);
+    set.absorb(mats.paint('#2f5424'), core);
   } else {
     set.absorb(mats.paint('#a8552f'), CreateCylinder('vaso', { diameterTop: 0.42, diameterBottom: 0.3, height: 0.42, tessellation: 10 }, scene));
     const leaves = mats.paint('#4d7a35');
@@ -104,6 +96,15 @@ function plantPrototype(scene: Scene, mats: Materials, kind: PlantKind): Mesh[] 
     set.absorb(leaves, blob);
   }
   const meshes = set.build(`planta-${kind}`, scene);
+  if (kind === 'arbusto') {
+    meshes.push(buildCards(scene, 'planta-arbusto-folhas', mats.leafCards('arbusto'), [
+      { centre: [0, 0.45, 0], radii: [0.5, 0.4, 0.5], count: 14, cardSize: 0.7, seed: 11 },
+    ]));
+  } else if (kind === 'buganvilia') {
+    meshes.push(buildCards(scene, 'planta-buganvilia-folhas', mats.leafCards('buganvilia'), [
+      { centre: [0, 0.2, -0.05], radii: [1.25, 0.38, 0.42], count: 30, cardSize: 0.8, seed: 23, drape: 1.1 },
+    ]));
+  }
   for (const mesh of meshes) mesh.isVisible = false;
   return meshes;
 }
@@ -116,8 +117,8 @@ export function buildShowcasePlants(scene: Scene, mats: Materials): AbstractMesh
     if (!proto) { proto = plantPrototype(scene, mats, plant.kind); prototypes.set(plant.kind, proto); }
     for (const source of proto) {
       const instance = source.createInstance(`${source.name}@${plant.x.toFixed(1)},${plant.z.toFixed(1)}`);
-      // Pots stand on the porch floor; everything else on the bed.
-      instance.position.set(plant.x, CURB_H + (plant.kind === 'vaso' ? 0.07 + 0.21 : 0.02), plant.z);
+      // Pots stand on the porch floor, bougainvillea on the wall top, everything else on the bed.
+      instance.position.set(plant.x, CURB_H + plant.base + (plant.kind === 'vaso' ? 0.21 : 0), plant.z);
       instance.scaling.setAll(plant.scale);
       instance.rotation.y = plant.turn;
       instance.isPickable = false;
@@ -128,8 +129,84 @@ export function buildShowcasePlants(scene: Scene, mats: Materials): AbstractMesh
   return casters;
 }
 
+/** Concrete planter full of red and pink flowers: one instanced prototype (CORE-010). */
+function planterPrototype(scene: Scene, mats: Materials): Mesh[] {
+  const set = new BatchSet();
+  const random = seeded(57);
+  set.box(mats.paint('#c4bba9'), -0.25, 0.25, 0, 0.42, -0.7, 0.7);
+  set.box(mats.paint('#d8d0bf'), -0.28, 0.28, 0.42, 0.47, -0.73, 0.73);
+  set.box(mats.paint('#5a4130'), -0.2, 0.2, 0.47, 0.49, -0.65, 0.65, { sides: false });
+  const colours = ['#d8342c', '#e85a7a', '#f1c34a', '#d8342c'];
+  for (let i = 0; i < 9; i++) {
+    const leaf = CreateIcoSphere('folhas', { radius: 0.2 + random() * 0.05, subdivisions: 1 }, scene);
+    leaf.position.set((random() - 0.5) * 0.2, 0.6, -0.56 + i * 0.14);
+    leaf.scaling.y = 0.7;
+    set.absorb(mats.paint('#3f7232'), leaf);
+    const bloom = CreateIcoSphere('flores', { radius: 0.11 + random() * 0.04, subdivisions: 1 }, scene);
+    bloom.position.set((random() - 0.5) * 0.25, 0.72 + random() * 0.06, -0.56 + i * 0.14 + (random() - 0.5) * 0.08);
+    set.absorb(mats.paint(colours[i % colours.length]!), bloom);
+  }
+  const meshes = set.build('floreira', scene);
+  for (const mesh of meshes) mesh.isVisible = false;
+  return meshes;
+}
+
+/**
+ * Showcase pavement furniture: planters are instanced; colonial lamp posts and litter bins are few,
+ * so they are merged into the shared static batch.
+ */
+export function buildStreetFurniture(scene: Scene, set: BatchSet, mats: Materials): AbstractMesh[] {
+  const casters: AbstractMesh[] = [];
+  let planter: Mesh[] | null = null;
+  const iron = mats.paint('#1d2621', 0.25);
+  for (const item of showcaseStreetItems()) {
+    const y = CURB_H;
+    if (item.kind === 'floreira') {
+      planter ??= planterPrototype(scene, mats);
+      for (const source of planter) {
+        const instance = source.createInstance(`floreira@${item.x.toFixed(1)},${item.z.toFixed(1)}`);
+        instance.position.set(item.x, y, item.z);
+        instance.isPickable = false;
+        instance.freezeWorldMatrix();
+        casters.push(instance);
+      }
+    } else if (item.kind === 'poste-colonial') {
+      const [x, z] = [item.x, item.z];
+      const base = CreateCylinder('base', { diameterTop: 0.2, diameterBottom: 0.32, height: 0.5, tessellation: 8 }, scene);
+      base.position.set(x, y + 0.25, z);
+      set.absorb(iron, base);
+      const pole = CreateCylinder('fuste', { diameterTop: 0.09, diameterBottom: 0.14, height: 3.1, tessellation: 8 }, scene);
+      pole.position.set(x, y + 2.0, z);
+      set.absorb(iron, pole);
+      const ring = CreateCylinder('anel', { diameter: 0.2, height: 0.08, tessellation: 8 }, scene);
+      ring.position.set(x, y + 3.55, z);
+      set.absorb(iron, ring);
+      // Lantern: tapered glass box with an iron cap and finial.
+      const glass = CreateCylinder('lanterna', { diameterTop: 0.42, diameterBottom: 0.26, height: 0.5, tessellation: 4 }, scene);
+      glass.position.set(x, y + 3.85, z);
+      glass.rotation.y = Math.PI / 4;
+      set.absorb(mats.glow('#ffe2a6'), glass);
+      const cap = CreateCylinder('chapeu', { diameterTop: 0.06, diameterBottom: 0.56, height: 0.22, tessellation: 4 }, scene);
+      cap.position.set(x, y + 4.21, z);
+      cap.rotation.y = Math.PI / 4;
+      set.absorb(iron, cap);
+      for (const k of [-1, 1]) {
+        set.box(iron, x - 0.015, x + 0.015, y + 3.6, y + 4.1, z + k * 0.13 - 0.015, z + k * 0.13 + 0.015);
+      }
+    } else {
+      const bin = CreateCylinder('lixeira', { diameterTop: 0.42, diameterBottom: 0.36, height: 0.55, tessellation: 12 }, scene);
+      bin.position.set(item.x, y + 0.75, item.z);
+      set.absorb(mats.paint('#e27a22', 0.25), bin);
+      const post = CreateCylinder('suporte', { diameter: 0.06, height: 0.75, tessellation: 6 }, scene);
+      post.position.set(item.x + 0.22, y + 0.37, item.z);
+      set.absorb(iron, post);
+    }
+  }
+  return casters;
+}
+
 export function buildTrees(scene: Scene, mats: Materials, backdropDensity: number): AbstractMesh[] {
-  const prototypes = { oiti: treePrototype(scene, mats, 'oiti'), ipe: treePrototype(scene, mats, 'ipe') };
+  const prototypes = { oiti: treePrototype(scene, mats, 'oiti'), ipe: treePrototype(scene, mats, 'ipe'), 'ipe-roxo': treePrototype(scene, mats, 'ipe-roxo') };
   const casters: AbstractMesh[] = [];
   const random = seeded(99);
   let backdropIndex = 0;

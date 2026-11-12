@@ -94,3 +94,21 @@ test('riding flat out from the spawn into the houses across the street ends stop
   for (let i = 0; i < 60 * 20; i++) stepMotorcycle(north, { throttle: 1, brake: 0, steer: 0 }, 1 / 60, guard);
   assert.ok(north.z <= WORLD_BOUNDS.maxZ && north.z > WORLD_BOUNDS.maxZ - 2 && north.speed === 0, 'stops at the street end');
 });
+
+test('CORE-010 street furniture stays at the kerb, clear of trees, poles and the walking strip', async () => {
+  const { showcaseStreetItems, streetItemBox, showcasePlants, TREES: trees, POLES: poles } = await import('../src/world/layout.ts');
+  const items = showcaseStreetItems();
+  assert.ok(items.length >= 8, `furniture placed: ${items.length}`);
+  for (const item of items) {
+    const box = streetItemBox(item);
+    const kerbSide = Math.abs(item.x) > ROAD_HALF + 0.15 && Math.abs(item.x) < FRONT - 1.0;
+    assert.ok(kerbSide, `${item.kind} at x=${item.x} is on the kerb side of the pavement`);
+    for (const o of [...trees.filter((t) => t.solid), ...poles]) {
+      assert.ok(Math.hypot(o.x - item.x, o.z - item.z) >= 1.6, `${item.kind} too close to tree/pole at ${o.x},${o.z}`);
+    }
+    assert.ok(colliders.some((c) => c.minX === box.minX && c.maxZ === box.maxZ), `${item.kind} is solid`);
+  }
+  const vines = showcasePlants().filter((p) => p.kind === 'buganvilia');
+  assert.ok(vines.length >= 4, 'bougainvillea on the showcase walls');
+  for (const v of vines) assert.ok(guard(Math.sign(v.x) * (FRONT - 0.4), v.z, 0.3), 'bougainvillea does not block the pavement walking strip');
+});

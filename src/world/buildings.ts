@@ -215,6 +215,17 @@ export function buildHouse(scene: Scene, mats: Materials, spec: HouseSpec, share
       solid.absorb(cap, rodPart(scene, c, nearest, 0.13, 0.13, 6));
     }
     solid.box(mats.paint('#f2efe7'), rx0 - 0.03, rx1 + 0.03, roofY - 0.16, roofY + 0.02, rz0 - 0.03, rz0, { bottom: true });
+    // CORE-010: row of rounded tile ends along every eave, so the roof reads thick, not as a sheet.
+    const beira = mats.paint('#b35a30');
+    const ey = roofY + 0.05;
+    for (const [a, b] of [[[rx0, ey, rz0], [rx1, ey, rz0]], [[rx0, ey, rz1], [rx1, ey, rz1]], [[rx0, ey, rz0], [rx0, ey, rz1]], [[rx1, ey, rz0], [rx1, ey, rz1]]] as [P3, P3][]) {
+      solid.absorb(beira, rodPart(scene, a, b, 0.12, 0.12, 6));
+    }
+    if (isShowcase(spec)) {
+      // Exposed rafter tails ("caibros") under the front eave.
+      const wood = mats.paint('#6e4a2f');
+      for (let x = rx0 + 0.25; x < rx1 - 0.1; x += 0.6) solid.box(wood, x - 0.035, x + 0.035, roofY - 0.13, roofY - 0.02, rz0 + 0.02, sb);
+    }
   } else if (parapet) {
     solid.box(trim, hx0 - 0.06, hx1 + 0.06, bodyTop, bodyTop + 0.08, sb - 0.06, back + 0.06);
     solid.box(mats.paint('#8f8b84'), hx0 + 0.2, hx1 - 0.2, bodyTop - 0.35, bodyTop - 0.3, sb + 0.2, back - 0.2, { sides: false });
@@ -317,9 +328,45 @@ function showcaseFront(scene: Scene, mats: Materials, spec: HouseSpec, sets: { s
   if (spec.front !== 'open') {
     const garage: [number, number] = spec.garageSide === -1 ? [0.4, 3.2] : [W - 3.2, W - 0.4];
     const gateDoor: [number, number] = spec.garageSide === -1 ? [3.55, 4.45] : [W - 4.45, W - 3.55];
+    const capTop = WALL_H + 0.2;
     for (const g of [garage, gateDoor]) {
-      for (const px of g) upright.box(mats.stone, px - 0.16, px + 0.16, 0, WALL_H + 0.2, -0.06, WALL_T + 0.06);
+      for (const px of g) {
+        upright.box(mats.stone, px - 0.16, px + 0.16, 0, capTop, -0.06, WALL_T + 0.06);
+        upright.box(trim, px - 0.21, px + 0.21, capTop, capTop + 0.07, -0.11, WALL_T + 0.11);
+      }
     }
+    // CORE-010 (references): thick plastered pillars with capitals along the wall, a stone skirting
+    // on the street face, lanterns on the pedestrian-gate posts and an enamel number plate.
+    const wallColor = mats.plaster(spec.wallColor);
+    const wallTop = spec.front === 'railing' ? 0.7 : WALL_H;
+    const openings = [garage, gateDoor].sort((a, b) => a[0] - b[0]);
+    let cursor = 0;
+    for (const [g0, g1] of [...openings, [W, W] as [number, number]]) {
+      if (g0 - cursor > 0.6) {
+        upright.box(mats.stone, cursor + 0.02, g0 - 0.02, 0, Math.min(0.45, wallTop - 0.05), -0.05, 0);
+        const count = Math.max(1, Math.round((g0 - cursor) / 2.6));
+        for (let k = 1; k < count + (g1 === W ? 1 : 0); k++) {
+          const px = Math.min(W - 0.2, cursor + ((g0 - cursor) * k) / count);
+          if (Math.abs(px - W) < 0.25 && g1 !== W) continue;
+          upright.box(wallColor, px - 0.19, px + 0.19, 0, WALL_H + 0.25, -0.1, WALL_T + 0.1, { fitV: true });
+          upright.box(trim, px - 0.24, px + 0.24, WALL_H + 0.25, WALL_H + 0.33, -0.15, WALL_T + 0.15);
+          upright.box(trim, px - 0.12, px + 0.12, WALL_H + 0.33, WALL_H + 0.42, -0.03, WALL_T + 0.03);
+        }
+      }
+      cursor = g1;
+    }
+    for (const px of gateDoor) {
+      const out = px === gateDoor[0] ? -1 : 1;
+      upright.box(mats.paint('#202326', 0.3), px + out * 0.1 - 0.07, px + out * 0.1 + 0.07, WALL_H - 0.35, WALL_H - 0.05, -0.2, -0.06);
+      upright.box(mats.glow('#ffe1a0'), px + out * 0.1 - 0.055, px + out * 0.1 + 0.055, WALL_H - 0.32, WALL_H - 0.12, -0.21, -0.07);
+    }
+    // Number plate on the wall beside the pedestrian gate (street face).
+    const plateX = spec.garageSide === -1 ? gateDoor[1] + 0.35 : gateDoor[0] - 1.05;
+    const row = index % 8;
+    const v0 = 1 - (row + 1) / 8;
+    const v1 = 1 - row / 8;
+    const py0 = Math.min(1.25, wallTop - 0.45);
+    upright.of(mats.plates).poly([[plateX, py0, -0.012], [plateX + 0.7, py0, -0.012], [plateX + 0.7, py0 + 0.35, -0.012], [plateX, py0 + 0.35, -0.012]], [[0, v0], [0.5, v0], [0.5, v1], [0, v1]]);
   }
   // Flower bed inside the front with a low kerb; the plants themselves are instanced in props.ts.
   const [b0, b1] = spec.garageSide === -1 ? [4.8, W - 0.3] : [0.3, W - 4.8];

@@ -6,7 +6,7 @@ import type { BaseTexture } from '@babylonjs/core/Materials/Textures/baseTexture
 import type { GraphicsProfile } from '../config/graphics';
 import {
   paintAsphalt, paintBlockwork, paintCobogo, paintContactShadow, paintHydraulicTile, paintPavers, paintPortuguesePavement,
-  paintStoneCladding, paintConcrete, paintDirt, paintFoliage, paintGrass, paintPlaster, paintRailing,
+  paintStoneCladding, paintHousePlates, paintLeafCluster, paintConcrete, paintDirt, paintFoliage, paintGrass, paintPlaster, paintRailing,
   paintRibbedMetal, paintRoofTiles, paintSign, paintStripes, paintTexture, paintWindow, paintWoodDoor, type SignLine,
 } from './textures';
 
@@ -44,6 +44,8 @@ export class Materials {
   readonly contact: LabMaterial;
   readonly sidewalkAtlas: LabMaterial;
   readonly sidewalkTiles: readonly number[];
+  /** Atlas of house number plates (CORE-010): plate i uses v in [1 - (i+1)/8, 1 - i/8], u in [0, 0.5]. */
+  readonly plates: LabMaterial;
 
   constructor(private readonly scene: Scene, private readonly profile: GraphicsProfile) {
     const size = (base: number) => Math.max(64, Math.round(base * profile.textureScale));
@@ -105,6 +107,9 @@ export class Materials {
     this.sidewalkAtlas.material.zOffset = -2;
     /** Real-world size (m) of one repeat of each atlas quadrant. */
     this.sidewalkTiles = [0.5, 2.2, 1.2, 0.5];
+    const plateTexture = this.texture('tx-placas', () => paintTexture(scene, 'tx-placas',
+      { size: 512, clamp: true, anisotropy: profile.anisotropy }, paintHousePlates(['12', '24', '36', '48', '13', '25', '37', '49'])));
+    this.plates = this.make('placas-numero', '#ffffff', { receiveShadows: false }, plateTexture);
     const shadowTexture = this.texture('tx-sombra', () =>
       paintTexture(scene, 'tx-sombra', { size: 64, width: 128, alpha: true, clamp: true, anisotropy: 1 }, paintContactShadow));
     this.contact = this.make('sombra-contato', '#000000', { receiveShadows: false }, shadowTexture);
@@ -231,13 +236,40 @@ export class Materials {
     return this.tinted(this.make('chapa', '#ffffff', { tile: 1, tileV: 0.8, specular: 0.18 }, texture), color);
   }
 
-  foliage(kind: 'oiti' | 'ipe'): LabMaterial {
+  foliage(kind: 'oiti' | 'ipe' | 'ipe-roxo'): LabMaterial {
     const painter = kind === 'oiti'
-      ? paintFoliage('#4a7036', 'rgba(125,160,75,0.35)', 'rgba(30,58,26,0.35)')
-      : paintFoliage('#e0b32a', 'rgba(255,228,110,0.45)', 'rgba(160,115,20,0.35)');
+      ? paintFoliage('#4f7a37', 'rgba(150,185,90,0.35)', 'rgba(34,62,28,0.32)')
+      : kind === 'ipe'
+        ? paintFoliage('#e8b828', 'rgba(255,232,120,0.5)', 'rgba(170,120,20,0.38)')
+        : paintFoliage('#b98ac9', 'rgba(236,200,236,0.5)', 'rgba(120,70,130,0.35)');
+    const seed = kind === 'oiti' ? 81 : kind === 'ipe' ? 83 : 85;
     const texture = this.texture(`tx-copa-${kind}`, () => paintTexture(this.scene, `tx-copa-${kind}`,
-      { size: Math.max(64, Math.round(256 * this.profile.textureScale)), seed: kind === 'oiti' ? 81 : 83, anisotropy: 2 }, painter));
+      { size: Math.max(64, Math.round(256 * this.profile.textureScale)), seed, anisotropy: 2 }, painter));
     return this.make(`copa-${kind}`, '#ffffff', { tile: 1 }, texture);
+  }
+
+  /**
+   * Alpha-tested leaf-card material per species (CORE-010). Cards are double sided; the alpha test
+   * also cuts the shadows, so canopies cast dappled shade.
+   */
+  leafCards(kind: 'oiti' | 'ipe' | 'ipe-roxo' | 'buganvilia' | 'arbusto'): LabMaterial {
+    const palettes: Record<typeof kind, [string[], string[], number]> = {
+      oiti: [['#3f6e2f', '#4f8236', '#5f9440', '#365f28', '#6aa04a'], [], 0],
+      arbusto: [['#3d6b2d', '#4c7d34', '#5c8f3d', '#335a26'], [], 0],
+      ipe: [['#5f8a38', '#4f7a30'], ['#f2c21d', '#f6d24a', '#e5a912', '#fbe27a'], 0.82],
+      'ipe-roxo': [['#5f8a38', '#4f7a30'], ['#c48ad6', '#d7a6e2', '#a86bc0', '#e6c2ea'], 0.82],
+      buganvilia: [['#3e6e2c', '#4d7f33'], ['#d0338b', '#e0569f', '#b8237a', '#ef7db8'], 0.62],
+    };
+    const [leaves, blossoms, share] = palettes[kind];
+    const name = `tx-cartao-${kind}`;
+    const texture = this.texture(name, () => paintTexture(this.scene, name,
+      { size: Math.max(128, Math.round(256 * this.profile.textureScale)), alpha: true, seed: 300 + kind.length, anisotropy: 1 },
+      paintLeafCluster(leaves, blossoms, share)));
+    const entry = this.make(`cartao-${kind}`, '#ffffff', { tile: 1 }, texture);
+    entry.material.backFaceCulling = false;
+    entry.material.alphaCutOff = 0.45;
+    entry.material.specularColor = new Color3(0.04, 0.04, 0.04);
+    return entry;
   }
 
   stripes(name: string, a: string, b: string, count: number, diagonal: boolean, tile: number): LabMaterial {

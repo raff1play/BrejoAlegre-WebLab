@@ -126,7 +126,7 @@ export const PARKED_PROP = Object.freeze({ x: PARKING.x, z: PARKING.bayZ[2]!, ya
 
 export const PLAZA: Box2D = { minX: -34, maxX: -FRONT, minZ: -50, maxZ: CROSS_FRONT_S };
 
-export type TreeSpec = Readonly<{ x: number; z: number; kind: 'oiti' | 'ipe'; scale: number; solid: boolean }>;
+export type TreeSpec = Readonly<{ x: number; z: number; kind: 'oiti' | 'ipe' | 'ipe-roxo'; scale: number; solid: boolean }>;
 export type PoleSpec = Readonly<{ x: number; z: number; lamp: 1 | -1; transformer: boolean; axis: 'z' | 'x' }>;
 export type BenchSpec = Readonly<{ x: number; z: number; alongX: boolean }>;
 export type WallRun = Readonly<{ box: Box2D; color: string; raw: boolean }>;
@@ -138,7 +138,7 @@ export const TREES: readonly TreeSpec[] = [
   { x: TREE_X, z: 2.2, kind: 'oiti', scale: 1.0, solid: true },
   { x: TREE_X, z: 26.4, kind: 'ipe', scale: 1.05, solid: true },
   { x: TREE_X, z: 39.6, kind: 'oiti', scale: 0.9, solid: true },
-  { x: -TREE_X, z: -6.4, kind: 'oiti', scale: 1.1, solid: true },
+  { x: -TREE_X, z: -6.4, kind: 'ipe-roxo', scale: 1.1, solid: true },
   { x: -TREE_X, z: 17.8, kind: 'oiti', scale: 0.95, solid: true },
   { x: -TREE_X, z: 41.6, kind: 'ipe', scale: 1.0, solid: true },
   // Square.
@@ -147,14 +147,14 @@ export const TREES: readonly TreeSpec[] = [
   { x: -29.5, z: -38, kind: 'ipe', scale: 1.1, solid: true },
   { x: -12, z: -45, kind: 'oiti', scale: 1.3, solid: true },
   { x: -23, z: -46, kind: 'ipe', scale: 1.15, solid: true },
-  { x: -18, z: -38.5, kind: 'oiti', scale: 1.0, solid: true },
+  { x: -18, z: -38.5, kind: 'ipe-roxo', scale: 1.0, solid: true },
   // Backdrop behind walls, unreachable.
   { x: 34, z: -6, kind: 'oiti', scale: 1.5, solid: false },
-  { x: 44, z: 6, kind: 'ipe', scale: 1.4, solid: false },
+  { x: 44, z: 6, kind: 'ipe-roxo', scale: 1.4, solid: false },
   { x: 33, z: 30, kind: 'oiti', scale: 1.6, solid: false },
   { x: 40, z: 50, kind: 'oiti', scale: 1.4, solid: false },
   { x: -33, z: 4, kind: 'oiti', scale: 1.6, solid: false },
-  { x: -42, z: 24, kind: 'ipe', scale: 1.3, solid: false },
+  { x: -42, z: 24, kind: 'ipe-roxo', scale: 1.3, solid: false },
   { x: -34, z: 48, kind: 'oiti', scale: 1.5, solid: false },
   { x: 14, z: 58, kind: 'oiti', scale: 1.5, solid: false },
   { x: -15, z: 62, kind: 'ipe', scale: 1.4, solid: false },
@@ -235,8 +235,8 @@ export function porchPillars(spec: HouseSpec): [number, number][] {
   return [[p0 + 0.17, z], [p1 - 0.17, z]];
 }
 
-export type PlantKind = 'arbusto' | 'palmeira' | 'vaso';
-export type PlantSpec = Readonly<{ x: number; z: number; kind: PlantKind; scale: number; turn: number }>;
+export type PlantKind = 'arbusto' | 'palmeira' | 'vaso' | 'buganvilia';
+export type PlantSpec = Readonly<{ x: number; z: number; kind: PlantKind; scale: number; turn: number; base: number }>;
 
 /** Flower bed just inside the street front, clear of the gates, plus a palm and porch pots. */
 function yardPlantsLocal(spec: HouseSpec, index: number): { lx: number; lz: number; kind: PlantKind; scale: number }[] {
@@ -249,17 +249,55 @@ function yardPlantsLocal(spec: HouseSpec, index: number): { lx: number; lz: numb
   const [p0, p1] = porchSpan(spec);
   const pz = spec.setback - 0.45;
   list.push({ lx: p0 + 0.6, lz: pz, kind: 'vaso', scale: 1 }, { lx: p1 - 0.6, lz: pz, kind: 'vaso', scale: 1.1 });
+  // CORE-010: bougainvillea draped over the street wall (or climbing the railing).
+  if (spec.front !== 'open') {
+    for (const lx of index % 2 === 0 ? [6.2, 10.6] : [7.4]) list.push({ lx: mirror(lx), lz: 0.1, kind: 'buganvilia', scale: 0.9 + (index % 3) * 0.12 });
+  }
   return list;
 }
 
 export function showcasePlants(): PlantSpec[] {
   return HOUSES.filter(isShowcase).flatMap((spec, index) => yardPlantsLocal(spec, index).map((p, i) => {
     const w = framePoint(spec.frame, p.lx, p.lz);
-    return { x: w.x, z: w.z, kind: p.kind, scale: p.scale, turn: (i * 1.7 + index) % (Math.PI * 2) };
+    return { x: w.x, z: w.z, kind: p.kind, scale: p.scale, turn: p.kind === 'buganvilia' ? (spec.frame.side === 1 ? Math.PI / 2 : -Math.PI / 2) : (i * 1.7 + index) % (Math.PI * 2), base: plantBase(spec, p.kind) };
   }));
 }
 
-const PLANT_RADIUS: Record<PlantKind, number> = { arbusto: 0.38, palmeira: 0.2, vaso: 0.22 };
+const PLANT_RADIUS: Record<PlantKind, number> = { arbusto: 0.38, palmeira: 0.2, vaso: 0.22, buganvilia: 0 };
+
+/** Height the plant stands on, above the lot level (bougainvillea sits on the wall top or railing). */
+export function plantBase(spec: HouseSpec | undefined, kind: PlantKind): number {
+  if (kind === 'vaso') return 0.07;
+  if (kind !== 'buganvilia') return 0.02;
+  return spec?.front === 'railing' ? 0.72 : WALL_H;
+}
+
+/**
+ * CORE-010 street furniture on the showcase pavements, near the kerb so the walking strip along the
+ * lot fronts stays clear: concrete flower planters, cast-iron "colonial" lamp posts and litter bins.
+ */
+export type StreetItemKind = 'floreira' | 'poste-colonial' | 'lixeira';
+export type StreetItem = Readonly<{ x: number; z: number; kind: StreetItemKind; alongZ: boolean }>;
+const ITEM_HALF: Record<StreetItemKind, [number, number]> = { floreira: [0.25, 0.7], 'poste-colonial': [0.13, 0.13], lixeira: [0.2, 0.2] };
+
+export function showcaseStreetItems(): StreetItem[] {
+  const blockers = [...TREES.filter((t) => t.solid), ...POLES].map((o) => ({ x: o.x, z: o.z }));
+  const items: StreetItem[] = [];
+  HOUSES.filter(isShowcase).forEach((spec, index) => {
+    const plan: [number, StreetItemKind][] = [[2.3, 'floreira'], [5.9, 'poste-colonial'], [9.6, 'floreira'], [11.2, index % 2 ? 'lixeira' : 'floreira']];
+    for (const [lx, kind] of plan) {
+      const p = framePoint(spec.frame, lx, -SIDEWALK + 0.62);
+      if (blockers.some((b) => Math.hypot(b.x - p.x, b.z - p.z) < 1.6)) continue;
+      items.push({ x: p.x, z: p.z, kind, alongZ: true });
+    }
+  });
+  return items;
+}
+
+export function streetItemBox(item: StreetItem): Box2D {
+  const [hx, hz] = ITEM_HALF[item.kind];
+  return { minX: item.x - hx, maxX: item.x + hx, minZ: item.z - hz, maxZ: item.z + hz };
+}
 
 function houseColliders(spec: HouseSpec): Box2D[] {
   const f = spec.frame;
@@ -288,7 +326,8 @@ export function buildColliders(): Box2D[] {
     ...SHOP_PROPS,
     parkedPropCollider(),
     ...TREES.filter((t) => t.solid).map((t) => around(t.x, t.z, 0.24 * t.scale)),
-    ...showcasePlants().map((p) => around(p.x, p.z, PLANT_RADIUS[p.kind] * p.scale)),
+    ...showcasePlants().filter((p) => PLANT_RADIUS[p.kind] > 0).map((p) => around(p.x, p.z, PLANT_RADIUS[p.kind] * p.scale)),
+    ...showcaseStreetItems().map(streetItemBox),
     ...POLES.map((p) => around(p.x, p.z, 0.17)),
     ...BENCHES.map((b) => (b.alongX
       ? { minX: b.x - 0.9, maxX: b.x + 0.9, minZ: b.z - 0.28, maxZ: b.z + 0.28 }
