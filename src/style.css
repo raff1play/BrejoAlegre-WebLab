@@ -80,6 +80,8 @@ button.active { background: #e8ae3c; color: #142232; }
 }
 .camera-bar { position: absolute; left: 50%; transform: translateX(-50%); bottom: var(--edge-b); display: flex; gap: 8px; }
 .camera-bar button { width: clamp(46px, 11vh, 58px); height: clamp(46px, 11vh, 58px); border-radius: 14px; font-size: 22px; }
+.camera-bar button.camera-toggle { width: clamp(55px, 12vh, 70px); background: rgba(232, 179, 72, .92); color: #172231; font-size: 12px; letter-spacing: .04em; }
+.camera-bar button.camera-toggle[aria-pressed="true"] { background: rgba(24, 43, 59, .92); color: #ffdb91; border-color: #e8b348; }
 
 .fatal, .portrait-warning {
   position: fixed; inset: 0; z-index: 9; background: #101b27; align-items: center; justify-content: center;
