@@ -8,11 +8,12 @@ import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import { CreateSphere } from '@babylonjs/core/Meshes/Builders/sphereBuilder';
 import { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { Scene } from '@babylonjs/core/scene';
+import { ColorCurves } from '@babylonjs/core/Materials/colorCurves';
 import { ImageProcessingConfiguration } from '@babylonjs/core/Materials/imageProcessingConfiguration';
 import type { GraphicsProfile } from '../config/graphics';
 import { paintSky, paintTexture } from './textures';
 
-const HORIZON = '#dfe7e6';
+const HORIZON = '#e8dfc9';
 
 export type Environment = {
   shadows: ShadowGenerator;
@@ -20,43 +21,60 @@ export type Environment = {
   focusShadows(x: number, z: number): void;
 };
 
-/** Mid-morning sun, sky dome, light haze and one economical shadow map that follows the player. */
+/**
+ * CORE-010: warm late-afternoon sun (long soft shadows), warm haze, saturated grade, sky dome and
+ * one economical shadow map that follows the player.
+ */
 export function setupEnvironment(scene: Scene, profile: GraphicsProfile): Environment {
   scene.clearColor = Color4.FromHexString(`${HORIZON}ff`);
   scene.ambientColor = new Color3(0.3, 0.3, 0.3);
   scene.fogMode = Scene.FOGMODE_LINEAR;
   scene.fogColor = Color3.FromHexString(HORIZON);
-  scene.fogStart = 70;
-  scene.fogEnd = 330;
+  scene.fogStart = 95;
+  scene.fogEnd = 430;
   const grading = scene.imageProcessingConfiguration;
   grading.toneMappingEnabled = true;
   grading.toneMappingType = ImageProcessingConfiguration.TONEMAPPING_ACES;
-  grading.exposure = 1.25;
-  grading.contrast = 1.12;
+  grading.exposure = 1.3;
+  grading.contrast = 1.18;
+  // Colour curves run inside the material shaders (no extra pass): richer colour, warm highlights.
+  const curves = new ColorCurves();
+  curves.globalSaturation = 14;
+  curves.highlightsHue = 35;
+  curves.highlightsDensity = 10;
+  curves.highlightsSaturation = 20;
+  curves.shadowsHue = 215;
+  curves.shadowsDensity = 12;
+  curves.shadowsSaturation = 15;
+  grading.colorCurvesEnabled = true;
+  grading.colorCurves = curves;
+  grading.vignetteEnabled = true;
+  grading.vignetteWeight = 1.3;
+  grading.vignetteColor = new Color4(0.12, 0.08, 0.04, 0);
 
   const sky = new HemisphericLight('ceu', new Vector3(0.1, 1, -0.1), scene);
-  sky.diffuse = Color3.FromHexString('#cfe0f5');
-  sky.groundColor = Color3.FromHexString('#8f8676');
+  sky.diffuse = Color3.FromHexString('#c4d8f0');
+  sky.groundColor = Color3.FromHexString('#a08665');
   sky.specular = Color3.Black();
-  sky.intensity = 0.85;
+  sky.intensity = 0.78;
 
-  const direction = new Vector3(-0.56, -0.7, 0.42).normalize();
+  const direction = new Vector3(-0.6, -0.52, 0.6).normalize();
   const sun = new DirectionalLight('sol', direction, scene);
-  sun.diffuse = Color3.FromHexString('#fff1d6');
-  sun.specular = Color3.FromHexString('#fff1d6');
-  sun.intensity = 1.9;
+  sun.diffuse = Color3.FromHexString('#ffd9a4');
+  sun.specular = Color3.FromHexString('#ffe6c2');
+  sun.intensity = 2.15;
   sun.autoUpdateExtends = false;
   sun.autoCalcShadowZBounds = false;
   sun.shadowFrustumSize = profile.shadowRange * 2;
   sun.shadowMinZ = 1;
-  sun.shadowMaxZ = 260;
+  sun.shadowMaxZ = 300;
 
   const shadows = new ShadowGenerator(profile.shadowMapSize, sun);
   shadows.usePercentageCloserFiltering = true;
   shadows.filteringQuality = profile.softShadows ? ShadowGenerator.QUALITY_MEDIUM : ShadowGenerator.QUALITY_LOW;
   shadows.bias = 0.0012;
   shadows.normalBias = 0.03;
-  shadows.setDarkness(0.08);
+  shadows.setDarkness(0.12);
 
   const dome = CreateSphere('ceu-domo', { diameter: 1600, segments: 16, sideOrientation: Mesh.BACKSIDE }, scene);
   const skyMaterial = new StandardMaterial('ceu', scene);
