@@ -55,8 +55,8 @@ test('W011 audio and cinematic effects are isolated in the opted-in visual chunk
   assert.match(effect, /this\.audio\.launch\(\)/);
   assert.match(effect, /this\.audio\.fireworks\(\)/);
   assert.match(effect, /makeScaleTexture\(\)/);
-  assert.match(effect, /this\.smoke = this\.particle/);
-  assert.match(effect, /this\.coreFire = this\.particle/);
+  assert.match(effect, /this\.smoke\s*=\s*this\.particle/);
+  assert.match(effect, /this\.coreFire\s*=\s*this\.particle/);
   assert.doesNotMatch(main, /DragonAudio|dragonAudio/);
   assert.match(main, /if \(dragonEnabled\(window\.location\.search\)\)/);
 });
