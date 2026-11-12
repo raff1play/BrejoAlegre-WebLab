@@ -73,3 +73,9 @@ Não marcar bloqueio como corrigido sem evidência de execução, timestamp e, q
 - **R-PERF-005 (aberto):** vitrine, CORE-010 → CORE-011 (headless): perfil alto 199 → 205 draw calls e ≈ 92 → 112 mil triângulos; perfil leve 193 → 195 e ≈ 85 → 93 mil. Download total ao abrir: 1,5 → 2,5 MB (≈ 415 kB de JS do loader glTF/PBR sob demanda + 309 kB de modelos + 72 kB de textura), depois que o jogo já está jogável. Memória de GPU: ≈ 1,4 MB por textura 512 px (≈ 13 texturas novas, ≈ 18 MB com mipmaps no pior caso).
 - **B037 — ESTILO:** a floreira do Poly Haven é de madeira escura; as referências mostram floreiras claras de concreto. Mantida por ser o melhor candidato leve disponível; trocar se surgir um modelo claro CC0.
 - **B038 — PENDENTE:** validar no Galaxy S24 os modelos externos, a telha fotográfica, o tempo de carregamento em rede móvel e o FPS.
+
+## CORE-012 — Câmera terceira pessoa
+
+- **B039 — PENDENTE:** validar no Galaxy S24 a alternância GTA/ISO, estabilidade do horizonte, giro com dedo, joystick e aceleração simultâneos, montagem/desmontagem, colisão visual perto de muro e FPS nos perfis leve/alto.
+- **R-CAM-001 (aberto):** volumes simplificados evitam atravessar casas, muros, troncos e postes, mas vegetação volumosa, fios, grades e detalhes não entram em todos os volumes; podem obstruir a vista próxima. Validar no aparelho e refinar apenas onde necessário.
+- **R-CAM-002 (aberto):** câmera terceira pessoa amplia a área vista e muda enquadramento de sombras/texturas; não há métrica confiável de FPS Android. Não inferir desempenho a partir de CI headless.
