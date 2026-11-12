@@ -1,5 +1,5 @@
 import type { Box3D } from '../core/math.ts';
-import { buildOccluders, CURB_H, POLES, SHOP_PROPS, TREES, WALL_RUNS, showcaseStreetItems } from './layout';
+import { buildOccluders, CURB_H, POLES, SHOP_PROPS, TREES, WALL_RUNS, showcaseStreetItems } from './layout.ts';
 
 /** Static blockers for the chase camera; far cheaper than ray-testing the detailed render meshes. */
 export function cameraObstacles(): Box3D[] {
