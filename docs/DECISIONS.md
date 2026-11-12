@@ -78,3 +78,12 @@
 - Materiais glTF (PBR) convertidos para `StandardMaterial` no carregamento para manter a mesma linguagem de luz da cena e o custo de shader baixo no celular.
 - Moto e entregador **não substituídos**: os únicos candidatos (Polyfork, CC-BY, cor chapada) não são articulados nem do mesmo estilo; o modelo articulado da W009 segue.
 - Vegetação externa **não usada**: árvores do Poly Haven têm ≈1,6 milhão de triângulos; os pacotes estilizados acessíveis (Kenney/KayKit) destoam do visual texturizado. Folhagem da CORE-010 mantida.
+
+## CORE-012 — Câmera em terceira pessoa estilo GTA (pedido de 12/11/2026)
+
+- Pedido do usuário: adicionar visualização em terceira pessoa, inspirada em GTA, com botão para alternar com a câmera isométrica atual.
+- Escolha reversível no mesmo `ArcRotateCamera` do Babylon: **GTA/ISO** no HUD, tecla **C** no desktop. Inicialização continua isométrica; isométrica conserva ângulo/zoom anteriores ao alternar.
+- Modo GTA: câmera atrás e acima da moto; realinhamento suave com o rumo da moto depois de 2,5 s sem giro manual; ao caminhar usa distância reduzida e órbita independente (evita ficar girando conforme o analógico controla o personagem).
+- Distâncias iniciais 5,6 m na moto e 3,6 m a pé, FOV ~60°, zoom e inclinação limitados; bloqueio por volumes estáticos de casas, muros, troncos e postes.
+- Não muda física, esterço da W008, analógico, controles de aceleração/freio, assets CORE-011, multiplayer ou mapa fictício; W010–W012 descartados permanecem fora.
+- Branch `feat/core-012-gta-camera` baseada em `feat/core-011-real-assets`; PR de revisão; **não há autorização para merge ou deploy nesta solicitação**.
