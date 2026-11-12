@@ -1,9 +1,9 @@
-name: Preview Web Lab 0.1 - Pages (explicit trigger)
+name: Preview CORE-010 - Pages (explicit trigger)
 
 on:
   push:
     branches:
-      - setup/weblab-foundation
+      - feat/core-010-visual-remaster
     paths:
       - .github/workflows/preview.yml
       - docs/PREVIEW_DEPLOY_TRIGGER.md
@@ -17,10 +17,13 @@ concurrency:
   group: pages-weblab-preview
   cancel-in-progress: false
 
+# Autorização explícita do usuário em 12/11/2026: auditar CORE-010 e publicar SE aprovada.
+# Deploy do Web Lab CORE-010 somente; PR #3 permanece em rascunho, sem merge.
+# O workflow de produção e a branch main não são alterados.
 jobs:
   deploy-preview:
     # Never deploy pull-request events or other branches.
-    if: github.event_name == 'push' && github.ref == 'refs/heads/setup/weblab-foundation'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/feat/core-010-visual-remaster'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment:
