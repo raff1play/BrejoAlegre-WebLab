@@ -73,3 +73,11 @@ Em **Build and deployment > Source**, selecionar **GitHub Actions** e salvar. En
 - Implementação reversível concentrada no commit `d4b13a87d5d32f1192fb88939a1cdbc81c8c4bb0`, incluindo documentação e testes.
 - CI da implementação: workflow `43138560145` terminou **success**, 51/51 testes unitários, TypeScript e build staging aprovados.
 - O presente commit dispara a publicação do preview W010. Após a execução, verificar o deploy e a URL; Android/FPS/visibilidade reais permanecem pendentes.
+
+## Publicar W011 — som e dragão sombrio apenas no Easter egg (12/11/2026)
+
+- Pedido do usuário: incorporar rugido, fogo, explosões, quack-quack de pato, som de moto e melhor aparência do dragão, **exclusivamente em `?dragon=1`**, preservando todo o restante. Publicar no preview já aprovado para teste; `main` intocada.
+- Implementação W011: nova classe `dragonAudio.ts` com áudio original Web Audio desbloqueado pelo usuário; `dragonSurprise.ts` com escamas, asas nervuradas, mandíbula/dentes, garras, fumaça, iluminação e partículas mais expressivas.
+- Arquivos de física, controles, câmera e cena normal não alterados. A URL sem parâmetro não importa o módulo Easter egg.
+- CI da HEAD `e4a4fdbf17ac5d15852f439a2934a8c6c207d696`: [43142045656](https://github.com/raff1play/BrejoAlegre-WebLab/actions/runs/43142045656) **success**; 52/52 testes, TypeScript e build staging aprovados. Teste Android e avaliação da qualidade sonora/visual continuam pendentes.
+- Este commit aciona exclusivamente o deploy do preview GitHub Pages. Confirmar sucesso do workflow antes de informar publicação.
