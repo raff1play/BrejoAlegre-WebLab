@@ -81,3 +81,11 @@ Em **Build and deployment > Source**, selecionar **GitHub Actions** e salvar. En
 - Arquivos de física, controles, câmera e cena normal não alterados. A URL sem parâmetro não importa o módulo Easter egg.
 - CI da HEAD `e4a4fdbf17ac5d15852f439a2934a8c6c207d696`: [43142045656](https://github.com/raff1play/BrejoAlegre-WebLab/actions/runs/43142045656) **success**; 52/52 testes, TypeScript e build staging aprovados. Teste Android e avaliação da qualidade sonora/visual continuam pendentes.
 - Este commit aciona exclusivamente o deploy do preview GitHub Pages. Confirmar sucesso do workflow antes de informar publicação.
+
+## W012 — Seletor de GLB local para o Ashwing Drake Lite (12/11/2026)
+
+- O usuário enviou seu ZIP do Ashwing Lite para integração/teste do dragão realista. Publicar **somente a opção de seleção local do modelo** na versão experimental `?dragon=1`, preservando o jogo padrão, a branch `main` e o PR #1.
+- A licença do ZIP não permite republicar o GLB como asset isolado; **nenhum GLB/FBX foi adicionado ao repositório ou Pages**. Usuário seleciona o próprio arquivo por file picker, processado diretamente no navegador.
+- Código W012: commit `afe1b1011bf63d53a3b81150853e07482b3e7309`; correção TypeScript `707e645894fcb4ddc84fb82b0d358424802d5e12`.
+- CI `43144504433` **success**, 53/53 testes unitários e build staging aprovado. Teste real de carregamento e execução do GLB no Galaxy S24 continua pendente.
+- Este commit é o disparo do preview. Confirmar resultado da publicação antes de informar o link como atualizado.
