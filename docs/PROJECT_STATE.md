@@ -268,3 +268,12 @@ Bundle principal: 1,33 MB (W008) → 1,38 MB (≈ 344 kB gzip). FPS no headless 
 - Módulo `src/features/easterEgg/localDragonModel.ts` com seletor local e importador glTF 2.0 dinâmico; adaptado `dragonSurprise.ts` para usar o modelo preparado no gatilho de 45 km/h, alternar `fly_loop`/`roar`, usar socket de fogo e preservar fallback procedural.
 - Dependência `@babylonjs/loaders` 9.35.0 no package + lockfile, sem alteração do bundle normal do Web Lab devido ao código sob `?dragon=1`.
 - Status de CI, compilação e GitHub Pages a confirmar após implementação; visualização real/áudio/FPS no Galaxy S24 não testados até a escolha do arquivo no dispositivo. A fonte artística do asset segue sendo Literock Studios.
+
+### Publicação W012 — resultado confirmado no GitHub Actions
+
+- Workflow do preview `43144700338`: **completed / success**, `npm ci`, validação, **53/53 testes unitários**, TypeScript e build staging aprovados.
+- Commit efetivamente publicado: `4c44f2b05f9ca7bb6b9621455938c5a87d52d366`.
+- URL confirmada pelo deploy: https://raff1play.github.io/BrejoAlegre-WebLab/ ; teste Ashwing com file picker em `?dragon=1` (nenhum GLB ou FBX distribuído pelo Pages).
+- Original da W012 agrupado no commit `afe1b1011bf63d53a3b81150853e07482b3e7309`, correção TS `707e645894fcb4ddc84fb82b0d358424802d5e12`. Para remover, reverter W012 e reeditar trigger do Pages; URL normal não ativa sequer o módulo.
+- **Não comprovado no Android físico:** carregamento do GLB pelo seletor do Chrome, visibilidade/animações, `breath_socket` durante voo e impacto no FPS; a CI não exercita renderização real do asset por não incluir bytes do modelo licenciado no repositório.
+- PR #1 permanece aberto e draft, sem merge `main`.
