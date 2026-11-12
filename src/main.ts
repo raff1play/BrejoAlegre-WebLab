@@ -19,6 +19,7 @@ import { Pedestrian } from './features/walking/pedestrian';
 import { setupEnvironment } from './world/environment';
 import { CURB_H, PARKED_PROP, SPAWN } from './world/layout';
 import { buildTemporaryWorld } from './world/temporaryWorld';
+import { cameraObstacles } from './world/cameraObstacles';
 import { applyRoofTexture, populateExternalAssets, type ExternalStatus } from './world/externalAssets';
 import { buildStreetFurniture } from './world/props';
 import { BatchSet } from './world/geometry';
@@ -101,13 +102,20 @@ function start(canvas: HTMLCanvasElement): void {
   };
   const onAction = (action: Action): void => {
     if (action === 'mount') toggleMount();
-    else switchGraphicsProfile(profile);
+    else if (action === 'graphics') switchGraphicsProfile(profile);
+    else if (action === 'camera-mode') {
+      const yaw = mode === 'riding' ? moto.state.yaw : walker.state.yaw;
+      const next = rig.toggleMode(yaw, mode === 'riding');
+      hud.setCameraMode(next);
+      hud.toast(next === 'third-person' ? 'Câmera: terceira pessoa' : 'Câmera: isométrica');
+    }
   };
   const input = new GameInput(document, onAction);
 
   const startFocus = new Vector3(SPAWN.x, 1, SPAWN.z);
   const narrow = Math.min(window.innerWidth, window.innerHeight) < 520;
-  const rig = new IsometricCameraRig(scene, canvas, startFocus, narrow ? 15 : 18);
+  const rig = new IsometricCameraRig(scene, canvas, startFocus, narrow ? 15 : 18, cameraObstacles());
+  hud.setCameraMode(rig.mode);
   const fader = new OcclusionFader(world.occluders);
   const cameraTarget = new Vector3();
   const playerCentre = new Vector3();
@@ -123,7 +131,7 @@ function start(canvas: HTMLCanvasElement): void {
         brake: input.isDown('brake') ? 1 : 0,
         steer: input.steer(),
       }, world.guard, ground(m.x, m.z));
-      const lead = m.speed * 0.28;
+      const lead = rig.mode === 'third-person' ? Math.min(0.5, Math.max(0, m.speed) * 0.07) : m.speed * 0.28;
       cameraTarget.set(m.x + Math.sin(m.yaw) * lead, moto.root.position.y + 0.95, m.z + Math.cos(m.yaw) * lead);
       playerCentre.set(m.x, moto.root.position.y + 1.0, m.z);
     } else {
@@ -131,10 +139,11 @@ function start(canvas: HTMLCanvasElement): void {
       const w = walker.state;
       walker.update(dt, input.walkingAxes(),
         rig.viewYaw, walkerGuard, ground(w.x, w.z));
-      cameraTarget.set(w.x, walker.root.position.y + 1.05, w.z);
+      cameraTarget.set(w.x, walker.root.position.y + (rig.mode === 'third-person' ? 1.35 : 1.05), w.z);
       playerCentre.copyFrom(cameraTarget);
     }
-    rig.update(dt, cameraTarget, input.axis('camera-right', 'camera-left'), input.axis('zoom-out', 'zoom-in'));
+    rig.update(dt, cameraTarget, input.axis('camera-right', 'camera-left'), input.axis('zoom-out', 'zoom-in'),
+      mode === 'riding' ? m.yaw : walker.state.yaw, mode === 'riding');
     fader.update(dt, rig.camera.position, playerCentre);
     environment.focusShadows(playerCentre.x, playerCentre.z);
     const available = mode === 'riding' ? isMotoStopped(m) : canMount(walker.state, m);
@@ -168,7 +177,7 @@ function start(canvas: HTMLCanvasElement): void {
         mode,
         moto: { ...moto.state, y: moto.root.position.y },
         walker: { ...walker.state, y: walker.root.position.y },
-        camera: { alpha: rig.camera.alpha, beta: rig.camera.beta, radius: rig.camera.radius, target: rig.camera.target.asArray() },
+        camera: { mode: rig.mode, alpha: rig.camera.alpha, beta: rig.camera.beta, radius: rig.camera.radius, target: rig.camera.target.asArray() },
         fadedBuildings: fader.fadedCount,
         externalAssets: external,
         fps: engine.getFps(),
