@@ -58,3 +58,10 @@ Em **Build and deployment > Source**, selecionar **GitHub Actions** e salvar. En
 - W008 melhora resposta do analógico e calibração de esterço da moto, sem modificar caminhada, velocidade máxima, câmera, PWA, main ou recursos pagos.
 - A CI da HEAD `652a7e84d28e19514bc3622ea9cc17f5197ae626` passou em `43118499685`: 44/44 testes e build de staging.
 - Este commit no arquivo de trigger aciona o deploy do preview. Validar execução do workflow da HEAD e sucesso antes de afirmar que está publicado.
+
+## Publicação autorizada — W009 Visual Showcase (12/11/2026)
+
+- Usuário solicitou publicar agora a versão W009 para testar no celular. Esta aprovação vale **somente para o preview gratuito** do GitHub Pages na branch `setup/weblab-foundation`, não autoriza merge na `main`.
+- Conteúdo: entregas A (moto e entregador detalhados/articulados) e B (cinco fachadas e melhorias no cenário), mantendo direção W008 e PWA desativado.
+- Head W009 validada previamente: `d359a264347386e3c13242647f25ab278dd13e8a`; runs CI `43133314925` e `43133308730` concluídas com sucesso, 47/47 testes.
+- Este commit aciona o workflow explícito de preview. Confirmar conclusão do deploy, commit publicado e URL efetiva; não afirmar que o Galaxy S24 foi testado.
