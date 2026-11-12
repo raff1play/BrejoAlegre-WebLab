@@ -86,3 +86,10 @@ Próximas mudanças devem registrar PR/SHA e resultados verificáveis.
 - Skinning rígido na GPU (`src/features/shared/rigidSkin.ts`) devolve os draw calls ao nível da W008; triângulos ativos ≈ +85–90%.
 - `src/features/shared/modelParts.ts` → `src/world/modelParts.ts`; materiais `chrome()`, `lacquer()`, luzes num material único; logs de `docs/evidence/` passam a ser versionados.
 - Física, controles, câmera, colisões existentes e PWA desativado: sem alteração. Sem publicação no Pages. Android real não testado.
+
+## 2026-11-12 — CORE-010 remasterização visual (branch `feat/core-010-visual-remaster`)
+
+- `9348f2b` — luz de fim de tarde, céu com cúmulos, curvas de cor/vinheta, morros com casario, igreja e caixa-d'água ao fundo.
+- `2c06011` — folhagem por cartões (oiti, ipês amarelo e roxo, arbustos, buganvílias), telhas mais quentes, fiada de beira, caibros, muros com pilares/capitel, rodapé de pedra, arandelas, placas de número, floreiras, postes coloniais, lixeiras, asfalto limpo e faixas de bordo; teste de layout novo.
+- `6c2ffe8` — moto e baú amarelos com preto; colete amarelo do entregador.
+- Nenhum asset externo (fontes bloqueadas pela rede). Física, controles, câmera e colisões preservados (44/44 no navegador).

@@ -238,3 +238,32 @@ Bundle principal: 1,33 MB (W008) → 1,38 MB (≈ 344 kB gzip). FPS no headless 
 - **Governança:** `main` permanece no commit inicial, sem merge. Nada foi apagado do repositório. Qualquer novo deploy da branch limpa exige autorização e revisão do workflow de preview, que continua restrito à branch antiga.
 
 **Próxima etapa:** validação física da W009 no Galaxy S24 (controles, direção, personagem, cenário, FPS, aquecimento) e melhorias focadas no jogo; não voltar ao Easter egg sem novo pedido explícito. O produto definitivo Godot permanece projeto futuro.
+
+## CORE-010 — Remasterização visual da vitrine (12/11/2026)
+
+**Branch** `feat/core-010-visual-remaster` (base `feat/weblab-core-w009` @ `1c90232`); PR em rascunho contra `feat/weblab-core-w009`. Sem merge, sem deploy. W010–W012 não incorporados.
+
+| Commit | Conteúdo |
+|---|---|
+| `9348f2b` | luz, céu, grading, fundo (morros/casario) |
+| `2c06011` | folhagem por cartões, telhados, muros, mobiliário, asfalto, teste |
+| `6c2ffe8` | libré amarela/preta da moto e colete do entregador |
+
+**Assets externos:** nenhum (fontes bloqueadas pela rede — ver B032). Tudo procedural, em `src/world/`.
+
+### Testado (Chromium headless, GPU por software)
+
+- `validate:repo` ok; `test:unit` **48/48**; `typecheck` ok; `build:staging` ok (bundle principal 1,377 → 1,388 MB; `dist/` ≈ 2,0 MB).
+- Roteiro de navegador no build de staging: **44/44** (pilotar, frear, colisão, descer/andar/montar, câmera, toque emulado) — `docs/evidence/e2e-staging-core010.log`.
+- Capturas reais antes/depois nos mesmos enquadramentos: `docs/evidence/core010-vitrine-antes-depois.jpg`, `core010-fachadas-antes-depois.jpg`, `core010-moto-entregador-antes-depois.jpg`, `core010-perfil-leve-antes-depois.jpg`, `core010-horizonte.jpg`.
+
+### Métricas (mesmo navegador e vistas; não são FPS de aparelho)
+
+| Vista | Perfil | W009 draw calls / triângulos | CORE-010 draw calls / triângulos |
+|---|---|---|---|
+| Vitrine leste | alto | 183 / 78 mil | 199 / 92 mil |
+| Vitrine rua | alto | 201 / 81 mil | 217 / 93 mil |
+| Vaga inicial | alto | 156 / 80 mil | 168 / 90 mil |
+| Vitrine leste | leve | 180 / 70 mil | 193 / 85 mil |
+
+FPS do headless (5–7) não representa hardware. **Galaxy S24 / Chrome Android: NÃO TESTADO.**

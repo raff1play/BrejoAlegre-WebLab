@@ -35,6 +35,12 @@ Só um corpo recebe controles por vez (`mode` em `main.ts`); ao trocar, as entra
 - `src/features/shared/rigidSkin.ts`: cada nó animado recebe um osso ligado (`Bone.linkTransformNode`) e toda a geometria de um material vira **uma** malha com skinning rígido na GPU. Para esconder uma peça, zere a escala do nó (ex.: descanso lateral); `setEnabled` não esconde parte de uma malha fundida.
 - A apresentação só lê o estado de `core/` (velocidade, esterço, inclinação, posição); nenhuma animação altera a simulação.
 
+## Vegetação e fundo (CORE-010)
+
+- `src/world/foliage.ts`: copas por **cartões de folhagem** (quads com textura alfa recortada, em `Materials.leafCards`) espalhados num elipsoide, com normais apontando para fora da copa e cor por vértice; um núcleo escuro de baixa contagem evita transparência. Cada espécie é um protótipo instanciado (árvores em `props.ts`).
+- `src/world/backdrop.ts`: morros, casario, igreja e caixa-d'água fictícios além dos muros; uma malha por material, sem sombra nem colisão.
+- Mobiliário da vitrine (`showcaseStreetItems` em `layout.ts`): floreiras instanciadas; postes coloniais e lixeiras no lote estático compartilhado; todos com colisor.
+
 ## Limitações PROPOSITADAS
 
 - Moto: modelo cinemático de bicicleta com limite de aceleração lateral. **Não é corpo rígido**: sem suspensão, derrapagem ou queda.

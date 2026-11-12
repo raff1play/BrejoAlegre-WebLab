@@ -58,3 +58,11 @@ Não marcar bloqueio como corrigido sem evidência de execução, timestamp e, q
 - **B029 — LIMITAÇÃO:** só cinco fachadas receberam o tratamento completo; as demais casas ganharam apenas cumeeiras, molduras, padrão de energia e sombras de contato.
 - **B030 — RESOLVIDO no roteiro:** a verificação de colisão lateral do `tests/e2e/play.cjs` falhava quando a curva terminava diante de uma árvore/poste da calçada; agora aceita esses sólidos e registra `z`.
 - **B031 — CORRIGIDO:** logs de `docs/evidence/` eram ignorados pelo `*.log` do `.gitignore`, então o log da 0.1 citado no estado nunca foi versionado; exceção adicionada.
+
+## CORE-010 — Remasterização visual
+
+- **B032 — BLOQUEADO (ambiente):** patch.gg, kenney.nl, quaternius.com, polyhaven.com (+api/dl) e ambientcg.com recusados pelo proxy (403). Para usar assets externos numa próxima etapa, liberar esses hosts na rede do ambiente; registrar licença de cada asset em `public/assets/ASSET_MANIFEST.md`.
+- **B033 — PENDENTE:** avaliação no Galaxy S24 da nova luz, da folhagem alfa (custo de *overdraw* e recorte de alfa na GPU móvel) e do FPS nos perfis leve/alto.
+- **R-PERF-004 (aberto):** na vitrine, W009 → CORE-010: draw calls 183 → 199 (+9%) e triângulos ≈ 78 mil → ≈ 92 mil (+18%) no perfil alto; 180 → 193 e ≈ 70 mil → ≈ 85 mil no leve (medido antes de tirar as floreiras das sombras do perfil leve). Folhagem alfa pode pesar em *fill rate* no celular; mitigação: reduzir `count` dos cartões ou usar só o núcleo no perfil leve.
+- **B034 — LIMITAÇÃO:** o fundo (morros/casario) só aparece com a câmera na inclinação máxima; os limites da câmera não foram alterados.
+- **B035 — PENDENTE:** a referência inclui comércio com letreiros, NPCs e carros — fora desta etapa. Próxima área sugerida: mercearia e cruzamento.

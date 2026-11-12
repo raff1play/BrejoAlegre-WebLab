@@ -4,6 +4,7 @@
 
 - Geometria: primitivas e malhas geradas em código (`src/world/`, `src/features/`).
 - Texturas: pintadas em canvas 2D na inicialização por `src/world/textures.ts` (asfalto, concreto, reboco, bloco cerâmico, telha, grama, chapa, porta, janela, grade, folhagem, placas, céu; desde a W009 também pedra canjiquinha, cobogó, ladrilho hidráulico, pedra portuguesa, intertravado, atlas de sombras de contato e panorama de reflexo em `src/world/materials.ts`). Código do próprio repositório, sem licença externa a rastrear.
+- CORE-010: nenhum asset externo. Fontes pesquisáveis (patch.gg, Kenney, Quaternius, Poly Haven, ambientCG) estavam bloqueadas pela rede do ambiente (403); novas texturas procedurais: cartões de folhagem por espécie, placas de número (rua fictícia "R. Provisória"), céu com cúmulos, asfalto e telhas revisados.
 - W009: moto, entregador, palmeiras, arbustos e vasos também são geometria procedural própria; nenhum arquivo externo foi adicionado.
 - Textos das placas usam a fonte sans-serif do sistema do visitante.
 - A "MERCEARIA DO BAIRRO" e a "R. PROVISÓRIA" são nomes inventados; não representam comércio nem rua reais.

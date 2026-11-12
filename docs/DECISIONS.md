@@ -60,3 +60,12 @@
 - Sem assets externos: tudo é geometria e textura procedural do repositório. Sem dependências novas.
 - Decisão de engenharia associada: modelos articulados usam **skinning rígido na GPU** (`src/features/shared/rigidSkin.ts`) para manter os draw calls no nível da W008.
 - Metas de 60 FPS no Galaxy S24 (perfil leve) e 30 FPS em aparelho intermediário seguem **não medidas**. Não altera D01–D17 nem W001–W008; não autoriza merge nem publicação no Pages.
+
+## CORE-010 — Remasterização visual da primeira área (pedido de 12/11/2026)
+
+- Identificador **CORE-010** (não W010: W010–W012 pertencem ao Easter egg descartado e não foram incorporados). Branch `feat/core-010-visual-remaster`, criada a partir de `feat/weblab-core-w009` (PR #2).
+- Pedido: aproximar o Web Lab dos vídeos de referência enviados pelo usuário (gerados por IA, **só referência artística**). Área: quarteirão da vitrine W009. Física, controles, câmera, colisões existentes e gameplay preservados.
+- **Assets externos: nenhum.** As fontes indicadas (patch.gg, Kenney, Quaternius, Poly Haven, ambientCG) responderam 403 pela política de rede do ambiente; a liberação desses hosts foi proposta e não aprovada nesta sessão. Pela regra do pedido ("se nenhum asset adequado existir, aprimorar o modelo procedural"), tudo foi feito em geometria e textura procedural própria.
+- Direção adotada (ver `docs/VISUAL_DIRECTION.md`): sol quente de fim de tarde, telhado cerâmico laranja com beiral, muros com pilares e capitel, vegetação volumosa (oiti, ipês, buganvília, floreiras), postes coloniais, asfalto escuro e limpo, moto/baú amarelos com preto e colete amarelo.
+- Moto e entregador: só cores/libré; modelos da W009 mantidos (sem ganho claro em substituí-los).
+- Não autoriza merge, deploy, serviços pagos nem alteração de outros projetos.

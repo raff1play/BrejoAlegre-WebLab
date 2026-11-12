@@ -1,4 +1,10 @@
-# Próxima tarefa — validar W009 principal (visual) e direção W008 no Galaxy S24
+# Próxima tarefa
+
+**CORE-010 (12/11/2026):** remasterização visual da vitrine na branch `feat/core-010-visual-remaster` (PR em rascunho). Antes de expandir a outras áreas: avaliar no Galaxy S24 luz, folhagem alfa, libré e FPS (B033/R-PERF-004); se aprovada, aplicar o mesmo padrão à mercearia e ao cruzamento. Para assets externos, liberar os hosts listados em B032.
+
+---
+
+# Tarefa anterior — — validar W009 principal (visual) e direção W008 no Galaxy S24
 
 **Atualização 12/11/2026:** a W009 (moto, entregador e vitrine de cinco fachadas) foi implementada e testada em Chromium headless (47 testes unitários, 44 verificações de navegador). É a **última linha principal aprovada para continuidade**: branch `feat/weblab-core-w009`, PR #2, a partir do commit `bc453402` antes de W010. **Não misturar o Easter egg W010–W012**, que permanece arquivado na antiga branch `setup/weblab-foundation`/PR #1 encerrado. A W009 foi publicada anteriormente no Pages, mas o site foi depois substituído pelo experimento W012. **A nova branch limpa não foi publicada**; para testar exatamente esse código sem novo deploy, rodar `npm ci`, `npm run dev` e abrir `http://IP_DO_COMPUTADOR:5173` no Chrome Android na mesma rede.
 

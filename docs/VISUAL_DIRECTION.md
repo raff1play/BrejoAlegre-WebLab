@@ -33,3 +33,17 @@ Nesta etapa, descrever visual e gerar uma **captura autêntica da cena renderiza
 - A meta 30 FPS é hipótese até medição em aparelho real.
 
 **Fontes de arte:** a cada asset de terceiros, atualizar `public/assets/ASSET_MANIFEST.md` com fonte, criador, licença, tamanho e alterações. Nunca supor licença por estar disponível online.
+
+## Referência CORE-010 (vídeos do usuário, 12/11/2026)
+
+Sete vídeos curtos (≈5 s) gerados por IA foram enviados na conversa; **não estão versionados** e são referência artística, não gravação do Babylon.js. Análise feita uma vez a partir de 2–3 quadros por vídeo:
+
+- **Luz:** sol quente de fim de tarde, sombras longas e macias, céu azul com cúmulos, leve névoa quente, cores saturadas sem neon.
+- **Profundidade:** morros verdes ao fundo com casario de telhado laranja, igreja com torre e caixa-d'água.
+- **Arquitetura residencial:** casas térreas creme/brancas, telhado cerâmico laranja com beiral grosso, muros rebocados com pilares e capitel, rodapé de pedra, arandelas, placa de rua/número esmaltada, portões de grade, parabólicas.
+- **Rua:** asfalto escuro limpo, faixas brancas nítidas e eixo amarelo, calçadas claras ou de pedra portuguesa, floreiras com flores vermelhas, postes de ferro coloniais, lixeiras, poste de concreto com transformador e fiação.
+- **Vegetação:** copas volumosas e macias (oiti), ipê-roxo e ipê-amarelo, palmeiras, buganvílias caindo sobre os muros, vasos.
+- **Personagem e moto:** moto amarela e preta com baú amarelo; entregador de jaqueta preta com painéis amarelos e capacete escuro.
+- Fora do escopo desta etapa (aparecem nos vídeos): NPCs, carros, HUD de entregas, lojas comerciais com letreiros, base logística.
+
+Implementação: `docs/PROJECT_STATE.md`, seção CORE-010. Comparações reais: `docs/evidence/core010-*.jpg`.
