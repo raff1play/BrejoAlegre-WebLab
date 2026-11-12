@@ -1,6 +1,6 @@
-# Próxima tarefa — avaliar no Galaxy S24 a W009 (visual) junto com a direção W008
+# Próxima tarefa — validar W009 principal (visual) e direção W008 no Galaxy S24
 
-**Atualização 12/11/2026:** a W009 (moto, entregador e vitrine de cinco fachadas) foi implementada e testada em Chromium headless (47 unitários, 44 verificações de navegador). **Ela ainda não foi publicada no Pages**: o endereço de preview mostra a W008 até o usuário autorizar nova publicação (editar `docs/PREVIEW_DEPLOY_TRIGGER.md` dispara `.github/workflows/preview.yml`). Para testar antes disso, rodar `npm ci` e `npm run dev` e abrir `http://IP_DO_COMPUTADOR:5173` no Chrome Android.
+**Atualização 12/11/2026:** a W009 (moto, entregador e vitrine de cinco fachadas) foi implementada e testada em Chromium headless (47 testes unitários, 44 verificações de navegador). É a **última linha principal aprovada para continuidade**: branch `feat/weblab-core-w009`, PR #2, a partir do commit `bc453402` antes de W010. **Não misturar o Easter egg W010–W012**, que permanece arquivado na antiga branch `setup/weblab-foundation`/PR #1 encerrado. A W009 foi publicada anteriormente no Pages, mas o site foi depois substituído pelo experimento W012. **A nova branch limpa não foi publicada**; para testar exatamente esse código sem novo deploy, rodar `npm ci`, `npm run dev` e abrir `http://IP_DO_COMPUTADOR:5173` no Chrome Android na mesma rede.
 
 Checklist adicional da W009 no aparelho:
 1. A moto e o entregador parecem melhores e legíveis na câmera padrão? Mãos ficam nas manoplas ao virar? Pé esquerdo desce ao parar?
@@ -41,10 +41,10 @@ No Galaxy S24, abrir https://raff1play.github.io/BrejoAlegre-WebLab/ no Chrome e
 
 ## Continuidade do desenvolvimento
 
-- Trabalhar na branch `setup/weblab-foundation`, atualizando PR #1; **não fazer merge**.
+- Trabalhar exclusivamente na branch `feat/weblab-core-w009`, atualizando PR #2; **não fazer merge**. Não incorporar código de W010–W012 da branch experimental.
 - Antes de qualquer publicação executar `npm ci`, `npm run validate:repo`, `npm run test:unit`, `npm run typecheck`, `npm run build:staging`.
 - O roteiro `tests/e2e/play.cjs` foi atualizado para eventos do analógico, mas **não roda na CI**; se acessível executar em Chromium com Playwright e documentar evidências reais.
-- Publicar preview somente com autorização e após CI verde, usando `.github/workflows/preview.yml`, sem alterar a `main`.
+- Publicar preview somente com autorização explícita e após CI verde, sem alterar a `main`. O workflow atual `.github/workflows/preview.yml` está limitado à branch experimental antiga; antes de publicar uma versão W009 limpa, revisar esse fluxo com aprovação do usuário.
 - Atualizar `docs/PROJECT_STATE.md`, `docs/ISSUES_AND_RISKS.md`, `docs/CHANGELOG.md`, registrando SHA e testes de fato executados.
 
 Não adicionar backend, login, multiplayer, economia, scanner ou mapa definitivo nessa etapa. Sem novas assinaturas, serviços pagos ou assets comprados.
