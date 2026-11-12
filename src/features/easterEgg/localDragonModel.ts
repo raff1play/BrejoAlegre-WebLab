@@ -12,7 +12,6 @@ import type { AnimationGroup } from '@babylonjs/core/Animations/animationGroup';
  */
 export class LocalDragonModel {
   private readonly button: HTMLButtonElement;
-  private readonly picker: HTMLInputElement;
   private readonly notice: HTMLSpanElement;
   private container: AssetContainer | null = null;
   private root: TransformNode | null = null;
@@ -58,7 +57,6 @@ export class LocalDragonModel {
     wrapper.append(button, status, input);
     document.body.appendChild(wrapper);
     this.button = button;
-    this.picker = input;
     this.notice = status;
 
     button.addEventListener('click', () => {
