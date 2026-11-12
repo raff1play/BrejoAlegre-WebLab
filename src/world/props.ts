@@ -130,12 +130,14 @@ export function buildShowcasePlants(scene: Scene, mats: Materials): AbstractMesh
 }
 
 /** Concrete planter full of red and pink flowers: one instanced prototype (CORE-010). */
-function planterPrototype(scene: Scene, mats: Materials): Mesh[] {
+function planterPrototype(scene: Scene, mats: Materials, withBox: boolean): Mesh[] {
   const set = new BatchSet();
   const random = seeded(57);
-  set.box(mats.paint('#c4bba9'), -0.25, 0.25, 0, 0.42, -0.7, 0.7);
-  set.box(mats.paint('#d8d0bf'), -0.28, 0.28, 0.42, 0.47, -0.73, 0.73);
-  set.box(mats.paint('#5a4130'), -0.2, 0.2, 0.47, 0.49, -0.65, 0.65, { sides: false });
+  if (withBox) {
+    set.box(mats.paint('#c4bba9'), -0.25, 0.25, 0, 0.42, -0.7, 0.7);
+    set.box(mats.paint('#d8d0bf'), -0.28, 0.28, 0.42, 0.47, -0.73, 0.73);
+  }
+  set.box(mats.paint('#5a4130'), -0.2, 0.2, 0.43, 0.46, -0.65, 0.65, { sides: false });
   const colours = ['#d8342c', '#e85a7a', '#f1c34a', '#d8342c'];
   for (let i = 0; i < 9; i++) {
     const leaf = CreateIcoSphere('folhas', { radius: 0.2 + random() * 0.05, subdivisions: 1 }, scene);
@@ -146,7 +148,7 @@ function planterPrototype(scene: Scene, mats: Materials): Mesh[] {
     bloom.position.set((random() - 0.5) * 0.25, 0.72 + random() * 0.06, -0.56 + i * 0.14 + (random() - 0.5) * 0.08);
     set.absorb(mats.paint(colours[i % colours.length]!), bloom);
   }
-  const meshes = set.build('floreira', scene);
+  const meshes = set.build(withBox ? 'floreira' : 'floreira-flores', scene);
   for (const mesh of meshes) mesh.isVisible = false;
   return meshes;
 }
@@ -155,14 +157,30 @@ function planterPrototype(scene: Scene, mats: Materials): Mesh[] {
  * Showcase pavement furniture: planters are instanced; colonial lamp posts and litter bins are few,
  * so they are merged into the shared static batch.
  */
-export function buildStreetFurniture(scene: Scene, set: BatchSet, mats: Materials): AbstractMesh[] {
+export type FurnitureParts = {
+  /** Build the procedural planter boxes (false when the CORE-011 external planter is used). */
+  planterBoxes: boolean;
+  /** Build the procedural colonial lamp posts (false when the CORE-011 external lamp is used). */
+  lamps: boolean;
+  /** Build the flowers (and bins); false when only filling in a failed external model. */
+  flowers: boolean;
+};
+
+export function buildStreetFurniture(scene: Scene, set: BatchSet, mats: Materials, parts: FurnitureParts = { planterBoxes: true, lamps: true, flowers: true }): AbstractMesh[] {
   const casters: AbstractMesh[] = [];
   let planter: Mesh[] | null = null;
   const iron = mats.paint('#1d2621', 0.25);
   for (const item of showcaseStreetItems()) {
     const y = CURB_H;
     if (item.kind === 'floreira') {
-      planter ??= planterPrototype(scene, mats);
+      if (!parts.flowers && !parts.planterBoxes) continue;
+      if (!parts.flowers) {
+        // Fallback for a failed external planter: just the box.
+        set.box(mats.paint('#c4bba9'), item.x - 0.25, item.x + 0.25, y, y + 0.42, item.z - 0.7, item.z + 0.7);
+        set.box(mats.paint('#d8d0bf'), item.x - 0.28, item.x + 0.28, y + 0.42, y + 0.47, item.z - 0.73, item.z + 0.73);
+        continue;
+      }
+      planter ??= planterPrototype(scene, mats, parts.planterBoxes);
       for (const source of planter) {
         const instance = source.createInstance(`floreira@${item.x.toFixed(1)},${item.z.toFixed(1)}`);
         instance.position.set(item.x, y, item.z);
@@ -171,6 +189,7 @@ export function buildStreetFurniture(scene: Scene, set: BatchSet, mats: Material
         casters.push(instance);
       }
     } else if (item.kind === 'poste-colonial') {
+      if (!parts.lamps) continue;
       const [x, z] = [item.x, item.z];
       const base = CreateCylinder('base', { diameterTop: 0.2, diameterBottom: 0.32, height: 0.5, tessellation: 8 }, scene);
       base.position.set(x, y + 0.25, z);
@@ -194,6 +213,7 @@ export function buildStreetFurniture(scene: Scene, set: BatchSet, mats: Material
         set.box(iron, x - 0.015, x + 0.015, y + 3.6, y + 4.1, z + k * 0.13 - 0.015, z + k * 0.13 + 0.015);
       }
     } else {
+      if (!parts.flowers) continue;
       const bin = CreateCylinder('lixeira', { diameterTop: 0.42, diameterBottom: 0.36, height: 0.55, tessellation: 12 }, scene);
       bin.position.set(item.x, y + 0.75, item.z);
       set.absorb(mats.paint('#e27a22', 0.25), bin);

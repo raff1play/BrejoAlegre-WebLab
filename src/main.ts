@@ -19,6 +19,9 @@ import { Pedestrian } from './features/walking/pedestrian';
 import { setupEnvironment } from './world/environment';
 import { CURB_H, PARKED_PROP, SPAWN } from './world/layout';
 import { buildTemporaryWorld } from './world/temporaryWorld';
+import { applyRoofTexture, populateExternalAssets, type ExternalStatus } from './world/externalAssets';
+import { buildStreetFurniture } from './world/props';
+import { BatchSet } from './world/geometry';
 
 /** Composition root: wires input → simulation → presentation. Game rules live in core/ and features/. */
 function start(canvas: HTMLCanvasElement): void {
@@ -41,6 +44,20 @@ function start(canvas: HTMLCanvasElement): void {
   for (const mesh of [...world.shadowCasters, ...moto.meshes, ...parkedProp.meshes, ...walker.meshes]) {
     environment.shadows.addShadowCaster(mesh, false);
   }
+
+  // CORE-011: real external models load in the background; a failed one falls back to procedural.
+  let external: ExternalStatus | 'loading' = 'loading';
+  const fallback = (id: string): void => {
+    const set = new BatchSet();
+    buildStreetFurniture(scene, set, world.materials, {
+      planterBoxes: id === 'planter_box_02', lamps: id === 'street_lamp_01', flowers: false,
+    });
+    for (const mesh of set.build(`fallback-${id}`, scene)) environment.shadows.addShadowCaster(mesh, false);
+  };
+  const roof = applyRoofTexture(world.materials.roofTiles.material, profile.name === 'desktop', world.materials.roofTiles.tileU);
+  void Promise.all([populateExternalAssets(scene, environment.shadows, profile.detailShadows, fallback), roof])
+    .then(([status, roofApplied]) => { external = { ...status, roofTexture: roofApplied }; })
+    .catch((error: unknown) => { console.error(error); external = { loaded: [], failed: [], instances: 0, triangles: 0 }; });
 
   // On foot, the parked bike is solid too.
   const walkerGuard: MotionGuard = (x, z, r) => {
@@ -153,6 +170,7 @@ function start(canvas: HTMLCanvasElement): void {
         walker: { ...walker.state, y: walker.root.position.y },
         camera: { alpha: rig.camera.alpha, beta: rig.camera.beta, radius: rig.camera.radius, target: rig.camera.target.asArray() },
         fadedBuildings: fader.fadedCount,
+        externalAssets: external,
         fps: engine.getFps(),
         drawCalls: scene.getEngine()._drawCalls?.current ?? null,
         activeMeshes: scene.getActiveMeshes().length,

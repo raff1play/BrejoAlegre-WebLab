@@ -160,7 +160,8 @@ export function buildTemporaryWorld(scene: Scene, profile: GraphicsProfile): Wor
   buildWallsAndProps(upright, materials);
   buildPoles(scene, upright, materials);
   buildBenches(upright, materials);
-  const furniture = buildStreetFurniture(scene, upright, materials);
+  // CORE-011: lamp posts and planter boxes come from external models (see externalAssets.ts).
+  const furniture = buildStreetFurniture(scene, upright, materials, { planterBoxes: false, lamps: false, flowers: true });
   buildSigns(scene, upright, materials);
 
   const occluderBoxes = buildOccluders();
