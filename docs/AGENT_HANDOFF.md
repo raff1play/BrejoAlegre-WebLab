@@ -1,17 +1,26 @@
-# Handoff — ponto de entrada para qualquer IA
+# Handoff — Brejo Alegre Web Lab principal (W009)
 
-**Projeto:** `raff1play/BrejoAlegre-WebLab`, protótipo **single-player web descartável** em Babylon.js/TypeScript/Vite. Futuro jogo definitivo Godot é separado e será reimplementado se a proposta for validada.
+**Atualização 12/11/2026 — separação solicitada pelo usuário.**
 
-**Contexto canônico:** `AGENTS.md` → `docs/00_START_HERE.md` → `docs/DECISIONS.md` → `docs/product/WEBLAB_SCOPE.md` → `docs/product/ORIGINAL_GODOT_SPEC.md` → `docs/PROJECT_STATE.md`. Não usar memória de conversas como requisito. Para artes, `docs/VISUAL_DIRECTION.md`. Para execução, `docs/NEXT_TASK_FOR_FABLE.md`.
+## Identidade e fonte da verdade
 
-**Infra e GitHub confirmados em 11/11/2026:** a branch `setup/weblab-foundation` está publicada e há um PR #1 **aberto em rascunho** contra `main`, sem merge ou deploy. A integração GitHub voltou a permitir escrita; o incidente 403 é histórico.
+O repositório `raff1play/BrejoAlegre-WebLab` contém um protótipo 3D **single-player no navegador**, Babylon.js + TypeScript + Vite, para avaliar direção, controles e visual. O **jogo definitivo Godot/Android com multiplayer e logística** continua previsto em `docs/product/ORIGINAL_GODOT_SPEC.md`, mas ainda não foi desenvolvido.
 
-**Estado em 11/11/2026 (0.1 jogável):** commits `c0795b9` (lockfile + `npm ci`), `37a7d31` (jogo) e `f1615d9` (teste de navegador + capturas). CI **success** na HEAD `f1615d9` (execução 43036567194). Verificado em Chromium headless: 25 testes unitários e 44 verificações de navegador com teclado, mouse e toque emulado; capturas reais em `docs/evidence/`.
+Leia `AGENTS.md` → `docs/00_START_HERE.md` → `docs/DECISIONS.md` → `docs/product/WEBLAB_SCOPE.md` → `docs/product/ORIGINAL_GODOT_SPEC.md` → `docs/PROJECT_STATE.md` → `docs/NEXT_TASK_FOR_FABLE.md`. Nunca deduza funcionamento de screenshots de IA ou de CI verde.
 
-**Não testado/não medido:** Android real, toque com dedos, GPU real, FPS em qualquer aparelho, Pages. O headless usa GPU por software e seus FPS não valem como medida. Não existem física de corpo rígido, modelos 3D de arte, mapa verdadeiro nem gameplay logístico.
+## Nova linha principal — W009
 
-**Próxima tarefa:** `docs/NEXT_TASK_FOR_FABLE.md` — o usuário testa em Chrome Android real com o checklist; depois ajustar perfis gráficos e dirigibilidade com base em medição. Sem backend, sem deploy, sem merge e sem compras sem autorização.
+- **Branch:** `feat/weblab-core-w009`; **PR #2** em rascunho contra `main`. Base recuperada do commit `bc453402c928816512d7ebaddc6d066bf24e126c` (W009).
+- **O que existe:** moto e entregador articulados, controles de teclado e analógico para Android, direção W008, caminhar/montar/desmontar, câmera, colisão, cena fictícia com dez casas, mercearia e vitrine de cinco fachadas detalhadas, dois perfis gráficos e HUD FPS.
+- **Testes documentados da W009:** 47/47 unitários; 44/44 verificações em Chromium headless após W009-B (logs `docs/evidence/e2e-staging-w009-*.log`); CI de `bc453402` success, run `43135252554`. Não há prova de FPS, termal, qualidade visual nem ergonomia no Galaxy S24 físico.
+- **Deploy:** W009 esteve publicada no GitHub Pages, mas o Pages foi posteriormente atualizado para W012. A nova branch W009 limpa **não foi publicada**; não usar a página atual como evidência da W009 limpa.
 
-**Handoff obrigatório:** salvar em `docs/PROJECT_STATE.md` o commit, PR, comandos realmente rodados, resultados reais, capturas do navegador, status do Android e riscos. Não alegar FPS nem testes não realizados.
+## Experimento descartado — NÃO misturar
 
-**Atualização W009 (12/11/2026):** commits `3ca7f57` (moto e entregador) e `440f192` (vitrine urbana + skinning rígido) na branch `setup/weblab-foundation`; PR #1 em rascunho; sem merge; **sem nova publicação no Pages**. Verificado em Chromium headless: 47/47 unitários, 44/44 no navegador, capturas antes/depois em `docs/evidence/w009-*`. Android real e FPS de aparelho: **não testados**. Próximo passo: `docs/NEXT_TASK_FOR_FABLE.md`.
+O Easter egg W010–W012 (dragão, sons, fogos e GLB Ashwing) fica apenas na antiga branch `setup/weblab-foundation`; PR #1 foi **encerrado sem merge**, preservando todo o histórico. O usuário decidiu não usar esse evento. Não copiar, importar, reverter para essa branch, nem trazer suas dependências para a linha principal sem novo pedido explícito.
+
+A `main` permanece no commit inicial. Não realizar merge, deploy, contratação ou alteração de outros projetos sem autorização.
+
+## Próxima tarefa
+
+Continuar a partir da **W009 limpa**. Validar joystick W008 e direção no celular, aparência/animações da W009, colisões/câmera e FPS nos perfis leve/alto; corrigir problemas reais antes de expandir. Atualizar `docs/PROJECT_STATE.md`, `docs/ISSUES_AND_RISKS.md` e `docs/CHANGELOG.md` por mudança, com SHA, CI, capturas/logs e testes **de fato executados**. Ver `docs/NEXT_TASK_FOR_FABLE.md`.
