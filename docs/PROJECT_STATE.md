@@ -260,3 +260,11 @@ Bundle principal: 1,33 MB (W008) → 1,38 MB (≈ 344 kB gzip). FPS no headless 
 - Comportamento real do Web Audio e GPU do Galaxy S24 **não foi testado**. O áudio exige toque no botão `Ativar som` ou gesto humano, e é gerado por síntese — não gravação.
 - Modo experimental: https://raff1play.github.io/BrejoAlegre-WebLab/?dragon=1 . Desligado: https://raff1play.github.io/BrejoAlegre-WebLab/
 - Para desfazer só o upgrade W011, reverter commits `e4a4fdbf`, `3cfc05dd`, `33fbbef0` (em ordem inversa) e reeditar o trigger do Pages; para desativar **imediatamente**, basta abrir o endereço normal sem a flag.
+
+## W012 — Dragão Ashwing Lite do ZIP enviado pelo usuário (12/11/2026)
+
+- ZIP conferido em ambiente local, licença lida literalmente. Arquivo GLB 11.407.532 bytes, com 1 mesh, 1 skin, 61 joints, 6 clips, 3 texturas PBR incorporadas e ponto `breath_socket` localizado no esqueleto.
+- Restrição de redistribuição impede publicar o arquivo como asset isolado na pasta pública do GitHub/Pages. Implementação projetada para importar diretamente o arquivo escolhido pelo usuário em seu Chrome Android, sem upload a serviço externo nem persistência.
+- Módulo `src/features/easterEgg/localDragonModel.ts` com seletor local e importador glTF 2.0 dinâmico; adaptado `dragonSurprise.ts` para usar o modelo preparado no gatilho de 45 km/h, alternar `fly_loop`/`roar`, usar socket de fogo e preservar fallback procedural.
+- Dependência `@babylonjs/loaders` 9.35.0 no package + lockfile, sem alteração do bundle normal do Web Lab devido ao código sob `?dragon=1`.
+- Status de CI, compilação e GitHub Pages a confirmar após implementação; visualização real/áudio/FPS no Galaxy S24 não testados até a escolha do arquivo no dispositivo. A fonte artística do asset segue sendo Literock Studios.

@@ -117,3 +117,15 @@ Na versão de teste, conduza a moto para frente até alcançar 45 km/h. Um drag�
 Abra `https://raff1play.github.io/BrejoAlegre-WebLab/?dragon=1`; jogue normalmente até 45 km/h. O modo experimental mostra um botão **Ativar som**; um toque na tela também tenta liberar o áudio do navegador. O motor emite um som sintético proporcional à velocidade; na sequência do dragão, há rugido, fogo, lançamento de foguete, explosões e dois grasnados de pato.
 
 O som e a geometria extra **nunca são carregados** pelo URL sem `?dragon=1`. Para desligar instantaneamente, abra o URL normal. Não há download de amostras e o áudio não requer uma assinatura. A aparência é procedural, não fotorrealista de cinema; um modelo PBR/riggado de artista seria necessário para esse grau de qualidade.
+
+### W012 — Usar o Ashwing Drake Lite realista sem expor o asset no GitHub
+
+O ZIP do autor permite uso em jogos, mas proíbe republicar o modelo isolado. Para testar no preview público com segurança, **não coloque o GLB dentro do repositório**.
+
+1. Baixe e extraia o seu próprio `Ashwing_Drake_Lite.glb` do ZIP do autor no computador ou Android (aproximadamente 10,9 MB).
+2. Abra https://raff1play.github.io/BrejoAlegre-WebLab/?dragon=1 no Chrome.
+3. Antes de acelerar, toque em **Carregar dragão realista (.glb)** e selecione o arquivo pelo Android.
+4. Após aparecer "Ashwing pronto!", acelere até 45 km/h: o modelo 3D usa animações de voo e rugido, e o fogo segue o `breath_socket` da cabeça.
+5. Se não selecionar o GLB ou a importação falhar, o jogo utiliza automaticamente o dragão procedural anterior, sem quebrar o Easter egg.
+
+O arquivo permanece **local no navegador**, não é transmitido nem persistido. Ao atualizar a página, selecione o GLB novamente. O botão e o carregador glTF só existem com `?dragon=1`; o jogo normal continua intocado.

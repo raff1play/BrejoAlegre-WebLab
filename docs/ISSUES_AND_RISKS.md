@@ -72,3 +72,10 @@ Não marcar bloqueio como corrigido sem evidência de execução, timestamp e, q
 - **B037 — TESTE PENDENTE:** escutar a qualidade do quack, rugido e fogos; são síntese original, NÃO gravações reais. Caso o resultado seja artificial demais, selecionar amostras CC0 verificadas e opcionais.
 - **B038 — TESTE PENDENTE:** verificar na GPU real a nova geometria do dragão, fusão de malhas, luz dinâmica, fumaça e partículas; medir queda de FPS durante o evento.
 - **B039 — LIMITE VISUAL:** realismo cinematográfico depende de GLB/FBX esculpido, texturas PBR, rig e animação; opção pesquisada Ashwing Drake Lite não pode ser republicada isoladamente no repo público sem respeitar licença. Não usar assets do universo Game of Thrones.
+
+## W012 — Validação do GLB local no Chrome Android
+
+- **B040 PENDENTE:** carregar `Ashwing_Drake_Lite.glb` no Chrome via botão `Carregar dragão realista`, confirmar malha/texturas e `fly_loop`; o arquivo não é distribuído pelo Pages.
+- **B041 PENDENTE:** validar se `breath_socket` acompanha a boca sob `roar` e se a escala do modelo fica adequada à câmera (12 m de envergadura original).
+- **B042 PENDENTE:** medir FPS, memória e temperatura durante a animação de voo com texturas 2K; otimização de resolução se necessário.
+- **B043 LIMITE:** a seleção local precisa ser repetida após atualizar a página; esta é uma escolha deliberada para não persistir um asset de terceiro nem expor seus bytes publicamente.

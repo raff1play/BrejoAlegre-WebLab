@@ -77,3 +77,12 @@
 - Dragão procedural mais escuro e texturizado, boca com dentes, garras, chifres, asas nervuradas e placas; fogo com partículas externas, núcleo, fuligem e iluminação dinâmica. Não confundir com realismo cinematográfico de um modelo esculpido/rigado de alta qualidade.
 - Pesquisa de modelo fotorrealista: **Ashwing Drake Lite (Literock Studios, itch.io)** — 11.992 triângulos, 61 ossos, 6 animações, texturas PBR 2K, arquivo ZIP ~21 MB; licença gratuita para jogos, porém proíbe republicar o asset isoladamente. Não redistribuir num GitHub público sem verificar licença do pacote e estratégia de distribuição; não adicionar modelo externo nesta etapa.
 - Publicação apenas no preview `setup/weblab-foundation`, sem merge `main`; sem novas assinaturas ou credenciais. Desligar instantaneamente pela URL normal; reversão permanente pelo commit isolado W011/W010.
+
+## W012 — Ashwing GLB via arquivo local, sem redistribuição pública (12/11/2026)
+
+- Usuário enviou `Ashwing_Drake_Lite_v1.0.0.zip` para análise/integração na versão experimental do dragão.
+- ZIP inspecionado: `Ashwing_Drake_Lite.glb` 10,9 MB, malha 11.992 triângulos, 61 ossos, texturas PBR incorporadas (2 PNG + 1 JPG) e seis animações `idle_loop`, `walk_loop`, `roar`, `bite`, `takeoff`, `fly_loop`. Rig contém `breath_socket` para emissão do fogo. Sem extensões glTF necessárias.
+- Licença da Literock Studios: uso gratuito em jogos e end products, mas **proibida redistribuição do asset isolado ou como parte de asset pack/template**. Publicar o GLB bruto no repositório público pode violar a licença; **não inserir GLB/FBX no GitHub ou Pages**. Estão permitidos apenas código de integração e referências/documentação do autor.
+- Solução de teste sem redistribuir asset: usuário seleciona seu próprio `.glb` no Chrome com file picker exibido **exclusivamente com `?dragon=1`**. O arquivo nunca é enviado para servidor nem salvo automaticamente; importação ocorre em memória, sob demanda. O dragão procedural W011 permanece fallback.
+- A animação `fly_loop` assume voo e `roar` sincroniza ataque; o ponto `breath_socket` ancora a chama. A versão Lite não possui a animação dedicada de cuspir fogo.
+- Isolamento: zero mudanças de física, controle, câmera, Web Lab normal ou PWA. Dependência `@babylonjs/loaders@9.35.0` carregada somente após escolha do arquivo; licença Apache-2.0. Não publicar preview antes da CI aprovar.

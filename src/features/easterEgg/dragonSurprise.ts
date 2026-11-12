@@ -9,6 +9,7 @@ import { VertexData } from '@babylonjs/core/Meshes/mesh.vertexData';
 import { ParticleSystem } from '@babylonjs/core/Particles/particleSystem';
 import { PointLight } from '@babylonjs/core/Lights/pointLight';
 import { DragonAudio } from './dragonAudio';
+import { LocalDragonModel } from './localDragonModel';
 import type { ArcRotateCamera } from '@babylonjs/core/Cameras/arcRotateCamera';
 import type { Scene } from '@babylonjs/core/scene';
 import { DRAGON_DURATION, DRAGON_MESSAGE, dragonCanStart, dragonPhase } from '../../core/dragonSurprise.ts';
@@ -37,6 +38,7 @@ export class DragonSurprise {
   private fireLight: PointLight | null = null;
   private scalesTexture: DynamicTexture | null = null;
   private readonly audio = new DragonAudio();
+  private readonly model: LocalDragonModel;
   private trail: ParticleSystem | null = null;
   private burst: ParticleSystem | null = null;
   private readonly paints: StandardMaterial[] = [];
@@ -53,7 +55,9 @@ export class DragonSurprise {
     private readonly scene: Scene,
     private readonly camera: ArcRotateCamera,
     private readonly announce: (message: string) => void,
-  ) {}
+  ) {
+    this.model = new LocalDragonModel(scene, () => this.fired);
+  }
 
   get status(): 'waiting' | 'playing' | 'finished' {
     return this.done ? 'finished' : this.fired ? 'playing' : 'waiting';
@@ -70,6 +74,7 @@ export class DragonSurprise {
       this.announce('UM DRAGÃO! Prepare-se para o espetáculo!');
     }
     this.t += Math.max(0, Math.min(dt, 0.05));
+    this.model.update(this.t);
     if (dragonPhase(this.t) === 'finished') {
       this.dispose();
       this.done = true;
@@ -88,15 +93,17 @@ export class DragonSurprise {
     const exit = Math.max(0, Math.min(1, (this.t - 4.0) / 1.4));
     const horizontal = -9 + 5.9 * ease + 13 * exit * exit;
     drag.position.copyFrom(above(horizontal, 1.5 + Math.sin(this.t * 5) * 0.13));
-    drag.scaling.setAll(scale * 0.88);
+    drag.scaling.setAll(scale * (this.model.ready ? 0.42 : 0.88));
     drag.rotation.y = Math.atan2(centre.x - drag.position.x, centre.z - drag.position.z);
     drag.rotation.z = Math.sin(this.t * 2.6) * 0.075;
-    this.leftWing!.rotation.z = -0.27 - Math.sin(this.t * 8.2) * 0.36;
-    this.rightWing!.rotation.z = 0.27 + Math.sin(this.t * 8.2) * 0.36;
+    if (this.leftWing) this.leftWing.rotation.z = -0.27 - Math.sin(this.t * 8.2) * 0.36;
+    if (this.rightWing) this.rightWing.rotation.z = 0.27 + Math.sin(this.t * 8.2) * 0.36;
     drag.computeWorldMatrix(true);
 
     if (this.t >= 2.2 && this.t < 4.1) {
-      this.flameAt.copyFrom(Vector3.TransformCoordinates(new Vector3(0, 0.23, 1.55), drag.getWorldMatrix()));
+      // Rigged Ashwing has a dedicated mouth socket. Procedural fallback stays unchanged.
+      const socket = this.model.mouthWorldPosition();
+      this.flameAt.copyFrom(socket ?? Vector3.TransformCoordinates(new Vector3(0, 0.23, 1.55), drag.getWorldMatrix()));
       const v = centre.subtract(this.flameAt).normalize().scale(12);
       this.flame!.direction1.copyFrom(v.add(new Vector3(-1.1, -0.5, -0.7)));
       this.flame!.direction2.copyFrom(v.add(new Vector3(1.1, 0.5, 0.7)));
@@ -229,6 +236,8 @@ export class DragonSurprise {
   }
 
   private createDragon(): void {
+    const realistic = this.model.begin();
+    if (realistic) { this.dragon = realistic; return; }
     const dragon=new TransformNode('surpresa-dragao-ancestral',this.scene);
     this.dragon=dragon;
     const scales=this.material('escamas-sombrias','#e3d3bd');
@@ -461,7 +470,8 @@ export class DragonSurprise {
     this.flame?.dispose(false); this.coreFire?.dispose(false); this.smoke?.dispose(false); this.trail?.dispose(false); this.burst?.dispose(false);
     this.flame = null; this.coreFire = null; this.smoke = null; this.trail = null; this.burst = null;
     this.fireLight?.dispose();this.fireLight=null;
-    this.dragon?.dispose(false, false);
+    if (this.model.ready) this.model.dispose();
+    else { this.dragon?.dispose(false, false); this.model.dispose(); }
     this.dragon = null;
     this.rocket?.dispose(); this.rocket = null;
     this.skyPlane?.dispose(); this.skyPlane = null;

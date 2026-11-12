@@ -60,3 +60,21 @@ test('W011 audio and cinematic effects are isolated in the opted-in visual chunk
   assert.doesNotMatch(main, /DragonAudio|dragonAudio/);
   assert.match(main, /if \(dragonEnabled\(window\.location\.search\)\)/);
 });
+
+test('W012 Ashwing GLB stays local and only loads in the experimental dynamic chunk', () => {
+  const local = readFileSync(new URL('../src/features/easterEgg/localDragonModel.ts', import.meta.url), 'utf8');
+  const dragon = readFileSync(new URL('../src/features/easterEgg/dragonSurprise.ts', import.meta.url), 'utf8');
+  const main = readFileSync(new URL('../src/main.ts', import.meta.url), 'utf8');
+  const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+  assert.match(local, /input\.type = 'file'/);
+  assert.match(local, /await import\('@babylonjs\/loaders\/glTF\/2\.0'\)/);
+  assert.match(local, /LoadAssetContainerAsync\(file, this\.scene/);
+  assert.match(local, /input\.accept = '\.glb/);
+  assert.match(local, /name === 'breath_socket'/);
+  assert.match(local, /name\.toLowerCase\(\) === 'fly_loop'/);
+  assert.match(local, /name\.toLowerCase\(\) === 'roar'/);
+  assert.match(dragon, /this\.model\.begin\(\)/);
+  assert.match(dragon, /this\.model\.mouthWorldPosition\(\)/);
+  assert.doesNotMatch(main, /localDragonModel|LoadAssetContainerAsync/);
+  assert.equal(pkg.dependencies['@babylonjs/loaders'], pkg.dependencies['@babylonjs/core']);
+});

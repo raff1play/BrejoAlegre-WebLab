@@ -29,3 +29,11 @@ Os ícones abaixo foram criados especificamente para este protótipo por código
 - `src/features/easterEgg/dragonSurprise.ts`: malhas e texturas do dragão/fogo geradas no próprio navegador; autoria desta implementação; nenhum arquivo externo baixado.
 - `src/features/easterEgg/dragonAudio.ts`: ruídos, osciladores e envelopes de som sintetizados via Web Audio; nenhuma gravação externa, sem licença de terceiros.
 - Candidato externo **não incluído:** [Ashwing Drake Lite](https://literock-studios.itch.io/ashwing-drake-lite), Literock Studios, modelo grátis para uso em jogos; a redistribuição do asset isolado é restrita. Seu uso exigiria conferir a licença completa e obter os arquivos de maneira autorizada.
+
+## W012 — Referência a asset licenciado, NÃO incluído nos arquivos distribuídos
+
+| Asset | Autor | Licença | Uso |
+|---|---|---|---|
+| `Ashwing_Drake_Lite.glb` (não versionado) | Literock Studios | `LICENSE.txt` do ZIP gratuito; permite uso em end product, restringe redistribuição do asset isolado ou pacote | Somente carregamento local do arquivo escolhido pelo usuário em `?dragon=1` |
+
+Página original: https://literock-studios.itch.io/ashwing-drake-lite . O arquivo nunca deve ser enviado à pasta `public/`, assets do repositório público ou CDN sem autorização compatível do autor.

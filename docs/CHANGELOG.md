@@ -102,3 +102,10 @@ Próximas mudanças devem registrar PR/SHA e resultados verificáveis.
 - Baforada reforçada com núcleo de fogo, chama, fumaça e luz dinâmica, sem dano/colisões.
 - Não importados assets externos de autoria/reutilização ainda não confirmadas; o limite entre modelo procedural aprimorado e dragão cinematográfico permanece documentado.
 - Nenhum arquivo de lógica de pilotagem, câmera, cenário, HUD, CSS principal, PWA ou economia alterado.
+
+## 2026-11-12 — W012 Ashwing Lite pessoal no Easter egg
+
+- Adicionado seletor de arquivo GLB somente no modo `?dragon=1`, com opção de carregar localmente o Ashwing Drake Lite, mantendo dragão procedural como alternativa.
+- Importador `@babylonjs/loaders` versionado junto com o Babylon 9.35.0 e carregado dinamicamente quando o usuário escolhe o arquivo.
+- Voo `fly_loop` e `roar` sincronizados com o evento, boca `breath_socket` conectada às partículas de fogo. Sem alterar velocidade, controles, câmera, entrega, cidade ou jogo padrão.
+- O GLB/FBX privado não foi versionado nem publicado. Seleção repetida a cada recarregamento; carregamento e FPS no Galaxy S24 permanecem sujeitos a teste físico.

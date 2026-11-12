@@ -19,7 +19,8 @@
     "test:e2e": "node tests/e2e/play.cjs"
   },
   "dependencies": {
-    "@babylonjs/core": "9.35.0"
+    "@babylonjs/core": "9.35.0",
+    "@babylonjs/loaders": "9.35.0"
   },
   "devDependencies": {
     "typescript": "5.9.3",
