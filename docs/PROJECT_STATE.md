@@ -251,3 +251,12 @@ Bundle principal: 1,33 MB (W008) → 1,38 MB (≈ 344 kB gzip). FPS no headless 
 - O jogo padrão continua sem carregar o código dos efeitos; W010 já os isola por `?dragon=1`. A experiência visual e sonora no Galaxy S24 precisa ser testada manualmente.
 - Pesquisa: Ashwing Drake Lite oferece modelo riggado/PBR potencialmente muito melhor, porém o download/redistribuição do pacote exige respeitar a licença; nenhum modelo de terceiro foi integrado. **Não afirmar qualidade idêntica a séries ou efeitos fotorrealistas.**
 - Estado CI e Pages: requer confirmação após commit e deploy; não inferir sucesso pelo texto documental.
+
+### W011 — Publicação do preview confirmada (12/11/2026)
+
+- Workflow [43142171988](https://github.com/raff1play/BrejoAlegre-WebLab/actions/runs/43142171988) terminou **completed / success**, com 52/52 testes unitários, TypeScript e build staging aprovados.
+- Commit publicado: `dd3c187357c093307d9227e05c4399a8c1e9ffad`. URL reportada pelo deploy: https://raff1play.github.io/BrejoAlegre-WebLab/
+- Revisão dos arquivos alterados desde W010: **somente** `src/features/easterEgg/dragonAudio.ts`, `src/features/easterEgg/dragonSurprise.ts`, teste correspondente e documentação/trigger; nenhum código da moto física, controles, câmera, cenário ou UI normal alterado.
+- Comportamento real do Web Audio e GPU do Galaxy S24 **não foi testado**. O áudio exige toque no botão `Ativar som` ou gesto humano, e é gerado por síntese — não gravação.
+- Modo experimental: https://raff1play.github.io/BrejoAlegre-WebLab/?dragon=1 . Desligado: https://raff1play.github.io/BrejoAlegre-WebLab/
+- Para desfazer só o upgrade W011, reverter commits `e4a4fdbf`, `3cfc05dd`, `33fbbef0` (em ordem inversa) e reeditar o trigger do Pages; para desativar **imediatamente**, basta abrir o endereço normal sem a flag.
