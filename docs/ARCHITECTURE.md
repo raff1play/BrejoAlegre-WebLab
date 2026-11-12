@@ -41,6 +41,13 @@ Só um corpo recebe controles por vez (`mode` em `main.ts`); ao trocar, as entra
 - `src/world/backdrop.ts`: morros, casario, igreja e caixa-d'água fictícios além dos muros; uma malha por material, sem sombra nem colisão.
 - Mobiliário da vitrine (`showcaseStreetItems` em `layout.ts`): floreiras instanciadas; postes coloniais e lixeiras no lote estático compartilhado; todos com colisor.
 
+## Assets externos (CORE-011)
+
+- `src/world/externalAssets.ts`: registra apenas o loader glTF 2.0 + `EXT_texture_webp` (sob demanda), carrega `public/assets/models/*.glb` depois que o mundo procedural existe, incorpora a transformação glTF (mão direita → esquerda) nos vértices, converte PBR em `StandardMaterial` e instancia conforme `externalPlacements()` (derivado de `layout.ts`). Se um modelo falhar, `main.ts` gera a peça procedural equivalente (`buildStreetFurniture` com `flowers: false`).
+- `applyRoofTexture()`: troca a telha pintada pela foto CC0; mapa normal só no perfil alto.
+- **Não** importar `PBRMaterial` (nem `registerBuiltInLoaders`) estaticamente: puxa o PBR/loaders inteiros para o bundle inicial.
+- Otimização de novos assets: `@gltf-transform/cli optimize --compress false --texture-compress webp --texture-size 512 --simplify-ratio …` fora do projeto (sem Draco/meshopt, que exigiriam decodificador baixado em tempo de execução).
+
 ## Limitações PROPOSITADAS
 
 - Moto: modelo cinemático de bicicleta com limite de aceleração lateral. **Não é corpo rígido**: sem suspensão, derrapagem ou queda.

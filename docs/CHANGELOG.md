@@ -93,3 +93,9 @@ Próximas mudanças devem registrar PR/SHA e resultados verificáveis.
 - `2c06011` — folhagem por cartões (oiti, ipês amarelo e roxo, arbustos, buganvílias), telhas mais quentes, fiada de beira, caibros, muros com pilares/capitel, rodapé de pedra, arandelas, placas de número, floreiras, postes coloniais, lixeiras, asfalto limpo e faixas de bordo; teste de layout novo.
 - `6c2ffe8` — moto e baú amarelos com preto; colete amarelo do entregador.
 - Nenhum asset externo (fontes bloqueadas pela rede). Física, controles, câmera e colisões preservados (44/44 no navegador).
+
+## 2026-11-12 — CORE-011 assets 3D reais (branch `feat/core-011-real-assets`)
+
+- `8b255ea` — poste, floreira, porta de enrolar e telha cerâmica do Poly Haven (CC0), otimizados (≈ 320 kB de modelos + 156 kB de textura).
+- `53494ed` — carregamento glTF sob demanda com fallback procedural, conversão para StandardMaterial, instancing, telha fotográfica em todos os telhados, testes dos arquivos/manifesto/posições.
+- Física, controles, câmera, colisões e melhorias da CORE-010 preservados (44/44 no navegador, 51/51 unitários).

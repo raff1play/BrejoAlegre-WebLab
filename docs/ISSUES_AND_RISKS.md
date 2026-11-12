@@ -66,3 +66,10 @@ Não marcar bloqueio como corrigido sem evidência de execução, timestamp e, q
 - **R-PERF-004 (aberto):** na vitrine, W009 → CORE-010: draw calls 183 → 199 (+9%) e triângulos ≈ 78 mil → ≈ 92 mil (+18%) no perfil alto; 180 → 193 e ≈ 70 mil → ≈ 85 mil no leve (medido antes de tirar as floreiras das sombras do perfil leve). Folhagem alfa pode pesar em *fill rate* no celular; mitigação: reduzir `count` dos cartões ou usar só o núcleo no perfil leve.
 - **B034 — LIMITAÇÃO:** o fundo (morros/casario) só aparece com a câmera na inclinação máxima; os limites da câmera não foram alterados.
 - **B035 — PENDENTE:** a referência inclui comércio com letreiros, NPCs e carros — fora desta etapa. Próxima área sugerida: mercearia e cruzamento.
+
+## CORE-011 — Assets externos
+
+- **B036 — BLOQUEIO PARCIAL (rede):** recusados pelo proxy: `assets.patchusercontent.com` (arquivos do patch.gg), `acg-download.struffelproductions.com` (downloads do ambientCG), `drive.google.com` e `drive.usercontent.google.com` (pacotes da Quaternius). `kenney.nl` passa pelo proxy mas o site responde 403 a clientes automatizados. Funcionam: `patch.gg` (busca), `api.polyhaven.com`, `dl.polyhaven.org`, `ambientcg.com` (só API).
+- **R-PERF-005 (aberto):** vitrine, CORE-010 → CORE-011 (headless): perfil alto 199 → 205 draw calls e ≈ 92 → 112 mil triângulos; perfil leve 193 → 195 e ≈ 85 → 93 mil. Download total ao abrir: 1,5 → 2,5 MB (≈ 415 kB de JS do loader glTF/PBR sob demanda + 309 kB de modelos + 72 kB de textura), depois que o jogo já está jogável. Memória de GPU: ≈ 1,4 MB por textura 512 px (≈ 13 texturas novas, ≈ 18 MB com mipmaps no pior caso).
+- **B037 — ESTILO:** a floreira do Poly Haven é de madeira escura; as referências mostram floreiras claras de concreto. Mantida por ser o melhor candidato leve disponível; trocar se surgir um modelo claro CC0.
+- **B038 — PENDENTE:** validar no Galaxy S24 os modelos externos, a telha fotográfica, o tempo de carregamento em rede móvel e o FPS.

@@ -69,3 +69,12 @@
 - Direção adotada (ver `docs/VISUAL_DIRECTION.md`): sol quente de fim de tarde, telhado cerâmico laranja com beiral, muros com pilares e capitel, vegetação volumosa (oiti, ipês, buganvília, floreiras), postes coloniais, asfalto escuro e limpo, moto/baú amarelos com preto e colete amarelo.
 - Moto e entregador: só cores/libré; modelos da W009 mantidos (sem ganho claro em substituí-los).
 - Não autoriza merge, deploy, serviços pagos nem alteração de outros projetos.
+
+## CORE-011 — Integração de assets 3D reais (pedido de 12/11/2026)
+
+- Branch `feat/core-011-real-assets` a partir de `feat/core-010-visual-remaster` (PR #3); PR em rascunho contra a CORE-010. W010–W012 não incorporados; `main` e W009 intocadas; sem deploy.
+- Fonte usada: **Poly Haven (CC0)**, triada pela busca do patch.gg (licença, triângulos, tamanho). Integrados: poste `street_lamp_01`, floreira `planter_box_02`, porta `rollershutter_door` e textura `clay_roof_tiles_03` (detalhes em `public/assets/ASSET_MANIFEST.md`).
+- Nova dependência **`@babylonjs/loaders` 9.35.0** (Apache-2.0, mesma versão do core, sem custo): só o loader glTF 2.0 e `EXT_texture_webp`, carregados sob demanda.
+- Materiais glTF (PBR) convertidos para `StandardMaterial` no carregamento para manter a mesma linguagem de luz da cena e o custo de shader baixo no celular.
+- Moto e entregador **não substituídos**: os únicos candidatos (Polyfork, CC-BY, cor chapada) não são articulados nem do mesmo estilo; o modelo articulado da W009 segue.
+- Vegetação externa **não usada**: árvores do Poly Haven têm ≈1,6 milhão de triângulos; os pacotes estilizados acessíveis (Kenney/KayKit) destoam do visual texturizado. Folhagem da CORE-010 mantida.

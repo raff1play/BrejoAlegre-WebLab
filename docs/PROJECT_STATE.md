@@ -276,3 +276,20 @@ FPS do headless (5–7) não representa hardware. **Galaxy S24 / Chrome Android:
 - Preview run `43200129542`: **FAILURE antes de iniciar o runner** (job sem etapas e `runner_id=0`). Nenhum deploy efetuado nesta tentativa; logs não disponíveis no conector (404). A suspeita técnica é a regra de branches permitidas do ambiente `github-pages`, mas o motivo não foi confirmado pelo log.
 - Ação necessária: revisar no GitHub Settings → Environments → github-pages as regras de `Deployment branches and tags` para autorizar `feat/core-010-visual-remaster` sem liberar a branch experimental; depois reexecutar o workflow de Preview.
 - Não declarar o Pages atualizado antes de execução `success` e confirmação da URL. `main` e PR #3 não foram mesclados.
+
+## CORE-011 — Assets 3D reais (12/11/2026)
+
+**Branch** `feat/core-011-real-assets` (base `feat/core-010-visual-remaster` @ `6cf7e79`); PR em rascunho contra a CORE-010. Sem merge, sem deploy, gatilhos do Pages intocados.
+
+| Commit | Conteúdo |
+|---|---|
+| `8b255ea` | assets Poly Haven (CC0) otimizados |
+| `53494ed` | carregamento glTF, integração, fallback, testes |
+
+**Rede verificada nesta sessão:** download real de `dl.polyhaven.org` (MD5 conferido). Bloqueios: ver B036.
+
+**Integrado e visto no jogo** (capturas `docs/evidence/core011-*.jpg`): 4 postes de ferro ornamentados, 12 caixas de floreira, porta de enrolar da mercearia (25 instâncias) e telha cerâmica fotográfica em todos os telhados. Estado em runtime exposto em `window.__weblab.snapshot().externalAssets`.
+
+**Testes:** `validate:repo` ok; `test:unit` **51/51**; `typecheck` ok; `build:staging` ok (bundle inicial 1,388 → 1,403 MB; `dist/` 2,0 → 3,9 MB por chunks sob demanda); navegador **44/44** (`docs/evidence/e2e-staging-core011.log`).
+
+**Métricas (headless, mesmas vistas):** ver R-PERF-005. Carga local (perfil leve): jogável em ≈ 3,1 s nos dois; modelos externos prontos ≈ 0,2 s depois. **Galaxy S24: NÃO TESTADO.**
