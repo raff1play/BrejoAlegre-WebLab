@@ -1,9 +1,9 @@
-name: Preview CORE-011 - Pages (explicit trigger)
+name: Preview CORE-012 - Pages (explicit trigger)
 
 on:
   push:
     branches:
-      - feat/core-011-real-assets
+      - feat/core-012-gta-camera
     paths:
       - .github/workflows/preview.yml
       - docs/PREVIEW_DEPLOY_TRIGGER.md
@@ -18,13 +18,13 @@ concurrency:
   cancel-in-progress: false
 
 # Autorização explícita do usuário em 12/11/2026: auditar implementação recente e publicar se adequada.
-# CORE-011 contém modelos CC0 do Poly Haven, testados em CI e Chromium headless; Android real pendente.
-# Deploy do Web Lab CORE-011 somente; PR #3 permanece em rascunho, sem merge.
+# CORE-012 acrescenta camera GTA/ISO sobre os assets CC0 da CORE-011. CI verde; Android real pendente.
+# Deploy de Preview apenas da CORE-012 (autorizado pelo usuario); PR #5 permanece em rascunho, sem merge.
 # O workflow de produção e a branch main não são alterados.
 jobs:
   deploy-preview:
     # Never deploy pull-request events or other branches.
-    if: github.event_name == 'push' && github.ref == 'refs/heads/feat/core-011-real-assets'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/feat/core-012-gta-camera'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment:
