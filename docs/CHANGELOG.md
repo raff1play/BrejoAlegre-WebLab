@@ -78,3 +78,11 @@ Próximas mudanças devem registrar PR/SHA e resultados verificáveis.
 - Testes incrementados para resposta parcial, simetria, ausência de NaN, moto parada sem girar e recentralização.
 - Avaliação ergonômica e FPS no Galaxy S24 dependem de teste presencial; não confundir melhora esperada com resultado medido.
 
+
+## 2026-11-12 — W009 qualidade visual
+
+- `3ca7f57` — **Entrega A:** moto de entregas detalhada (rodas, garfo, motor aletado, escapamento, tanque, banco, amortecedores, guidão, espelhos, farol, setas, baú) e entregador articulado com IK (`src/core/ik.ts`, `src/features/shared/character.ts`); rodas, esterço, suspensão, pé no chão, caminhada e transições de montar/descer só visuais.
+- `440f192` — **Entrega B:** vitrine de cinco fachadas (varandas, pedra canjiquinha, cobogó, venezianas, parabólica, canteiros, palmeiras, calçadas individuais) e detalhes leves na rua toda (cumeeiras, padrão de energia, sarjeta, bocas de lobo, sombras de contato).
+- Skinning rígido na GPU (`src/features/shared/rigidSkin.ts`) devolve os draw calls ao nível da W008; triângulos ativos ≈ +85–90%.
+- `src/features/shared/modelParts.ts` → `src/world/modelParts.ts`; materiais `chrome()`, `lacquer()`, luzes num material único; logs de `docs/evidence/` passam a ser versionados.
+- Física, controles, câmera, colisões existentes e PWA desativado: sem alteração. Sem publicação no Pages. Android real não testado.

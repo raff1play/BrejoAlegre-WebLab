@@ -51,3 +51,12 @@
 - **Não modificar** velocidade do pedestre, analógico ao caminhar, acelerador/freio, teclado, colisões, câmera, PWA suspenso ou decisões do jogo Godot.
 - A alteração só é considerada **aprovada ergonomicamente** quando o usuário testar a nova versão em aparelho real; CI verde prova regressões automatizadas, não conforto de direção.
 
+
+## W009 — Qualidade visual: moto, entregador e vitrine urbana (confirmada em 12/11/2026)
+
+- Pedido explícito do usuário ("EXECUTAR W009"): elevar a qualidade visual **sem alterar** a direção calibrada na W008, controles, física, câmera, colisões e montar/descer; PWA continua desativado (W007).
+- **Entrega A:** moto de entregas e entregador refeitos em geometria procedural própria, com animações (rodas, guidão, suspensão visual, pé no chão parado, caminhada, transições de montar/descer) que **apenas leem** o estado da simulação. A física da moto não foi reimplementada.
+- **Entrega B:** vitrine de cinco fachadas junto ao cruzamento (lotes `casa-leste-1..3` e `casa-oeste-1..2`, lista em `SHOWCASE_IDS` de `src/world/layout.ts`) e melhorias leves na rua toda. Mapa **não** ampliado; ruas e acessos preservados; plantas e pilares novos têm colisor.
+- Sem assets externos: tudo é geometria e textura procedural do repositório. Sem dependências novas.
+- Decisão de engenharia associada: modelos articulados usam **skinning rígido na GPU** (`src/features/shared/rigidSkin.ts`) para manter os draw calls no nível da W008.
+- Metas de 60 FPS no Galaxy S24 (perfil leve) e 30 FPS em aparelho intermediário seguem **não medidas**. Não altera D01–D17 nem W001–W008; não autoriza merge nem publicação no Pages.

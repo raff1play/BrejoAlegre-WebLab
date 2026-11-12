@@ -34,7 +34,7 @@
 | Cena: 10 casas, mercearia genérica, praça, cruzamento, calçadas, meio-fio, muros, portões, árvores, postes, fiação, vagas de moto | IMPLEMENTADO e visível nas capturas; contagens verificadas em `tests/layout.test.ts` | capturas 01–08 |
 | Perfis gráficos desktop/mobile | IMPLEMENTADO; seleção automática testada em emulação | `src/config/graphics.ts` |
 
-Capturas reais do Babylon.js (não são imagens de IA): `docs/evidence/01-…08-*.jpg`, geradas por `tests/e2e/play.cjs` no build de staging.
+Capturas reais do Babylon.js (não são imagens de IA): `docs/evidence/01-…08-*.jpg`, geradas por `tests/e2e/play.cjs` no build de staging. **Correção 12/11/2026:** o log `e2e-staging-0.1.0.log` citado aqui ficou fora do Git por causa de `*.log` no `.gitignore`; desde a W009 os logs de `docs/evidence/` são versionados.
 
 ## O que NÃO foi testado
 
@@ -175,3 +175,52 @@ Ler `AGENTS.md` e `docs/NEXT_TASK_FOR_FABLE.md` (agora descreve a tarefa seguint
 - Endereço de preview declarado pelo GitHub: https://raff1play.github.io/BrejoAlegre-WebLab/
 - Teste subjetivo no Galaxy S24 **pendente**: avaliar manobras a baixa/média velocidade, joystick parcial, retorno ao centro, colisões e FPS. CI passou, mas não equivale a dirigibilidade validada no dispositivo.
 - `main` permanece sem merge; PR #1 continua em rascunho.
+
+## W009 — Qualidade visual (12/11/2026)
+
+**Branch** `setup/weblab-foundation`, PR #1 em rascunho, `main` sem merge. **Não houve publicação no Pages** nesta etapa (o workflow de preview não foi acionado); o endereço publicado continua com o build da W008 até nova publicação autorizada.
+
+| Commit | Conteúdo |
+|---|---|
+| `3ca7f574e6918e52aa41c7c37ffdeb79e5f04d2f` | Entrega A — moto e entregador |
+| `440f192228a6d66e4e58e0fad4b75cd2ba04ccff` | Entrega B — vitrine urbana + skinning rígido |
+| commit de documentação seguinte | este registro |
+
+### Implementado
+
+- **Moto (A):** rodas de cinco raios com pneu, sulcos, aro e disco/tambor; garfo telescópico; farol com aro; painel; guidão com manoplas, manetes e espelhos; motor monocilíndrico com aletas; escapamento cromado com protetor; tanque com faixa; banco; amortecedores com molas; setas; placa em branco (sem registro real); bagageiro e baú com cantos arredondados e refletivos. Animação visual: rodas, esterço, suspensão (mergulho ao frear, agachamento ao acelerar, mola ao subir o meio-fio), inclinação de descanso e com o pé no chão.
+- **Entregador (A):** corpo articulado com capacete fechado, viseira, jaqueta com refletivos, luvas e botas; posicionado por IK de dois ossos (`src/core/ik.ts`): mãos nas manoplas acompanhando o guidão, pés nas pedaleiras, pé esquerdo no chão parado, tronco reage à aceleração e às curvas; caminhada guiada pela distância percorrida (sem patinar); transições visuais de descer e montar (perna passa sobre o banco). A simulação continua idêntica: estado de `core/` não é alterado pelas animações.
+- **Vitrine (B), cinco fachadas:** varandas com pilares revestidos de pedra canjiquinha, piso vermelho e laje; cobogós; venezianas; arandela; parabólica; postes de portão em pedra; canteiros com arbustos, palmeiras e vasos (instanciados, com colisores); calçada própria por lote (ladrilho hidráulico, pedra portuguesa, intertravado, faixa de grama).
+- **Rua toda (B):** cumeeiras e espigões, testeira, molduras de janela, padrão de energia, sarjeta, bocas de lobo, canteiros das árvores, tampa de inspeção, manchas de óleo, sombras de contato na base de muros e casas, sol um pouco mais baixo para sombras mais longas.
+- **Desempenho:** skinning rígido na GPU para moto e entregador (uma malha por material), luzes num único material sem iluminação, moto decorativa fundida por material, quatro pisos de calçada num único atlas, perfil leve sem sombra das plantas.
+
+### Testado (Chromium headless com GPU por software, nesta sessão)
+
+| Verificação | Resultado |
+|---|---|
+| `npm ci`, `validate:repo`, `typecheck`, `build:staging` | aprovados após A e após B |
+| `npm run test:unit` | **47/47** (44 existentes + 3 do IK) |
+| Roteiro de navegador `tests/e2e/play.cjs` no build de staging | **44/44** após A e **44/44** após B — `docs/evidence/e2e-staging-w009-a.log`, `docs/evidence/e2e-staging-w009-b.log` |
+| Capturas reais antes/depois | `docs/evidence/w009-a-moto-entregador-antes-depois.jpg`, `w009-a-animacoes.jpg`, `w009-b-vitrine-antes-depois.jpg`, `w009-b-fachadas-antes-depois.jpg`, `w009-b-perfil-leve-antes-depois.jpg` |
+
+O roteiro de navegador teve uma verificação ajustada: a parada na colisão lateral agora aceita árvore/poste da calçada além do muro (antes falhava conforme o quadro em que a curva terminava) e informa `z`. Depois do último roteiro só mudou a posição de uma mancha de óleo (visual).
+
+### Medidas comparativas (mesmo navegador headless, mesmas vistas; NÃO são FPS de aparelho)
+
+W008 = commit `59e1aa0`, rodado em worktree separado; W009 = HEAD de B. Draw calls por quadro incluem o passe de sombra; triângulos = índices ativos ÷ 3.
+
+| Vista | Perfil | W008 draw calls | W009 draw calls | W008 triângulos | W009 triângulos |
+|---|---|---:|---:|---:|---:|
+| Vaga inicial | alto | 163 | 156 | 42 mil | 80 mil |
+| Vitrine leste | alto | 178 | 183 | 42 mil | 78 mil |
+| Vitrine rua | alto | 198 | 201 | 44 mil | 81 mil |
+| Vitrine leste | leve | 179 | 180 | 38 mil | 70 mil |
+| Vitrine rua | leve | 198 | 198 | 39 mil | 72 mil |
+
+Bundle principal: 1,33 MB (W008) → 1,38 MB (≈ 344 kB gzip). FPS no headless (4–10) usa GPU por software e não serve como medida.
+
+### NÃO testado
+
+- Galaxy S24 / Chrome Android real: aparência, FPS, aquecimento e skinning na GPU do aparelho — **NÃO TESTADO**.
+- Chrome desktop com GPU real — **NÃO TESTADO**.
+- Avaliação humana da nova aparência — **pendente**.

@@ -28,6 +28,13 @@ Só um corpo recebe controles por vez (`mode` em `main.ts`); ao trocar, as entra
 
 `src/world/layout.ts` é a planta **fictícia** em dados puros (lotes, colisores, áreas elevadas, oclusores, árvores, postes). Os testes verificam a planta sem renderizador. `temporaryWorld.ts` desenha a partir dela, fundindo a geometria estática por material (`geometry.ts`), com cor por vértice para superfícies pintadas; isso mantém ≈ 160 draw calls por quadro.
 
+## Modelos articulados (W009)
+
+- `src/world/modelParts.ts`: primitivas auxiliares (caixas, hastes, esferas, toros de baixa contagem) fundidas por `BatchSet`. Fica em `world/` porque casas e moto usam; `world/` não importa de `features/`.
+- `src/features/shared/character.ts`: entregador com um `TransformNode` por segmento, posicionado a cada quadro por IK de dois ossos (`src/core/ik.ts`, puro e testado) a partir de uma `Pose`. Usado pelo piloto (`driving/motorcycle.ts`) e pelo pedestre (`walking/pedestrian.ts`).
+- `src/features/shared/rigidSkin.ts`: cada nó animado recebe um osso ligado (`Bone.linkTransformNode`) e toda a geometria de um material vira **uma** malha com skinning rígido na GPU. Para esconder uma peça, zere a escala do nó (ex.: descanso lateral); `setEnabled` não esconde parte de uma malha fundida.
+- A apresentação só lê o estado de `core/` (velocidade, esterço, inclinação, posição); nenhuma animação altera a simulação.
+
 ## Limitações PROPOSITADAS
 
 - Moto: modelo cinemático de bicicleta com limite de aceleração lateral. **Não é corpo rígido**: sem suspensão, derrapagem ou queda.

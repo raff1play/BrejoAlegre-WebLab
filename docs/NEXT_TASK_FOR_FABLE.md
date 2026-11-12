@@ -1,4 +1,18 @@
-# Próxima tarefa — validar no Galaxy S24 a direção recalibrada da moto (W008)
+# Próxima tarefa — avaliar no Galaxy S24 a W009 (visual) junto com a direção W008
+
+**Atualização 12/11/2026:** a W009 (moto, entregador e vitrine de cinco fachadas) foi implementada e testada em Chromium headless (47 unitários, 44 verificações de navegador). **Ela ainda não foi publicada no Pages**: o endereço de preview mostra a W008 até o usuário autorizar nova publicação (editar `docs/PREVIEW_DEPLOY_TRIGGER.md` dispara `.github/workflows/preview.yml`). Para testar antes disso, rodar `npm ci` e `npm run dev` e abrir `http://IP_DO_COMPUTADOR:5173` no Chrome Android.
+
+Checklist adicional da W009 no aparelho:
+1. A moto e o entregador parecem melhores e legíveis na câmera padrão? Mãos ficam nas manoplas ao virar? Pé esquerdo desce ao parar?
+2. Descer e montar: a animação curta incomoda ou atrasa a sensação de controle?
+3. A vitrine (logo ao norte do cruzamento, perto da loja) parece uma rua brasileira? Algo exagerado (pedra portuguesa, manchas, sombras de contato)?
+4. FPS do HUD na vitrine nos perfis **leve** e **alto** após 3–5 minutos, comparado à W008; aquecimento.
+
+Se faltar FPS, seguir R-PERF-003 em `docs/ISSUES_AND_RISKS.md` antes de remover qualquer melhoria.
+
+---
+
+## Tarefa anterior (ainda válida) — validar no Galaxy S24 a direção recalibrada da moto (W008)
 
 **Fonte da verdade:** `AGENTS.md`, `docs/DECISIONS.md`, `docs/PROJECT_STATE.md`, `docs/ISSUES_AND_RISKS.md`.
 

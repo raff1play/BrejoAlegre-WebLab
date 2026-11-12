@@ -13,3 +13,5 @@
 **Próxima tarefa:** `docs/NEXT_TASK_FOR_FABLE.md` — o usuário testa em Chrome Android real com o checklist; depois ajustar perfis gráficos e dirigibilidade com base em medição. Sem backend, sem deploy, sem merge e sem compras sem autorização.
 
 **Handoff obrigatório:** salvar em `docs/PROJECT_STATE.md` o commit, PR, comandos realmente rodados, resultados reais, capturas do navegador, status do Android e riscos. Não alegar FPS nem testes não realizados.
+
+**Atualização W009 (12/11/2026):** commits `3ca7f57` (moto e entregador) e `440f192` (vitrine urbana + skinning rígido) na branch `setup/weblab-foundation`; PR #1 em rascunho; sem merge; **sem nova publicação no Pages**. Verificado em Chromium headless: 47/47 unitários, 44/44 no navegador, capturas antes/depois em `docs/evidence/w009-*`. Android real e FPS de aparelho: **não testados**. Próximo passo: `docs/NEXT_TASK_FOR_FABLE.md`.

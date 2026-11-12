@@ -48,3 +48,13 @@ Não marcar bloqueio como corrigido sem evidência de execução, timestamp e, q
 - **B025 — PENDENTE:** comparar curvas antes/depois, repetindo o mesmo trecho, para identificar exagero de sensibilidade ou colisões não previstas após aumentar o esterço/aderência.
 - **B026 — PENDENTE:** monitorar FPS durante manobras e não atribuir à calibração física variações de hardware sem medir.
 
+
+## W009 — Qualidade visual
+
+- **B027 — PENDENTE:** avaliação no Galaxy S24 da nova moto, do entregador e da vitrine (aparência, legibilidade em tela pequena, FPS nos perfis leve/alto após 3–5 min, aquecimento).
+- **R-PERF-003 (aberto):** triângulos ativos subiram de ≈ 42 mil para ≈ 78–81 mil (perfil alto) e de ≈ 38 mil para ≈ 70–72 mil (leve), contando o passe de sombra. Draw calls ficaram no nível da W008. Se o aparelho perder FPS: reduzir detalhes da moto decorativa, tirar sombra da moto decorativa e dos arbustos no perfil leve, baixar segmentos de esferas/toros, ou limitar a vitrine ao perfil alto.
+- **R-GPU-001 (aberto):** moto e entregador usam skinning na GPU (até ~16 ossos, 1 influência por vértice). Comum em WebGL2, mas **não verificado** em Chrome Android real.
+- **B028 — LIMITAÇÃO:** as animações são reações visuais ao estado da simulação (suspensão, IK, transições de 0,4 s); não existem colisões para membros, e a perna pode atravessar o banco durante a transição de montar.
+- **B029 — LIMITAÇÃO:** só cinco fachadas receberam o tratamento completo; as demais casas ganharam apenas cumeeiras, molduras, padrão de energia e sombras de contato.
+- **B030 — RESOLVIDO no roteiro:** a verificação de colisão lateral do `tests/e2e/play.cjs` falhava quando a curva terminava diante de uma árvore/poste da calçada; agora aceita esses sólidos e registra `z`.
+- **B031 — CORRIGIDO:** logs de `docs/evidence/` eram ignorados pelo `*.log` do `.gitignore`, então o log da 0.1 citado no estado nunca foi versionado; exceção adicionada.
