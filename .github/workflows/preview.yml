@@ -1,9 +1,9 @@
-name: Preview CORE-010 - Pages (explicit trigger)
+name: Preview CORE-011 - Pages (explicit trigger)
 
 on:
   push:
     branches:
-      - feat/core-010-visual-remaster
+      - feat/core-011-real-assets
     paths:
       - .github/workflows/preview.yml
       - docs/PREVIEW_DEPLOY_TRIGGER.md
@@ -17,13 +17,14 @@ concurrency:
   group: pages-weblab-preview
   cancel-in-progress: false
 
-# Autorização explícita do usuário em 12/11/2026: auditar CORE-010 e publicar SE aprovada.
-# Deploy do Web Lab CORE-010 somente; PR #3 permanece em rascunho, sem merge.
+# Autorização explícita do usuário em 12/11/2026: auditar implementação recente e publicar se adequada.
+# CORE-011 contém modelos CC0 do Poly Haven, testados em CI e Chromium headless; Android real pendente.
+# Deploy do Web Lab CORE-011 somente; PR #3 permanece em rascunho, sem merge.
 # O workflow de produção e a branch main não são alterados.
 jobs:
   deploy-preview:
     # Never deploy pull-request events or other branches.
-    if: github.event_name == 'push' && github.ref == 'refs/heads/feat/core-010-visual-remaster'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/feat/core-011-real-assets'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment:
