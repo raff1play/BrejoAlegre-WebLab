@@ -210,6 +210,26 @@ async function desktop(browser) {
   await page.setViewportSize({ width: 900, height: 420 });
   s = await until((v) => v.renderSize[0] === 900, 8000);
   check('redimensiona o canvas com a janela', s.renderSize[0] === 900 && s.renderSize[1] === 420, s.renderSize.join('x'));
+
+  // CORE-012: the new GTA mode is optional; the original isometric camera must survive round-trips.
+  check('isométrica continua sendo o modo inicial', (await snap()).camera.mode === 'isometric');
+  await key.press('KeyC');
+  s = await until((v) => v.camera.mode === 'third-person', 5000);
+  await page.waitForTimeout(1100);
+  s = await snap();
+  check('C ativa câmera GTA com enquadramento próximo',
+    s.camera.mode === 'third-person' && s.camera.radius <= 9 && s.camera.radius > 0.5,
+    `raio ${fx(s.camera.radius)}`);
+  await shot('09-camera-gta-desktop.jpg');
+  const alphaGta = s.camera.alpha;
+  await key.down('KeyE');
+  s = await until((v) => Math.abs(v.camera.alpha - alphaGta) > 0.3, 15000);
+  await key.up('KeyE');
+  check('modo GTA aceita giro manual', Math.abs(s.camera.alpha - alphaGta) > 0.3);
+  await key.press('KeyC');
+  s = await until((v) => v.camera.mode === 'isometric', 5000);
+  await page.waitForTimeout(900);
+  check('C restaura câmera isométrica', s.camera.mode === 'isometric');
   check('sem erros de console no desktop', g.errors.length === 0, g.errors.join(' | '));
   console.log(`   desktop headless: ${fx(s.fps)} FPS (GPU por software, não representa aparelho real)`);
   await g.context.close();
@@ -333,6 +353,18 @@ async function phone(browser) {
   await page.touchscreen.tap(centreOf('mount').x, centreOf('mount').y);
   s = await snap();
   check('[toque] botão Montar funciona perto da moto', s.mode === 'riding');
+
+  // Verify the actual on-screen control rather than invoking private camera methods.
+  const gtaButton = centreOf('camera-mode');
+  await page.touchscreen.tap(gtaButton.x, gtaButton.y);
+  s = await until((v) => v.camera.mode === 'third-person', 5000);
+  const returnLabel = await page.getAttribute('[data-action="camera-mode"]', 'aria-label');
+  check('[toque] botão GTA alterna para terceira pessoa',
+    s.camera.mode === 'third-person' && returnLabel === 'Mudar para câmera isométrica');
+  await shot('10-camera-gta-celular-emulado.jpg');
+  await page.touchscreen.tap(gtaButton.x, gtaButton.y);
+  s = await until((v) => v.camera.mode === 'isometric', 5000);
+  check('[toque] botão ISO restaura câmera original', s.camera.mode === 'isometric');
   check('[toque] sem erros de console', g.errors.length === 0, g.errors.join(' | '));
   console.log(`   celular emulado headless: ${fx(s.fps)} FPS em ${s.renderSize.join('x')} (GPU por software; NÃO é medição em Android)`);
   await g.context.close();
