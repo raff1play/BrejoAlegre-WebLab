@@ -13,10 +13,11 @@ import { ballPart, boxPart, ringPart, rodPart } from '../../world/modelParts';
  * segments placed every frame by two-bone IK from a pose (all points in the character root space,
  * +z forward, y up, ground at y = 0). Presentation only: the simulation never reads it.
  */
-export type CharacterLook = { jacket: string; trim: string; jeans: string; boots: string; gloves: string; helmet: string; helmetStripe: string; skin: string };
+export type CharacterLook = { jacket: string; vest?: string; trim: string; jeans: string; boots: string; gloves: string; helmet: string; helmetStripe: string; skin: string };
 export const RIDER_LOOK: CharacterLook = {
-  jacket: '#24476b', trim: '#e7ecef', jeans: '#2b3a4f', boots: '#2b211a', gloves: '#1c1e20',
-  helmet: '#f1f1ee', helmetStripe: '#c0262c', skin: '#c69874',
+  // CORE-010: black riding jacket with yellow panels, dark trousers, dark helmet with yellow stripe.
+  jacket: '#202226', vest: '#f6c624', trim: '#f2c12e', jeans: '#23272d', boots: '#1d1a17', gloves: '#141516',
+  helmet: '#26282c', helmetStripe: '#f2c12e', skin: '#c69874',
 };
 
 export const BODY = Object.freeze({
@@ -88,11 +89,13 @@ export class Character {
     const torso = new BatchSet();
     // Round parts are squashed front-to-back (z × 0.62) before merging, for a human chest.
     const flat = <T extends { scaling: Vector3 }>(mesh: T): T => { mesh.scaling.z *= 0.62; return mesh; };
-    torso.absorb(jacket, flat(rodPart(scene, [0, 0.0, 0], [0, 0.44, 0], 0.33, 0.42, 12)));
+    // Delivery vest over the jacket: coloured torso, dark reflective bands (CORE-010 references).
+    const vest = look.vest ? mats.paint(look.vest) : jacket;
+    torso.absorb(vest, flat(rodPart(scene, [0, 0.0, 0], [0, 0.44, 0], 0.33, 0.42, 12)));
     for (const side of [-1, 1]) torso.absorb(jacket, ballPart(scene, [0.17, 0.15, 0.2], [side * BODY.shoulderHalf, BODY.shoulderUp - 0.02, 0], 5));
     torso.absorb(jacket, ringPart(scene, 0.075, 0.05, [0, 0.47, 0.01], 'y', 12));
-    torso.absorb(trim, flat(rodPart(scene, [0, 0.27, 0], [0, 0.31, 0], 0.418, 0.426, 12)));
-    torso.absorb(trim, flat(rodPart(scene, [0, 0.11, 0], [0, 0.145, 0], 0.37, 0.378, 12)));
+    torso.absorb(look.vest ? jacket : trim, flat(rodPart(scene, [0, 0.27, 0], [0, 0.31, 0], 0.418, 0.426, 12)));
+    torso.absorb(look.vest ? jacket : trim, flat(rodPart(scene, [0, 0.11, 0], [0, 0.145, 0], 0.37, 0.378, 12)));
     torso.absorb(mats.paint('#16191c'), boxPart(scene, [0.02, 0.4, 0.02], [0, 0.22, 0.125]));
     build(this.torso, torso);
 

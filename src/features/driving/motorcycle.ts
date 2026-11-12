@@ -21,8 +21,9 @@ const STAND_LEAN = -0.13;
 const FOOT_LEAN = -0.05;
 const MOUNT_TIME = 0.42;
 
-export type MotorcycleLook = { paint: string; box: string; helmet: string };
-export const PLAYER_LOOK: MotorcycleLook = { paint: '#b3262b', box: '#1d2023', helmet: '#f0f0ee' };
+export type MotorcycleLook = { paint: string; box: string; helmet: string; stripe?: string };
+/** CORE-010 livery from the references: yellow bike and top box with black accents. */
+export const PLAYER_LOOK: MotorcycleLook = { paint: '#ffcd16', box: '#ffcb12', helmet: '#26282c', stripe: '#16181a' };
 
 export type MotorcycleOptions = { withRider?: boolean; static?: boolean };
 
@@ -86,7 +87,7 @@ export class Motorcycle {
       chrome: mats.chrome(),
       alloy: mats.chrome('#8e9398'),
       engine: mats.lacquer('#4b4f54'),
-      white: mats.lacquer('#ecebe6'),
+      white: mats.lacquer(look.stripe ?? '#ecebe6'),
       box: mats.lacquer(look.box),
     };
     // Moving parts are collected first: the player bike is merged with rigid GPU skinning (one mesh
@@ -471,6 +472,8 @@ export class Motorcycle {
     set.absorb(p.box, boxPart(scene, [hw * 2 + 0.02, 0.07, hd * 2 + 0.02], [0, y1 + 0.02, bz]));
     set.absorb(mats.paint('#0f1011', 0.2), boxPart(scene, [hw * 2 + 0.025, 0.012, hd * 2 + 0.025], [0, y1 - 0.015, bz]));
     set.absorb(mats.glow('#c9281e'), boxPart(scene, [0.34, 0.035, 0.006], [0, 1.05, bz - hd - 0.003]));
+    // Black band around the top box (livery).
+    set.absorb(p.white, boxPart(scene, [hw * 2 + 0.012, 0.06, hd * 2 + 0.012], [0, 1.15, bz]));
     for (const sx of [-1, 1]) set.absorb(mats.paint('#e5e7e8', 0.4), boxPart(scene, [0.006, 0.035, 0.3], [sx * (hw + 0.003), 1.05, bz]));
     set.absorb(p.chrome, boxPart(scene, [0.07, 0.04, 0.02], [0, y1 - 0.04, bz - hd - 0.01]));
     return set;
