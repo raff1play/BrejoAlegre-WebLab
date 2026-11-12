@@ -65,3 +65,11 @@ Em **Build and deployment > Source**, selecionar **GitHub Actions** e salvar. En
 - Conteúdo: entregas A (moto e entregador detalhados/articulados) e B (cinco fachadas e melhorias no cenário), mantendo direção W008 e PWA desativado.
 - Head W009 validada previamente: `d359a264347386e3c13242647f25ab278dd13e8a`; runs CI `43133314925` e `43133308730` concluídas com sucesso, 47/47 testes.
 - Este commit aciona o workflow explícito de preview. Confirmar conclusão do deploy, commit publicado e URL efetiva; não afirmar que o Galaxy S24 foi testado.
+
+## Publicação do experimento W010 — dragão opcional e fogos (11/11/2026)
+
+- Autorização do usuário: deseja testar evento visual temporário ao atingir 45 km/h, com opção de reversão fácil. Somente prévia existente do GitHub Pages; sem merge `main`.
+- O evento só aparece com `?dragon=1`. A URL comum e `?dragon=0` não carregam o módulo opcional.
+- Implementação reversível concentrada no commit `d4b13a87d5d32f1192fb88939a1cdbc81c8c4bb0`, incluindo documentação e testes.
+- CI da implementação: workflow `43138560145` terminou **success**, 51/51 testes unitários, TypeScript e build staging aprovados.
+- O presente commit dispara a publicação do preview W010. Após a execução, verificar o deploy e a URL; Android/FPS/visibilidade reais permanecem pendentes.
