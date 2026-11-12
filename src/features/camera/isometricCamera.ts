@@ -1,18 +1,29 @@
 import { ArcRotateCamera } from '@babylonjs/core/Cameras/arcRotateCamera';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Scene } from '@babylonjs/core/scene';
-import { approach, clamp } from '../../core/math';
+import { approach, clamp, type Box3D } from '../../core/math';
+import { behindHeadingAlpha, followAngle, safeCameraDistance } from '../../core/cameraFollow';
+
+export type CameraMode = 'isometric' | 'third-person';
 
 export const CAMERA_LIMITS = Object.freeze({
   minRadius: 7, maxRadius: 44, minBeta: 0.55, maxBeta: 1.22,
-  rotateSpeed: 1.9,   // rad/s while a rotate control is held
-  zoomSpeed: 1.1,     // fraction of the distance per second while a zoom control is held
+  rotateSpeed: 1.9,
+  zoomSpeed: 1.1,
+});
+
+const CHASE = Object.freeze({
+  ridingRadius: 5.6, walkingRadius: 3.6,
+  minRadius: 2.2, maxRadius: 9,
+  ridingBeta: 1.27, walkingBeta: 1.23,
+  minBeta: 1.03, maxBeta: 1.48,
+  fov: 1.05, recenterDelay: 2.5,
 });
 
 /**
- * Oblique "isometric" follow camera. It never rotates by itself: the player turns it (keys,
- * buttons or dragging on the canvas) and zooms it (keys, buttons, wheel or pinch). All motion is
- * eased so the view never jumps.
+ * One Babylon camera, two reversible perspectives. The isometric view retains its original orbit
+ * and zoom; the GTA-style view follows the bike's yaw, allows independent free-look, and retracts
+ * before static buildings, walls, poles and trunks. No changes to vehicle/walking physics.
  */
 export class IsometricCameraRig {
   readonly camera: ArcRotateCamera;
@@ -22,37 +33,77 @@ export class IsometricCameraRig {
   private readonly focus: Vector3;
   private readonly pointers = new Map<number, { x: number; y: number }>();
   private pinchDistance = 0;
+  private modeValue: CameraMode = 'isometric';
+  private savedIsometric: { alpha: number; beta: number; radius: number } | null = null;
+  private manualLook = 0;
+  private wasRiding = true;
 
-  constructor(scene: Scene, private readonly canvas: HTMLCanvasElement, start: Vector3, radius: number) {
+  constructor(
+    scene: Scene, private readonly canvas: HTMLCanvasElement, start: Vector3, radius: number,
+    private readonly obstacles: readonly Box3D[] = [],
+  ) {
     this.radius = radius;
     this.focus = start.clone();
-    this.camera = new ArcRotateCamera('camera-isometrica', this.alpha, this.beta, radius, this.focus.clone(), scene);
+    this.camera = new ArcRotateCamera('camera-jogo', this.alpha, this.beta, radius, this.focus.clone(), scene);
     this.camera.minZ = 0.5;
     this.camera.maxZ = 2000;
     this.camera.fov = 0.62;
-    this.camera.inputs.clear(); // input is handled here, so game buttons and camera never fight
+    this.camera.inputs.clear();
     this.attachPointerControls();
   }
 
-  rotate(deltaRadians: number): void { this.alpha += deltaRadians; }
+  get mode(): CameraMode { return this.modeValue; }
 
-  /** factor < 1 zooms in, > 1 zooms out. */
+  /** Called by the camera toggle button (or C on a keyboard). */
+  toggleMode(heading: number, riding: boolean): CameraMode {
+    if (this.modeValue === 'third-person') {
+      this.modeValue = 'isometric';
+      const old = this.savedIsometric;
+      if (old) { this.alpha = old.alpha; this.beta = old.beta; this.radius = old.radius; }
+      this.savedIsometric = null;
+    } else {
+      this.savedIsometric = { alpha: this.alpha, beta: this.beta, radius: this.radius };
+      this.modeValue = 'third-person';
+      this.alpha = behindHeadingAlpha(heading);
+      this.beta = riding ? CHASE.ridingBeta : CHASE.walkingBeta;
+      this.radius = riding ? CHASE.ridingRadius : CHASE.walkingRadius;
+      this.wasRiding = riding;
+      this.manualLook = 0;
+    }
+    this.camera.minZ = this.modeValue === 'third-person' ? 0.15 : 0.5;
+    return this.modeValue;
+  }
+
+  rotate(deltaRadians: number): void {
+    this.alpha += deltaRadians;
+    if (this.modeValue === 'third-person') this.manualLook = CHASE.recenterDelay;
+  }
+
   zoom(factor: number): void {
-    this.radius = clamp(this.radius * factor, CAMERA_LIMITS.minRadius, CAMERA_LIMITS.maxRadius);
+    const min = this.modeValue === 'isometric' ? CAMERA_LIMITS.minRadius : CHASE.minRadius;
+    const max = this.modeValue === 'isometric' ? CAMERA_LIMITS.maxRadius : CHASE.maxRadius;
+    this.radius = clamp(this.radius * factor, min, max);
   }
 
   tilt(deltaRadians: number): void {
-    this.beta = clamp(this.beta + deltaRadians, CAMERA_LIMITS.minBeta, CAMERA_LIMITS.maxBeta);
+    const min = this.modeValue === 'isometric' ? CAMERA_LIMITS.minBeta : CHASE.minBeta;
+    const max = this.modeValue === 'isometric' ? CAMERA_LIMITS.maxBeta : CHASE.maxBeta;
+    this.beta = clamp(this.beta + deltaRadians, min, max);
+    if (this.modeValue === 'third-person') this.manualLook = CHASE.recenterDelay;
   }
 
   /** Development aid: jump straight to a view. */
   debugSet(alpha: number, beta: number, radius: number): void {
     this.alpha = alpha;
-    this.beta = clamp(beta, CAMERA_LIMITS.minBeta, CAMERA_LIMITS.maxBeta);
-    this.radius = clamp(radius, CAMERA_LIMITS.minRadius, CAMERA_LIMITS.maxRadius);
+    const chase = this.modeValue === 'third-person';
+    this.beta = clamp(beta, chase ? CHASE.minBeta : CAMERA_LIMITS.minBeta,
+      chase ? CHASE.maxBeta : CAMERA_LIMITS.maxBeta);
+    this.radius = clamp(radius, chase ? CHASE.minRadius : CAMERA_LIMITS.minRadius,
+      chase ? CHASE.maxRadius : CAMERA_LIMITS.maxRadius);
+    if (chase) this.manualLook = CHASE.recenterDelay;
   }
 
-  /** Ground heading the camera looks towards (same convention as the vehicle yaw). */
+  /** Ground heading the camera looks towards (same convention as vehicle yaw). */
   get viewYaw(): number {
     return Math.atan2(-Math.cos(this.camera.alpha), -Math.sin(this.camera.alpha));
   }
@@ -60,20 +111,50 @@ export class IsometricCameraRig {
   get targetRadius(): number { return this.radius; }
   get targetAlpha(): number { return this.alpha; }
 
-  /** `rotateAxis` and `zoomAxis` are -1, 0 or 1 from held controls. */
-  update(dt: number, target: Vector3, rotateAxis: number, zoomAxis: number): void {
+  /** Heading and body state are presentation inputs; they never modify player simulation. */
+  update(
+    dt: number, target: Vector3, rotateAxis: number, zoomAxis: number,
+    heading = 0, riding = true,
+  ): void {
+    if (this.modeValue === 'third-person' && riding !== this.wasRiding) {
+      // Smoothly adapt distance when mounting/dismounting. Reframe without a sudden camera cut.
+      this.radius = riding ? CHASE.ridingRadius : CHASE.walkingRadius;
+      this.beta = riding ? CHASE.ridingBeta : CHASE.walkingBeta;
+      if (riding) this.alpha = behindHeadingAlpha(heading);
+      this.manualLook = 0;
+    }
+    this.wasRiding = riding;
     if (rotateAxis !== 0) this.rotate(rotateAxis * CAMERA_LIMITS.rotateSpeed * dt);
     if (zoomAxis !== 0) this.zoom(Math.exp(zoomAxis * CAMERA_LIMITS.zoomSpeed * dt));
+    if (this.modeValue === 'third-person' && riding && this.manualLook <= 0 && rotateAxis === 0) {
+      // Recenter after manual orbiting, using the shortest arc when yaw crosses ±PI.
+      this.alpha = followAngle(this.alpha, behindHeadingAlpha(heading), 2.7, dt);
+    }
+    this.manualLook = Math.max(0, this.manualLook - dt);
+
     this.focus.x = approach(this.focus.x, target.x, 7, dt);
     this.focus.y = approach(this.focus.y, target.y, 7, dt);
     this.focus.z = approach(this.focus.z, target.z, 7, dt);
     this.camera.target.copyFrom(this.focus);
-    this.camera.alpha = approach(this.camera.alpha, this.alpha, 9, dt);
+    this.camera.alpha = followAngle(this.camera.alpha, this.alpha, 9, dt);
     this.camera.beta = approach(this.camera.beta, this.beta, 9, dt);
+    this.camera.fov = approach(this.camera.fov, this.modeValue === 'third-person' ? CHASE.fov : 0.62, 6, dt);
     this.camera.radius = approach(this.camera.radius, this.radius, 7, dt);
+
+    if (this.modeValue === 'third-person') {
+      const distance = this.camera.radius;
+      const horizontal = Math.sin(this.camera.beta) * distance;
+      const eye = {
+        x: this.focus.x + Math.cos(this.camera.alpha) * horizontal,
+        y: this.focus.y + Math.cos(this.camera.beta) * distance,
+        z: this.focus.z + Math.sin(this.camera.alpha) * horizontal,
+      };
+      // Retract immediately when obstructed; restore distance gradually after clearance.
+      this.camera.radius = Math.min(distance, safeCameraDistance(this.focus, eye, this.obstacles));
+    }
   }
 
-  /** Drag on the scene to orbit, pinch or wheel to zoom. Buttons live in the HUD above the canvas. */
+  /** Drag to free-look, pinch/wheel to zoom; touch controls and the scene never share pointers. */
   private attachPointerControls(): void {
     const canvas = this.canvas;
     const forget = (event: PointerEvent) => {
