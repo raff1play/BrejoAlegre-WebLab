@@ -293,3 +293,12 @@ FPS do headless (5–7) não representa hardware. **Galaxy S24 / Chrome Android:
 **Testes:** `validate:repo` ok; `test:unit` **51/51**; `typecheck` ok; `build:staging` ok (bundle inicial 1,388 → 1,403 MB; `dist/` 2,0 → 3,9 MB por chunks sob demanda); navegador **44/44** (`docs/evidence/e2e-staging-core011.log`).
 
 **Métricas (headless, mesmas vistas):** ver R-PERF-005. Carga local (perfil leve): jogável em ≈ 3,1 s nos dois; modelos externos prontos ≈ 0,2 s depois. **Galaxy S24: NÃO TESTADO.**
+
+## CORE-012 — Câmera GTA opcional (12/11/2026)
+
+- **Branch:** `feat/core-012-gta-camera`, originada de `feat/core-011-real-assets` @ `261e7fba` (versão de Preview já aprovada). Base possui os assets CC0 integrados; não houve merge na `main`.
+- **Implementado:** botão GTA/ISO e tecla C; câmera terceira pessoa acompanha a moto, permite giro livre com recentragem após 2,5 s, ajusta distância ao descer/montar e usa volumes estáticos para não atravessar muros/casas/troncos/postes; vista isométrica original e seu zoom/ângulo são preservados.
+- **Código:** `src/features/camera/isometricCamera.ts`, `src/core/cameraFollow.ts`, `src/world/cameraObstacles.ts`, `src/features/controls/input.ts`, `src/features/hud/hud.ts`, `src/main.ts`, `index.html`, `src/style.css`.
+- **Testes:** `tests/cameraFollow.test.ts` cobre yaw, wrap angular, colisão de câmera e obstáculos. `tests/e2e/play.cjs` ampliado com alternância desktop e touch (não executado no CI: Playwright externo). O CI da branch verifica `validate:repo`, testes unitários, `typecheck` e `build:staging`; consultar o run mais recente para resultado.
+- **Não testado:** browser real com GPU, Chrome Android Galaxy S24, capturas e FPS. Não alegar qualidade/comportamento validados no telefone.
+- **Publicação:** nenhuma desta branch. Workflow Pages herdado continua limitado à CORE-011, portanto não publica CORE-012 por acidente. Esperar revisão e autorização do usuário para testar no link.
