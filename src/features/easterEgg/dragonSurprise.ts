@@ -180,17 +180,6 @@ export class DragonSurprise {
     return mesh;
   }
 
-  private horn(parent: TransformNode, mat: StandardMaterial, x: number, y: number, z: number, height: number): void {
-    const h = MeshBuilder.CreateCylinder('surpresa-chifre', {
-      height, diameterTop: 0, diameterBottom: 0.19, tessellation: 7,
-    }, this.scene);
-    h.material = mat;
-    h.position.set(x, y, z);
-    h.rotation.x = -0.5;
-    h.parent = parent;
-    h.isPickable = false;
-  }
-
   private wing(parent: TransformNode, side: -1 | 1, mat: StandardMaterial): TransformNode {
     const pivot = new TransformNode('surpresa-asa-pivo', this.scene);
     pivot.parent = parent;
