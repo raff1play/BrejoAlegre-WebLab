@@ -99,3 +99,10 @@ Próximas mudanças devem registrar PR/SHA e resultados verificáveis.
 - `8b255ea` — poste, floreira, porta de enrolar e telha cerâmica do Poly Haven (CC0), otimizados (≈ 320 kB de modelos + 156 kB de textura).
 - `53494ed` — carregamento glTF sob demanda com fallback procedural, conversão para StandardMaterial, instancing, telha fotográfica em todos os telhados, testes dos arquivos/manifesto/posições.
 - Física, controles, câmera, colisões e melhorias da CORE-010 preservados (44/44 no navegador, 51/51 unitários).
+
+## 2026-11-12 — CORE-012 câmera GTA (branch `feat/core-012-gta-camera`)
+
+- Câmara reversível isométrica/terceira pessoa com botão GTA/ISO, tecla C, suavização de rumo, giro livre e proteção de câmera contra prédios, muros, postes e árvores.
+- Moto, caminhada, analógico e os assets Poly Haven da CORE-011 foram preservados.
+- Novos testes unitários da matemática de câmera; roteiro de navegador ampliado para testar alternância desktop e touch (execução E2E real ainda pendente).
+- CI confirma TypeScript/build e testes unitários; Chrome Android e FPS não medidos. Nenhum deploy/merge.
