@@ -224,3 +224,17 @@ Bundle principal: 1,33 MB (W008) → 1,38 MB (≈ 344 kB gzip). FPS no headless 
 - Galaxy S24 / Chrome Android real: aparência, FPS, aquecimento e skinning na GPU do aparelho — **NÃO TESTADO**.
 - Chrome desktop com GPU real — **NÃO TESTADO**.
 - Avaliação humana da nova aparência — **pendente**.
+
+
+## Separação da linha principal W009 e do Easter egg — 12/11/2026
+
+**Decisão expressa do usuário:** continuar o projeto pelo simulador W009; o dragão/Easter egg W010, W011 e W012 foi somente um teste e não será mais usado.
+
+- **Branch limpa de continuidade:** `feat/weblab-core-w009`, a partir de `bc453402c928816512d7ebaddc6d066bf24e126c` (último commit W009, imediatamente anterior a W010). **PR #2**: https://github.com/raff1play/BrejoAlegre-WebLab/pull/2 — em rascunho, sem merge.
+- **Experimentação preservada e arquivada:** branch `setup/weblab-foundation`, PR #1 encerrado sem merge. W010–W012 só existem nesse histórico experimental; **não os incorporar à linha principal**.
+- **Separação conferida:** no commit W009 `src/main.ts` não há import do dragão; `package.json` não possui `@babylonjs/loaders`; não existe o diretório `src/features/easterEgg` nem `src/core/dragonSurprise.ts`.
+- **Evidências pré-existentes W009:** 47/47 testes unitários e 44/44 verificações do navegador Chromium headless, capturas/logs em `docs/evidence/w009-*` e `docs/evidence/e2e-staging-w009-b.log`; CI success de `bc453402` run `43135252554`. Android real e desempenho continuam sem comprovação.
+- **Publicação:** W009 esteve no Pages, mas o último deploy confirmado do Pages foi o experimento W012 (`4c44f2b`, run `43144700338`). **Nenhum deploy desta branch limpa foi executado.** A URL padrão desabilita a aparição do dragão, mas ainda hospeda o código opcional W012.
+- **Governança:** `main` permanece no commit inicial, sem merge. Nada foi apagado do repositório. Qualquer novo deploy da branch limpa exige autorização e revisão do workflow de preview, que continua restrito à branch antiga.
+
+**Próxima etapa:** validação física da W009 no Galaxy S24 (controles, direção, personagem, cenário, FPS, aquecimento) e melhorias focadas no jogo; não voltar ao Easter egg sem novo pedido explícito. O produto definitivo Godot permanece projeto futuro.
