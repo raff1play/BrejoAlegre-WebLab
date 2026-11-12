@@ -94,3 +94,11 @@ Próximas mudanças devem registrar PR/SHA e resultados verificáveis.
 - Padrão `?dragon=0` ou URL sem parâmetro mantém o Web Lab anterior sem carregar os gráficos extras; física e controles inalterados.
 - Sem pacotes externos, PWA, persistência ou alterações no jogo definitivo.
 - Testes unitários cobrem opção ativada/desativada, limiar de velocidade, fases e import dinâmico. Teste físico de desempenho/visual no Galaxy S24 pendente.
+
+## 2026-11-11 — Upgrade do dragão e áudio (W011)
+
+- Som exclusivo da opção `?dragon=1`: motor sintético variável, rugido, sopro, foguete, fogos e dois grasnados "quack" gerados com Web Audio, acionados por gesto humano; botão "Ativar som" / "Som desligado" criado apenas no modo experimental.
+- Dragão procedural original mais ameaçador (textura de escamas, olhos, mandíbula, dentes, garras, chifres, cauda, asas nervuradas), geometrias estáticas fundidas por material.
+- Baforada reforçada com núcleo de fogo, chama, fumaça e luz dinâmica, sem dano/colisões.
+- Não importados assets externos de autoria/reutilização ainda não confirmadas; o limite entre modelo procedural aprimorado e dragão cinematográfico permanece documentado.
+- Nenhum arquivo de lógica de pilotagem, câmera, cenário, HUD, CSS principal, PWA ou economia alterado.

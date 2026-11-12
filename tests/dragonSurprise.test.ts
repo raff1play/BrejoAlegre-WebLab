@@ -37,3 +37,26 @@ test('heavy visuals are dynamically imported only behind URL opt-in', () => {
   assert.match(main, /void import\('\.\/features\/easterEgg\/dragonSurprise'\)/);
   assert.match(main, /dragonSurprise\?\.update/);
 });
+
+test('W011 audio and cinematic effects are isolated in the opted-in visual chunk', () => {
+  const audio = readFileSync(new URL('../src/features/easterEgg/dragonAudio.ts', import.meta.url), 'utf8');
+  const effect = readFileSync(new URL('../src/features/easterEgg/dragonSurprise.ts', import.meta.url), 'utf8');
+  const main = readFileSync(new URL('../src/main.ts', import.meta.url), 'utf8');
+  assert.match(audio, /new ctor\(\{ latencyHint: 'interactive' \}\)/);
+  assert.match(audio, /document\.addEventListener\('pointerdown'/);
+  assert.match(audio, /roar\(\): void/);
+  assert.match(audio, /fireworks\(\): void/);
+  assert.match(audio, /private quack\(at: number\): void/);
+  assert.match(audio, /update\(speedMps: number, riding: boolean\): void/);
+  assert.match(audio, /this\.button\.remove\(\)/);
+  assert.match(effect, /this\.audio\.update\(bike\.speed, bike\.riding\)/);
+  assert.match(effect, /this\.audio\.roar\(\)/);
+  assert.match(effect, /this\.audio\.fire\(\)/);
+  assert.match(effect, /this\.audio\.launch\(\)/);
+  assert.match(effect, /this\.audio\.fireworks\(\)/);
+  assert.match(effect, /makeScaleTexture\(\)/);
+  assert.match(effect, /this\.smoke = this\.particle/);
+  assert.match(effect, /this\.coreFire = this\.particle/);
+  assert.doesNotMatch(main, /DragonAudio|dragonAudio/);
+  assert.match(main, /if \(dragonEnabled\(window\.location\.search\)\)/);
+});

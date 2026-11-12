@@ -24,3 +24,8 @@ Os ícones abaixo foram criados especificamente para este protótipo por código
 | `public/icons/icon-192.png` | Arte geométrica original produzida para o Web Lab | Sem dependências de terceiros; ícone do próprio projeto | 9.500 | PNG indexado de 2 bits, 192×192 |
 | `public/icons/icon-512.png` | Arte geométrica original produzida para o Web Lab | Sem dependências de terceiros; ícone do próprio projeto | 66.145 | PNG indexado de 2 bits, 512×512 |
 
+## W011 — Dragão e som procedurais
+
+- `src/features/easterEgg/dragonSurprise.ts`: malhas e texturas do dragão/fogo geradas no próprio navegador; autoria desta implementação; nenhum arquivo externo baixado.
+- `src/features/easterEgg/dragonAudio.ts`: ruídos, osciladores e envelopes de som sintetizados via Web Audio; nenhuma gravação externa, sem licença de terceiros.
+- Candidato externo **não incluído:** [Ashwing Drake Lite](https://literock-studios.itch.io/ashwing-drake-lite), Literock Studios, modelo grátis para uso em jogos; a redistribuição do asset isolado é restrita. Seu uso exigiria conferir a licença completa e obter os arquivos de maneira autorizada.

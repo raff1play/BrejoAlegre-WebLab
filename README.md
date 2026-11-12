@@ -111,3 +111,9 @@ Este teste **não faz parte da simulação oficial**. O jogo comum permanece ina
 Na versão de teste, conduza a moto para frente até alcançar 45 km/h. Um dragão aparece, cospe fogo sem causar dano, um foguete sai do escapamento e fogos formam **Marcos Pato** no céu. É um espetáculo de aproximadamente 11,5 segundos, executado uma vez por abertura da página; atualizar permite repetir.
 
 **Desativação imediata:** remova `?dragon=1` da URL (ou use `?dragon=0`). O código visual fica em um módulo carregado apenas com a opção ativa. **Remoção permanente:** `git revert` no commit isolado da W010 e nova publicação do preview. Não há custos, PWA, dados salvos ou alterações de física.
+
+### Teste W011 — áudio e dragão sombrio (somente Easter egg)
+
+Abra `https://raff1play.github.io/BrejoAlegre-WebLab/?dragon=1`; jogue normalmente até 45 km/h. O modo experimental mostra um botão **Ativar som**; um toque na tela também tenta liberar o áudio do navegador. O motor emite um som sintético proporcional à velocidade; na sequência do dragão, há rugido, fogo, lançamento de foguete, explosões e dois grasnados de pato.
+
+O som e a geometria extra **nunca são carregados** pelo URL sem `?dragon=1`. Para desligar instantaneamente, abra o URL normal. Não há download de amostras e o áudio não requer uma assinatura. A aparência é procedural, não fotorrealista de cinema; um modelo PBR/riggado de artista seria necessário para esse grau de qualidade.

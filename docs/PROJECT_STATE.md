@@ -242,3 +242,12 @@ Bundle principal: 1,33 MB (W008) → 1,38 MB (≈ 344 kB gzip). FPS no headless 
 - A versão pública padrão permanece idêntica à W009 (efeito desativado por padrão). Para testar: https://raff1play.github.io/BrejoAlegre-WebLab/?dragon=1 ; para desligar: https://raff1play.github.io/BrejoAlegre-WebLab/
 - O evento 3D ainda precisa de **validação visual e FPS no Galaxy S24**; testes de CI não demonstram que o dragão e as palavras aparecem corretamente na câmera física.
 - Remoção permanente sem afetar W009: reverter commit `d4b13a87d5d32f1192fb88939a1cdbc81c8c4bb0` e executar novo preview explícito.
+
+## W011 — Som e dragão ameaçador apenas na versão Easter egg
+
+- Pedido explícito: melhorar o dragão e o fogo, acrescentar áudio de moto, explosões e quack-quack, **exclusivamente** à URL `?dragon=1`.
+- Implementação: `src/features/easterEgg/dragonAudio.ts` (Web Audio procedural original, opção de ativar/mutar após gesto, motor proporcional à velocidade, efeitos disparados por fases); `src/features/easterEgg/dragonSurprise.ts` (dragão aprimorado procedural, fogo externo + núcleo + fumaça + luz, chamadas de áudio sincronizadas).
+- **Código de base não modificado:** `src/main.ts`, `core/motorcyclePhysics.ts`, controles analógicos, câmera, cenário, UI normal, PWA.
+- O jogo padrão continua sem carregar o código dos efeitos; W010 já os isola por `?dragon=1`. A experiência visual e sonora no Galaxy S24 precisa ser testada manualmente.
+- Pesquisa: Ashwing Drake Lite oferece modelo riggado/PBR potencialmente muito melhor, porém o download/redistribuição do pacote exige respeitar a licença; nenhum modelo de terceiro foi integrado. **Não afirmar qualidade idêntica a séries ou efeitos fotorrealistas.**
+- Estado CI e Pages: requer confirmação após commit e deploy; não inferir sucesso pelo texto documental.

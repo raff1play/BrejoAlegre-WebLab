@@ -68,3 +68,12 @@
 - O efeito é **desativado por padrão**, habilitado apenas pela URL `?dragon=1`. Para reverter instantaneamente: abrir o endereço normal ou usar `?dragon=0`. O módulo gráfico é carregado dinamicamente apenas em modo de teste.
 - A alteração deve ficar contida em um commit isolado, de forma a permitir `git revert` se a experiência não agradar, sem tocar em W001–W009. Nenhuma dependência, conta ou serviço pago.
 - Autorizada publicação somente no preview já existente do GitHub Pages para o usuário testar, sem merge em `main`. O teste em Chrome Android real continua pendente.
+
+## W011 — Som e visual sombrio exclusivos do Easter egg (11/11/2026)
+
+- Usuário quer dragão muito mais ameaçador, fogo cinematográfico, explosões de fogos, grasnado de pato e motor audível **apenas em ?dragon=1**. W010 continua opt-in, disparado a 45 km/h; W001–W009, W008 física/controles e PWA suspenso ficam intocados.
+- Implementação segura e reversível: atualização concentrada em `src/features/easterEgg/` + testes/docs. O jogo normal não baixa nem inicializa áudio, partículas ou novas malhas do Easter egg.
+- **Som procedural original (Web Audio)** com liberação por gesto do usuário, controle de ativação/mudo e volume limitado para telefones. O motor acompanha velocidade no modo do dragão; rugido, fogo, foguete, explosões e dois "quack" acompanham a sequência. Não alegar que a síntese substitui gravação real.
+- Dragão procedural mais escuro e texturizado, boca com dentes, garras, chifres, asas nervuradas e placas; fogo com partículas externas, núcleo, fuligem e iluminação dinâmica. Não confundir com realismo cinematográfico de um modelo esculpido/rigado de alta qualidade.
+- Pesquisa de modelo fotorrealista: **Ashwing Drake Lite (Literock Studios, itch.io)** — 11.992 triângulos, 61 ossos, 6 animações, texturas PBR 2K, arquivo ZIP ~21 MB; licença gratuita para jogos, porém proíbe republicar o asset isoladamente. Não redistribuir num GitHub público sem verificar licença do pacote e estratégia de distribuição; não adicionar modelo externo nesta etapa.
+- Publicação apenas no preview `setup/weblab-foundation`, sem merge `main`; sem novas assinaturas ou credenciais. Desligar instantaneamente pela URL normal; reversão permanente pelo commit isolado W011/W010.

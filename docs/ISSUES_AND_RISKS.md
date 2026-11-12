@@ -65,3 +65,10 @@ Não marcar bloqueio como corrigido sem evidência de execução, timestamp e, q
 - **B033 — PENDENTE:** conferir FPS durante 11,5 s do evento; partículas, geometria e textura dinâmica são carregadas apenas com `?dragon=1`.
 - **B034 — PENDENTE:** validar eliminação completa de malhas/partículas/texturas após o evento, sem acúmulo, e que a URL sem parâmetro se comporte como a W009.
 - **B035 — PENDENTE:** checar legibilidade das letras no céu e sincronização do foguete com o escapamento em curva ou movimento, após publicação de preview.
+
+## W011 — Pendências do dragão e sons experimentais
+
+- **B036 — TESTE PENDENTE:** verificar em Chrome Android se Web Audio inicia após toque, se botão muda para "Som ligado", se volume é adequado e se o som de motor acompanha aceleração; nenhuma emissão no URL normal.
+- **B037 — TESTE PENDENTE:** escutar a qualidade do quack, rugido e fogos; são síntese original, NÃO gravações reais. Caso o resultado seja artificial demais, selecionar amostras CC0 verificadas e opcionais.
+- **B038 — TESTE PENDENTE:** verificar na GPU real a nova geometria do dragão, fusão de malhas, luz dinâmica, fumaça e partículas; medir queda de FPS durante o evento.
+- **B039 — LIMITE VISUAL:** realismo cinematográfico depende de GLB/FBX esculpido, texturas PBR, rig e animação; opção pesquisada Ashwing Drake Lite não pode ser republicada isoladamente no repo público sem respeitar licença. Não usar assets do universo Game of Thrones.
