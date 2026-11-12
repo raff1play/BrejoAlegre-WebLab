@@ -233,3 +233,12 @@ Bundle principal: 1,33 MB (W008) → 1,38 MB (≈ 344 kB gzip). FPS no headless 
 - **Estado de CI e preview:** verificar após o commit; não inferir aprovação ou publicação antes de conferir GitHub Actions. Android/Chrome real e consumo de FPS no evento ainda sem teste.
 - **Reversão imediata no celular:** usar o URL normal, sem `?dragon=1`. **Remoção permanente do repositório:** reverter o commit isolado da W010 e publicar novamente o preview.
 - `main` e PR #1 mantidos sem merge. Sem serviços novos ou custos.
+
+### Publicação do teste W010 — resultado verificado no GitHub Actions
+
+- Workflow GitHub Pages `43138702406`: **completed/success**, 51/51 testes unitários, TypeScript e build staging aprovados.
+- Commit efetivamente implantado: `d513d7b6888ca72ee9068f917c4a1beaba2d71a8`.
+- URL confirmada pelo deploy: https://raff1play.github.io/BrejoAlegre-WebLab/
+- A versão pública padrão permanece idêntica à W009 (efeito desativado por padrão). Para testar: https://raff1play.github.io/BrejoAlegre-WebLab/?dragon=1 ; para desligar: https://raff1play.github.io/BrejoAlegre-WebLab/
+- O evento 3D ainda precisa de **validação visual e FPS no Galaxy S24**; testes de CI não demonstram que o dragão e as palavras aparecem corretamente na câmera física.
+- Remoção permanente sem afetar W009: reverter commit `d4b13a87d5d32f1192fb88939a1cdbc81c8c4bb0` e executar novo preview explícito.
