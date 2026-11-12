@@ -267,3 +267,12 @@ Bundle principal: 1,33 MB (W008) → 1,38 MB (≈ 344 kB gzip). FPS no headless 
 | Vitrine leste | leve | 180 / 70 mil | 193 / 85 mil |
 
 FPS do headless (5–7) não representa hardware. **Galaxy S24 / Chrome Android: NÃO TESTADO.**
+
+## Tentativa de publicação CORE-010 — 12/11/2026
+
+- Autorização explícita do usuário: auditar a CORE-010 e, se tecnicamente adequada, publicar **somente o Preview**, sem merge.
+- Workflow `.github/workflows/preview.yml` ajustado na branch `feat/core-010-visual-remaster` para disparar apenas nela (não usa a branch experimental W010–W012). Commit `14104b790eaee3c654e3739c324282520000f5d4`.
+- CI do commit `14104b7`: **SUCCESS**, run `43200129501`.
+- Preview run `43200129542`: **FAILURE antes de iniciar o runner** (job sem etapas e `runner_id=0`). Nenhum deploy efetuado nesta tentativa; logs não disponíveis no conector (404). A suspeita técnica é a regra de branches permitidas do ambiente `github-pages`, mas o motivo não foi confirmado pelo log.
+- Ação necessária: revisar no GitHub Settings → Environments → github-pages as regras de `Deployment branches and tags` para autorizar `feat/core-010-visual-remaster` sem liberar a branch experimental; depois reexecutar o workflow de Preview.
+- Não declarar o Pages atualizado antes de execução `success` e confirmação da URL. `main` e PR #3 não foram mesclados.
