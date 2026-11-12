@@ -1,85 +1,85 @@
-import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
+import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
 import type { MotionGuard } from '../../core/collision';
 import { approach } from '../../core/math';
 import { stepWalker, WALKER, type WalkControls, type WalkerState } from '../../core/walking';
-import { BatchSet } from '../../world/geometry';
 import type { Materials } from '../../world/materials';
-import { ballPart, boxPart, rodPart } from '../shared/modelParts';
+import { Character, RIDER_LOOK, walkingPose } from '../shared/character';
 
-/** The rider on foot (helmet kept on). Presentation only: motion comes from core/walking. */
+const STEP_OFF_TIME = 0.38;
+/** Distance covered by one full gait cycle (two steps) at full speed. */
+const CYCLE_LENGTH = 1.5;
+
+/**
+ * The rider on foot (helmet kept on). Presentation only: motion comes from core/walking; the walk
+ * cycle advances with the distance actually covered, so it never slides when blocked by a wall.
+ */
 export class Pedestrian {
   readonly root: TransformNode;
   readonly state: WalkerState = { x: 0, z: 0, yaw: 0, moving: false };
-  readonly meshes: AbstractMesh[] = [];
-  private readonly legs: TransformNode[] = [];
-  private readonly arms: TransformNode[] = [];
-  private stride = 0;
-  private swing = 0;
+  readonly meshes: AbstractMesh[];
+  private readonly body: Character;
+  private phase = 0;
+  private amount = 0;
+  private time = 0;
   private groundY = 0;
+  /** Visual-only offset that eases to zero after stepping off the bike. */
+  private from = { x: 0, y: 0, z: 0 };
+  private transition = 1;
 
   constructor(scene: Scene, mats: Materials, helmetColor: string) {
-    this.root = new TransformNode('pedestre', scene);
-    const jacket = mats.paint('#2d5f8f', 0.1);
-    const jeans = mats.paint('#2a3646', 0.05);
-    const skin = mats.paint('#c69874', 0.08);
-    const dark = mats.paint('#1b1d1f');
-    const add = (parent: TransformNode, set: BatchSet, name: string) => this.meshes.push(...set.build(name, scene, parent));
-
-    const body = new BatchSet();
-    body.absorb(jacket, boxPart(scene, [0.4, 0.54, 0.23], [0, 1.17, 0]));
-    body.absorb(jeans, boxPart(scene, [0.36, 0.16, 0.22], [0, 0.86, 0]));
-    body.absorb(skin, rodPart(scene, [0, 1.42, 0], [0, 1.5, 0.01], 0.11));
-    body.absorb(mats.paint(helmetColor, 0.6), ballPart(scene, [0.28, 0.29, 0.31], [0, 1.6, 0.01], 12));
-    body.absorb(mats.paint('#15181b', 0.7), boxPart(scene, [0.2, 0.09, 0.05], [0, 1.6, 0.155]));
-    add(this.root, body, 'pedestre-corpo');
-
-    for (const side of [-1, 1]) {
-      const leg = new TransformNode('perna', scene);
-      leg.parent = this.root;
-      leg.position.set(side * 0.1, 0.86, 0);
-      const legSet = new BatchSet();
-      legSet.absorb(jeans, rodPart(scene, [0, 0, 0], [0, -0.78, 0], 0.16, 0.11));
-      legSet.absorb(dark, boxPart(scene, [0.1, 0.08, 0.26], [0, -0.82, 0.05]));
-      add(leg, legSet, 'perna');
-      this.legs.push(leg);
-
-      const arm = new TransformNode('braco', scene);
-      arm.parent = this.root;
-      arm.position.set(side * 0.25, 1.4, 0);
-      const armSet = new BatchSet();
-      armSet.absorb(jacket, rodPart(scene, [0, 0, 0], [0, -0.56, 0], 0.11, 0.08));
-      armSet.absorb(skin, ballPart(scene, [0.08, 0.1, 0.08], [0, -0.6, 0]));
-      add(arm, armSet, 'braco');
-      this.arms.push(arm);
-    }
+    this.body = new Character(scene, mats, 'pedestre', { ...RIDER_LOOK, helmet: helmetColor });
+    this.root = this.body.root;
+    this.meshes = this.body.meshes;
     this.root.setEnabled(false);
   }
 
-  /** Puts the character on the ground at a spot, facing `yaw`. */
-  place(x: number, z: number, yaw: number, groundHeight: number): void {
+  /** Puts the character on the ground at a spot, facing `yaw`; `from` animates stepping off the seat. */
+  place(x: number, z: number, yaw: number, groundHeight: number, from?: { x: number; y: number; z: number }): void {
     Object.assign(this.state, { x, z, yaw, moving: false });
     this.groundY = groundHeight;
-    this.swing = 0;
-    this.sync();
+    this.amount = 0;
+    if (from) {
+      this.from = { x: from.x - x, y: from.y - 0.95 - groundHeight, z: from.z - z };
+      this.transition = 0;
+    } else {
+      this.transition = 1;
+    }
+    this.sync(0);
   }
 
   update(dt: number, controls: WalkControls, viewYaw: number, guard: MotionGuard, groundHeight: number): void {
+    const x0 = this.state.x;
+    const z0 = this.state.z;
     stepWalker(this.state, controls, viewYaw, dt, guard);
+    const moved = Math.hypot(this.state.x - x0, this.state.z - z0);
+    this.phase += (moved / CYCLE_LENGTH) * Math.PI * 2;
+    const speed = dt > 0 ? moved / dt : 0;
+    this.amount = approach(this.amount, Math.min(1, speed / WALKER.speed), 10, dt);
     this.groundY = approach(this.groundY, groundHeight, 16, dt);
-    this.swing = approach(this.swing, this.state.moving ? 1 : 0, 10, dt);
-    if (this.state.moving) this.stride += dt * WALKER.speed * 3.1;
-    this.sync();
+    this.sync(dt);
   }
 
-  private sync(): void {
-    this.root.position.set(this.state.x, this.groundY + Math.abs(Math.sin(this.stride)) * 0.03 * this.swing, this.state.z);
+  private sync(dt: number): void {
+    this.time += dt;
+    if (this.transition < 1) this.transition = Math.min(1, this.transition + dt / STEP_OFF_TIME);
+    const k = 1 - (1 - this.transition) * (1 - this.transition);
+    const rest = 1 - k;
+    const hop = Math.sin(this.transition * Math.PI) * 0.08;
+    this.root.position.set(
+      this.state.x + this.from.x * rest,
+      this.groundY + this.from.y * rest + hop,
+      this.state.z + this.from.z * rest,
+    );
     this.root.rotation.y = this.state.yaw;
-    const angle = Math.sin(this.stride) * 0.62 * this.swing;
-    this.legs[0]!.rotation.x = angle;
-    this.legs[1]!.rotation.x = -angle;
-    this.arms[0]!.rotation.x = -angle * 0.8;
-    this.arms[1]!.rotation.x = angle * 0.8;
+    const pose = walkingPose(this.phase, this.amount, this.time);
+    if (rest > 0) {
+      // Landing: knees absorb the step, arms come off the handlebar.
+      pose.pelvis.y -= Math.sin(this.transition * Math.PI) * 0.12;
+      pose.pitch += rest * 0.3;
+      for (const hand of pose.hands) { hand.z += rest * 0.25; hand.y += rest * 0.2; }
+    }
+    this.body.apply(pose);
   }
 }

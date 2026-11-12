@@ -1,4 +1,5 @@
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
+import { Texture } from '@babylonjs/core/Materials/Textures/texture';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
 import type { Scene } from '@babylonjs/core/scene';
 import type { BaseTexture } from '@babylonjs/core/Materials/Textures/baseTexture';
@@ -101,6 +102,52 @@ export class Materials {
     return entry;
   }
 
+  /**
+   * Tiny painted sky/ground panorama used as a cheap reflection on metal and lacquered paint:
+   * one 64×32 texture lookup instead of a real-time environment probe.
+   */
+  private reflection(): BaseTexture {
+    return this.texture('tx-reflexo', () => {
+      const texture = paintTexture(this.scene, 'tx-reflexo', { size: 32, width: 64, anisotropy: 1 }, (ctx, h) => {
+        const g = ctx.createLinearGradient(0, 0, 0, h);
+        g.addColorStop(0, '#4f86c4');
+        g.addColorStop(0.42, '#cfe1ef');
+        g.addColorStop(0.5, '#f4f1e6');
+        g.addColorStop(0.56, '#8d867a');
+        g.addColorStop(1, '#3b3833');
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, h * 2, h);
+      });
+      texture.coordinatesMode = Texture.EQUIRECTANGULAR_MODE;
+      return texture;
+    });
+  }
+
+  private reflective(name: string, specular: number, power: number, level: number): LabMaterial {
+    const cached = this.cache.get(name);
+    if (cached) return cached;
+    const entry = this.make(name, '#ffffff', { specular });
+    entry.material.specularPower = power;
+    entry.material.reflectionTexture = this.reflection();
+    entry.material.reflectionTexture.level = level;
+    return entry;
+  }
+
+  /** Polished metal (exhaust, rims, mirrors, fork). Shared by every chrome part. */
+  chrome(color = '#c3c8cc'): LabMaterial {
+    return this.tinted(this.reflective('cromado', 0.9, 110, 0.35), color);
+  }
+
+  /**
+   * Lacquered vehicle paint / helmet shell: tight bright highlight, no reflection map (an untinted
+   * reflection washes dark and saturated colours out).
+   */
+  lacquer(color: string): LabMaterial {
+    const base = this.make('verniz', '#ffffff', { specular: 0.6 });
+    base.material.specularPower = 80;
+    return this.tinted(base, color);
+  }
+
   /** Flat painted surface. All matte paints share one material, all glossy ones another. */
   paint(color: string, specular = 0.03): LabMaterial {
     const base = specular >= 0.15
@@ -111,7 +158,16 @@ export class Materials {
 
   /** Glowing surface (lamps, tail lights). */
   glow(color: string): LabMaterial {
-    return this.make(`luz-${color}`, color, { emissive: 0.9, receiveShadows: false });
+    // One unlit material for every lamp: the output is the vertex colour itself, so lights of any
+    // colour share a single draw call per mesh group.
+    let base = this.cache.get('luz');
+    if (!base) {
+      base = this.make('luz', '#ffffff', { receiveShadows: false });
+      // Unlit: final colour = (emissive white) × vertex colour.
+      base.material.disableLighting = true;
+      base.material.emissiveColor = new Color3(1, 1, 1);
+    }
+    return this.tinted(base, color);
   }
 
   /** Plastered wall tinted in `color`; the texture spans the wall height once (see Batch.box fitV). */

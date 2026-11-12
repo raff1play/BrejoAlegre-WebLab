@@ -185,7 +185,11 @@ async function desktop(browser) {
   let maxX = s.moto.x;
   for (let i = 0; i < 40; i++) { await page.waitForTimeout(150); s = await snap(); maxX = Math.max(maxX, s.moto.x + 0); }
   await key.up('KeyW');
-  check('moto chega ao muro e não atravessa muros nem casas', maxX > 4.4 && maxX < 5.9, `x máximo ${fx(maxX)}; face do muro em x=6.2`);
+  // The turn ends at a frame-rate dependent z; on a few stretches a street tree or pole stands
+  // between the lane and the wall (e.g. the tree at x=4.75, z=2.2), which is a valid solid stop too.
+  const obstacleAhead = [2.2, 26.4, 39.6, -9.6, 20.4].some((z) => Math.abs(s.moto.z - z) < 1.2);
+  check('moto chega ao muro (ou árvore/poste da calçada) e não atravessa muros nem casas',
+    maxX < 5.9 && s.moto.speed === 0 && (maxX > 4.4 || obstacleAhead), `x máximo ${fx(maxX)}, z=${fx(s.moto.z)}; face do muro em x=6.2`);
   check('moto sobe na calçada (meio-fio)', s.moto.y > 0.1 || maxX < 4.6, `y=${fx(s.moto.y)}`);
   await shot('06-colisao-muro.jpg');
 

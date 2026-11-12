@@ -36,7 +36,7 @@ function start(canvas: HTMLCanvasElement): void {
 
   const moto = new Motorcycle(scene, world.materials, PLAYER_LOOK, SPAWN.x, SPAWN.z, SPAWN.yaw, ground(SPAWN.x, SPAWN.z));
   const parkedProp = new Motorcycle(scene, world.materials, { paint: '#1f6a45', box: '#d2cdbf', helmet: '#222' },
-    PARKED_PROP.x, PARKED_PROP.z, PARKED_PROP.yaw, CURB_H, false);
+    PARKED_PROP.x, PARKED_PROP.z, PARKED_PROP.yaw, CURB_H, { withRider: false, static: true });
   const walker = new Pedestrian(scene, world.materials, PLAYER_LOOK.helmet);
   for (const mesh of [...world.shadowCasters, ...moto.meshes, ...parkedProp.meshes, ...walker.meshes]) {
     environment.shadows.addShadowCaster(mesh, false);
@@ -65,14 +65,18 @@ function start(canvas: HTMLCanvasElement): void {
       if (!spot) { hud.toast('Sem espaço para descer aqui'); return; }
       moto.state.speed = 0;
       moto.state.steer = 0;
+      const seat = moto.seatPosition();
       moto.setRidden(false);
-      walker.place(spot.x, spot.z, moto.state.yaw, ground(spot.x, spot.z));
+      walker.place(spot.x, spot.z, moto.state.yaw, ground(spot.x, spot.z), seat);
       walker.root.setEnabled(true);
       mode = 'walking';
     } else {
       if (!canMount(walker.state, moto.state)) { hud.toast('Chegue mais perto da moto'); return; }
       walker.root.setEnabled(false);
-      moto.setRidden(true);
+      // Which side of the bike the rider gets on from (visual only).
+      const m = moto.state;
+      const side = (walker.state.x - m.x) * Math.cos(m.yaw) - (walker.state.z - m.z) * Math.sin(m.yaw) < 0 ? -1 : 1;
+      moto.setRidden(true, side);
       mode = 'riding';
     }
     // Held keys never carry over from one body to the other.
