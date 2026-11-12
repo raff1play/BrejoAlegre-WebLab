@@ -1,5 +1,8 @@
 # Próxima tarefa
 
+**CORE-012 (12/11/2026):** câmera dupla GTA/ISO implementada na branch `feat/core-012-gta-camera` (base CORE-011). Checar CI, testar alternância e colisão visual no navegador/Android real, avaliar FPS e só publicar após autorização. Não misturar com Easter egg W010–W012.
+
+
 **CORE-011 (12/11/2026):** assets reais do Poly Haven integrados na branch `feat/core-011-real-assets` (PR em rascunho). Próximo: testar no Galaxy S24 (B038); para ampliar com assets estilizados, liberar os hosts de B036.
 
 **CORE-010 (12/11/2026):** remasterização visual da vitrine na branch `feat/core-010-visual-remaster` (PR em rascunho). Antes de expandir a outras áreas: avaliar no Galaxy S24 luz, folhagem alfa, libré e FPS (B033/R-PERF-004); se aprovada, aplicar o mesmo padrão à mercearia e ao cruzamento. Para assets externos, liberar os hosts listados em B032.
