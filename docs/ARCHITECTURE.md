@@ -69,3 +69,12 @@ Só um corpo recebe controles por vez (`mode` em `main.ts`); ao trocar, as entra
 ## Critério de separação
 
 Nova feature → pasta `src/features/<name>/` com controlador e API clara; regras independentes → `src/core/` + teste unitário; modelos/arte → `public/assets/` com manifesto de licença; dados geográficos → `src/world/` com proveniência e aviso de placeholder quando aplicável.
+
+## Câmera dupla (CORE-012)
+
+- `src/features/camera/isometricCamera.ts` preserva um único `ArcRotateCamera` com dois presets: `isometric` (padrão) e `third-person` (estilo GTA), alternados por botão GTA/ISO ou tecla C. A configuração isométrica é guardada ao alternar e restaurada depois.
+- `src/core/cameraFollow.ts` calcula ângulo atrás do rumo, interpolação pelo arco angular mínimo e distância segura até o primeiro volume sólido; pode ser testado em Node sem Babylon.
+- `src/world/cameraObstacles.ts` fornece caixas estáticas de prédios, muros, troncos, postes e objetos próximos. Apenas a câmera usa esses volumes; colisões de moto/pedestre permanecem intactas.
+- Na moto há acompanhamento automático do rumo após 2,5 s de inatividade manual; a pé, a câmera fica livre e a caminhada permanece relativa à direção observada.
+- `GameInput` dispara a ação `camera-mode`; `Hud.setCameraMode` atualiza rótulo acessível e botão. O snapshot de diagnóstico informa `camera.mode`.
+- Risco conhecido: copas volumosas e detalhes não incluídos nas caixas simplificadas podem obstruir parcialmente a visão. Desempenho e conforto no Galaxy S24 ainda precisam ser testados.
