@@ -1,3 +1,5 @@
+import type { CameraMode } from '../camera/isometricCamera';
+
 /** Thin DOM layer: writes only when a value changes, so the HUD costs nothing per frame. */
 export type HudMode = 'riding' | 'walking';
 
@@ -15,6 +17,7 @@ export class Hud {
   private readonly toastEl: HTMLElement;
   private readonly mountButton: HTMLElement;
   private readonly graphicsButton: HTMLElement;
+  private readonly cameraButton: HTMLElement;
   private toastTimer = 0;
 
   constructor(private readonly root: ParentNode) {
@@ -25,6 +28,7 @@ export class Hud {
     this.toastEl = this.find('#toast');
     this.mountButton = this.find('[data-action="mount"]');
     this.graphicsButton = this.find('[data-action="graphics"]');
+    this.cameraButton = this.find('[data-action="camera-mode"]');
   }
 
   private find(selector: string): HTMLElement {
@@ -45,6 +49,14 @@ export class Hud {
 
   setGraphics(profile: string): void {
     this.write(this.graphicsButton, profile === 'mobile' ? 'Gráficos: leve' : 'Gráficos: alto');
+  }
+
+  setCameraMode(mode: CameraMode): void {
+    const isGta = mode === 'third-person';
+    this.write(this.cameraButton, isGta ? 'ISO' : 'GTA');
+    this.cameraButton.setAttribute('aria-label', isGta ? 'Mudar para câmera isométrica' : 'Mudar para câmera em terceira pessoa');
+    this.cameraButton.setAttribute('aria-pressed', String(isGta));
+    this.cameraButton.title = isGta ? 'Mudar para isométrica (C)' : 'Mudar para terceira pessoa (C)';
   }
 
   update(mode: HudMode, speedKmh: number, fps: number, actionAvailable: boolean): void {
