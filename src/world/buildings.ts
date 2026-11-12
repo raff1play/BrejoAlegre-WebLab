@@ -2,10 +2,11 @@ import { CreateCylinder } from '@babylonjs/core/Meshes/Builders/cylinderBuilder'
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import type { Scene } from '@babylonjs/core/scene';
 import { Batch, BatchSet, type P3 } from './geometry';
+import { ballPart, boxPart, rodPart } from './modelParts';
 import type { LabMaterial, Materials } from './materials';
 import {
-  CURB_H, HOUSE_DEPTH, HOUSE_WALL_H, LOT_DEPTH, LOT_WIDTH, SHOP, WALL_H, WALL_T, houseSpan,
-  type Frame, type HouseSpec,
+  CURB_H, HOUSE_DEPTH, HOUSE_WALL_H, LOT_DEPTH, LOT_WIDTH, PORCH_DEPTH, SHOP, SIDEWALK, SHOWCASE_IDS, WALL_H, WALL_T,
+  houseSpan, isShowcase, porchPillars, porchSpan, type Frame, type HouseSpec,
 } from './layout';
 
 /** The meshes of one building body: they cast shadows and fade when they hide the player. */
@@ -74,6 +75,50 @@ function waterTank(scene: Scene, set: BatchSet, mats: Materials, x: number, y: n
   set.absorb(blue, lid);
 }
 
+/**
+ * Soft darkening on the ground along an edge (wall bases): a strip of `width` from the edge line at
+ * local z = `edge`, extending towards `dir` (+1 / -1), over x0..x1. Uses the left half of the atlas.
+ */
+function contactStripX(set: BatchSet, mats: Materials, x0: number, x1: number, edge: number, dir: 1 | -1, width: number, y = 0.012): void {
+  const b = set.of(mats.contact);
+  const far = edge + dir * width;
+  if (dir === -1) b.poly([[x0, y, far], [x1, y, far], [x1, y, edge], [x0, y, edge]], [[0.05, 0], [0.45, 0], [0.45, 1], [0.05, 1]]);
+  else b.poly([[x1, y, far], [x0, y, far], [x0, y, edge], [x1, y, edge]], [[0.05, 0], [0.45, 0], [0.45, 1], [0.05, 1]]);
+}
+
+/** Same along an edge at local x = `edge`, over z0..z1. */
+function contactStripZ(set: BatchSet, mats: Materials, z0: number, z1: number, edge: number, dir: 1 | -1, width: number, y = 0.012): void {
+  const b = set.of(mats.contact);
+  const far = edge + dir * width;
+  if (dir === 1) b.poly([[far, y, z0], [far, y, z1], [edge, y, z1], [edge, y, z0]], [[0.05, 0], [0.45, 0], [0.45, 1], [0.05, 1]]);
+  else b.poly([[far, y, z1], [far, y, z0], [edge, y, z0], [edge, y, z1]], [[0.05, 0], [0.45, 0], [0.45, 1], [0.05, 1]]);
+}
+
+/** Round soft blot (oil stain, footprint) of radius r centred at (x, z), right half of the atlas. */
+export function contactBlot(set: BatchSet, mats: Materials, x: number, z: number, rx: number, rz: number, y = 0.012): void {
+  set.of(mats.contact).poly([[x - rx, y, z - rz], [x + rx, y, z - rz], [x + rx, y, z + rz], [x - rx, y, z + rz]], [[0.52, 0], [0.98, 0], [0.98, 1], [0.52, 1]]);
+}
+
+/** Electricity entry ("padrão"): concrete post, grey meter box with window and a mast with the weatherhead. */
+function meterEntry(scene: Scene, set: BatchSet, mats: Materials, x: number, z: number): void {
+  set.box(mats.paint('#b3aea4'), x - 0.13, x + 0.13, 0, 2.1, z, z + 0.26);
+  set.box(mats.paint('#9ea3a6', 0.2), x - 0.2, x + 0.2, 1.05, 1.6, z - 0.2, z);
+  set.box(mats.paint('#2a3238', 0.5), x - 0.08, x + 0.08, 1.3, 1.45, z - 0.205, z - 0.19);
+  set.absorb(mats.paint('#8d9194', 0.3), rodPart(scene, [x, 1.6, z - 0.1], [x, 3.7, z - 0.1], 0.06, 0.06, 8));
+  set.absorb(mats.paint('#3a3d40'), rodPart(scene, [x, 3.7, z - 0.1], [x, 3.82, z - 0.26], 0.07, 0.05, 8));
+}
+
+/** Satellite dish ("parabólica") standing on a roof slope at (x, y, z), facing the northern sky. */
+function satelliteDish(scene: Scene, set: BatchSet, mats: Materials, x: number, y: number, z: number): void {
+  const grey = mats.paint('#c9cbcb', 0.2);
+  set.absorb(grey, rodPart(scene, [x, y - 0.2, z], [x, y + 0.5, z], 0.05, 0.05, 6));
+  const dish = ballPart(scene, [0.85, 0.85, 0.2], [x, y + 0.75, z - 0.05], 8);
+  dish.rotation.x = -0.6;
+  set.absorb(grey, dish);
+  set.absorb(mats.paint('#55595c'), rodPart(scene, [x, y + 0.75, z - 0.12], [x, y + 0.98, z - 0.45], 0.025, 0.025, 4));
+  set.absorb(mats.paint('#2b2d2f'), boxPart(scene, [0.07, 0.07, 0.1], [x, y + 0.99, z - 0.47]));
+}
+
 export function buildHouse(scene: Scene, mats: Materials, spec: HouseSpec, shared: SharedBatches): Building {
   const place = placement(spec.frame);
   const solid = new BatchSet();
@@ -138,7 +183,10 @@ export function buildHouse(scene: Scene, mats: Materials, spec: HouseSpec, share
   const windowsX = spec.garageSide === -1 ? [hx0 + 2.5, hx0 + 5.3] : [hx0 + 1.0, hx0 + 3.8];
   for (const wx of windowsX) {
     facadeQuad(solid, mats.window, wx, wx + 1.6, 1.0, 2.2, z);
+    // Granite-like sill, lintel ("verga") and jambs framing the opening.
     solid.box(trim, wx - 0.1, wx + 1.7, 0.93, 1.0, sb - 0.12, sb);
+    solid.box(trim, wx - 0.08, wx + 1.68, 2.2, 2.29, sb - 0.06, sb);
+    for (const jx of [wx - 0.08, wx + 1.6]) solid.box(trim, jx, jx + 0.08, 1.0, 2.2, sb - 0.06, sb);
   }
   const sideX = spec.garageSide === -1 ? hx0 - 0.035 : hx1 + 0.035;
   sideQuad(solid, mats.window, sideX, sb + 2.2, sb + 3.6, 1.1, 2.2, spec.garageSide);
@@ -150,6 +198,23 @@ export function buildHouse(scene: Scene, mats: Materials, spec: HouseSpec, share
   if (spec.roof === 'hip-x' || spec.roof === 'hip-z') {
     solid.box(trim, hx0 - eave, hx1 + eave, HOUSE_WALL_H, roofY, sb - eave, back + eave, { bottom: true });
     hipRoof(solid.of(mats.roofTiles), mats.roofTiles.tileU, hx0 - eave, hx1 + eave, sb - eave, back + eave, roofY, 1.55, spec.roof === 'hip-x' ? 'x' : 'z');
+    // Ridge and hip caps ("cumeeira" and "espigões") in darker clay, plus a fascia board.
+    const [rx0, rx1, rz0, rz1] = [hx0 - eave, hx1 + eave, sb - eave, back + eave];
+    const alongX = spec.roof === 'hip-x';
+    const half = alongX ? (rz1 - rz0) / 2 : (rx1 - rx0) / 2;
+    const inset = Math.min(half, (alongX ? rx1 - rx0 : rz1 - rz0) / 2 - 0.5);
+    const top = roofY + 1.55 + 0.03;
+    const ends: [P3, P3] = alongX
+      ? [[rx0 + inset, top, (rz0 + rz1) / 2], [rx1 - inset, top, (rz0 + rz1) / 2]]
+      : [[(rx0 + rx1) / 2, top, rz0 + inset], [(rx0 + rx1) / 2, top, rz1 - inset]];
+    const cap = mats.paint('#8c4527');
+    solid.absorb(cap, rodPart(scene, ends[0], ends[1], 0.15, 0.15, 6));
+    const corners: P3[] = [[rx0, roofY + 0.04, rz0], [rx1, roofY + 0.04, rz0], [rx0, roofY + 0.04, rz1], [rx1, roofY + 0.04, rz1]];
+    for (const c of corners) {
+      const nearest = alongX ? (c[0] < (rx0 + rx1) / 2 ? ends[0] : ends[1]) : (c[2] < (rz0 + rz1) / 2 ? ends[0] : ends[1]);
+      solid.absorb(cap, rodPart(scene, c, nearest, 0.13, 0.13, 6));
+    }
+    solid.box(mats.paint('#f2efe7'), rx0 - 0.03, rx1 + 0.03, roofY - 0.16, roofY + 0.02, rz0 - 0.03, rz0, { bottom: true });
   } else if (parapet) {
     solid.box(trim, hx0 - 0.06, hx1 + 0.06, bodyTop, bodyTop + 0.08, sb - 0.06, back + 0.06);
     solid.box(mats.paint('#8f8b84'), hx0 + 0.2, hx1 - 0.2, bodyTop - 0.35, bodyTop - 0.3, sb + 0.2, back - 0.2, { sides: false });
@@ -186,9 +251,118 @@ export function buildHouse(scene: Scene, mats: Materials, spec: HouseSpec, share
     }
   }
 
+  // Contact shadows where walls meet the ground: house body and the street side of the front wall.
+  contactStripX(flat, mats, hx0, hx1, sb, -1, 0.7);
+  contactStripZ(flat, mats, sb, back, hx0, -1, 0.6);
+  contactStripZ(flat, mats, sb, back, hx1, 1, 0.6);
+  if (spec.front !== 'open') contactStripX(flat, mats, 0, W, 0, -1, 0.75);
+  // Electricity entry on the street front, on the side away from the garage.
+  meterEntry(scene, upright, mats, spec.garageSide === -1 ? W - 0.9 : 0.9, spec.front === 'open' ? 0.2 : 0);
+
+  if (isShowcase(spec)) showcaseFront(scene, mats, spec, { solid, flat, upright }, SHOWCASE_IDS.indexOf(spec.id));
+
   flat.setTransform(null);
   upright.setTransform(null);
   return { body: solid.build(spec.id, scene) };
+}
+
+/**
+ * W009 showcase details for five facades: porch with stone-clad pillars and red cement floor,
+ * cobogó screen, wooden shutters, stone gate posts, wall lamp, roof dish, flower bed and an
+ * individual pavement in front of the lot, as each owner paves their own stretch.
+ */
+function showcaseFront(scene: Scene, mats: Materials, spec: HouseSpec, sets: { solid: BatchSet; flat: BatchSet; upright: BatchSet }, index: number): void {
+  const { solid, flat, upright } = sets;
+  const W = LOT_WIDTH;
+  const sb = spec.setback;
+  const [hx0, hx1] = houseSpan(spec);
+  const [p0, p1] = porchSpan(spec);
+  const pz0 = sb - PORCH_DEPTH;
+  const slab = 2.62;
+  const trim = mats.paint('#f2efe7');
+
+  // Porch ("varanda"): polished red cement floor with a step, concrete slab roof with fascia.
+  flat.box(mats.paint('#9a3b2c', 0.35), p0, p1, 0, 0.07, pz0, sb);
+  flat.box(mats.paint('#7e3024', 0.35), p0, p1, 0, 0.035, pz0 - 0.3, pz0);
+  solid.box(trim, p0 - 0.1, p1 + 0.1, slab, slab + 0.16, pz0 - 0.12, sb, { bottom: true });
+  solid.box(mats.paint('#d9d4ca'), p0 - 0.1, p1 + 0.1, slab - 0.02, slab, pz0 - 0.12, sb, { top: false });
+  for (const [px, pz] of porchPillars(spec)) {
+    upright.box(mats.stone, px - 0.17, px + 0.17, 0, slab, pz - 0.17, pz + 0.17);
+    contactBlot(flat, mats, px, pz, 0.45, 0.45, 0.075);
+  }
+  contactStripX(flat, mats, p0, p1, pz0, -1, 0.45, 0.04);
+  // Cobogó screen at the porch end away from the door, on two of the houses.
+  if (index === 1 || index === 3) {
+    const sx = spec.garageSide === -1 ? p1 - 0.17 : p0 + 0.17;
+    const cz0 = pz0 + 0.34;
+    const u = (sb - cz0) / mats.cobogo.tileU;
+    const v = (slab - 0.08) / mats.cobogo.tileV;
+    upright.of(mats.cobogo).quad([sx, 0.07, cz0], [sx, 0.07, sb], [sx, slab, sb], [sx, slab, cz0], u, v);
+  }
+  // Wooden shutters ("venezianas") opened against the facade on three houses.
+  if (index % 2 === 0) {
+    const shutter = mats.ribbed(['#3f6b4f', '#7a4b2a', '#2f5d86'][index / 2] ?? '#7a4b2a');
+    const windowsX = spec.garageSide === -1 ? [hx0 + 2.5, hx0 + 5.3] : [hx0 + 1.0, hx0 + 3.8];
+    for (const wx of windowsX) {
+      for (const [s0, s1] of [[wx - 0.62, wx - 0.08], [wx + 1.68, wx + 2.22]] as const) {
+        solid.box(shutter, s0, s1, 1.0, 2.2, sb - 0.07, sb - 0.025);
+      }
+    }
+  }
+  // Wall lamp beside the door.
+  const lampX = spec.garageSide === -1 ? hx0 + 1.85 : hx1 - 1.85;
+  upright.box(mats.paint('#2a2c2e', 0.3), lampX - 0.06, lampX + 0.06, 2.05, 2.25, sb - 0.12, sb);
+  upright.box(mats.glow('#ffe7b0'), lampX - 0.05, lampX + 0.05, 1.98, 2.08, sb - 0.11, sb - 0.01);
+  // Stone-clad gate posts on walled fronts.
+  if (spec.front !== 'open') {
+    const garage: [number, number] = spec.garageSide === -1 ? [0.4, 3.2] : [W - 3.2, W - 0.4];
+    const gateDoor: [number, number] = spec.garageSide === -1 ? [3.55, 4.45] : [W - 4.45, W - 3.55];
+    for (const g of [garage, gateDoor]) {
+      for (const px of g) upright.box(mats.stone, px - 0.16, px + 0.16, 0, WALL_H + 0.2, -0.06, WALL_T + 0.06);
+    }
+  }
+  // Flower bed inside the front with a low kerb; the plants themselves are instanced in props.ts.
+  const [b0, b1] = spec.garageSide === -1 ? [4.8, W - 0.3] : [0.3, W - 4.8];
+  flat.box(mats.dirt, b0, b1, 0, 0.03, 0.28, 1.05);
+  upright.box(trim, b0, b1, 0, 0.14, 1.05, 1.12);
+  // Satellite dish on the back slope of two roofs.
+  if (index === 0 || index === 4) {
+    if (spec.roof === 'hip-x' || spec.roof === 'hip-z') satelliteDish(scene, solid, mats, (hx0 + hx1) / 2 + 1.4, HOUSE_WALL_H + 0.9, sb + HOUSE_DEPTH - 1.6);
+  }
+  // Individual pavement in front of the lot (local z < 0 is the pavement), kept off the kerb stone.
+  const z0 = -SIDEWALK + 0.2;
+  if (index === 3) {
+    // Grass service strip next to the kerb, common on residential streets.
+    flat.box(mats.grass, 0, W, 0, 0.012, z0, z0 + 0.9, { sides: false });
+    atlasPaving(flat, mats, 3, 0, W, z0 + 0.9, 0);
+  } else {
+    atlasPaving(flat, mats, index % 3, 0, W, z0, 0);
+  }
+}
+
+/**
+ * Covers the rectangle with quads of one atlas quadrant, each quad at most one pattern repeat,
+ * so the pattern tiles at its real size without needing a texture per pattern.
+ */
+function atlasPaving(set: BatchSet, mats: Materials, quadrant: number, x0: number, x1: number, z0: number, z1: number): void {
+  const tile = mats.sidewalkTiles[quadrant]!;
+  const qu = (quadrant % 2) * 0.5;
+  // Atlas row 0 is painted at the top of the canvas, which is v = 1 after upload.
+  const qv = quadrant < 2 ? 0.5 : 0;
+  const pad = 0.004;
+  const batch = set.of(mats.sidewalkAtlas);
+  const y = 0.006;
+  for (let x = x0; x < x1 - 1e-6; x += tile) {
+    for (let z = z0; z < z1 - 1e-6; z += tile) {
+      const xe = Math.min(x1, x + tile);
+      const ze = Math.min(z1, z + tile);
+      const u0 = qu + pad;
+      const u1 = qu + pad + ((xe - x) / tile) * (0.5 - 2 * pad);
+      const v0 = qv + pad;
+      const v1 = qv + pad + ((ze - z) / tile) * (0.5 - 2 * pad);
+      batch.poly([[x, y, z], [xe, y, z], [xe, y, ze], [x, y, ze]], [[u0, v0], [u1, v0], [u1, v1], [u0, v1]]);
+    }
+  }
 }
 
 /** Generic neighbourhood grocery. The name on the sign is invented and refers to no real business. */

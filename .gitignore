@@ -10,3 +10,6 @@ coverage/
 *.pem
 *.key
 .secrets/
+
+# Real browser logs are evidence and must be versioned.
+!docs/evidence/*.log

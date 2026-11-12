@@ -3,9 +3,10 @@ import { Quaternion, Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
 import type { Scene } from '@babylonjs/core/scene';
 import { solveTwoBone, type Vec3 } from '../../core/ik';
+import { RigidSkin } from './rigidSkin';
 import { BatchSet } from '../../world/geometry';
 import type { Materials } from '../../world/materials';
-import { ballPart, boxPart, ringPart, rodPart } from './modelParts';
+import { ballPart, boxPart, ringPart, rodPart } from '../../world/modelParts';
 
 /**
  * Articulated delivery rider shared by the riding and walking presentations. Limbs are rigid
@@ -63,21 +64,23 @@ export class Character {
       t.rotationQuaternion = Quaternion.Identity();
       return t;
     };
-    const build = (parent: TransformNode, set: BatchSet, n: string) => this.meshes.push(...set.build(`${name}-${n}`, scene, parent));
     this.root = new TransformNode(name, scene);
+    // Every segment is a bone of one rigid skin: one mesh per material for the whole body.
+    const skin = new RigidSkin(scene, name, this.root);
+    const build = (parent: TransformNode, set: BatchSet) => skin.add(parent, set);
     const jacket = mats.paint(look.jacket);
     const trim = mats.paint(look.trim, 0.3);
     const jeans = mats.paint(look.jeans);
     const boots = mats.paint(look.boots, 0.2);
     const gloves = mats.paint(look.gloves);
-    const skin = mats.paint(look.skin);
+    const skinTone = mats.paint(look.skin);
 
     // Pelvis: hips and belt.
     this.pelvis = node('pelvis', this.root);
     const pelvis = new BatchSet();
     pelvis.absorb(jeans, ballPart(scene, [0.34, 0.2, 0.23], [0, 0.0, 0], 6));
     pelvis.absorb(mats.paint('#1a1a1a', 0.3), boxPart(scene, [0.33, 0.045, 0.22], [0, 0.07, 0]));
-    build(this.pelvis, pelvis, 'quadril');
+    build(this.pelvis, pelvis);
 
     // Torso: tapered jacket, shoulders, collar, zip and reflective bands.
     this.torso = node('tronco', this.pelvis);
@@ -91,41 +94,41 @@ export class Character {
     torso.absorb(trim, flat(rodPart(scene, [0, 0.27, 0], [0, 0.31, 0], 0.418, 0.426, 12)));
     torso.absorb(trim, flat(rodPart(scene, [0, 0.11, 0], [0, 0.145, 0], 0.37, 0.378, 12)));
     torso.absorb(mats.paint('#16191c'), boxPart(scene, [0.02, 0.4, 0.02], [0, 0.22, 0.125]));
-    build(this.torso, torso, 'tronco');
+    build(this.torso, torso);
 
     // Head: neck, full-face helmet with visor, stripe and chin bar.
     this.head = node('cabeca', this.torso);
     this.head.position.y = BODY.neckUp;
     const head = new BatchSet();
-    head.absorb(skin, rodPart(scene, [0, -0.06, 0], [0, 0.06, 0], 0.11, 0.1, 8));
+    head.absorb(skinTone, rodPart(scene, [0, -0.06, 0], [0, 0.06, 0], 0.11, 0.1, 8));
     head.absorb(mats.lacquer(look.helmet), ballPart(scene, [0.29, 0.3, 0.32], [0, 0.17, 0], 9));
     head.absorb(mats.lacquer(look.helmetStripe), ballPart(scene, [0.06, 0.305, 0.325], [0, 0.175, -0.002], 7));
     head.absorb(mats.lacquer('#121619'), ballPart(scene, [0.235, 0.115, 0.17], [0, 0.185, 0.085], 7));
     head.absorb(mats.lacquer(look.helmet), boxPart(scene, [0.17, 0.07, 0.07], [0, 0.07, 0.125], [0.25, 0, 0]));
-    build(this.head, head, 'capacete');
+    build(this.head, head);
 
     for (const side of [-1, 1] as const) {
       const upper = node(`braco-${side}`, this.root);
       const arm = new BatchSet();
       arm.absorb(jacket, rodPart(scene, [0, 0, 0], [0, -BODY.upperArm, 0], 0.115, 0.095, 8));
-      build(upper, arm, `braco-${side}`);
+      build(upper, arm);
       const lower = node(`antebraco-${side}`, this.root);
       const fore = new BatchSet();
       fore.absorb(jacket, rodPart(scene, [0, 0, 0], [0, -BODY.foreArm + 0.06, 0], 0.095, 0.08, 8));
       fore.absorb(trim, rodPart(scene, [0, -0.15, 0], [0, -0.18, 0], 0.098, 0.096, 8));
       fore.absorb(gloves, ballPart(scene, [0.085, 0.11, 0.09], [0, -BODY.foreArm + 0.01, 0], 4));
-      build(lower, fore, `antebraco-${side}`);
+      build(lower, fore);
       this.arms.push({ upper, lower, upperLength: BODY.upperArm, lowerLength: BODY.foreArm });
 
       const thigh = node(`coxa-${side}`, this.root);
       const t = new BatchSet();
       t.absorb(jeans, rodPart(scene, [0, 0.04, 0], [0, -BODY.thigh, 0], 0.17, 0.13, 10));
-      build(thigh, t, `coxa-${side}`);
+      build(thigh, t);
       const shin = node(`canela-${side}`, this.root);
       const s = new BatchSet();
       s.absorb(jeans, rodPart(scene, [0, 0.02, 0], [0, -BODY.shin + 0.1, 0], 0.125, 0.105, 8));
       s.absorb(jeans, ballPart(scene, [0.12, 0.1, 0.13], [0, 0, 0], 4));
-      build(shin, s, `canela-${side}`);
+      build(shin, s);
       this.legs.push({ upper: thigh, lower: shin, upperLength: BODY.thigh, lowerLength: BODY.shin });
 
       // Boot: built with the ankle at the origin, sole at y = -ankle, toe towards +z.
@@ -135,9 +138,10 @@ export class Character {
       f.absorb(boots, rodPart(scene, [0, 0.09, -0.01], [0, -0.03, -0.01], 0.12, 0.115, 8));
       f.absorb(boots, boxPart(scene, [0.105, 0.075, 0.25], [0, -0.045, 0.045]));
       f.absorb(mats.paint('#151515'), boxPart(scene, [0.11, 0.022, 0.26], [0, -BODY.ankle + 0.011, 0.045]));
-      build(foot, f, `pe-${side}`);
+      build(foot, f);
       this.feet.push(foot);
     }
+    this.meshes.push(...skin.build({ min: new Vector3(-1.2, -0.3, -1.2), max: new Vector3(1.2, 2.2, 1.2) }));
   }
 
   /** Pelvis-space shoulder (side -1 left / 1 right) after the torso rotation, in root space. */

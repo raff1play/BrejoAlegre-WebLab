@@ -1,0 +1,48 @@
+PASS  abre sem erro e inicia pilotando na vaga
+PASS  aviso de área temporária visível na tela
+PASS  moto acelera  (v=3.11 m/s)
+PASS  moto freia até parar  (x=0.13)
+PASS  moto desceu o meio-fio para a rua  (y=0)
+PASS  guidão não gira a moto parada
+PASS  moto vira à direita em movimento  (yaw -1.57 → -0.04)
+PASS  inclinação visual moderada na curva  (lean=0.42 rad)
+PASS  moto percorre a rua  (z=13.57, v=13.42)
+PASS  moto desacelera sozinha sem acelerador  (13.42 → 13.08)
+PASS  não desce com a moto em movimento
+PASS  câmera gira (teclado)  (Δalpha=0.44)
+PASS  câmera aproxima  (raio 15 → 9.95)
+PASS  câmera afasta (roda do mouse)  (raio 9.95 → 40.98)
+PASS  câmera gira arrastando na cena
+PASS  câmera acompanha a moto
+PASS  desce com a moto parada
+PASS  personagem caminha  (1.06 m com KeyS)
+PASS  moto não se move enquanto a pé
+PASS  não monta longe da moto  (3.33 m)
+PASS  personagem não atravessa a moto estacionada  (distância 1.59 m)
+PASS  monta novamente perto da moto  (distância 1.59 m)
+PASS  moto chega ao muro (ou árvore/poste da calçada) e não atravessa muros nem casas  (x máximo 5.23, z=25.8; face do muro em x=6.2)
+PASS  moto sobe na calçada (meio-fio)  (y=0.15)
+PASS  ré lenta ao frear parado  (v=-0.6)
+PASS  perda de foco solta as teclas
+PASS  redimensiona o canvas com a janela  (900x420)
+PASS  sem erros de console no desktop
+   desktop headless: 8.27 FPS (GPU por software, não representa aparelho real)
+PASS  [toque] perfil gráfico móvel escolhido automaticamente  (render 1170x540)
+PASS  [toque] botões com tamanho para dedos (≥ 44 px)  (menor lado 46 px)
+PASS  [toque] botões dentro da tela e sem sobreposição
+PASS  [toque] HUD deixa o centro da tela livre
+PASS  [toque] botão acelerar move a moto  (v=2.68)
+PASS  [toque] botão mostra estado pressionado
+PASS  [toque] dois dedos: acelerar + virar ao mesmo tempo  (Δyaw=0.3)
+PASS  [toque] soltar os dedos não deixa comando preso  (v 7.35 → 6.89)
+PASS  [toque] botão frear para a moto
+PASS  [toque] toque cancelado solta o comando
+PASS  [toque] botões de câmera giram e aproximam
+PASS  [toque] pinça afasta a câmera  (raio 12.77 → 29.54)
+PASS  [toque] botão Descer funciona parado
+PASS  [toque] personagem anda pelo analógico
+PASS  [toque] botão Montar funciona perto da moto
+PASS  [toque] sem erros de console
+   celular emulado headless: 5.56 FPS em 1170x540 (GPU por software; NÃO é medição em Android)
+
+44/44 verificações passaram.

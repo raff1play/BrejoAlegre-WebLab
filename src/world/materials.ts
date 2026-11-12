@@ -5,7 +5,8 @@ import type { Scene } from '@babylonjs/core/scene';
 import type { BaseTexture } from '@babylonjs/core/Materials/Textures/baseTexture';
 import type { GraphicsProfile } from '../config/graphics';
 import {
-  paintAsphalt, paintBlockwork, paintConcrete, paintDirt, paintFoliage, paintGrass, paintPlaster, paintRailing,
+  paintAsphalt, paintBlockwork, paintCobogo, paintContactShadow, paintHydraulicTile, paintPavers, paintPortuguesePavement,
+  paintStoneCladding, paintConcrete, paintDirt, paintFoliage, paintGrass, paintPlaster, paintRailing,
   paintRibbedMetal, paintRoofTiles, paintSign, paintStripes, paintTexture, paintWindow, paintWoodDoor, type SignLine,
 } from './textures';
 
@@ -36,6 +37,13 @@ export class Materials {
   readonly lineWhite: LabMaterial;
   readonly lineYellow: LabMaterial;
   readonly asphaltPatch: LabMaterial;
+  readonly stone: LabMaterial;
+  readonly cobogo: LabMaterial;
+  readonly gutter: LabMaterial;
+  /** Alpha-blended ground darkening: u 0–0.5 linear fade, u 0.5–1 round blot. */
+  readonly contact: LabMaterial;
+  readonly sidewalkAtlas: LabMaterial;
+  readonly sidewalkTiles: readonly number[];
 
   constructor(private readonly scene: Scene, private readonly profile: GraphicsProfile) {
     const size = (base: number) => Math.max(64, Math.round(base * profile.textureScale));
@@ -65,6 +73,45 @@ export class Materials {
     this.lineWhite = this.tinted(roadPaint, '#e9e7df');
     this.lineYellow = this.tinted(roadPaint, '#e3b93a');
     this.asphaltPatch = this.tinted(roadPaint, '#3f4042');
+
+    // W009 showcase surfaces.
+    this.stone = this.make('pedra-canjiquinha', '#ffffff', { tile: 0.9 }, tex('tx-pedra', 256, 89, paintStoneCladding));
+    const cobogoTexture = this.texture('tx-cobogo', () =>
+      paintTexture(scene, 'tx-cobogo', { size: size(128), alpha: true, anisotropy: profile.anisotropy }, paintCobogo));
+    this.cobogo = this.make('cobogo', '#ffffff', { tile: 0.8 }, cobogoTexture);
+    this.cobogo.material.alphaCutOff = 0.5;
+    this.cobogo.material.backFaceCulling = false;
+    this.gutter = this.make('sarjeta', '#d9d4c8', { tile: 1.5 }, concrete);
+    this.gutter.material.zOffset = -2;
+    // The four pavement patterns share ONE 2×2 atlas texture and material (one draw call); the
+    // geometry is cut into tile-sized quads so each pattern repeats inside its own quadrant.
+    const quadrant = size(256);
+    const atlas = this.texture('tx-calcadas', () => paintTexture(scene, 'tx-calcadas',
+      { size: quadrant * 2, seed: 91, clamp: true, anisotropy: profile.anisotropy }, (ctx, full, random) => {
+        const painters = [
+          paintHydraulicTile('#b9473a', '#e7ddc8', '#2f3a3f'), paintPortuguesePavement, paintPavers,
+          paintHydraulicTile('#d9b44a', '#6d8f5a', '#efe8d6'),
+        ];
+        const half = full / 2;
+        painters.forEach((painter, i) => {
+          ctx.save();
+          ctx.translate((i % 2) * half, Math.floor(i / 2) * half);
+          ctx.beginPath(); ctx.rect(0, 0, half, half); ctx.clip();
+          painter(ctx, half, random);
+          ctx.restore();
+        });
+      }));
+    this.sidewalkAtlas = this.make('calcadas', '#ffffff', { tile: 1 }, atlas);
+    this.sidewalkAtlas.material.zOffset = -2;
+    /** Real-world size (m) of one repeat of each atlas quadrant. */
+    this.sidewalkTiles = [0.5, 2.2, 1.2, 0.5];
+    const shadowTexture = this.texture('tx-sombra', () =>
+      paintTexture(scene, 'tx-sombra', { size: 64, width: 128, alpha: true, clamp: true, anisotropy: 1 }, paintContactShadow));
+    this.contact = this.make('sombra-contato', '#000000', { receiveShadows: false }, shadowTexture);
+    this.contact.material.useAlphaFromDiffuseTexture = true;
+    this.contact.material.disableLighting = true;
+    this.contact.material.zOffset = -3;
+    this.contact.material.fogEnabled = false;
   }
 
   private texture(name: string, create: () => BaseTexture): BaseTexture {

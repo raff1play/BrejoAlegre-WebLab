@@ -11,11 +11,13 @@ export type GraphicsProfile = Readonly<{
   /** Fraction of unreachable backdrop trees that is built. */
   backdropDensity: number;
   textureScale: number;
+  /** Small decorative objects (yard plants) cast real-time shadows; the light profile skips them. */
+  detailShadows: boolean;
 }>;
 
 const PROFILES: Record<GraphicsProfile['name'], GraphicsProfile> = {
-  desktop: { name: 'desktop', maxPixelRatio: 2, shadowMapSize: 2048, shadowRange: 46, softShadows: true, anisotropy: 8, backdropDensity: 1, textureScale: 1 },
-  mobile: { name: 'mobile', maxPixelRatio: 1.5, shadowMapSize: 1024, shadowRange: 34, softShadows: false, anisotropy: 2, backdropDensity: 0.5, textureScale: 0.5 },
+  desktop: { name: 'desktop', maxPixelRatio: 2, shadowMapSize: 2048, shadowRange: 46, softShadows: true, anisotropy: 8, backdropDensity: 1, textureScale: 1, detailShadows: true },
+  mobile: { name: 'mobile', maxPixelRatio: 1.5, shadowMapSize: 1024, shadowRange: 34, softShadows: false, anisotropy: 2, backdropDensity: 0.5, textureScale: 0.5, detailShadows: false },
 };
 
 const STORAGE_KEY = 'brejo-weblab-gfx';

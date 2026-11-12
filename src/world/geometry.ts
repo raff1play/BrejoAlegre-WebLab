@@ -110,6 +110,11 @@ export class Batch {
     mesh.dispose();
   }
 
+  /** Raw arrays (read-only use), for assemblies that merge several batches themselves. */
+  data(): { positions: number[]; normals: number[]; uvs: number[]; colors: number[] | null; indices: number[] } {
+    return { positions: this.positions, normals: this.normals, uvs: this.uvs, colors: this.tinted ? this.colors : null, indices: this.indices };
+  }
+
   build(name: string, scene: Scene): Mesh {
     const mesh = new Mesh(name, scene);
     const data = new VertexData();
@@ -154,6 +159,11 @@ export class BatchSet {
   }
 
   absorb(material: LabMaterial, mesh: Mesh): void { this.of(material).absorb(mesh); }
+
+  /** Non-empty batches with their material, for custom merging. */
+  entries(): { material: LabMaterial['material']; batch: Batch; receiveShadows: boolean }[] {
+    return [...this.batches].filter(([, e]) => !e.batch.isEmpty).map(([material, e]) => ({ material, batch: e.batch, receiveShadows: e.receiveShadows }));
+  }
 
   build(name: string, scene: Scene, parent: Node | null = null): Mesh[] {
     const meshes: Mesh[] = [];

@@ -8,9 +8,10 @@ import type { GraphicsProfile } from '../config/graphics';
 import { buildHouse, buildShop, type Building } from './buildings';
 import { BatchSet } from './geometry';
 import { Materials } from './materials';
-import { buildBenches, buildPoles, buildSigns, buildTrees } from './props';
+import { buildBenches, buildPoles, buildShowcasePlants, buildSigns, buildTrees } from './props';
+import { contactBlot } from './buildings';
 import {
-  CROSS_NORTH, CROSS_SOUTH, CROSS_Z, CURB_H, EXTENT, HOUSES, PARKING, PLAZA, PLAZA_BEDS, ROAD_HALF, SHOP, SHOP_PROPS,
+  TREES, CROSS_NORTH, CROSS_SOUTH, CROSS_Z, CURB_H, EXTENT, HOUSES, PARKING, PLAZA, PLAZA_BEDS, ROAD_HALF, SHOP, SHOP_PROPS,
   WALL_RUNS, WORLD_BOUNDS, buildColliders, buildOccluders, buildRaisedAreas, sidewalkStrips,
 } from './layout';
 
@@ -86,6 +87,45 @@ function buildRoadPaint(set: BatchSet, mats: Materials): void {
   }
 }
 
+/**
+ * Concrete gutters ("sarjeta") along every kerb, storm drains ("boca de lobo") in the kerb face,
+ * square grass pits around street trees, a manhole cover and a few oil stains on the lanes.
+ */
+function buildStreetDetails(flat: BatchSet, upright: BatchSet, mats: Materials): void {
+  const g = 0.38;
+  const y = 0.004;
+  const flatOnly = { sides: false } as const;
+  for (const sx of [-1, 1]) {
+    const [a, b] = sx === 1 ? [ROAD_HALF - g, ROAD_HALF] : [-ROAD_HALF, -ROAD_HALF + g];
+    flat.box(mats.gutter, a, b, 0, y, CROSS_NORTH, EXTENT, flatOnly);
+    flat.box(mats.gutter, a, b, 0, y, -EXTENT, CROSS_SOUTH, flatOnly);
+    const [c, d] = sx === 1 ? [ROAD_HALF, EXTENT] : [-EXTENT, -ROAD_HALF];
+    flat.box(mats.gutter, c, d, 0, y, CROSS_NORTH - g, CROSS_NORTH, flatOnly);
+    flat.box(mats.gutter, c, d, 0, y, CROSS_SOUTH, CROSS_SOUTH + g, flatOnly);
+  }
+  const dark = mats.paint('#1d1e20');
+  const grate = mats.paint('#4a4b4c', 0.3);
+  for (const [x, z] of [[ROAD_HALF, -8], [-ROAD_HALF, 4], [ROAD_HALF, 16], [-ROAD_HALF, -30], [ROAD_HALF, CROSS_NORTH + 1.4]] as const) {
+    const s = Math.sign(x);
+    // Opening in the kerb face plus a grate on the gutter in front of it.
+    upright.box(dark, x - s * 0.02, x + s * 0.005, 0.02, 0.13, z - 0.6, z + 0.6, { top: false });
+    flat.box(grate, x - s * 0.36, x - s * 0.02, 0, 0.012, z - 0.45, z + 0.45, flatOnly);
+    for (let k = -0.4; k <= 0.41; k += 0.1) flat.box(dark, x - s * 0.34, x - s * 0.04, 0, 0.014, z + k - 0.015, z + k + 0.015, flatOnly);
+  }
+  flat.box(mats.paint('#3c3d3f', 0.3), -1.95, -1.25, 0, 0.01, 9.0, 9.7, flatOnly);
+  for (const [x, z, rx, rz] of [[1.9, -2, 0.5, 0.9], [-2.1, 12, 0.6, 1.1], [2.2, 24, 0.45, 0.8], [11.2, -41, 0.5, 0.6], [-1.9, -6.5, 0.4, 0.7], [0.4, CROSS_Z, 1.2, 1.0]] as const) {
+    contactBlot(flat, mats, x, z, rx, rz, 0.006);
+  }
+  // Tree pits on the pavement: a grass square inside a low concrete rim.
+  for (const tree of TREES.filter((t) => t.solid && Math.abs(Math.abs(t.x) - (ROAD_HALF + 0.75)) < 0.01)) {
+    const h = 0.55;
+    flat.box(mats.grass, tree.x - h, tree.x + h, CURB_H, CURB_H + 0.03, tree.z - h, tree.z + h, flatOnly);
+    for (const [x0, x1, z0, z1] of [[-h, h, -h - 0.06, -h], [-h, h, h, h + 0.06], [-h - 0.06, -h, -h, h], [h, h + 0.06, -h, h]] as const) {
+      upright.box(mats.curb, tree.x + x0, tree.x + x1, CURB_H, CURB_H + 0.07, tree.z + z0, tree.z + z1);
+    }
+  }
+}
+
 function buildWallsAndProps(set: BatchSet, mats: Materials): void {
   for (const run of WALL_RUNS) {
     const b = run.box;
@@ -109,6 +149,7 @@ export function buildTemporaryWorld(scene: Scene, profile: GraphicsProfile): Wor
   const upright = new BatchSet();
   buildGround(flat, materials);
   buildRoadPaint(flat, materials);
+  buildStreetDetails(flat, upright, materials);
   buildWallsAndProps(upright, materials);
   buildPoles(scene, upright, materials);
   buildBenches(upright, materials);
@@ -122,6 +163,7 @@ export function buildTemporaryWorld(scene: Scene, profile: GraphicsProfile): Wor
   const uprightMeshes = upright.build('urbano', scene);
   const bodies = buildings.flatMap((b) => b.body);
   const trees = buildTrees(scene, materials, profile.backdropDensity);
+  const plants = buildShowcasePlants(scene, materials);
 
   for (const mesh of [...flatMeshes, ...uprightMeshes, ...bodies]) {
     mesh.computeWorldMatrix(true);
@@ -137,6 +179,6 @@ export function buildTemporaryWorld(scene: Scene, profile: GraphicsProfile): Wor
     guard: createMotionGuard(WORLD_BOUNDS, colliders),
     raised: buildRaisedAreas(),
     occluders,
-    shadowCasters: [...uprightMeshes, ...bodies, ...trees],
+    shadowCasters: [...uprightMeshes, ...bodies, ...trees, ...(profile.detailShadows ? plants : [])],
   };
 }

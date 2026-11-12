@@ -324,3 +324,129 @@ export const paintSky: Painter = (ctx, size, random) => {
     }
   }
 };
+
+/** "Canjiquinha" stone cladding: thin irregular stone slivers in warm beige, grey and rust. */
+export const paintStoneCladding: Painter = (ctx, size, random) => {
+  ctx.fillStyle = '#5b5248';
+  ctx.fillRect(0, 0, size, size);
+  const tones = ['#c9b99c', '#b6a385', '#d8cbb2', '#9d8f7c', '#b98a63', '#a7a39b', '#cfb48c'];
+  let y = 0;
+  while (y < size) {
+    const h = size * (0.04 + random() * 0.035);
+    let x = -random() * size * 0.2;
+    while (x < size) {
+      const w = size * (0.12 + random() * 0.22);
+      ctx.fillStyle = tones[Math.floor(random() * tones.length)]!;
+      const inset = Math.max(1, size / 160);
+      for (const ox of [-size, 0, size]) ctx.fillRect(x + ox + inset, y + inset, w - inset * 2, h - inset * 2);
+      ctx.fillStyle = 'rgba(255,255,255,0.12)';
+      for (const ox of [-size, 0, size]) ctx.fillRect(x + ox + inset, y + inset, w - inset * 2, Math.max(1, h * 0.18));
+      x += w;
+    }
+    y += h;
+  }
+  speckle(ctx, size, random, size * 6, ['rgba(40,30,20,0.35)', 'rgba(255,250,235,0.25)'], 2);
+};
+
+/** Classic concrete cobogó: 4×4 blocks per tile, each with a round opening in a square frame. */
+export const paintCobogo: Painter = (ctx, size) => {
+  ctx.clearRect(0, 0, size, size);
+  const n = 4;
+  const c = size / n;
+  for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+    ctx.fillStyle = '#e9e4da';
+    ctx.fillRect(i * c, j * c, c, c);
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.beginPath();
+    ctx.arc(i * c + c / 2, j * c + c / 2, c * 0.34, 0, Math.PI * 2);
+    ctx.fill();
+    for (const [dx, dy] of [[0.08, 0.08], [0.92, 0.08], [0.08, 0.92], [0.92, 0.92]]) {
+      ctx.beginPath();
+      ctx.arc(i * c + dx! * c, j * c + dy! * c, c * 0.07, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.strokeStyle = 'rgba(120,110,95,0.6)';
+    ctx.lineWidth = Math.max(1, size / 128);
+    ctx.strokeRect(i * c, j * c, c, c);
+  }
+};
+
+/** Encaustic cement tiles ("ladrilho hidráulico"): 2×2 tiles per texture with a diamond motif. */
+export const paintHydraulicTile = (ground: string, motif: string, accent: string): Painter => (ctx, size, random) => {
+  const c = size / 2;
+  for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) {
+    const x = i * c; const y = j * c;
+    ctx.fillStyle = ground;
+    ctx.fillRect(x, y, c, c);
+    ctx.fillStyle = motif;
+    ctx.beginPath();
+    ctx.moveTo(x + c / 2, y + c * 0.08); ctx.lineTo(x + c * 0.92, y + c / 2); ctx.lineTo(x + c / 2, y + c * 0.92); ctx.lineTo(x + c * 0.08, y + c / 2);
+    ctx.fill();
+    ctx.fillStyle = accent;
+    ctx.beginPath();
+    ctx.arc(x + c / 2, y + c / 2, c * 0.14, 0, Math.PI * 2);
+    ctx.fill();
+    for (const [cx, cy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) {
+      ctx.beginPath();
+      ctx.arc(x + cx! * c, y + cy! * c, c * 0.16, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.strokeStyle = 'rgba(40,30,25,0.45)';
+    ctx.lineWidth = Math.max(1, size / 200);
+    ctx.strokeRect(x, y, c, c);
+  }
+  blotches(ctx, size, random, 10, 'rgba(60,50,40,0.18)', 0.15);
+  speckle(ctx, size, random, size * 6, ['rgba(0,0,0,0.12)', 'rgba(255,255,255,0.1)'], 2);
+};
+
+/** Portuguese pavement ("pedra portuguesa"): small setts in black and white waves. */
+export const paintPortuguesePavement: Painter = (ctx, size, random) => {
+  const sett = size / 32;
+  for (let i = 0; i < 32; i++) for (let j = 0; j < 32; j++) {
+    const x = i * sett; const y = j * sett;
+    const wave = Math.sin(((i + 0.5) / 32) * Math.PI * 2) * 0.18 + 0.5;
+    const v = (j + 0.5) / 32;
+    const dark = Math.abs(v - wave) < 0.12 || Math.abs(v - ((wave + 0.5) % 1)) < 0.12;
+    const tone = 0.85 + random() * 0.2;
+    ctx.fillStyle = dark ? `rgb(${Math.round(48 * tone)},${Math.round(47 * tone)},${Math.round(46 * tone)})` : `rgb(${Math.round(222 * tone)},${Math.round(217 * tone)},${Math.round(205 * tone)})`;
+    const g = Math.max(1, sett * 0.14);
+    ctx.fillRect(x + g * random(), y + g * random(), sett - g, sett - g);
+  }
+};
+
+/** Interlocking concrete pavers in a herringbone pattern, red and grey. */
+export const paintPavers: Painter = (ctx, size, random) => {
+  ctx.fillStyle = '#6a625a';
+  ctx.fillRect(0, 0, size, size);
+  const u = size / 8;
+  const g = Math.max(1, size / 150);
+  for (let i = -2; i < 10; i++) for (let j = -2; j < 10; j++) {
+    const tone = 0.85 + random() * 0.25;
+    ctx.fillStyle = (i + j) % 5 === 0 ? `rgb(${Math.round(150 * tone)},${Math.round(80 * tone)},${Math.round(64 * tone)})` : `rgb(${Math.round(160 * tone)},${Math.round(156 * tone)},${Math.round(148 * tone)})`;
+    const x = (i + j) * u;
+    const y = (j - i) * u;
+    if ((i + j) % 2 === 0) ctx.fillRect(((x % size) + size) % size + g, ((y % size) + size) % size + g, u * 2 - g * 2, u - g * 2);
+    else ctx.fillRect(((x % size) + size) % size + g, ((y % size) + size) % size + g, u - g * 2, u * 2 - g * 2);
+  }
+};
+
+/**
+ * Contact-shadow atlas (alpha only): left half a linear fade (v = 1 dark → v = 0 clear) for wall
+ * bases, right half a soft round blot for oil stains and object footprints.
+ */
+export const paintContactShadow: Painter = (ctx, size) => {
+  ctx.clearRect(0, 0, size * 2, size);
+  const g = ctx.createLinearGradient(0, 0, 0, size);
+  g.addColorStop(0, 'rgba(0,0,0,0.55)');
+  g.addColorStop(0.35, 'rgba(0,0,0,0.25)');
+  g.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, size, size);
+  const r = ctx.createRadialGradient(size * 1.5, size / 2, 0, size * 1.5, size / 2, size / 2);
+  r.addColorStop(0, 'rgba(0,0,0,0.5)');
+  r.addColorStop(0.6, 'rgba(0,0,0,0.22)');
+  r.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = r;
+  ctx.fillRect(size, 0, size, size);
+};

@@ -42,6 +42,11 @@ export function frameRect(frame: Frame, lx0: number, lx1: number, lz0: number, l
   return { minX: frame.ox - lz1, maxX: frame.ox - lz0, minZ: frame.oz + lx0, maxZ: frame.oz + lx1 };
 }
 
+/** Lot coordinates to a world point on the ground plane (see frameRect). */
+export function framePoint(frame: Frame, lx: number, lz: number): { x: number; z: number } {
+  return frame.side === 1 ? { x: frame.ox + lz, z: frame.oz - lx } : { x: frame.ox - lz, z: frame.oz + lx };
+}
+
 export type RoofKind = 'hip-x' | 'hip-z' | 'parapet' | 'shed';
 export type FrontKind = 'wall' | 'railing' | 'open';
 
@@ -210,11 +215,59 @@ function around(x: number, z: number, half: number): Box2D {
   return { minX: x - half, maxX: x + half, minZ: z - half, maxZ: z + half };
 }
 
+/**
+ * W009 showcase: the five facades nearest the junction get extra detail (porch, cobogó, shutters,
+ * plants, individual pavements). Visual only, except the solid porch pillars and plants below.
+ */
+export const SHOWCASE_IDS: readonly string[] = ['casa-leste-1', 'casa-leste-2', 'casa-leste-3', 'casa-oeste-1', 'casa-oeste-2'];
+export const isShowcase = (spec: HouseSpec): boolean => SHOWCASE_IDS.includes(spec.id);
+
+export const PORCH_DEPTH = 1.8;
+/** Local x-range of the front porch (covers the door and the first window). */
+export function porchSpan(spec: HouseSpec): [number, number] {
+  const [hx0, hx1] = houseSpan(spec);
+  return spec.garageSide === -1 ? [hx0 + 0.2, hx0 + 4.5] : [hx1 - 4.5, hx1 - 0.2];
+}
+/** Porch pillar centres in lot coordinates. */
+export function porchPillars(spec: HouseSpec): [number, number][] {
+  const [p0, p1] = porchSpan(spec);
+  const z = spec.setback - PORCH_DEPTH + 0.17;
+  return [[p0 + 0.17, z], [p1 - 0.17, z]];
+}
+
+export type PlantKind = 'arbusto' | 'palmeira' | 'vaso';
+export type PlantSpec = Readonly<{ x: number; z: number; kind: PlantKind; scale: number; turn: number }>;
+
+/** Flower bed just inside the street front, clear of the gates, plus a palm and porch pots. */
+function yardPlantsLocal(spec: HouseSpec, index: number): { lx: number; lz: number; kind: PlantKind; scale: number }[] {
+  const mirror = (lx: number) => (spec.garageSide === -1 ? lx : LOT_WIDTH - lx);
+  const list: { lx: number; lz: number; kind: PlantKind; scale: number }[] = [];
+  for (const [i, lx] of [5.3, 6.6, 7.9, 9.2, 10.5].entries()) {
+    list.push({ lx: mirror(lx), lz: 0.65, kind: 'arbusto', scale: 0.85 + ((i * 37 + index * 11) % 5) * 0.08 });
+  }
+  if (index % 2 === 0) list.push({ lx: mirror(11.1), lz: 1.6, kind: 'palmeira', scale: 0.9 + index * 0.05 });
+  const [p0, p1] = porchSpan(spec);
+  const pz = spec.setback - 0.45;
+  list.push({ lx: p0 + 0.6, lz: pz, kind: 'vaso', scale: 1 }, { lx: p1 - 0.6, lz: pz, kind: 'vaso', scale: 1.1 });
+  return list;
+}
+
+export function showcasePlants(): PlantSpec[] {
+  return HOUSES.filter(isShowcase).flatMap((spec, index) => yardPlantsLocal(spec, index).map((p, i) => {
+    const w = framePoint(spec.frame, p.lx, p.lz);
+    return { x: w.x, z: w.z, kind: p.kind, scale: p.scale, turn: (i * 1.7 + index) % (Math.PI * 2) };
+  }));
+}
+
+const PLANT_RADIUS: Record<PlantKind, number> = { arbusto: 0.38, palmeira: 0.2, vaso: 0.22 };
+
 function houseColliders(spec: HouseSpec): Box2D[] {
   const f = spec.frame;
   if (spec.front !== 'open') return [frameRect(f, 0, LOT_WIDTH, 0, LOT_DEPTH)];
   const [x0, x1] = houseSpan(spec);
+  const pillars = isShowcase(spec) ? porchPillars(spec).map(([px, pz]) => frameRect(f, px - 0.17, px + 0.17, pz - 0.17, pz + 0.17)) : [];
   return [
+    ...pillars,
     frameRect(f, x0, x1, spec.setback, spec.setback + HOUSE_DEPTH),
     frameRect(f, 0, WALL_T, 0, LOT_DEPTH),
     frameRect(f, LOT_WIDTH - WALL_T, LOT_WIDTH, 0, LOT_DEPTH),
@@ -235,6 +288,7 @@ export function buildColliders(): Box2D[] {
     ...SHOP_PROPS,
     parkedPropCollider(),
     ...TREES.filter((t) => t.solid).map((t) => around(t.x, t.z, 0.24 * t.scale)),
+    ...showcasePlants().map((p) => around(p.x, p.z, PLANT_RADIUS[p.kind] * p.scale)),
     ...POLES.map((p) => around(p.x, p.z, 0.17)),
     ...BENCHES.map((b) => (b.alongX
       ? { minX: b.x - 0.9, maxX: b.x + 0.9, minZ: b.z - 0.28, maxZ: b.z + 0.28 }

@@ -40,7 +40,7 @@ export function setupEnvironment(scene: Scene, profile: GraphicsProfile): Enviro
   sky.specular = Color3.Black();
   sky.intensity = 0.85;
 
-  const direction = new Vector3(-0.52, -0.78, 0.36).normalize();
+  const direction = new Vector3(-0.56, -0.7, 0.42).normalize();
   const sun = new DirectionalLight('sol', direction, scene);
   sun.diffuse = Color3.FromHexString('#fff1d6');
   sun.specular = Color3.FromHexString('#fff1d6');

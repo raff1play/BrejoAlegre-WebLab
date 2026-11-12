@@ -1,5 +1,6 @@
 import { CreateCylinder } from '@babylonjs/core/Meshes/Builders/cylinderBuilder';
 import { CreateIcoSphere } from '@babylonjs/core/Meshes/Builders/icoSphereBuilder';
+import { CreateBox } from '@babylonjs/core/Meshes/Builders/boxBuilder';
 import { CreateLineSystem } from '@babylonjs/core/Meshes/Builders/linesBuilder';
 import { VertexBuffer } from '@babylonjs/core/Buffers/buffer';
 import { VertexData } from '@babylonjs/core/Meshes/mesh.vertexData';
@@ -13,7 +14,7 @@ import { BatchSet, type P3 } from './geometry';
 import type { Materials } from './materials';
 import {
   BENCHES, CROSS_NORTH, CROSS_SOUTH, CURB_H, HOUSES, HOUSE_WALL_H, POLES, ROAD_HALF, TREES,
-  WORLD_BOUNDS, frameRect, houseSpan, type PoleSpec, type TreeSpec,
+  WORLD_BOUNDS, frameRect, houseSpan, showcasePlants, type PlantKind, type PoleSpec, type TreeSpec,
 } from './layout';
 
 function seeded(seed: number): () => number {
@@ -60,6 +61,71 @@ function treePrototype(scene: Scene, mats: Materials, kind: TreeSpec['kind']): M
   const meshes = set.build(`arvore-${kind}`, scene);
   for (const mesh of meshes) mesh.isVisible = false;
   return meshes;
+}
+
+/**
+ * W009 showcase plants: rounded shrubs, a slender palm and potted plants. Each kind is ONE prototype
+ * mesh rendered as GPU instances, so all shrubs together cost a single draw call (plus shadow).
+ */
+function plantPrototype(scene: Scene, mats: Materials, kind: PlantKind): Mesh[] {
+  const set = new BatchSet();
+  if (kind === 'arbusto') {
+    const leaves = mats.foliage('oiti');
+    for (const [x, y, z, r] of [[0, 0.42, 0, 0.42], [0.24, 0.32, 0.12, 0.3], [-0.22, 0.34, -0.1, 0.31], [0.05, 0.62, -0.05, 0.28]] as const) {
+      const blob = CreateIcoSphere('arbusto', { radius: r, subdivisions: 1 }, scene);
+      blob.position.set(x, y, z);
+      blob.scaling.y = 0.85;
+      set.absorb(leaves, blob);
+    }
+  } else if (kind === 'palmeira') {
+    const trunk = mats.paint('#8a7a66');
+    for (let i = 0; i < 6; i++) {
+      const seg = CreateCylinder('estipe', { diameterTop: 0.2 - i * 0.012, diameterBottom: 0.24 - i * 0.012, height: 0.75, tessellation: 7 }, scene);
+      seg.position.set(Math.sin(i * 0.35) * 0.05 * i, 0.375 + i * 0.72, 0);
+      set.absorb(trunk, seg);
+    }
+    const frond = mats.paint('#4f7a32');
+    for (let i = 0; i < 9; i++) {
+      const a = (i / 9) * Math.PI * 2;
+      for (let k = 0; k < 3; k++) {
+        const leaf = CreateBox('fronde', { width: 0.32 - k * 0.07, height: 0.02, depth: 0.6 }, scene);
+        const reach = 0.3 + k * 0.52;
+        leaf.position.set(0.25 + Math.cos(a) * reach, 4.45 - k * k * 0.16, Math.sin(a) * reach);
+        leaf.rotation.set(0.25 + k * 0.35, Math.PI / 2 - a, 0);
+        set.absorb(frond, leaf);
+      }
+    }
+  } else {
+    set.absorb(mats.paint('#a8552f'), CreateCylinder('vaso', { diameterTop: 0.42, diameterBottom: 0.3, height: 0.42, tessellation: 10 }, scene));
+    const leaves = mats.paint('#4d7a35');
+    const blob = CreateIcoSphere('planta', { radius: 0.3, subdivisions: 1 }, scene);
+    blob.position.y = 0.62;
+    blob.scaling.set(1, 1.3, 1);
+    set.absorb(leaves, blob);
+  }
+  const meshes = set.build(`planta-${kind}`, scene);
+  for (const mesh of meshes) mesh.isVisible = false;
+  return meshes;
+}
+
+export function buildShowcasePlants(scene: Scene, mats: Materials): AbstractMesh[] {
+  const prototypes = new Map<PlantKind, Mesh[]>();
+  const casters: AbstractMesh[] = [];
+  for (const plant of showcasePlants()) {
+    let proto = prototypes.get(plant.kind);
+    if (!proto) { proto = plantPrototype(scene, mats, plant.kind); prototypes.set(plant.kind, proto); }
+    for (const source of proto) {
+      const instance = source.createInstance(`${source.name}@${plant.x.toFixed(1)},${plant.z.toFixed(1)}`);
+      // Pots stand on the porch floor; everything else on the bed.
+      instance.position.set(plant.x, CURB_H + (plant.kind === 'vaso' ? 0.07 + 0.21 : 0.02), plant.z);
+      instance.scaling.setAll(plant.scale);
+      instance.rotation.y = plant.turn;
+      instance.isPickable = false;
+      instance.freezeWorldMatrix();
+      casters.push(instance);
+    }
+  }
+  return casters;
 }
 
 export function buildTrees(scene: Scene, mats: Materials, backdropDensity: number): AbstractMesh[] {

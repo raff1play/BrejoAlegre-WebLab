@@ -1,4 +1,6 @@
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
+import { Vector3 } from '@babylonjs/core/Maths/math.vector';
+import { RigidSkin } from '../shared/rigidSkin';
 import { Mesh } from '@babylonjs/core/Meshes/mesh';
 import type { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
 import type { Scene } from '@babylonjs/core/scene';
@@ -8,7 +10,7 @@ import { MOTO, createMotoState, stepMotorcycle, type MotoControls, type MotoStat
 import { BatchSet } from '../../world/geometry';
 import type { LabMaterial, Materials } from '../../world/materials';
 import { Character, RIDER_LOOK, type Pose } from '../shared/character';
-import { ballPart, boxPart, discPart, ringPart, rodPart, tyrePart, type Xyz } from '../shared/modelParts';
+import { ballPart, boxPart, discPart, ringPart, rodPart, tyrePart, type Xyz } from '../../world/modelParts';
 
 /** Outer tyre radius (18" rim class). The simulation does not depend on it. */
 const WHEEL_RADIUS = 0.31;
@@ -87,7 +89,10 @@ export class Motorcycle {
       white: mats.lacquer('#ecebe6'),
       box: mats.lacquer(look.box),
     };
-    const add = (parent: TransformNode, set: BatchSet, name: string) => this.meshes.push(...set.build(name, scene, parent));
+    // Moving parts are collected first: the player bike is merged with rigid GPU skinning (one mesh
+    // per material), the static decoy bike is baked and merged instead.
+    const pieces: { node: TransformNode; set: BatchSet; name: string }[] = [];
+    const add = (node: TransformNode, set: BatchSet, name: string) => pieces.push({ node, set, name });
 
     for (const [name, front] of [['roda-traseira', false], ['roda-dianteira', true]] as const) {
       const wheel = this.child(scene, name, front ? this.lowerSteer : this.leanNode);
@@ -104,6 +109,14 @@ export class Motorcycle {
     stand.absorb(parts.frame, rodPart(scene, [-0.1, 0.33, -0.1], [-0.28, 0.015, -0.18], 0.028));
     stand.absorb(parts.frame, boxPart(scene, [0.05, 0.02, 0.07], [-0.28, 0.012, -0.18]));
     add(this.stand, stand, 'moto-descanso');
+
+    if (options.static) {
+      for (const piece of pieces) this.meshes.push(...piece.set.build(piece.name, scene, piece.node));
+    } else {
+      const skin = new RigidSkin(scene, 'moto', this.root);
+      for (const piece of pieces) skin.add(piece.node, piece.set);
+      this.meshes.push(...skin.build({ min: new Vector3(-0.9, -0.2, -1.4), max: new Vector3(0.9, 1.7, 1.2) }));
+    }
 
     this.ridden = withRider;
     this.rider = withRider ? new Character(scene, mats, 'piloto', { ...RIDER_LOOK, helmet: look.helmet }) : null;
@@ -124,7 +137,8 @@ export class Motorcycle {
   setRidden(ridden: boolean, fromSide?: -1 | 1): void {
     this.ridden = ridden;
     this.rider?.root.setEnabled(ridden);
-    this.stand.setEnabled(!ridden);
+    // The stand is part of the skinned mesh: hide it by collapsing its bone.
+    this.stand.scaling.setAll(ridden ? 0 : 1);
     if (ridden && fromSide !== undefined) {
       this.mount = 0;
       this.mountSide = fromSide;
