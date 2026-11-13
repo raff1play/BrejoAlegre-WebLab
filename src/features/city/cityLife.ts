@@ -16,6 +16,7 @@ import type { GraphicsProfile } from '../../config/graphics';
 import { BatchSet } from '../../world/geometry';
 import { buildVehicleModel } from './vehicleModels';
 import { NpcPerson, civilianLook } from './npcPerson';
+import { PatchPilot, type PatchPilotState } from './patchPilot';
 import { rodPart, ballPart, boxPart } from '../../world/modelParts';
 import type { Materials } from '../../world/materials';
 import { CURB_H, ROAD_HALF } from '../../world/layout';
@@ -61,10 +62,12 @@ export type CityLife = {
   traffic: Traffic; crowd: Crowd; graph: RoadGraph; plans: Map<string, SignalPlan>;
   update(dt: number, time: number, hour: number, night: number, player: { x: number; z: number; radius: number }, ground: (x: number, z: number) => number): void;
   blocks(x: number, z: number, r: number): boolean;
-  stats(): { vehicles: number; moving: number; pedestrians: number; visiblePedestrians: number; byKind: Record<string, number>; signals: Record<string, string>; vehicleIds: number[]; fingerprint: number };
+  stats(): { vehicles: number; moving: number; pedestrians: number; visiblePedestrians: number; byKind: Record<string, number>; signals: Record<string, string>; vehicleIds: number[]; fingerprint: number; patch: PatchPilotState | null };
 };
 
-export function buildCityLife(scene: Scene, mats: Materials, profile: GraphicsProfile, shadows: ShadowGenerator, free: (x: number, z: number) => boolean, traffic0 = true): CityLife {
+export function buildCityLife(scene: Scene, mats: Materials, profile: GraphicsProfile, shadows: ShadowGenerator, free: (x: number, z: number) => boolean, traffic0 = true, patchAssets = false): CityLife {
+  const patch = patchAssets ? new PatchPilot(scene) : null;
+  if (patch) void patch.load();
   const graph = buildRoadGraph();
   const plans = buildSignalPlans(graph);
   const light = profile.name === 'mobile';
@@ -264,15 +267,24 @@ export function buildCityLife(scene: Scene, mats: Materials, profile: GraphicsPr
         for (const m of proto.meshes) { m.thinInstanceCount = Math.max(1, n); m.thinInstanceBufferUpdated('matrix'); if (m !== proto.beams) m.setEnabled(n > 0); }
         for (const m of proto.tinted) m.thinInstanceBufferUpdated('color');
         proto.beams.setEnabled(night > 0.45 && n > 0);
+        // Patch test replaces the visual bus only after its GLB has loaded successfully.
+        if (kind === 'bus' && patch?.busReady) for (const m of proto.meshes) m.setEnabled(false);
       }
+      patch?.syncBuses(traffic.vehicles, player, ground);
 
       // Pedestrians, near LOD: the closest ones are drawn by articulated characters (one per look).
       const nearIds = new Set<number>();
       const usedLook = new Set<number>();
       const close = crowd.people.filter((p) => p.active && p.visible && Math.hypot(p.x - player.x, p.z - player.z) < NEAR_RANGE)
         .sort((a, b) => Math.hypot(a.x - player.x, a.z - player.z) - Math.hypot(b.x - player.x, b.z - player.z));
+      const patchWalker = patch?.pedestrianReady ? close[0] : undefined;
+      if (patchWalker) {
+        patch!.showPedestrian(patchWalker, ground(patchWalker.x, patchWalker.z));
+        nearIds.add(patchWalker.id);
+      } else patch?.hidePedestrian();
       for (const p of close) {
         if (nearIds.size >= nearCap) break;
+        if (nearIds.has(p.id)) continue;
         const li = lookOf(p);
         if (usedLook.has(li)) continue;
         usedLook.add(li); nearIds.add(p.id);
@@ -348,6 +360,7 @@ export function buildCityLife(scene: Scene, mats: Materials, profile: GraphicsPr
         vehicles: active.length, moving: active.filter((v) => v.v > 0.5).length, pedestrians: people.length,
         visiblePedestrians: people.filter((p) => p.visible).length, byKind, signals,
         vehicleIds: active.map((v) => v.id),
+        patch: patch?.status() ?? null,
         // Sum of positions: changes whenever anything moves (used by the browser test).
         fingerprint: active.reduce((t, v) => t + v.x + v.z, 0) + people.reduce((t, p) => t + p.x + p.z, 0),
       };
