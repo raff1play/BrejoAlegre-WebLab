@@ -1,0 +1,35 @@
+name: Patch asset discovery (one-time)
+on:
+  push:
+    branches: [preview]
+    paths: ['.github/workflows/patch-asset-discovery.yml']
+permissions:
+  contents: read
+jobs:
+  search:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - name: Install patch CLI
+        run: npm install --global --no-audit --no-fund @patchgg/cli
+      - name: List CLI commands
+        run: |
+          pch --help | head -70
+          pch assets --help | head -90
+      - name: Search realistic city buses
+        continue-on-error: true
+        run: |
+          pch assets search "city bus" | head -140
+          pch assets search "urban bus" | head -100
+      - name: Search animated civilian characters
+        continue-on-error: true
+        run: |
+          pch assets search "animated woman" | head -140
+          pch assets search "civilian human" | head -110
+      - name: Search optimized bus and pedestrian models
+        continue-on-error: true
+        run: |
+          pch assets search "bus" | head -150
+          pch assets search "pedestrian" | head -130
