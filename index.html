@@ -22,6 +22,21 @@
 </span>
         <span class="keys">C alterna GTA/isométrica · Q/E girar · Z/X zoom · arrastar gira a câmera</span>
       </div>
+      <div id="minimap" class="minimap" role="button" tabindex="0" aria-expanded="false" aria-label="Minimapa — toque para ampliar">
+        <canvas id="minimap-canvas" aria-hidden="true"></canvas>
+        <div class="minimap-bar"><strong id="clock">11:00</strong><span id="clock-tag">Em jornada</span></div>
+        <ul class="minimap-legend" aria-label="Legenda">
+          <li><i style="background:#f2c230">G</i>Galpão</li><li><i style="background:#e8b348">L</i>Lojas</li>
+          <li><i style="background:#58c27d">B</i>Ônibus</li><li><i style="background:#f4f1ea">✝</i>Igreja</li>
+          <li><i style="background:#8fc1e3">E</i>Escola</li><li><i style="background:#7fc46a">P</i>Praça</li>
+        </ul>
+      </div>
+      <div id="devtime" class="devtime" hidden aria-label="Controle de horário (desenvolvimento)">
+        <span>Hora (dev)</span>
+        <button type="button" data-devtime="7">07h</button><button type="button" data-devtime="12">12h</button>
+        <button type="button" data-devtime="18">18h</button><button type="button" data-devtime="21">21h</button>
+        <button type="button" data-devtime="+1">+1h</button><button type="button" data-devtime="speed">×1</button>
+      </div>
       <div id="toast" class="toast" role="status" aria-live="polite"></div>
       <div id="movement-stick" class="joystick-zone" role="group" aria-label="Analógico virtual de movimento e direção">
         <div class="joystick-ring" aria-hidden="true"></div>

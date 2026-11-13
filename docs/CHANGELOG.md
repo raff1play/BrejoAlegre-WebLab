@@ -106,3 +106,11 @@ Próximas mudanças devem registrar PR/SHA e resultados verificáveis.
 - Moto, caminhada, analógico e os assets Poly Haven da CORE-011 foram preservados.
 - Novos testes unitários da matemática de câmera; roteiro de navegador ampliado para testar alternância desktop e touch (execução E2E real ainda pendente).
 - CI confirma TypeScript/build e testes unitários; Chrome Android e FPS não medidos. Nenhum deploy/merge.
+
+## 2026-11-13 — CORE-013 expansão e cidade viva (branch `preview`)
+
+- `392142d` — cidade em grade 3×3 ao redor do núcleo W009 (Centro, residencial, comercial, logístico, periferia), 8 lojas configuradas, galpão logístico com pátio/docas/portão, igreja, escola, centro de serviços, pontos de ônibus, lombadas, árvores, postes, saídas rurais; `docs/CITY_REFERENCE.md`.
+- `418390f` — portão/pátio do galpão na rede; relógio virtual (1 h = 4 min, jornada 11h–21h) e iluminação dia/noite puros.
+- `92b5e16` — rede de faixas, conversões e conflitos; semáforos com fases exclusivas, amarelo, vermelho geral e fase de pedestre; veículos IDM com PARE, preferência, rotas de ônibus/vans/caminhões.
+- commit seguinte — pedestres (grafo de calçadas, travessia em faixas, lojas, praça, ônibus).
+- commit seguinte — renderização instanciada de veículos/pedestres/semáforos, luz por hora (sol, céu, névoa, sombras, poças de luz dos postes, faróis), minimapa e relógio no HUD, controle de hora de desenvolvimento, testes.

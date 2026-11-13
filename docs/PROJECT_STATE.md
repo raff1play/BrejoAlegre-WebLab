@@ -1,5 +1,6 @@
 # Estado factual — Brejo Alegre Web Lab
 
+> **Estado atual 13/11/2026 (CORE-013, branch `preview`):** cidade ampliada como releitura fictícia de Brejo Alegre, com tráfego, pedestres, semáforos, minimapa, relógio virtual (1 h = 4 min; jornada 11h–21h) e ciclo dia/noite. Detalhes, testes e pendências na seção "CORE-013" ao fim deste arquivo. Nada publicado; sem merge na `main`.
 > **Estado atual 12/11/2026:** únicas branches no GitHub: `main` e `preview` (CORE-012 integral). PR #6 de consolidação em rascunho; commits unitários e código real preservados, sem Easter egg. As seções antigas abaixo são registros históricos, não instruções vigentes. Seguir `docs/WORKFLOW.md`.
 
 **Atualização:** 11/11/2026, após a implementação da versão 0.1 jogável. Registro datado: confirme sempre a HEAD e a CI atuais no GitHub.
@@ -326,3 +327,17 @@ FPS do headless (5–7) não representa hardware. **Galaxy S24 / Chrome Android:
 - Workflow temporário GitHub Actions `43338515888` concluiu com **success** removendo as cinco branches. API GitHub confirmou que restaram apenas `main` e `preview`. O workflow de limpeza foi removido após a execução; nenhuma rotina de exclusão permanece ativa.
 - A última versão jogável CORE-012 é ancestral da `preview`. As alterações desde CORE-012 foram documentais e de CI, sem modificar código de jogo.
 - A `main` permanece sem merge; PR consolidado #6 ainda precisa de aprovação explícita. **Nenhuma nova publicação no Pages foi solicitada nesta limpeza.**
+
+
+## CORE-013 — expansão e cidade viva (13/11/2026)
+
+| Item | Situação | Evidência |
+|---|---|---|
+| Rede viária única (16 nós, 20 vias, 3 semáforos, PARE, esquinas livres) | IMPLEMENTADO e TESTADO (unitário) | `tests/cityPlan.test.ts`, `tests/traffic.test.ts` |
+| Semáforos: sem verdes conflitantes, amarelo, vermelho geral, fase de pedestre | TESTADO (unitário) e visto no navegador | `tests/traffic.test.ts` |
+| Veículos (carro, moto, bicicleta, van, caminhão, ônibus) sem colisões e sem travamento em 5 min simulados; ônibus param nos pontos, vans em lojas/docas, caminhões nas docas | TESTADO (simulação determinística) | `tests/traffic.test.ts` |
+| Frenagem diante do jogador; parada obrigatória no PARE; espera por pedestre na faixa | TESTADO (simulação) | idem |
+| Pedestres: rede conectada, travessia só no "siga" do semáforo, lojas, praça, ponto de ônibus | TESTADO (simulação) | `tests/pedestrians.test.ts` |
+| Relógio 1 h = 240 s, jornada 11–21, controle de hora sem mudar a escala; luz contínua | TESTADO (unitário) | `tests/clock.test.ts` |
+| Minimapa (desenhado da rede), ampliar com toque/M, não cobre analógico/acelerar/câmera | TESTADO no navegador (Chromium headless) | `tests/e2e/play.cjs` |
+| FPS no Android | **NÃO MEDIDO** (headless/swiftshader não serve de medida) | — |

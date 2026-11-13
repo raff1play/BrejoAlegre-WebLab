@@ -78,3 +78,11 @@ Nova feature → pasta `src/features/<name>/` com controlador e API clara; regra
 - Na moto há acompanhamento automático do rumo após 2,5 s de inatividade manual; a pé, a câmera fica livre e a caminhada permanece relativa à direção observada.
 - `GameInput` dispara a ação `camera-mode`; `Hud.setCameraMode` atualiza rótulo acessível e botão. O snapshot de diagnóstico informa `camera.mode`.
 - Risco conhecido: copas volumosas e detalhes não incluídos nas caixas simplificadas podem obstruir parcialmente a visão. Desempenho e conforto no Galaxy S24 ainda precisam ser testados.
+
+## Cidade viva (CORE-013)
+
+- **Dados puros:** `src/world/city/cityPlan.ts` (nós, vias, quadras, lotes, lojas, galpão, pontos de ônibus, lombadas) e `cityLayout.ts` (postes, árvores, muros de testada, colisões). Mesma fonte para mundo 3D, tráfego, pedestres e minimapa.
+- **Regras puras e testadas em Node (`src/core/city/`):** `roadGraph.ts` (faixas, conversões, matriz de conflitos, Dijkstra por viagem), `signals.ts` (fases exclusivas), `traffic.ts` (IDM, admissão em cruzamentos, rotas de ônibus/vans/caminhões, população conforme a hora, despawn longe/nas saídas), `pedestrians.ts` (grafo de calçadas, FSM), `clock.ts` (1 h = 240 s; jornada 11–21; atividade por hora), `dayNight.ts` (sol, céu, névoa, sombras).
+- **Apresentação (`src/features/city/cityLife.ts`):** thin instances por protótipo (≈ 3 draw calls por tipo de veículo, 3 para pedestres, 1 para lâmpadas de semáforo); cores por instância; poças de luz e faróis só à noite. NPCs distantes atualizam em frames alternados e somem além de 150–190 m.
+- **HUD:** `src/features/hud/minimap.ts` (canvas 2D, camada estática pintada uma vez, redesenho a ~8 Hz) e relógio no `hud.ts`. `src/world/environment.ts#applyLighting` aplica a luz duas vezes por segundo.
+- **Colisão com o jogador:** veículos NPC bloqueiam a moto/pedestre (retângulo orientado); se já houver sobreposição, só o mundo estático bloqueia para o jogador conseguir sair.

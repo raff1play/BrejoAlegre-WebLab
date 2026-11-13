@@ -12,6 +12,7 @@ import { ColorCurves } from '@babylonjs/core/Materials/colorCurves';
 import { ImageProcessingConfiguration } from '@babylonjs/core/Materials/imageProcessingConfiguration';
 import type { GraphicsProfile } from '../config/graphics';
 import { paintSky, paintTexture } from './textures';
+import type { Lighting } from '../core/city/dayNight';
 
 const HORIZON = '#e8dfc9';
 
@@ -19,6 +20,8 @@ export type Environment = {
   shadows: ShadowGenerator;
   /** Re-centres the shadowed area on the player; call once per frame. */
   focusShadows(x: number, z: number): void;
+  /** CORE-013: applies the virtual-clock lighting (sun, sky, haze, shadows). */
+  applyLighting(lighting: Lighting): void;
 };
 
 /**
@@ -91,8 +94,28 @@ export function setupEnvironment(scene: Scene, profile: GraphicsProfile): Enviro
   const up = Vector3.Cross(direction, right).normalize();
   const texel = (profile.shadowRange * 2) / profile.shadowMapSize;
   const focus = new Vector3();
+  const baseExposure = grading.exposure;
   return {
     shadows,
+    applyLighting(l) {
+      direction.set(l.sunDirection[0], l.sunDirection[1], l.sunDirection[2]).normalize();
+      sun.direction.copyFrom(direction);
+      Vector3.CrossToRef(Vector3.Up(), direction, right); right.normalize();
+      Vector3.CrossToRef(direction, right, up); up.normalize();
+      sun.diffuse.set(l.sunColor[0], l.sunColor[1], l.sunColor[2]);
+      sun.specular.set(l.sunColor[0] * 0.9, l.sunColor[1] * 0.9, l.sunColor[2] * 0.9);
+      sun.intensity = l.sunIntensity;
+      sun.shadowEnabled = l.shadows;
+      shadows.setDarkness(0.12 + 0.5 * l.night);
+      sky.diffuse.set(l.skyColor[0], l.skyColor[1], l.skyColor[2]);
+      sky.groundColor.set(l.groundColor[0], l.groundColor[1], l.groundColor[2]);
+      sky.intensity = l.skyIntensity;
+      scene.fogColor.set(l.fogColor[0], l.fogColor[1], l.fogColor[2]);
+      scene.clearColor.set(l.fogColor[0], l.fogColor[1], l.fogColor[2], 1);
+      skyMaterial.emissiveColor.set(l.skyTint[0], l.skyTint[1], l.skyTint[2]);
+      grading.exposure = baseExposure * (1 - 0.05 * l.night);
+      grading.vignetteWeight = 1.3 + 0.8 * l.night;
+    },
     focusShadows(x, z) {
       focus.set(x, 0, z);
       const a = Math.round(Vector3.Dot(focus, right) / texel) * texel;

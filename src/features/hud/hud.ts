@@ -19,6 +19,8 @@ export class Hud {
   private readonly graphicsButton: HTMLElement;
   private readonly cameraButton: HTMLElement;
   private toastTimer = 0;
+  private clockEl: HTMLElement | null = null;
+  private clockTag: HTMLElement | null = null;
 
   constructor(private readonly root: ParentNode) {
     this.speed = this.find('#speed');
@@ -66,6 +68,14 @@ export class Hud {
     this.write(this.fps, `${Math.round(fps)} FPS`);
     this.write(this.mountButton, mode === 'riding' ? 'Descer' : 'Montar');
     this.mountButton.classList.toggle('unavailable', !actionAvailable);
+  }
+
+  /** CORE-013: virtual clock (1 h = 4 real minutes) and whether the 11h–21h working day is on. */
+  setClock(label: string, workday: boolean, night: boolean): void {
+    this.clockEl ??= this.find('#clock');
+    this.clockTag ??= this.find('#clock-tag');
+    this.write(this.clockEl, `${night ? '☾' : '☀'} ${label}`);
+    this.write(this.clockTag, workday ? 'Em jornada' : 'Fora da jornada');
   }
 
   toast(message: string): void {

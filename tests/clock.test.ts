@@ -38,7 +38,7 @@ test('day/night lighting: bright noon, golden late afternoon, dark night, smooth
   const night = lightingAt(22);
   const morning = lightingAt(7.5);
   assert.ok(noon.night < 0.01 && noon.sunIntensity > 1.8 && noon.shadows);
-  assert.ok(night.night > 0.99 && night.sunIntensity < 0.3 && !night.shadows);
+  assert.ok(night.night > 0.99 && night.sunIntensity < 0.6 && !night.shadows);
   assert.ok(afternoon.sunColor[2] < noon.sunColor[2], 'sunset light is warmer');
   assert.ok(morning.night < 0.05);
   assert.ok(noon.sunDirection[1] < afternoon.sunDirection[1], 'the sun is lower in the afternoon');

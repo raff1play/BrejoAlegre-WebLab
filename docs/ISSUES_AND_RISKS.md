@@ -79,3 +79,14 @@ Não marcar bloqueio como corrigido sem evidência de execução, timestamp e, q
 - **B039 — PENDENTE:** validar no Galaxy S24 a alternância GTA/ISO, estabilidade do horizonte, giro com dedo, joystick e aceleração simultâneos, montagem/desmontagem, colisão visual perto de muro e FPS nos perfis leve/alto.
 - **R-CAM-001 (aberto):** volumes simplificados evitam atravessar casas, muros, troncos e postes, mas vegetação volumosa, fios, grades e detalhes não entram em todos os volumes; podem obstruir a vista próxima. Validar no aparelho e refinar apenas onde necessário.
 - **R-CAM-002 (aberto):** câmera terceira pessoa amplia a área vista e muda enquadramento de sombras/texturas; não há métrica confiável de FPS Android. Não inferir desempenho a partir de CI headless.
+
+## CORE-013 — Cidade viva
+
+| ID | Prioridade | Status | Ação / decisão |
+|---|---|---|---|
+| C13-01 | Alta | **NÃO MEDIDO** | FPS/termal no Galaxy S24 com tráfego e pedestres. Perfil leve: 16 veículos + logística, 26 pedestres, sombras só de ônibus/caminhões. Ajustar após medição. |
+| C13-02 | Média | ABERTO | Traçado real de Brejo Alegre não verificado (OSM/IBGE bloqueados pela rede). Tudo é releitura; ver `docs/CITY_REFERENCE.md`. |
+| C13-03 | Média | ABERTO | Ciclo fixo de semáforo ~62 s (4 aproximações exclusivas + pedestre): esperas de até ~50 s no vermelho. Ajustar tempos após teste humano. |
+| C13-04 | Baixa | ABERTO | Pedestres atravessam postes/abrigos de ônibus em raros trechos (sem colisão física entre NPCs e mobiliário); veículos não desviam lateralmente, só freiam. |
+| C13-05 | Baixa | ABERTO | Janelas não acendem à noite; iluminação noturna é aproximada (luz ambiente azulada + poças aditivas sob os postes + feixes dos faróis). |
+| C13-06 | Baixa | DECISÃO PENDENTE | O aviso "ÁREA TEMPORÁRIA DE TESTE — NÃO REPRESENTA BREJO ALEGRE" foi mantido (regra do validador). Se o usuário quiser um texto de "releitura fictícia", alterar HUD, placas 3D e validador juntos. |

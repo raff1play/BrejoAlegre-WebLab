@@ -96,3 +96,14 @@
 - Branches temporárias são exceção para mudanças grandes/arriscadas/paralelas. Não exigir PR para correções de rotina em `preview`.
 - PRs antigos #2–#5 encerrados sem merge; suas branches foram excluídas após validação de ancestralidade. A branch experimental `setup/weblab-foundation` também foi excluída (PR #1 fechado). Somente `main` e `preview` permanecem. PR #6 (`preview` → `main`) continua em rascunho e só pode ser mesclado após revisão e aprovação; o Easter egg W010–W012 não foi incorporado.
 - Nenhuma mudança na definição do futuro jogo Godot, nos assets, nos controles atuais ou no PWA cancelado.
+
+## CORE-013 — Expansão de Brejo Alegre e cidade viva (pedido de 13/11/2026)
+
+- Pedido explícito do usuário: expandir a área como **releitura jogável** de Brejo Alegre/SP (IBGE 3507753) e simular uma cidade viva, trabalhando direto na `preview`, sem PR, merge ou publicação.
+- Pesquisa e escolhas em `docs/CITY_REFERENCE.md`: nomes reais de ruas, igreja e escola usados como homenagem; **traçado, posições e edifícios inventados**. O aviso obrigatório "ÁREA TEMPORÁRIA DE TESTE — NÃO REPRESENTA BREJO ALEGRE" (exigido por `scripts/validate-repository.mjs`) foi **mantido**; mudar esse texto exige decisão explícita do usuário.
+- Uma única rede (`src/world/city/cityPlan.ts`) alimenta ruas, colisões, tráfego, pedestres e minimapa. Mão direita, uma faixa por sentido; avenida, R. Coroados e R. 13 de Maio preferenciais; 3 semáforos fictícios, cruzamentos com PARE, esquinas livres.
+- Semáforos de tempo fixo com **fase exclusiva por aproximação** (verde 9 s, amarelo 3 s, vermelho geral 1,5 s) e fase exclusiva de pedestres (7 s + 4 s piscando): verdes conflitantes impossíveis por construção, conferido por teste.
+- NPCs por regras determinísticas (sem IA generativa/serviço externo): IDM para seguir/frear, admissão no cruzamento (sinal, PARE, preferência, prioridade à direita, conversão à esquerda cede, ocupação, faixa de pedestre, espaço na saída), rotas calculadas uma vez por viagem (Dijkstra), ônibus em circuito com 4 pontos, vans galpão ↔ lojas, caminhões entrada ↔ docas só em vias pesadas, carros/motos/bicicletas aleatórios.
+- Relógio: **mantida a regra aprovada de 1 hora virtual = 4 minutos reais e jornada 11h–21h**; o relógio agora roda 24 h para existir manhã/noite, começa às 11h e o controle de hora só aparece em desenvolvimento (`npm run dev`) ou com `?devtime=1` (`?hora=18` define a hora inicial).
+- Saídas da cidade a 226 m do centro (≥ 80 m além dos limites jogáveis) para os veículos surgirem/sumirem fora do alcance, na névoa.
+- Sem novos assets externos nem dependências. Não reincorpora W010–W012 nem PWA. FPS em Android **não medido**.

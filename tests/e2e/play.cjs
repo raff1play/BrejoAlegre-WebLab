@@ -94,8 +94,8 @@ async function desktop(browser) {
   await key.up('KeyW');
   check('moto percorre a rua', s.moto.z > 5, `z=${fx(s.moto.z)}, v=${fx(s.moto.speed)}`);
   const coasting = s.moto.speed;
-  await page.waitForTimeout(700);
-  s = await snap();
+  // Polls instead of a fixed wait: under software rendering a frame can take longer than 0.7 s.
+  s = await until((v) => v.moto.speed < coasting, 5000);
   check('moto desacelera sozinha sem acelerador', s.moto.speed < coasting && s.moto.speed >= 0, `${fx(coasting)} → ${fx(s.moto.speed)}`);
 
   // Dismount is refused while moving.
@@ -188,8 +188,12 @@ async function desktop(browser) {
   // The turn ends at a frame-rate dependent z; on a few stretches a street tree or pole stands
   // between the lane and the wall (e.g. the tree at x=4.75, z=2.2), which is a valid solid stop too.
   const obstacleAhead = [2.2, 26.4, 39.6, -9.6, 20.4].some((z) => Math.abs(s.moto.z - z) < 1.2);
+  // Between z ≈ 18.6 and 21.8 the W009 house (casa-leste-3) has an open driveway into its yard:
+  // there the bike may enter the yard but must stop before the house/back wall (x < 26.2).
+  const driveway = s.moto.z > 18.6 && s.moto.z < 21.8;
   check('moto chega ao muro (ou árvore/poste da calçada) e não atravessa muros nem casas',
-    maxX < 5.9 && s.moto.speed === 0 && (maxX > 4.4 || obstacleAhead), `x máximo ${fx(maxX)}, z=${fx(s.moto.z)}; face do muro em x=6.2`);
+    s.moto.speed === 0 && (driveway ? maxX < 26.2 : maxX < 5.9 && (maxX > 4.4 || obstacleAhead)),
+    `x máximo ${fx(maxX)}, z=${fx(s.moto.z)}; face do muro em x=6.2${driveway ? ' (entrada aberta do quintal)' : ''}`);
   check('moto sobe na calçada (meio-fio)', s.moto.y > 0.1 || maxX < 4.6, `y=${fx(s.moto.y)}`);
   await shot('06-colisao-muro.jpg');
 
@@ -230,6 +234,35 @@ async function desktop(browser) {
   s = await until((v) => v.camera.mode === 'isometric', 5000);
   await page.waitForTimeout(900);
   check('C restaura câmera isométrica', s.camera.mode === 'isometric');
+  // CORE-013: living city, clock, day/night and minimap.
+  s = await snap();
+  check('cidade viva: veículos e pedestres ativos', s.city.vehicles >= 8 && s.city.pedestrians >= 15 && s.city.byKind.bus >= 1,
+    `${s.city.vehicles} veículos ${JSON.stringify(s.city.byKind)}, ${s.city.pedestrians} pedestres`);
+  const fp0 = s.city.fingerprint; const sig0 = JSON.stringify(s.city.signals);
+  await page.waitForTimeout(4000);
+  s = await snap();
+  check('cidade viva: tráfego e pedestres se movem', s.city.fingerprint !== fp0 && s.city.moving > 0, `${s.city.moving} veículos em movimento`);
+  s = await until((q) => JSON.stringify(q.city.signals) !== sig0, 20000);
+  check('semáforos mudam de fase', JSON.stringify(s.city.signals) !== sig0, JSON.stringify(s.city.signals));
+  check('relógio virtual começa às 11h e conta a jornada', /^1[1-2]:\d\d$/.test(s.clock.label) && s.clock.workday, s.clock.label);
+  const arrow0 = s.minimap.arrow;
+  await page.evaluate(() => window.__debug.teleport(40, -20, Math.PI / 2));
+  await page.waitForTimeout(400);
+  await page.keyboard.press('KeyM');
+  s = await until((q) => q.minimap.expanded);
+  const arrowA = s.minimap.arrow;
+  await page.evaluate(() => window.__debug.teleport(-40, -20, Math.PI / 2));
+  s = await until((q) => Math.abs(q.minimap.arrow.x - arrowA.x) > 0.2, 5000);
+  check('minimapa ampliado acompanha o jogador', s.minimap.expanded && s.minimap.arrow.x < arrowA.x - 0.2 && arrow0.x === 0.5,
+    `x ${fx(arrowA.x)} → ${fx(s.minimap.arrow.x)} (fração da largura)`);
+  await page.keyboard.press('KeyM');
+  for (const [hour, expectNight] of [[7, false], [12, false], [18.4, false], [21.5, true]]) {
+    await page.evaluate((h) => window.__debug.setHour(h), hour);
+    s = await until((q) => Math.abs(q.clock.hour - hour) < 0.2 && (q.clock.night > 0.5) === expectNight, 5000);
+    check(`controle de hora (dev): ${hour}h ${expectNight ? 'noite' : 'dia'}`, (s.clock.night > 0.5) === expectNight, `${s.clock.label} noite=${fx(s.clock.night)}`);
+  }
+  await shot('core013-noite.jpg');
+  await page.evaluate(() => window.__debug.setHour(12));
   check('sem erros de console no desktop', g.errors.length === 0, g.errors.join(' | '));
   console.log(`   desktop headless: ${fx(s.fps)} FPS (GPU por software, não representa aparelho real)`);
   await g.context.close();
@@ -251,6 +284,10 @@ async function phone(browser) {
     const stick = rect(document.querySelector('#movement-stick'));
     stick.id = 'stick';
     buttons.push(stick);
+    // CORE-013: the minimap must not cover the analog, the throttle pad or the camera bar.
+    const map = rect(document.querySelector('#minimap'));
+    map.id = 'minimap';
+    buttons.push(map);
     const overlap = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
     const collisions = [];
     for (let i = 0; i < buttons.length; i++) for (let j = i + 1; j < buttons.length; j++) if (overlap(buttons[i], buttons[j])) collisions.push(`${buttons[i].id}/${buttons[j].id}`);
@@ -259,7 +296,7 @@ async function phone(browser) {
     const panels = [...document.querySelectorAll('.brand, .telemetry, .status-panel, .pad, .joystick-zone, .camera-bar')].map(rect);
     return { buttons, collisions, inside, centreFree: !panels.some((p) => overlap(p, centre)), portrait: getComputedStyle(document.querySelector('.portrait-warning')).display };
   });
-  const smallest = Math.min(...layout.buttons.map((b) => Math.min(b.w, b.h)));
+  const smallest = Math.min(...layout.buttons.filter((b) => b.id !== 'minimap').map((b) => Math.min(b.w, b.h)));
   check('[toque] botões com tamanho para dedos (≥ 44 px)', smallest >= 44, `menor lado ${fx(smallest)} px`);
   check('[toque] botões dentro da tela e sem sobreposição', layout.inside && layout.collisions.length === 0, layout.collisions.join(','));
   check('[toque] HUD deixa o centro da tela livre', layout.centreFree && layout.portrait === 'none');

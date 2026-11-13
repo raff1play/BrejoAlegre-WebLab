@@ -83,20 +83,24 @@ export function buildRoads(flat: BatchSet, upright: BatchSet, mats: Materials, s
 /** Zebra crossings on every approach of urban junctions; stop lines on controlled approaches. */
 function buildJunctionMarkings(flat: BatchSet, upright: BatchSet, mats: Materials, scene: Scene): void {
   for (const n of NODES) {
-    if (n.exit || n.id === 'centro' || n.control === 'free') continue;
+    if (n.exit || n.control === 'free') continue;
     for (const r of ROADS) {
       if (r.a !== n.id && r.b !== n.id) continue;
-      if (r.kind !== 'urban') continue;
+      if (r.kind === 'yard') continue;
       const s = roadSpan(r);
+      // Centro: the W009 core already paints the avenue arms; only the cross street is added, with
+      // the core's wider spacing (zebra 6.6–9.6 m, stop line at 10.25 m, matching the traffic lanes).
+      if (n.id === 'centro' && s.axis === 'z') continue;
+      const core = n.id === 'centro' ? 2 : 0;
       const dir = r.a === n.id ? 1 : -1; // direction from the node along the road
-      const along = (s.axis === 'x' ? n.x : n.z) + dir * (ROAD_HALF + 0.6);
+      const along = (s.axis === 'x' ? n.x : n.z) + dir * (ROAD_HALF + 0.6 + core);
       for (let c = -ROAD_HALF + 0.4; c <= ROAD_HALF - 0.4; c += 0.8) {
         drawBox(flat, mats.lineWhite, rect(s.axis, Math.min(along, along + dir * 3), Math.max(along, along + dir * 3), s.c + c - 0.2, s.c + c + 0.2), 0, 0.008, flatOnly);
       }
       const minorStop = n.control === 'stop' && r.priority < Math.max(...ROADS.filter((q) => q.a === n.id || q.b === n.id).map((q) => q.priority));
       if (n.control === 'signal' || minorStop) {
         // Stop line across the inbound lane (right-hand lane when approaching the node).
-        const line = along + dir * 4;
+        const line = along + dir * (4 + (core ? 0.05 : 0));
         const lane = s.axis === 'x' ? (dir > 0 ? [s.c, s.c + ROAD_HALF - 0.2] : [s.c - ROAD_HALF + 0.2, s.c])
           : (dir > 0 ? [s.c - ROAD_HALF + 0.2, s.c] : [s.c, s.c + ROAD_HALF - 0.2]);
         drawBox(flat, mats.lineWhite, rect(s.axis, Math.min(line, line + dir * 0.35), Math.max(line, line + dir * 0.35), lane[0]!, lane[1]!), 0, 0.008, flatOnly);

@@ -23,6 +23,10 @@ import { cameraObstacles } from './world/cameraObstacles';
 import { applyRoofTexture, populateExternalAssets, type ExternalStatus } from './world/externalAssets';
 import { buildStreetFurniture } from './world/props';
 import { BatchSet } from './world/geometry';
+import { VirtualClock } from './core/city/clock';
+import { lightingAt } from './core/city/dayNight';
+import { buildCityLife } from './features/city/cityLife';
+import { Minimap } from './features/hud/minimap';
 
 /** Composition root: wires input → simulation → presentation. Game rules live in core/ and features/. */
 function start(canvas: HTMLCanvasElement): void {
@@ -60,9 +64,25 @@ function start(canvas: HTMLCanvasElement): void {
     .then(([status, roofApplied]) => { external = { ...status, roofTexture: roofApplied }; })
     .catch((error: unknown) => { console.error(error); external = { loaded: [], failed: [], instances: 0, triangles: 0 }; });
 
+  // CORE-013: living city (traffic, pedestrians, signals) and the virtual clock driving the light.
+  const cityLife = buildCityLife(scene, world.materials, profile, environment.shadows, (x, z) => world.guard(x, z, 0.3));
+  const params = new URLSearchParams(window.location.search);
+  const devTime = import.meta.env.DEV || params.get('devtime') === '1';
+  const clock = new VirtualClock();
+  const requestedHour = Number(params.get('hora'));
+  if (devTime && params.has('hora') && Number.isFinite(requestedHour)) clock.setHour(requestedHour);
+  let lighting = lightingAt(clock.hour);
+  environment.applyLighting(lighting);
+  let lightTimer = 0;
+  let simTime = 0;
+  // NPC vehicles are solid for the player; if one already overlaps (e.g. it was spawned there),
+  // only the static world blocks so the player can always move away.
+  let insideVehicle = false;
+  const rideGuard: MotionGuard = (x, z, r) => world.guard(x, z, r) && (insideVehicle || !cityLife.blocks(x, z, r));
+
   // On foot, the parked bike is solid too.
   const walkerGuard: MotionGuard = (x, z, r) => {
-    if (!world.guard(x, z, r)) return false;
+    if (!rideGuard(x, z, r)) return false;
     const s = moto.state;
     const ox = Math.sin(s.yaw) * MOTO.bodyOffset;
     const oz = Math.cos(s.yaw) * MOTO.bodyOffset;
@@ -74,12 +94,26 @@ function start(canvas: HTMLCanvasElement): void {
   const hud = new Hud(document);
   hud.setVersion(currentEnvironment.version, currentEnvironment.name);
   hud.setGraphics(profile.name);
+  const minimap = new Minimap(document);
   let mode: HudMode = 'riding';
+  if (devTime) {
+    const panel = document.querySelector<HTMLElement>('#devtime');
+    const speedButton = panel?.querySelector<HTMLElement>('[data-devtime="speed"]');
+    if (panel) panel.hidden = false;
+    const apply = (key: string) => {
+      if (key === '+1') clock.setHour(Math.floor(clock.hour) + 1);
+      else if (key === 'speed') { clock.speedFactor = clock.speedFactor === 1 ? 30 : 1; if (speedButton) speedButton.textContent = `×${clock.speedFactor}`; }
+      else clock.setHour(Number(key));
+      lightTimer = 0;
+    };
+    panel?.addEventListener('click', (e) => { const k = (e.target as HTMLElement).dataset.devtime; if (k) apply(k); });
+    document.addEventListener('keydown', (e) => { if (e.code === 'KeyT' && !e.repeat) apply('+1'); });
+  }
 
   const toggleMount = (): void => {
     if (mode === 'riding') {
       if (!isMotoStopped(moto.state)) { hud.toast('Pare a moto para descer'); return; }
-      const spot = findDismountSpot(moto.state, world.guard);
+      const spot = findDismountSpot(moto.state, rideGuard);
       if (!spot) { hud.toast('Sem espaço para descer aqui'); return; }
       moto.state.speed = 0;
       moto.state.steer = 0;
@@ -125,12 +159,13 @@ function start(canvas: HTMLCanvasElement): void {
     // Clamp the step so a hitch or a background tab cannot teleport anything.
     const dt = Math.min(0.05, engine.getDeltaTime() / 1000);
     const m = moto.state;
+    insideVehicle = mode === 'riding' ? cityLife.blocks(m.x, m.z, MOTO.bodyRadius) : cityLife.blocks(walker.state.x, walker.state.z, 0.3);
     if (mode === 'riding') {
       moto.update(dt, {
         throttle: input.isDown('accelerate') ? 1 : 0,
         brake: input.isDown('brake') ? 1 : 0,
         steer: input.steer(),
-      }, world.guard, ground(m.x, m.z));
+      }, rideGuard, ground(m.x, m.z));
       const lead = rig.mode === 'third-person' ? Math.min(0.5, Math.max(0, m.speed) * 0.07) : m.speed * 0.28;
       cameraTarget.set(m.x + Math.sin(m.yaw) * lead, moto.root.position.y + 0.95, m.z + Math.cos(m.yaw) * lead);
       playerCentre.set(m.x, moto.root.position.y + 1.0, m.z);
@@ -146,6 +181,15 @@ function start(canvas: HTMLCanvasElement): void {
       mode === 'riding' ? m.yaw : walker.state.yaw, mode === 'riding');
     fader.update(dt, rig.camera.position, playerCentre);
     environment.focusShadows(playerCentre.x, playerCentre.z);
+    // Virtual clock, light (twice a second, the sun moves slowly), city simulation, minimap.
+    clock.advance(dt);
+    simTime += dt;
+    lightTimer -= dt;
+    if (lightTimer <= 0) { lighting = lightingAt(clock.hour); environment.applyLighting(lighting); lightTimer = 0.5; }
+    const player = mode === 'riding' ? { x: m.x, z: m.z, radius: 1.1 } : { x: walker.state.x, z: walker.state.z, radius: 0.45 };
+    cityLife.update(dt, simTime, clock.hour, lighting.night, player, ground);
+    hud.setClock(clock.label, clock.isWorkday, lighting.night > 0.5);
+    minimap.update(player.x, player.z, mode === 'riding' ? m.yaw : walker.state.yaw, performance.now());
     const available = mode === 'riding' ? isMotoStopped(m) : canMount(walker.state, m);
     hud.update(mode, mode === 'riding' ? Math.abs(m.speed) * 3.6 : 0, engine.getFps(), available);
   });
@@ -163,6 +207,7 @@ function start(canvas: HTMLCanvasElement): void {
       value: {
         teleport: (x: number, z: number, yaw: number) => Object.assign(moto.state, { x, z, yaw, speed: 0 }),
         camera: (alpha: number, beta: number, radius: number) => rig.debugSet(alpha, beta, radius),
+        setHour: (hour: number) => { clock.setHour(hour); lightTimer = 0; },
       },
     });
   }
@@ -179,6 +224,9 @@ function start(canvas: HTMLCanvasElement): void {
         walker: { ...walker.state, y: walker.root.position.y },
         camera: { mode: rig.mode, alpha: rig.camera.alpha, beta: rig.camera.beta, radius: rig.camera.radius, target: rig.camera.target.asArray() },
         fadedBuildings: fader.fadedCount,
+        clock: { label: clock.label, hour: clock.hour, workday: clock.isWorkday, night: lighting.night, devTime },
+        city: cityLife.stats(),
+        minimap: { expanded: minimap.isExpanded, arrow: minimap.arrowAt() },
         externalAssets: external,
         fps: engine.getFps(),
         drawCalls: scene.getEngine()._drawCalls?.current ?? null,

@@ -1,5 +1,7 @@
 # Próxima tarefa
 
+**CORE-013 (13/11/2026, na `preview`):** cidade ampliada e viva implementada (ver `docs/PROJECT_STATE.md`, seção CORE-013). Próximo passo: **teste humano no Galaxy S24** — medir FPS com tráfego/pedestres nos perfis leve e alto, conferir legibilidade do minimapa e da noite, tempos de semáforo e comportamento dos NPCs ao redor da moto (C13-01/C13-03). Só publicar no Pages ou abrir PR para `main` com autorização explícita.
+
 **FLUXO ATUAL (12/11/2026) — PRIORIDADE:** a branch de desenvolvimento é **`preview`**, derivada da CORE-012, com CI a cada push. O deploy usa exclusivamente o arquivo de autorização `docs/PREVIEW_DEPLOY_TRIGGER.md`, após pedido explícito do usuário e liberação única de `preview` em `github-pages`. Leia `docs/WORKFLOW.md`. Não criar `feat/core-013` nem novos PRs para ajustes comuns. O PR #6 de consolidação para `main` só será mesclado após revisão e aceite; os PRs #2–#5 foram fechados sem merge. O Easter egg W010–W012 foi descartado, e a branch do experimento foi excluída; todas as branches antigas foram removidas, restando apenas `main` e `preview`. **As instruções históricas de branch abaixo são registro, não ação vigente.**
 
 
