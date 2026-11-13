@@ -65,3 +65,14 @@ Em **Build and deployment > Source**, selecionar **GitHub Actions** e salvar. En
 - Conteúdo: entregas A (moto e entregador detalhados/articulados) e B (cinco fachadas e melhorias no cenário), mantendo direção W008 e PWA desativado.
 - Head W009 validada previamente: `d359a264347386e3c13242647f25ab278dd13e8a`; runs CI `43133314925` e `43133308730` concluídas com sucesso, 47/47 testes.
 - Este commit aciona o workflow explícito de preview. Confirmar conclusão do deploy, commit publicado e URL efetiva; não afirmar que o Galaxy S24 foi testado.
+
+## CORE-013 — publicação de teste autorizada (12/11/2026, horário de São Paulo)
+
+- **Pedido explícito do usuário:** "Análise o resultado e depois publique se estiver tudo correto, quero testar as novas modificações".
+- **Branch permanente e única origem:** `preview`. Não fazer merge na `main`, não criar outras branches, não reativar o Easter egg ou PWA.
+- **Candidato auditado:** commit `a688ec68171d7b4114b5d41d7a5e5c8e4b35966f` (CORE-013 + correção de obstáculos da câmera GTA nas áreas expandidas + testes + docs).
+- **Conteúdo da prévia:** expansão fictícia inspirada no município paulista Brejo Alegre, galpão e até oito lojas, tráfego de veículos e NPCs de pedestres, semáforos, minimapa e relógio/ciclo dia-noite. O traçado real não foi comprovado; não anunciar mapa cartograficamente fiel.
+- **Evidência da implementação CORE-013:** CI `43350287749` success no commit `d7b9637`, 73 testes unitários; 59/59 verificações de navegador em Chromium headless no commit anterior à correção de câmera, em `docs/evidence/e2e-core013.log`; capturas `docs/evidence/core013-*.jpg`.
+- **Correção de auditoria:** `src/world/cameraObstacles.ts` expandido para galpão, árvores, postes e quarteirões. CI `43350772802` e `43350779897` success (código e novo teste de regressão).
+- **Critério de deploy:** workflow `preview.yml` valida/recompila o commit efetivamente publicado antes de acionar Pages; confirmar run `success`, SHA e URL. Não declarar Android real testado; FPS/termal e comportamento dos NPCs no Galaxy S24 ainda não medidos.
+- **O usuário deve avaliar:** tráfego, colisões, carros/vans/ônibus, semáforos, minimapa, câmera GTA nas novas construções, iluminação noturna, controles touch e FPS nos dois perfis gráficos.
