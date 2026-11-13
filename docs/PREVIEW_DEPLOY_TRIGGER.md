@@ -76,3 +76,12 @@ Em **Build and deployment > Source**, selecionar **GitHub Actions** e salvar. En
 - **Correção de auditoria:** `src/world/cameraObstacles.ts` expandido para galpão, árvores, postes e quarteirões. CI `43350772802` e `43350779897` success (código e novo teste de regressão).
 - **Critério de deploy:** workflow `preview.yml` valida/recompila o commit efetivamente publicado antes de acionar Pages; confirmar run `success`, SHA e URL. Não declarar Android real testado; FPS/termal e comportamento dos NPCs no Galaxy S24 ainda não medidos.
 - **O usuário deve avaliar:** tráfego, colisões, carros/vans/ônibus, semáforos, minimapa, câmera GTA nas novas construções, iluminação noturna, controles touch e FPS nos dois perfis gráficos.
+
+## CORE-014 — Preview de testes autorizada em 13/11/2026
+
+- **Autorização do usuário:** "Analisa o que foi feito e se estiver ok publique". Auditoria considerou a build apta a **teste experimental**, com ressalvas de acabamento e desempenho real.
+- **Commit candidato conferido:** `9d91eb1aba3834df4434df81e273ade4a5a572a7` em `preview`. CI final [43410949374](https://github.com/raff1play/BrejoAlegre-WebLab/actions/runs/43410949374): `success`, **80/80** unitários, `validate:repo`, `build:staging`.
+- **Navegador automatizado:** **70/70** verificações aprovadas (Chromium headless com GPU por software), conforme `docs/evidence/e2e-core014.log`. Fluxo completo de oito pacotes executou ações de negócio reais com posicionamento de diagnóstico; navegação manual da rota inteira ainda não validada.
+- **Incluído:** câmera exclusiva em terceira pessoa, HUD reduzida, ampliação navegável para 38.296 m² (2,15×), 48 endereços, oito lojas com funcionário/horários, galpão com oito funções e jornada loja → galpão → residência. Preservados controles, minimapa, trânsito, dia/noite e assets prévios.
+- **Limitações conhecidas:** interiores de acabamento simples, modelos de NPC/veículos procedurais, aprovação estética humana ainda pendente; precisão cartográfica 1:1 de Brejo Alegre **não** implementada; FPS/temperatura/ergonomia no Galaxy S24 **não medidos**.
+- **Publicação permitida exclusivamente no Pages pela branch `preview`**, sem merge em `main`. O workflow revalida o SHA publicado; confirmar `success` e URL antes de declarar concluído.
