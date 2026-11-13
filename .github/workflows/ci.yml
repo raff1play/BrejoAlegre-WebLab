@@ -1,7 +1,7 @@
 name: CI - validar prototype
 on:
   push:
-    branches: [main, 'feat/**', 'fix/**', 'setup/**', 'docs/**']
+    branches: [main, preview, 'feat/**', 'fix/**', 'setup/**', 'docs/**']
   pull_request:
     branches: [main]
 permissions:
