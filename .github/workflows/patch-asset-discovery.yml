@@ -43,3 +43,19 @@ jobs:
           pch assets view "polyfork:city-bus-49fd97"
           pch assets view "anymove:woman"
           pch assets add --help | head -120
+      - name: Preview candidate thumbnails for visual gate
+        run: |
+          python3 - <<'PY'
+          import urllib.request,base64
+          urls={
+            'city_bus':'https://assets.patchusercontent.com/sha256/40b4c37a04ab54085b3b70376958bc2e467dd51a96f28d08f998cd3955991e10/thumbnail.png',
+            'woman':'https://assets.patchusercontent.com/sha256/41748a09329d31408763bdb9d051ccd2084fee75e8faba9e4b81e68e0f5ba45c/thumbnail.png',
+            'worker':'https://assets.patchusercontent.com/sha256/35769b6fbde6eada887d10db8870d7f0b5ed42363fdd5fea24f2bf5304649c37/thumbnail.png',
+            'mpfb_man':'https://assets.patchusercontent.com/sha256/d3643e465c847f0ea1a33b2f13112c53c02aede8286ecf2b2ef2797d8a9b97d4/thumbnail.png'
+          }
+          for name,url in urls.items():
+            try:
+              data=urllib.request.urlopen(url,timeout=15).read()
+              print(f'IMG_{name}='+base64.b64encode(data).decode())
+            except Exception as e: print('IMGERROR_'+name+': '+str(e))
+          PY
