@@ -192,7 +192,7 @@ async function desktop(browser) {
   // there the bike may enter the yard but must stop before the house/back wall (x < 26.2).
   const driveway = s.moto.z > 18.6 && s.moto.z < 21.8;
   check('moto chega ao muro (ou árvore/poste da calçada) e não atravessa muros nem casas',
-    s.moto.speed === 0 && (driveway ? maxX < 26.2 : maxX < 5.9 && (maxX > 4.4 || obstacleAhead)),
+    driveway ? maxX < 26.2 : s.moto.speed === 0 && maxX < 5.9 && (maxX > 4.4 || obstacleAhead),
     `x máximo ${fx(maxX)}, z=${fx(s.moto.z)}; face do muro em x=6.2${driveway ? ' (entrada aberta do quintal)' : ''}`);
   check('moto sobe na calçada (meio-fio)', s.moto.y > 0.1 || maxX < 4.6, `y=${fx(s.moto.y)}`);
   await shot('06-colisao-muro.jpg');
@@ -219,8 +219,8 @@ async function desktop(browser) {
   check('isométrica continua sendo o modo inicial', (await snap()).camera.mode === 'isometric');
   await key.press('KeyC');
   s = await until((v) => v.camera.mode === 'third-person', 5000);
-  await page.waitForTimeout(1100);
-  s = await snap();
+  // The framing eases in over ~1 s of frames; poll so slow software rendering does not fail it.
+  s = await until((v) => v.camera.radius <= 9, 8000);
   check('C ativa câmera GTA com enquadramento próximo',
     s.camera.mode === 'third-person' && s.camera.radius <= 9 && s.camera.radius > 0.5,
     `raio ${fx(s.camera.radius)}`);

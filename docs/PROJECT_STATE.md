@@ -340,4 +340,6 @@ FPS do headless (5–7) não representa hardware. **Galaxy S24 / Chrome Android:
 | Pedestres: rede conectada, travessia só no "siga" do semáforo, lojas, praça, ponto de ônibus | TESTADO (simulação) | `tests/pedestrians.test.ts` |
 | Relógio 1 h = 240 s, jornada 11–21, controle de hora sem mudar a escala; luz contínua | TESTADO (unitário) | `tests/clock.test.ts` |
 | Minimapa (desenhado da rede), ampliar com toque/M, não cobre analógico/acelerar/câmera | TESTADO no navegador (Chromium headless) | `tests/e2e/play.cjs` |
-| FPS no Android | **NÃO MEDIDO** (headless/swiftshader não serve de medida) | — |
+| Regressão CORE-012 (moto, caminhada, câmeras GTA/ISO, toque, HUD) + verificações da cidade viva | TESTADO: **59/59** no Chromium headless (dev) | `docs/evidence/e2e-core013.log`, `core013-*.jpg` |
+| Unitários | TESTADO: **73/73** | `npm run test:unit` |
+| FPS no Android | **NÃO MEDIDO** (headless/swiftshader: 4–5 FPS desktop, ~3 FPS celular emulado — não serve de medida) | — |

@@ -1,0 +1,63 @@
+PASS  abre sem erro e inicia pilotando na vaga
+PASS  aviso de área temporária visível na tela
+PASS  moto acelera  (v=3.08 m/s)
+PASS  moto freia até parar  (x=2.58)
+PASS  moto desceu o meio-fio para a rua  (y=0)
+PASS  guidão não gira a moto parada
+PASS  moto vira à direita em movimento  (yaw -1.57 → -0.09)
+PASS  inclinação visual moderada na curva  (lean=0.41 rad)
+PASS  moto percorre a rua  (z=12.03, v=13.34)
+PASS  moto desacelera sozinha sem acelerador  (13.34 → 13.32)
+PASS  não desce com a moto em movimento
+PASS  câmera gira (teclado)  (Δalpha=0.43)
+PASS  câmera aproxima  (raio 15 → 9.94)
+PASS  câmera afasta (roda do mouse)  (raio 9.94 → 41.21)
+PASS  câmera gira arrastando na cena
+PASS  câmera acompanha a moto
+PASS  desce com a moto parada
+PASS  personagem caminha  (1.3 m com KeyS)
+PASS  moto não se move enquanto a pé
+PASS  não monta longe da moto  (3.22 m)
+PASS  personagem não atravessa a moto estacionada  (distância 1.57 m)
+PASS  monta novamente perto da moto  (distância 1.57 m)
+PASS  moto chega ao muro (ou árvore/poste da calçada) e não atravessa muros nem casas  (x máximo 14.03, z=20.74; face do muro em x=6.2 (entrada aberta do quintal))
+PASS  moto sobe na calçada (meio-fio)  (y=0.15)
+PASS  ré lenta ao frear parado  (v=-0.61)
+PASS  perda de foco solta as teclas
+PASS  redimensiona o canvas com a janela  (900x420)
+PASS  isométrica continua sendo o modo inicial
+PASS  C ativa câmera GTA com enquadramento próximo  (raio 8.91)
+PASS  modo GTA aceita giro manual
+PASS  C restaura câmera isométrica
+PASS  cidade viva: veículos e pedestres ativos  (21 veículos {"bus":2,"van":3,"truck":1,"car":12,"moto":3}, 47 pedestres)
+PASS  cidade viva: tráfego e pedestres se movem  (8 veículos em movimento)
+PASS  semáforos mudam de fase  ({"centro":"av-centro:green/stop","leste":"coroados-anel:green/stop","sul":"-:red/flash"})
+PASS  relógio virtual começa às 11h e conta a jornada  (11:06)
+PASS  minimapa ampliado acompanha o jogador  (x 0.52 → 0.2 (fração da largura))
+PASS  controle de hora (dev): 7h dia  (07:00 noite=0)
+PASS  controle de hora (dev): 12h dia  (12:00 noite=0)
+PASS  controle de hora (dev): 18.4h dia  (18:24 noite=0)
+PASS  controle de hora (dev): 21.5h noite  (21:30 noite=1)
+PASS  sem erros de console no desktop
+   desktop headless: 4.21 FPS (GPU por software, não representa aparelho real)
+PASS  [toque] perfil gráfico móvel escolhido automaticamente  (render 1170x540)
+PASS  [toque] botões com tamanho para dedos (≥ 44 px)  (menor lado 46 px)
+PASS  [toque] botões dentro da tela e sem sobreposição
+PASS  [toque] HUD deixa o centro da tela livre
+PASS  [toque] botão acelerar move a moto  (v=2.63)
+PASS  [toque] botão mostra estado pressionado
+PASS  [toque] dois dedos: acelerar + virar ao mesmo tempo  (Δyaw=0.37)
+PASS  [toque] soltar os dedos não deixa comando preso  (v 7.08 → 6.83)
+PASS  [toque] botão frear para a moto
+PASS  [toque] toque cancelado solta o comando
+PASS  [toque] botões de câmera giram e aproximam
+PASS  [toque] pinça afasta a câmera  (raio 12.61 → 29.19)
+PASS  [toque] botão Descer funciona parado
+PASS  [toque] personagem anda pelo analógico
+PASS  [toque] botão Montar funciona perto da moto
+PASS  [toque] botão GTA alterna para terceira pessoa
+PASS  [toque] botão ISO restaura câmera original
+PASS  [toque] sem erros de console
+   celular emulado headless: 3.24 FPS em 1170x540 (GPU por software; NÃO é medição em Android)
+
+59/59 verificações passaram.
