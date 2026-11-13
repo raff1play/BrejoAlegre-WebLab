@@ -90,3 +90,5 @@ Não marcar bloqueio como corrigido sem evidência de execução, timestamp e, q
 | C13-04 | Baixa | ABERTO | Pedestres atravessam postes/abrigos de ônibus em raros trechos (sem colisão física entre NPCs e mobiliário); veículos não desviam lateralmente, só freiam. |
 | C13-05 | Baixa | ABERTO | Janelas não acendem à noite; iluminação noturna é aproximada (luz ambiente azulada + poças aditivas sob os postes + feixes dos faróis). |
 | C13-06 | Baixa | DECISÃO PENDENTE | O aviso "ÁREA TEMPORÁRIA DE TESTE — NÃO REPRESENTA BREJO ALEGRE" foi mantido (regra do validador). Se o usuário quiser um texto de "releitura fictícia", alterar HUD, placas 3D e validador juntos. |
+
+- **C13-07 — CORRIGIDO NO CÓDIGO, PENDENTE NO APARELHO:** a CORE-013 inicialmente não adicionava os novos prédios/galpão/postes aos obstáculos de câmera GTA; corrigido adicionando os volumes estáticos em `src/world/cameraObstacles.ts`, com regressão unitária. Validar em Chrome Android, principalmente câmera muito próxima de muros e galpão.
