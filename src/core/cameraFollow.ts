@@ -12,6 +12,15 @@ export function followAngle(from: number, to: number, rate: number, dt: number):
 
 /** Earliest segment entry into an expanded solid AABB, as a 0..1 fraction. */
 export function segmentBoxEntry(from: Point3, to: Point3, box: Box3D, padding = 0): number | null {
+  if (box.yaw !== undefined) {
+    // Oriented box: express the segment in the box frame (local min/max around cx, cz).
+    const c = Math.cos(box.yaw); const s = Math.sin(box.yaw);
+    const local = (p: Point3): Point3 => {
+      const dx = p.x - (box.cx ?? 0); const dz = p.z - (box.cz ?? 0);
+      return { x: dx * c - dz * s, y: p.y, z: dx * s + dz * c };
+    };
+    return segmentBoxEntry(local(from), local(to), { ...box, yaw: undefined }, padding);
+  }
   let enter = 0;
   let leave = 1;
   const axes: readonly (readonly [number, number, number, number])[] = [

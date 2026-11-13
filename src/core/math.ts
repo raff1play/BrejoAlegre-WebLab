@@ -21,7 +21,11 @@ export function angleDelta(from: number, to: number): number {
   return d;
 }
 
-export type Box3D = Readonly<{ minX: number; maxX: number; minY: number; maxY: number; minZ: number; maxZ: number }>;
+export type Box3D = Readonly<{
+  minX: number; maxX: number; minY: number; maxY: number; minZ: number; maxZ: number;
+  /** CORE-015: rotation (radians, same convention as yaw) about (cx, cz); min/max are then local. */
+  yaw?: number; cx?: number; cz?: number;
+}>;
 export type Point3 = Readonly<{ x: number; y: number; z: number }>;
 
 /** Slab test: does the segment a→b pass through the box? Used to detect what hides the player. */

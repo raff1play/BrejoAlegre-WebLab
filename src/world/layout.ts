@@ -41,7 +41,8 @@ export const WALL_H = 2.0;
  * All four are rotations (no mirroring), so the same lot plan works on every street.
  */
 export type FrameSide = 1 | -1 | 2 | -2;
-export type Frame = Readonly<{ ox: number; oz: number; side: FrameSide }>;
+/** CORE-015: `yaw` (radians, inward direction = (sin yaw, cos yaw)) overrides `side` for real streets at any angle. */
+export type Frame = Readonly<{ ox: number; oz: number; side: FrameSide; yaw?: number }>;
 
 /** Frontage direction (local +x) and inward direction (local +z) in world x/z for each side. */
 export function frameAxes(side: FrameSide): { fx: number; fz: number; ix: number; iz: number } {
@@ -53,16 +54,35 @@ export function frameAxes(side: FrameSide): { fx: number; fz: number; ix: number
   }
 }
 
+/** Axes of a frame: the four legacy sides, or any angle when `yaw` is set (frontage = inward turned −90°). */
+export function axesOf(frame: Frame): { fx: number; fz: number; ix: number; iz: number } {
+  if (frame.yaw === undefined) return frameAxes(frame.side);
+  const ix = Math.sin(frame.yaw); const iz = Math.cos(frame.yaw);
+  return { fx: iz, fz: -ix, ix, iz };
+}
+
 /** Lot coordinates to a world point on the ground plane (see frameRect). */
 export function framePoint(frame: Frame, lx: number, lz: number): { x: number; z: number } {
-  const a = frameAxes(frame.side);
+  const a = axesOf(frame);
   return { x: frame.ox + a.fx * lx + a.ix * lz, z: frame.oz + a.fz * lx + a.iz * lz };
 }
 
+/** Axis box around a lot rectangle (exact for the legacy sides, a bound for rotated frames). */
 export function frameRect(frame: Frame, lx0: number, lx1: number, lz0: number, lz1: number): Box2D {
-  const p = framePoint(frame, lx0, lz0);
-  const q = framePoint(frame, lx1, lz1);
-  return { minX: Math.min(p.x, q.x), maxX: Math.max(p.x, q.x), minZ: Math.min(p.z, q.z), maxZ: Math.max(p.z, q.z) };
+  const c = frameCorners(frame, lx0, lx1, lz0, lz1);
+  const xs = c.map((p) => p[0]); const zs = c.map((p) => p[1]);
+  return { minX: Math.min(...xs), maxX: Math.max(...xs), minZ: Math.min(...zs), maxZ: Math.max(...zs) };
+}
+
+/** The four world corners of a lot rectangle (convex, in order). */
+export function frameCorners(frame: Frame, lx0: number, lx1: number, lz0: number, lz1: number): [number, number][] {
+  return ([[lx0, lz0], [lx1, lz0], [lx1, lz1], [lx0, lz1]] as const).map(([a, b]) => { const p = framePoint(frame, a, b); return [p.x, p.z] as [number, number]; });
+}
+
+/** Yaw of a frame (inward direction), for any frame. */
+export function yawOf(frame: Frame): number {
+  const a = axesOf(frame);
+  return Math.atan2(a.ix, a.iz);
 }
 
 /** Yaw (Babylon rotation.y) that turns local +z (into the lot) to the frame's inward direction. */
