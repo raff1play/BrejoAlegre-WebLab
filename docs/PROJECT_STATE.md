@@ -310,7 +310,8 @@ FPS do headless (5–7) não representa hardware. **Galaxy S24 / Chrome Android:
 - Branch permanente `preview` criada a partir do commit publicado CORE-012 `bf8881e514e7f6e6a451a299de262197ef1e1271`.
 - A árvore dessa origem foi examinada: 163 entradas; não havia arquivos cujo caminho contivesse `dragon`, `easter` ou `surprise`. Easter egg W010–W012 segue na antiga branch experimental, que não foi mesclada.
 - CI ajustada para executar também em `preview`. Workflow de Preview limitado à branch `preview` e ao arquivo `docs/PREVIEW_DEPLOY_TRIGGER.md`; commits ordinários **não acionam publicação**.
-- `main` continua no commit inicial `2c55f700b7b9e195068a354699607d15381a245d` enquanto ocorre revisão de consolidação. PRs #2–#5 permanecem históricos até a integração ser realmente concluída; não afirmar que estão mesclados/encerrados.
+- `main` continua no commit inicial `2c55f700b7b9e195068a354699607d15381a245d` enquanto ocorre revisão de consolidação. PRs #2–#5 foram encerrados administrativamente **sem merge**, com comentários e indicação do PR consolidado **#6** (em rascunho). Os commits dessas etapas permanecem na ancestralidade da `preview`.
 - Antes da migração: CORE-012 teve sucesso na CI (run `43227259084`) e em publicação (run `43227258786`), mas o comportamento de câmera no Galaxy S24 e FPS real permanecem sem teste documentado.
 - **Pendência manual:** autorizar `preview` em Settings → Environments → `github-pages` uma única vez. Até lá, não disparar um novo preview e não afirmar que o Pages já aponta para `preview`.
 - Ver procedimentos e decisões em `docs/WORKFLOW.md`.
+- A CI da `preview` após a documentação inicial foi concluída com **success** (run `43336452746`), com validação, testes e build staging. O PR #6 terá suas próprias verificações antes do merge.

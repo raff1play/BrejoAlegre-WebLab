@@ -7,7 +7,7 @@
 - `preview`: **única branch de trabalho normal**, iniciada do commit `bf8881e5` da CORE-012. Ajustes pequenos e médios são commits nela, não novos PRs ou branches.
 - `main`: **versão estável**. Só recebe código após revisão de PR de `preview` para `main`, CI aprovada e aprovação explícita do usuário. Não fazer push direto nela.
 - Exceção: mudanças grandes, destrutivas ou paralelas podem usar `feat/... ` temporária, com PR para `preview`; encerrar após integração.
-- `setup/weblab-foundation`: arquivo de experimento Easter egg W010–W012; nunca mesclar ou copiar para a linha real. PRs #2–#5 permanecem históricos até a consolidação segura.
+- `setup/weblab-foundation`: arquivo de experimento Easter egg W010–W012; nunca mesclar ou copiar para a linha real. PRs #2–#5 foram encerrados administrativamente, sem merge, após preservar seus commits na `preview`; PR #6 revisa a consolidação com a `main`.
 
 ## Ciclo de cada mudança
 
@@ -28,7 +28,7 @@
 ## Consolidação da main
 
 - Criar/manter PR `preview` → `main` para revisão, mas **não fazer merge** enquanto a versão de câmera/controles mais recente não tiver validação suficiente e aprovação explícita.
-- Após integração verificada, encerrar PRs anteriores #2–#5 como substituídos pelo PR consolidado. **Não apagar branches históricas** durante a migração.
+- PRs antigos #2–#5 já foram encerrados como substituídos; seus commits e branches continuam preservados. Após merge explicitamente autorizado do PR #6, conferir a CI da `main`. **Não apagar branches históricas**.
 - O workflow `.github/workflows/pages.yml` da produção continua **manual** e limitado à `main`; não acionar sem autorização.
 
 ## Portas de segurança

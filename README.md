@@ -1,6 +1,6 @@
 # Brejo Alegre Web Lab — simulador 3D experimental
 
-**Código de trabalho:** branch permanente [`preview`](https://github.com/raff1play/BrejoAlegre-WebLab/tree/preview). **Versão estável:** `main` (consolidação em revisão). **Jogo público:** https://raff1play.github.io/BrejoAlegre-WebLab/
+**Código de trabalho:** branch permanente [`preview`](https://github.com/raff1play/BrejoAlegre-WebLab/tree/preview). **Versão estável:** `main` (consolidação no [PR #6](https://github.com/raff1play/BrejoAlegre-WebLab/pull/6), ainda em revisão; PRs #2–#5 fechados sem merge). **Jogo público:** https://raff1play.github.io/BrejoAlegre-WebLab/
 
 O Web Lab é um protótipo **single-player** no navegador com Babylon.js 9.35.0, TypeScript 5.9.3 e Vite 7.3.0. A versão de jogo definitiva em Godot/Android, com multiplayer e logística, é um projeto futuro distinto. A cidade atual é fictícia, com aviso na tela.
 

@@ -13,7 +13,7 @@ Web Lab: Babylon.js + TypeScript + Vite, single-player, cena fictícia de testes
 - `main` permanece no commit inicial até o PR consolidado ser revisado e aprovado.
 - Assets Poly Haven CC0 estão documentados em `public/assets/ASSET_MANIFEST.md`; câmera GTA/ISO, joystick, piloto e pedestre preservados.
 - Experimento **descartado** W010–W012 do dragão fica somente em `setup/weblab-foundation` e PR #1 fechado. Não recuperar nem copiar o evento para `preview`.
-- PRs encadeados #2–#5 ainda são registros; não são base para próximas alterações.
+- PRs encadeados #2–#5 foram fechados **sem merge**, substituídos pelo PR consolidado **#6** (`preview` → `main`, em rascunho); seus commits e branches continuam preservados. Não são base para próximas alterações.
 
 ## Passos em toda tarefa
 
