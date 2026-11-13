@@ -18,8 +18,9 @@ const path = require('node:path');
     ]) {
       const page = await browser.newPage({ viewport: { width, height }, deviceScaleFactor: 1 });
       const errors = [];
+      const warnings = [];
       page.on('pageerror', (error) => errors.push(error.message));
-      page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()); });
+      page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()); if (message.type() === 'warning') warnings.push(message.text()); });
       await page.goto('http://127.0.0.1:4173/' + query, { waitUntil: 'load', timeout: 60000 });
       await page.waitForFunction(() => {
         const status = window.__weblab?.snapshot()?.city?.patch;
@@ -28,7 +29,7 @@ const path = require('node:path');
       await page.waitForTimeout(1700);
       const snap = await page.evaluate(() => window.__weblab.snapshot());
       const patch = snap.city.patch;
-      const record = { name, patch, fpsSoftware: Number(snap.fps.toFixed(1)), errors };
+      const record = { name, patch, fpsSoftware: Number(snap.fps.toFixed(1)), errors, warnings };
       reports.push(record);
       console.log('PATCH_SMOKE ' + JSON.stringify(record));
       assert.equal(patch.bus, 'ready', 'GLB bus should load');
