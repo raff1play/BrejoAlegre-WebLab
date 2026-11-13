@@ -29,6 +29,9 @@ export const RING_X = 146;
 /** Old core streets (W009) are drawn by temporaryWorld up to this distance from the axes. */
 export const CORE_EXTENT = 63.8;
 
+/** Exits sit far beyond the playable bounds (≥ 80 m) so traffic appears and vanishes out of reach, in the haze. */
+export const EXIT_REACH = 226;
+
 const node = (id: string, x: number, z: number, control: NodeControl, exit = false): CityNode => ({ id, x, z, control, exit });
 
 export const NODES: readonly CityNode[] = [
@@ -43,11 +46,11 @@ export const NODES: readonly CityNode[] = [
   node('se', GRID_X, SOUTH_Z, 'stop'),
   node('base', RING_X, SOUTH_Z, 'free'),
   node('portao', 106, SOUTH_Z, 'stop'),
-  node('docas', 106, -110, 'free'),
+  node('docas', 106, -115, 'free'),
   node('anel', RING_X, CROSS_Z, 'stop'),
-  node('saida-norte', 0, CITY_BOUNDS.maxZ + 30, 'free', true),
-  node('saida-sul', 0, CITY_BOUNDS.minZ - 30, 'free', true),
-  node('saida-oeste', CITY_BOUNDS.minX - 30, CROSS_Z, 'free', true),
+  node('saida-norte', 0, EXIT_REACH, 'free', true),
+  node('saida-sul', 0, -EXIT_REACH, 'free', true),
+  node('saida-oeste', -EXIT_REACH, CROSS_Z, 'free', true),
 ];
 
 const road = (id: string, name: string, a: string, b: string, kind: RoadKind, priority: number, heavy: boolean): CityRoad =>
