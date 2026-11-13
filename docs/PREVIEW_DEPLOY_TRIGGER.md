@@ -85,3 +85,13 @@ Em **Build and deployment > Source**, selecionar **GitHub Actions** e salvar. En
 - **Incluído:** câmera exclusiva em terceira pessoa, HUD reduzida, ampliação navegável para 38.296 m² (2,15×), 48 endereços, oito lojas com funcionário/horários, galpão com oito funções e jornada loja → galpão → residência. Preservados controles, minimapa, trânsito, dia/noite e assets prévios.
 - **Limitações conhecidas:** interiores de acabamento simples, modelos de NPC/veículos procedurais, aprovação estética humana ainda pendente; precisão cartográfica 1:1 de Brejo Alegre **não** implementada; FPS/temperatura/ergonomia no Galaxy S24 **não medidos**.
 - **Publicação permitida exclusivamente no Pages pela branch `preview`**, sem merge em `main`. O workflow revalida o SHA publicado; confirmar `success` e URL antes de declarar concluído.
+
+## Patch.gg — publicação do piloto autorizada em 13/11/2026
+
+- **Autorização explícita:** usuário respondeu "Publique" à proposta de publicar o modo de comparação de ônibus e pedestre Patch.gg.
+- **Branch exclusiva:** `preview`, sem merge em `main` e sem criar novas branches. Candidato anterior ao gatilho: `add2697660e2349afdf4f3bf7c0d704f15c48b1b`.
+- **Verificações já aprovadas:** CI [43423845222](https://github.com/raff1play/BrejoAlegre-WebLab/actions/runs/43423845222): 83/83 unitários, validação e build staging; browser [43423296413](https://github.com/raff1play/BrejoAlegre-WebLab/actions/runs/43423296413) aprovou carregamento dos 2 ônibus e 1 pedestre em perfis mobile e desktop (emulação de software, não Galaxy S24 real).
+- **Modo padrão:** endereço sem `?assets=patch` mantém CORE-014 com modelos procedurais anteriores.
+- **Modo de comparação:** `?assets=patch` carrega `city-bus-49fd97.glb` (Polyfork, CC BY 4.0) e `woman.glb` (Patch/anymove, CC0), com fallback e créditos. Um NPC próximo é substituído visualmente; ônibus no trânsito conservam simulação anterior. Funcionários do galpão e das lojas não são substituídos neste teste.
+- **Ressalvas:** ônibus low-poly, rodas ainda sem animação própria; personagem 6,27 MB não otimizada para uso em massa; aparência e FPS real no Android dependem de avaliação. Não declarar como substituição final nem como aprovado visualmente.
+- **Condição de aceite:** etapa `Deploy preview` do workflow GitHub Pages concluída com `success`; confirmar URL divulgada. Não modificar workflow de produção.
