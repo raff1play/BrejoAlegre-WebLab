@@ -364,3 +364,11 @@ FPS do headless (5–7) não representa hardware. **Galaxy S24 / Chrome Android:
 | FPS no Android | **NÃO MEDIDO** (headless: ~3 FPS por GPU de software, não é medida) | — |
 
 - **Integração (13/11/2026):** os commits da CORE-014 foram rebaseados sobre a correção de câmera e o deploy aprovado da CORE-013 (`e1cfd7b`). Conflito em `src/world/cameraObstacles.ts` resolvido mantendo os volumes da CORE-013, exceto o bloco sólido do galpão e o mobiliário interno (o galpão e as lojas agora são acessíveis; paredes e tetos entram por `cityCameraObstacles()`). Após o rebase: 80/80 unitários e **70/70** no navegador (`docs/evidence/e2e-core014.log`). A CORE-014 **não foi publicada**: `docs/PREVIEW_DEPLOY_TRIGGER.md` não foi alterado.
+
+
+## Teste de assets Patch (13/11/2026)
+
+- O usuário pediu substituição experimental de NPCs e ônibus com modelos Patch.gg. Na `preview` foram importados `city-bus-49fd97.glb` (Polyfork, CC BY 4.0) e `woman.glb` (anymove, CC0), com licença e créditos.
+- **Somente `?assets=patch`** ativa as novas malhas; sem o parâmetro, o jogo permanece com atores CORE-014. Duas instâncias máximas do ônibus; apenas uma pedestre próxima recebe modelo animado de teste. Funcionários de lojas/galpão não foram substituídos neste piloto.
+- A IA, rotas, colisões, pacotes e relógio não foram modificados. A disponibilidade de cada carregamento fica em `window.__weblab.snapshot().city.patch`.
+- Deve ser verificado em navegador real, inclusive escala, orientação, animações e custo de FPS no Galaxy S24. Não houve autorização para publicação nesta solicitação.
