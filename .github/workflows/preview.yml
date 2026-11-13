@@ -1,11 +1,12 @@
-name: Preview CORE-012 - Pages (explicit trigger)
+name: Preview - Pages (publicacao autorizada)
 
+# Edicoes de codigo nao publicam automaticamente.
+# Somente o arquivo de autorizacao dispara o deploy da branch preview.
 on:
   push:
     branches:
-      - feat/core-012-gta-camera
+      - preview
     paths:
-      - .github/workflows/preview.yml
       - docs/PREVIEW_DEPLOY_TRIGGER.md
 
 permissions:
@@ -17,14 +18,9 @@ concurrency:
   group: pages-weblab-preview
   cancel-in-progress: false
 
-# Autorização explícita do usuário em 12/11/2026: auditar implementação recente e publicar se adequada.
-# CORE-012 acrescenta camera GTA/ISO sobre os assets CC0 da CORE-011. CI verde; Android real pendente.
-# Deploy de Preview apenas da CORE-012 (autorizado pelo usuario); PR #5 permanece em rascunho, sem merge.
-# O workflow de produção e a branch main não são alterados.
 jobs:
   deploy-preview:
-    # Never deploy pull-request events or other branches.
-    if: github.event_name == 'push' && github.ref == 'refs/heads/feat/core-012-gta-camera'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/preview'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment:
@@ -38,11 +34,13 @@ jobs:
           cache: npm
       - name: Install reproducibly
         run: npm ci --no-audit --no-fund
-      - run: npm run validate:repo
-      - run: npm run test:unit
-      - name: Build preview (not production)
+      - name: Validate repository
+        run: npm run validate:repo
+      - name: Unit tests
+        run: npm run test:unit
+      - name: Build preview
         run: npm run build:staging
-      - name: Configure Pages (repository must have GitHub Actions source enabled)
+      - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload static site
         uses: actions/upload-pages-artifact@v3
