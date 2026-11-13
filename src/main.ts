@@ -17,7 +17,9 @@ import { Motorcycle, PLAYER_LOOK } from './features/driving/motorcycle';
 import { Hud, type HudMode } from './features/hud/hud';
 import { Pedestrian } from './features/walking/pedestrian';
 import { setupEnvironment } from './world/environment';
-import { CURB_H, PARKED_PROP, SPAWN } from './world/layout';
+import { CURB_H } from './world/layout';
+import { depotWorld, depotYaw } from './world/city/cityPlan';
+import { HouseStreamer } from './features/city/houseStreamer';
 import { buildTemporaryWorld } from './world/temporaryWorld';
 import { cameraObstacles } from './world/cameraObstacles';
 import { applyRoofTexture, populateExternalAssets, type ExternalStatus } from './world/externalAssets';
@@ -42,8 +44,16 @@ function start(canvas: HTMLCanvasElement): void {
   const environment = setupEnvironment(scene, profile);
   const world = buildTemporaryWorld(scene, profile);
   const ground = (x: number, z: number) => heightAt(x, z, world.raised);
+  // CORE-015: the shift starts at the motorcycle bays of the depot, on its real block.
+  const bay = depotWorld(84, -111);
+  const SPAWN = { x: bay.x, z: bay.z, yaw: depotYaw(0) };
+  const propBay = depotWorld(87, -111);
+  const PARKED_PROP = { x: propBay.x, z: propBay.z, yaw: depotYaw(0) };
 
   const moto = new Motorcycle(scene, world.materials, PLAYER_LOOK, SPAWN.x, SPAWN.z, SPAWN.yaw, ground(SPAWN.x, SPAWN.z));
+  // CORE-015: detailed houses are streamed by sector around the player; far lots stay low-poly.
+  const houses = new HouseStreamer(scene, world.materials, profile, profile.name === 'desktop' ? environment.shadows : null);
+  houses.update(SPAWN.x, SPAWN.z, true);
   const parkedProp = new Motorcycle(scene, world.materials, { paint: '#1f6a45', box: '#d2cdbf', helmet: '#222' },
     PARKED_PROP.x, PARKED_PROP.z, PARKED_PROP.yaw, CURB_H, { withRider: false, static: true });
   const walker = new Pedestrian(scene, world.materials, PLAYER_LOOK.helmet);
@@ -77,6 +87,8 @@ function start(canvas: HTMLCanvasElement): void {
   environment.applyLighting(lighting);
   let lightTimer = 0;
   let devSpeed = 1;
+  /** Development only: a fixed overview camera for map comparisons (see __debug.view). */
+  let freeView = false;
   const delivery = new DeliveryGame(scene, world.materials, profile, environment.shadows, world.shutters, (x, z) => world.guard(x, z, 0.45));
   let simTime = 0;
   // NPC vehicles are solid for the player; if one already overlaps (e.g. it was spawned there),
@@ -196,7 +208,7 @@ function start(canvas: HTMLCanvasElement): void {
       playerCentre.set(w.x, walker.root.position.y + 1.35, w.z);
       cameraTarget.set(w.x + Math.cos(yaw) * 0.42, walker.root.position.y + 1.45, w.z - Math.sin(yaw) * 0.42);
     }
-    rig.update(dt, cameraTarget, input.axis('camera-right', 'camera-left'), input.axis('zoom-out', 'zoom-in'),
+    if (!freeView) rig.update(dt, cameraTarget, input.axis('camera-right', 'camera-left'), input.axis('zoom-out', 'zoom-in'),
       mode === 'riding' ? m.yaw : walker.state.yaw, mode === 'riding');
     fader.update(dt, rig.camera.position, playerCentre);
     environment.focusShadows(playerCentre.x, playerCentre.z);
@@ -209,6 +221,7 @@ function start(canvas: HTMLCanvasElement): void {
     if (lightTimer <= 0) { lighting = lightingAt(clock.hour); environment.applyLighting(lighting); lightTimer = 0.5; }
     const player = mode === 'riding' ? { x: m.x, z: m.z, radius: 1.1 } : { x: walker.state.x, z: walker.state.z, radius: 0.45 };
     cityLife.update(dt, simTime, clock.hour, lighting.night, player, ground);
+    houses.update(player.x, player.z);
     hud.setClock(clock.label, clock.isWorkday, lighting.night > 0.5);
     minimap.update(player.x, player.z, mode === 'riding' ? m.yaw : walker.state.yaw, performance.now());
     // Delivery job: shops, depot staff, customers, objective marker and contextual action.
@@ -249,6 +262,15 @@ function start(canvas: HTMLCanvasElement): void {
           walker.place(x, z, yaw, ground(x, z));
         },
         act: () => contextAction(),
+        view: (alpha: number, beta: number, radius: number, x: number, z: number) => {
+          freeView = true;
+          Object.assign(rig.camera, { alpha, beta, radius });
+          rig.camera.target.set(x, 0, z);
+          rig.camera.maxZ = 5000;
+          scene.fogEnabled = false;
+          scene.getMeshByName('ceu-domo')?.setEnabled(false);
+        },
+        endView: () => { freeView = false; scene.fogEnabled = true; scene.getMeshByName('ceu-domo')?.setEnabled(true); },
         wait: () => onAction('wait'),
       },
     });
@@ -282,6 +304,7 @@ function start(canvas: HTMLCanvasElement): void {
         },
         paused: hud.paused,
         city: cityLife.stats(),
+        houses: houses.stats(),
         minimap: { expanded: minimap.isExpanded, arrow: minimap.arrowAt() },
         externalAssets: external,
         fps: engine.getFps(),

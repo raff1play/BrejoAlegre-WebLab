@@ -1,5 +1,6 @@
-import { ROAD_HALF, SHOP, framePoint, type Frame } from '../../world/layout.ts';
-import { BUS_STOPS, CHURCH, NODES, ROADS, SCHOOL, SERVICES, STORES, walkableAreas, nodeById, type CityNode } from '../../world/city/cityPlan.ts';
+import { ROAD_HALF, framePoint, type Frame } from '../../world/layout.ts';
+import { NODES, ROADS, STORES, nodeById, type CityNode, type CityRoad } from '../../world/city/cityPlan.ts';
+import { OPEN_SPACES, pointInPolygon } from '../../world/geo/geoCity.ts';
 import { rng, type Obstacle } from './traffic.ts';
 import type { PedAspect } from './signals.ts';
 
@@ -9,7 +10,21 @@ import type { PedAspect } from './signals.ts';
  * walk → wait at the kerb → cross → walk → visit (shop, church, school) / idle (square) / bus.
  */
 export const PED_OFFSET = 5.6;
-export const crossingDistance = (n: CityNode): number => (n.id === 'centro' ? 8.1 : ROAD_HALF + 2.1);
+/** Where pedestrians cross an arm (CORE-015: capped on the short real arms between staggered junctions). */
+export const crossingDistance = (n: CityNode): number => {
+  const shortest = Math.min(...ROADS.filter((r) => r.a === n.id || r.b === n.id).map((r) => r.length));
+  return Math.max(1, Math.min(ROAD_HALF + 2.1, shortest * 0.4));
+};
+
+/** Polyline of a road seen from node `from` (first point at the node). */
+const fromNode = (r: CityRoad, from: string): P[] => (r.a === from ? r.pts : [...r.pts].reverse()).map(([x, z]) => ({ x, z }));
+function offsetSide(pts: P[], d: number): P[] {
+  return pts.map((p, i) => {
+    const a = pts[Math.max(0, i - 1)]!; const b = pts[Math.min(pts.length - 1, i + 1)]!;
+    const L = Math.hypot(b.x - a.x, b.z - a.z) || 1;
+    return { x: p.x + ((b.z - a.z) / L) * d, z: p.z - ((b.x - a.x) / L) * d };
+  });
+}
 
 type P = { x: number; z: number };
 export type WalkEdge = { a: number; b: number; length: number; cross: { node: string; road: string } | null };
@@ -33,9 +48,9 @@ export function buildWalkGraph(): WalkGraph {
     const c = crossingDistance(n);
     const ring: { id: number; angle: number; road: string; d: P }[] = [];
     for (const r of list) {
-      const other = nodeById(r.a === n.id ? r.b : r.a);
-      const L = Math.hypot(other.x - n.x, other.z - n.z);
-      const d = { x: (other.x - n.x) / L, z: (other.z - n.z) / L };
+      const line = fromNode(r, n.id);
+      const L = Math.hypot(line[1]!.x - line[0]!.x, line[1]!.z - line[0]!.z) || 1;
+      const d = { x: (line[1]!.x - line[0]!.x) / L, z: (line[1]!.z - line[0]!.z) / L };
       for (const s of [1, -1]) {
         const p = { x: n.x + d.x * c + d.z * PED_OFFSET * s, z: n.z + d.z * c - d.x * PED_OFFSET * s };
         const id = add(p);
@@ -61,9 +76,15 @@ export function buildWalkGraph(): WalkGraph {
   }
   for (const r of ROADS) {
     if (r.kind !== 'urban') continue;
+    const axis = fromNode(r, r.a);
     for (const s of [1, -1]) {
       const a = side.get(`${r.a}|${r.id}|${s}`); const b = side.get(`${r.b}|${r.id}|${-s}`);
-      if (a !== undefined && b !== undefined) link(a, b);
+      if (a === undefined || b === undefined) continue;
+      // Follow the real bends: interior vertices of the offset polyline become sidewalk points.
+      const line = offsetSide(axis, PED_OFFSET * s);
+      let prev = a;
+      for (let i = 1; i < line.length - 1; i++) { const id = add(line[i]!); link(prev, id); prev = id; }
+      link(prev, b);
     }
   }
   const adj = points.map(() => [] as number[]);
@@ -157,28 +178,29 @@ export class Crowd {
       return { kind, x, z, hide, join: { edge: j.edge, x: j.x, z: j.z }, dwell, busStop };
     };
     this.shops = STORES.map((s) => {
-      const { door, hide } = s.id === 'mercearia' ? doorOf(SHOP.frame, SHOP.width, -0.3, 0.3) : doorOf(s.frame, s.width, 1.2, 1.8);
+      const { door, hide } = doorOf(s.frame, s.width, 1.2, 1.8);
       return dest('shop', door.x, door.z, 25, hide);
     });
-    this.visits = [
-      ...[CHURCH, SCHOOL, SERVICES].map((b) => { const d = doorOf(b.frame, b.width, -0.8, 0.8); return dest('visit', d.door.x, d.door.z, 30, d.hide); }),
-    ];
-    // Idle spots on the square: sampled, kept only where a straight walk from the pavement is clear.
-    const plaza = walkableAreas()[1]!;
+    // CORE-015: no church/school/bus stop is confirmed in OSM, so visits are the shops only.
+    this.visits = [];
+    this.stops = [];
+    // Idle spots on the REAL open spaces (OSM parks/pitch), kept where a straight walk is clear.
     this.square = [];
     const r = rng(5);
-    for (let i = 0; i < 200 && this.square.length < 14; i++) {
-      const x = plaza.minX + 1.5 + r() * (plaza.maxX - plaza.minX - 3);
-      const z = plaza.minZ + 1.5 + r() * (plaza.maxZ - plaza.minZ - 3);
-      const d = dest('square', x, z, 20);
-      let clear = free(x, z);
-      for (let k = 0; clear && k <= 12; k++) clear = free(d.join.x + (x - d.join.x) * (k / 12), d.join.z + (z - d.join.z) * (k / 12));
-      if (clear) this.square.push(d);
+    for (const area of OPEN_SPACES.filter((a) => a.kind.startsWith('leisure:'))) {
+      const xs = area.pts.map((q) => q[0]); const zs = area.pts.map((q) => q[1]);
+      let found = 0;
+      for (let i = 0; i < 120 && found < 6; i++) {
+        const x = Math.min(...xs) + r() * (Math.max(...xs) - Math.min(...xs));
+        const z = Math.min(...zs) + r() * (Math.max(...zs) - Math.min(...zs));
+        if (!pointInPolygon(area.pts, x, z)) continue;
+        const d = dest('square', x, z, 20);
+        if (Math.hypot(d.join.x - x, d.join.z - z) > 40) continue;
+        let clear = free(x, z);
+        for (let k = 0; clear && k <= 12; k++) clear = free(d.join.x + (x - d.join.x) * (k / 12), d.join.z + (z - d.join.z) * (k / 12));
+        if (clear) { this.square.push(d); found++; }
+      }
     }
-    this.stops = BUS_STOPS.map((b) => {
-      const along = b.shelter.alongZ ? { x: b.shelter.x + Math.sign(b.shelter.x - b.x) * 0.8, z: b.shelter.z + 1.6 } : { x: b.shelter.x + 1.6, z: b.shelter.z + Math.sign(b.shelter.z - b.z) * 0.8 };
-      return dest('bus', along.x, along.z, 60, undefined, b.id);
-    });
   }
 
   crosswalkBusy(node: string, road: string): boolean { return (this.busy.get(`${node}|${road}`) ?? 0) > 0; }
@@ -186,9 +208,9 @@ export class Crowd {
   private pick(ctx: PedContext): Destination {
     const r = this.random();
     if (ctx.commerceOpen && r < 0.38) return this.shops[Math.floor(this.random() * this.shops.length)]!;
-    if (r < 0.5) return this.visits[Math.floor(this.random() * this.visits.length)]!;
+    if (r < 0.5 && this.visits.length) return this.visits[Math.floor(this.random() * this.visits.length)]!;
     if (r < 0.72 && this.square.length) return this.square[Math.floor(this.random() * this.square.length)]!;
-    if (r < 0.84) return this.stops[Math.floor(this.random() * this.stops.length)]!;
+    if (r < 0.84 && this.stops.length) return this.stops[Math.floor(this.random() * this.stops.length)]!;
     const e = Math.floor(this.random() * this.graph.edges.length);
     const edge = this.graph.edges[e]!;
     if (edge.cross) return this.square[0] ?? this.shops[0]!;
@@ -253,7 +275,7 @@ export class Crowd {
         }
       } else {
         // Someone steps out of a door (a shop only while open).
-        const pool = ctx.commerceOpen ? [...this.shops, ...this.visits] : this.visits;
+        const pool = ctx.commerceOpen ? [...this.shops, ...this.visits] : this.visits.length ? this.visits : this.shops;
         const d = pool[Math.floor(this.random() * pool.length)]!;
         const p = this.spawn(d.x, d.z, ctx);
         p.x = p.bx = d.hide?.x ?? d.x; p.z = p.bz = d.hide?.z ?? d.z;

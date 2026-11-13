@@ -226,14 +226,15 @@ export function buildStreetFurniture(scene: Scene, set: BatchSet, mats: Material
 }
 
 export function buildTrees(scene: Scene, mats: Materials, backdropDensity: number, extra: readonly TreeSpec[] = [],
-  ground: (x: number, z: number) => number = () => CURB_H): AbstractMesh[] {
+  ground: (x: number, z: number) => number = () => CURB_H, includeCore = true): AbstractMesh[] {
   const prototypes = { oiti: treePrototype(scene, mats, 'oiti'), ipe: treePrototype(scene, mats, 'ipe'), 'ipe-roxo': treePrototype(scene, mats, 'ipe-roxo') };
   const casters: AbstractMesh[] = [];
   const random = seeded(99);
   let backdropIndex = 0;
   // CORE-013: the old unreachable backdrop trees now stand inside the expanded town; they are
   // replaced by the city's own street and rural trees (`extra`).
-  for (const tree of [...TREES.filter((t) => t.solid), ...extra]) {
+  // CORE-015: the W009 core street is gone (includeCore = false); only the real town's trees remain.
+  for (const tree of [...(includeCore ? TREES.filter((t) => t.solid) : []), ...extra]) {
     const turn = random() * Math.PI * 2;
     if (!tree.solid && (backdropIndex++ % 4) / 4 >= backdropDensity) continue;
     for (const prototype of prototypes[tree.kind]) {

@@ -12,8 +12,9 @@ import { boxPart } from './modelParts';
  * Purely decorative, far outside the walls: no colliders, no shadows, one mesh per material.
  * FICTIONAL: it does not depict the real Brejo Alegre.
  */
-const INNER = 245;
-const OUTER = 420;
+// CORE-015: the real town spans ~1.5 km, so the decorative hills sit well outside it.
+const INNER = 1150;
+const OUTER = 1500;
 
 function seeded(seed: number): () => number {
   let a = seed;
@@ -75,7 +76,7 @@ export function buildBackdrop(scene: Scene, mats: Materials): Mesh[] {
     const cluster = i % 6;
     const base = [0.8, 1.4, 2.4, 3.6, 4.6, 5.6][cluster]!;
     const a = base + (random() - 0.5) * 0.55;
-    const radius = INNER + 12 + random() * 70;
+    const radius = INNER + 12 + random() * 120;
     const y = hillHeight(a, radius) - 0.4;
     const [x, z] = [Math.cos(a) * radius, Math.sin(a) * radius];
     const w = 5 + random() * 4;

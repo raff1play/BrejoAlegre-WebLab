@@ -1,4 +1,4 @@
-import { BUS_LOOP, BUS_STOPS, NODES, ROADS, SPEED_HUMPS, STORES, nodeById } from '../../world/city/cityPlan.ts';
+import { DEPOT, NODES, ROADS, STORES, depotWorld, nodeById } from '../../world/city/cityPlan.ts';
 import { nearestLane, pathPose, routeBetween, type Lane, type Movement, type RoadGraph } from './roadGraph.ts';
 import { laneAspect, type SignalPlan } from './signals.ts';
 
@@ -29,6 +29,8 @@ export type Vehicle = {
   /** Movements still to take; route[0] is the next junction while on a lane. */
   route: number[];
   admitted: boolean; stoppedAtLine: boolean; wait: number;
+  /** CORE-015: admitted through the next junction too (short real lane between two junctions). */
+  preAdmitted: boolean;
   target: Target | null; dwell: number; trip: number;
   x: number; z: number; yaw: number; braking: boolean;
   active: boolean; skip: boolean;
@@ -61,7 +63,6 @@ export function rng(seed: number): () => number {
 
 const COMFORT_STOP = 3.0;
 const LOOKAHEAD = 55;
-const DOCK_LANE = 'patio:portao>docas';
 
 export type TrafficOptions = Readonly<{ capacity: number; seed?: number; buses?: number; vans?: number; trucks?: number }>;
 
@@ -73,8 +74,8 @@ export class Traffic {
   /** Movements currently claimed per node: vehicle ids. */
   private readonly claims = new Map<string, Map<number, number>>();
   private readonly maxPriority = new Map<string, number>();
-  private readonly busStopsOn = new Map<number, { s: number }[]>();
-  private readonly humpsOn = new Map<number, number[]>();
+  /** Kerb-side loading spot in front of the depot gate (vans and trucks). */
+  private readonly dock: { lane: number; s: number };
   private readonly storeStops: { lane: number; s: number }[];
   private readonly exitsIn: number[];
   private readonly exitsOut: number[];
@@ -96,21 +97,11 @@ export class Traffic {
       this.claims.set(n.id, new Map());
       this.maxPriority.set(n.id, Math.max(...ROADS.filter((r) => r.a === n.id || r.b === n.id).map((r) => r.priority)));
     }
-    for (const stop of BUS_STOPS) {
-      const near = nearestLane(graph, stop.x, stop.z, (l) => l.road.id === stop.road)!;
-      const list = this.busStopsOn.get(near.lane.index) ?? [];
-      list.push({ s: near.s });
-      this.busStopsOn.set(near.lane.index, list);
-    }
-    for (const h of SPEED_HUMPS) {
-      for (const lane of graph.lanes) {
-        const [a, b] = lane.path.points;
-        const along = h.alongX ? Math.abs(a!.z - b!.z) < 0.01 && Math.abs(a!.z - h.z) < 4 : Math.abs(a!.x - b!.x) < 0.01 && Math.abs(a!.x - h.x) < 4;
-        if (!along) continue;
-        const near = nearestLane(graph, h.x, h.z, (l) => l === lane);
-        if (near && near.distance < 3) this.humpsOn.set(lane.index, [...(this.humpsOn.get(lane.index) ?? []), near.s]);
-      }
-    }
+    // CORE-015: no real bus line or speed humps are mapped in OSM here, so buses just circulate
+    // on the heavy (secondary/unclassified) roads and nothing slows traffic artificially.
+    const gate = depotWorld((DEPOT.gate.x0 + DEPOT.gate.x1) / 2, DEPOT.lot.maxZ);
+    const dock = nearestLane(graph, gate.x, gate.z, (l) => l.road.kind !== 'rural')!;
+    this.dock = { lane: dock.lane.index, s: Math.max(3, Math.min(dock.lane.path.length - 3, dock.s)) };
     this.storeStops = STORES.map((st) => {
       const near = nearestLane(graph, st.stop.x, st.stop.z, (l) => l.road.kind !== 'rural')!;
       return { lane: near.lane.index, s: near.s };
@@ -132,7 +123,7 @@ export class Traffic {
     const v: Vehicle = {
       id: this.nextId++, kind, spec: VEHICLE_SPECS[kind], colour: Math.floor(this.random() * 8), plan,
       seg: { kind: 'lane', index: lane }, s, v: Math.min(VEHICLE_SPECS[kind].vmax, this.graph.lanes[lane]!.speedLimit) * 0.6, a: 0,
-      route: [], admitted: false, stoppedAtLine: false, wait: 0, target: null, dwell: 0, trip: 0,
+      route: [], admitted: false, preAdmitted: false, stoppedAtLine: false, wait: 0, target: null, dwell: 0, trip: 0,
       x: 0, z: 0, yaw: 0, braking: false, active: true, skip: false, reason: '',
     };
     this.vehicles.push(v);
@@ -168,19 +159,11 @@ export class Traffic {
     const o = this.options;
     const count = (k: VehicleKind) => this.vehicles.filter((v) => v.active && v.kind === k).length;
     const busesWanted = o.buses ?? 2;
-    for (let i = count('bus'); i < busesWanted; i++) {
-      // Buses start on their loop.
-      const from = BUS_LOOP[(i * 3) % (BUS_LOOP.length - 1)]!; const to = BUS_LOOP[(i * 3) % (BUS_LOOP.length - 1) + 1]!;
-      const lane = this.graph.lanes.find((l) => l.from === from && l.to === to)!;
-      const s = lane.path.length * 0.3;
-      const p = pathPose(lane.path, s);
-      if (!initial && Math.hypot(p.x - ctx.player.x, p.z - ctx.player.z) < 90) continue;
-      if (this.laneFree(lane.index, s, 16)) this.make('bus', 'bus', lane.index, s);
-    }
+    for (let i = count('bus'); i < busesWanted; i++) this.spawnFar('bus', 'bus', ctx, initial ? 30 : 115);
     if (ctx.logistics) {
       for (let i = count('van'); i < (o.vans ?? 3); i++) {
-        const dock = this.graph.laneById.get(DOCK_LANE)!;
-        const s = Math.min(dock.path.length - 3, 6 + i * 6);
+        const dock = this.graph.lanes[this.dock.lane]!;
+        const s = Math.max(3, this.dock.s - i * 7);
         const p = pathPose(dock.path, s);
         if ((initial || Math.hypot(p.x - ctx.player.x, p.z - ctx.player.z) > 45) && this.laneFree(dock.index, s, 6)) {
           const v = this.make('van', 'van', dock.index, s);
@@ -224,17 +207,7 @@ export class Traffic {
   private plan(v: Vehicle): void {
     const lane = this.laneOf(v);
     if (!lane) return;
-    if (v.plan === 'bus') {
-      v.route = [];
-      const at = BUS_LOOP.indexOf(lane.to);
-      const next = BUS_LOOP[at + 1] ?? BUS_LOOP[1]!;
-      const m = lane.out.map((i) => this.graph.movements[i]!).find((mv) => this.graph.lanes[mv.to]!.to === next);
-      if (m) v.route = [m.index];
-      const stops = this.busStopsOn.get(lane.index);
-      if (stops && !v.target) { const st = stops.find((q) => q.s > v.s + 3); if (st) v.target = { lane: lane.index, s: st.s, dwell: 9, what: 'stop' }; }
-    } else if ((v.plan === 'van' || v.plan === 'truck') && v.route.length === 0 && !v.target) {
-      this.newTrip(v);
-    }
+    if ((v.plan === 'van' || v.plan === 'truck') && v.route.length === 0 && !v.target) this.newTrip(v);
     if (v.route.length === 0 && !nodeById(lane.to).exit) {
       const options = lane.out.map((i) => this.graph.movements[i]!).filter((m) => this.allowed(v.kind, v.plan, this.graph.lanes[m.to]!));
       if (options.length === 0) { v.route = [lane.out[0]!]; return; }
@@ -244,9 +217,33 @@ export class Traffic {
       };
       const total = options.reduce((t, m) => t + weight(m), 0);
       let pick = this.random() * total;
-      for (const m of options) { pick -= weight(m); if (pick <= 0) { v.route = [m.index]; return; } }
-      v.route = [options[options.length - 1]!.index];
+      let chosen = options[options.length - 1]!;
+      for (const m of options) { pick -= weight(m); if (pick <= 0) { chosen = m; break; } }
+      v.route = [chosen.index];
     }
+    // A short lane between two real junctions is crossed in one go: plan the next movement too.
+    if (v.route.length === 1) {
+      const next = this.graph.lanes[this.graph.movements[v.route[0]!]!.to]!;
+      if (this.isShort(next, v) && next.out.length) {
+        const opts = next.out.map((i) => this.graph.movements[i]!).filter((m) => m.turn !== 'uturn' && this.allowed(v.kind, v.plan, this.graph.lanes[m.to]!));
+        const pick = opts.find((m) => m.turn === 'straight') ?? opts[0] ?? this.graph.movements[next.out[0]!]!;
+        v.route.push(pick.index);
+      }
+    }
+  }
+
+  /** Lanes too short to stop on without blocking a junction. */
+  private isShort(lane: Lane, v: Vehicle): boolean {
+    return lane.path.length < v.spec.length + 6 && !nodeById(lane.to).exit;
+  }
+
+  /** Drops junction claims the vehicle no longer needs (its tail has cleared them). */
+  private releaseStale(v: Vehicle): void {
+    const keep = new Set<number>();
+    if (v.seg.kind === 'move') keep.add(v.seg.index);
+    if (v.admitted && v.route[0] !== undefined) keep.add(v.route[0]);
+    if (v.preAdmitted && v.route[1] !== undefined) keep.add(v.route[1]);
+    for (const claims of this.claims.values()) { const held = claims.get(v.id); if (held !== undefined && !keep.has(held)) claims.delete(v.id); }
   }
 
   /** Vans: dock → store → dock. Trucks: entry → dock → exit. One Dijkstra per trip. */
@@ -254,16 +251,16 @@ export class Traffic {
     const lane = this.laneOf(v);
     if (!lane) return;
     const allow = (l: Lane) => this.allowed(v.kind, v.plan, l) && (v.plan !== 'van' || l.road.kind !== 'rural');
-    const dock = this.graph.laneById.get(DOCK_LANE)!;
+    const dockLane = this.graph.lanes[this.dock.lane]!;
     let goal: Target;
     if (v.plan === 'van') {
       goal = v.trip % 2 === 0
         ? { ...this.storeStops[Math.floor(this.random() * this.storeStops.length)]!, dwell: 10 + this.random() * 8, what: 'store' }
-        : { lane: dock.index, s: dock.path.length - 4 - this.random() * 8, dwell: 14, what: 'dock' };
+        : { lane: dockLane.index, s: this.dock.s - this.random() * 6, dwell: 14, what: 'dock' };
     } else {
       goal = v.trip === 0
-        ? { lane: dock.index, s: dock.path.length - 8, dwell: 25, what: 'dock' }
-        : { lane: this.exitsOut.filter((i) => this.graph.lanes[i]!.road.heavy)[Math.floor(this.random() * 2)]!, s: 1e9, dwell: 0, what: 'stop' };
+        ? { lane: dockLane.index, s: this.dock.s, dwell: 25, what: 'dock' }
+        : (() => { const ex = this.exitsOut.filter((i) => this.graph.lanes[i]!.road.heavy); return { lane: ex[Math.floor(this.random() * ex.length)]!, s: 1e9, dwell: 0, what: 'stop' as const }; })();
     }
     let route: number[] | null = goal.lane === lane.index && goal.s > v.s + 2 ? [] : null;
     if (!route) {
@@ -309,11 +306,11 @@ export class Traffic {
     if (a !== b) return b > a;
     if (mine.turn === 'left' && other.turn !== 'left') return true;
     if (other.turn === 'left' && mine.turn !== 'left') return false;
-    const d1 = this.graph.lanes[mine.from]!.dir; const d2 = this.graph.lanes[other.from]!.dir;
+    const d1 = this.graph.lanes[mine.from]!.endDir; const d2 = this.graph.lanes[other.from]!.endDir;
     return d1.x * d2.z - d1.z * d2.x > 0; // the other comes from my right
   }
 
-  canEnter(v: Vehicle, m: Movement, distance: number, ctx: TrafficContext): boolean {
+  canEnter(v: Vehicle, m: Movement, distance: number, ctx: TrafficContext, chained = false): boolean {
     const node = nodeById(m.node);
     const lane = this.graph.lanes[m.from]!;
     const plan = this.signals.get(node.id);
@@ -321,7 +318,7 @@ export class Traffic {
       const aspect = laneAspect(plan, lane.index, ctx.time);
       if (aspect === 'red') return false;
       if (aspect === 'yellow' && distance > (v.v * v.v) / (2 * COMFORT_STOP) + 1) return false;
-    } else if (this.rank(m) < -5 && !v.stoppedAtLine) {
+    } else if (this.rank(m) < -5 && !v.stoppedAtLine && !chained) {
       return false;
     }
     const claims = this.claims.get(node.id)!;
@@ -409,7 +406,6 @@ export class Traffic {
       if (best) consider(offset + best.s - (best.spec.length + v.spec.length) / 2, best.v, `leader ${best.id}`);
       if (depth > 0) limitAt(offset, this.segLimit(v, seg));
       if (seg.kind === 'lane') {
-        for (const hs of this.humpsOn.get(seg.index) ?? []) { const d = offset + hs - v.spec.length / 2; if (d > -2) limitAt(Math.max(0, d), 3.2); }
         if (v.target && v.target.lane === seg.index && offset + v.target.s > -1) consider(offset + v.target.s + v.spec.gap, 0, 'target');
       }
       if (playerNear) {
@@ -429,9 +425,12 @@ export class Traffic {
         const d = offset + lane.path.length - v.spec.length / 2;
         if (depth === 0 && !v.admitted) {
           if (d < 1.6 && v.v < 0.3) v.stoppedAtLine = true;
-          if (d < 30 && this.canEnter(v, m, d, ctx) && (d < 5 || d / Math.max(v.v, 0.5) < 3)) {
+          const nextLane = this.graph.lanes[m.to]!;
+          const chain = this.isShort(nextLane, v) && v.route[routeAt + 1] !== undefined ? this.graph.movements[v.route[routeAt + 1]!]! : null;
+          if (d < 30 && this.canEnter(v, m, d, ctx) && (!chain || this.canEnter(v, chain, 0, ctx, true)) && (d < 5 || d / Math.max(v.v, 0.5) < 3)) {
             v.admitted = true;
             this.claim(m, v);
+            if (chain) { this.claim(chain, v); v.preAdmitted = true; }
           }
         }
         if (depth === 0 && !v.admitted) { consider(d + v.spec.gap - 0.4, 0, 'junction'); break; }
@@ -471,18 +470,13 @@ export class Traffic {
       } else {
         const m = this.graph.movements[v.seg.index]!;
         this.move(v, { kind: 'lane', index: m.to }, v.s - path.length);
-        v.admitted = false; v.stoppedAtLine = false;
+        v.admitted = v.preAdmitted; v.preAdmitted = false; v.stoppedAtLine = v.admitted;
         this.plan(v);
       }
       path = this.segPath(v.seg);
     }
     // The junction claim is held until the tail has left the box.
-    if (v.seg.kind === 'lane' && v.s > v.spec.length) {
-      const lane = this.graph.lanes[v.seg.index]!;
-      const claims = this.claims.get(lane.from)!;
-      const held = claims.get(v.id);
-      if (held !== undefined && this.graph.movements[held]!.to === lane.index) claims.delete(v.id);
-    }
+    if (v.seg.kind === 'lane' && v.s > v.spec.length) this.releaseStale(v);
   }
 
   private move(v: Vehicle, seg: Seg, s: number): void {

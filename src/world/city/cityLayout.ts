@@ -1,157 +1,135 @@
-import type { Box2D } from '../../core/collision.ts';
+import { makePoly, type Box2D, type Poly2D } from '../../core/collision.ts';
 import type { Box3D } from '../../core/math.ts';
-import { CROSS_Z, HOUSES, HOUSE_DEPTH, HOUSE_STYLES, LOT_DEPTH, LOT_WIDTH, ROAD_HALF, SHOP, SIDEWALK, WALL_T, frameRect, houseSpan, type TreeSpec } from '../layout.ts';
-import {
-  BLOCKS, BUS_STOPS, CHURCH, CITY_LOTS, CORE_EXTENT, DEPOT, ROADS, SCHOOL, SERVICES, STORES, cityColliders, depotLayout, roadSpan, storeLayout, walkableAreas,
-  type CityRoad,
-} from './cityPlan.ts';
+import { HOUSE_DEPTH, HOUSE_STYLES, ROAD_HALF, SIDEWALK, framePoint, houseSpan, yawOf, type TreeSpec } from '../layout.ts';
+import { CITY_LOTS, DEPOT, ROADS, STORES, depotWorld, depotYaw, nodeById, storeLayout, type CityRoad } from './cityPlan.ts';
+import { GEO_WALLS, OPEN_SPACES, pointInPolygon } from '../geo/geoCity.ts';
+import { PLAY_BOUNDS } from '../geo/network.ts';
 
 /**
- * CORE-013 pure placement helpers for the expansion (no renderer): street lights, trees, frontage
- * walls and the complete collider list. Shared by cityBuild.ts and the unit tests.
+ * CORE-015 street furniture and solids along the REAL streets. Lamp posts and street trees are
+ * generic infrastructure placed at regular spacing on real pavements (their exact real positions
+ * are not mapped in OSM); they never stand in front of a shop, the depot gate or a delivery gate.
  */
-const E = ROAD_HALF + SIDEWALK;
+type P = { x: number; z: number };
 
-/** Portion of a road the W009 core already draws (avenue and R. Coroados up to ±CORE_EXTENT). */
-export function coreClip(r: CityRoad): [number, number] | null {
-  const s = roadSpan(r);
-  const isAvenue = s.axis === 'z' && s.c === 0;
-  const isCross = s.axis === 'x' && s.c === CROSS_Z;
-  return isAvenue || isCross ? [-CORE_EXTENT, CORE_EXTENT] : null;
+/** Walks a road polyline every `step` metres, skipping `margin` metres at both junction ends. */
+function along(r: CityRoad, step: number, margin: number, visit: (p: P, dir: P, s: number) => void): void {
+  const pts = r.pts;
+  let acc = 0; let next = margin;
+  const end = r.length - margin;
+  for (let i = 1; i < pts.length; i++) {
+    const a = pts[i - 1]!; const b = pts[i]!;
+    const L = Math.hypot(b[0] - a[0], b[1] - a[1]); if (L < 1e-6) continue;
+    const dir = { x: (b[0] - a[0]) / L, z: (b[1] - a[1]) / L };
+    while (next <= acc + L && next <= end) {
+      const t = (next - acc) / L;
+      visit({ x: a[0] + (b[0] - a[0]) * t, z: a[1] + (b[1] - a[1]) * t }, dir, next);
+      next += step;
+    }
+    acc += L;
+  }
 }
 
-/** Splits [lo, hi] into the parts outside the clip interval. */
-export function outside(lo: number, hi: number, clip: [number, number] | null): [number, number][] {
-  if (!clip) return [[lo, hi]];
-  const parts: [number, number][] = [];
-  if (lo < clip[0]) parts.push([lo, Math.min(hi, clip[0])]);
-  if (hi > clip[1]) parts.push([Math.max(lo, clip[1]), hi]);
-  return parts.filter(([a, b]) => b - a > 0.01);
-}
+const keepClear = (): P[] => [
+  ...STORES.map((s) => s.door),
+  depotWorld((DEPOT.gate.x0 + DEPOT.gate.x1) / 2, DEPOT.lot.maxZ),
+];
 
-/** Street lights every ~26 m on the new urban roads (lamp heads glow; brighter at night). */
+const inPlay = (p: P) => p.x > PLAY_BOUNDS.minX && p.x < PLAY_BOUNDS.maxX && p.z > PLAY_BOUNDS.minZ && p.z < PLAY_BOUNDS.maxZ;
+
 export function streetLightPositions(): { x: number; z: number; yaw: number }[] {
   const out: { x: number; z: number; yaw: number }[] = [];
+  const clear = keepClear();
   for (const r of ROADS) {
     if (r.kind !== 'urban') continue;
-    const s = roadSpan(r);
-    for (const [lo, hi] of outside(s.lo + E + 4, s.hi - E - 4, coreClip(r))) {
-      for (let t = lo + 5; t < hi - 3; t += 26) {
-        const side = Math.round(t / 26) % 2 === 0 ? 1 : -1;
-        const c = s.c + side * (ROAD_HALF + 0.45);
-        out.push(s.axis === 'x' ? { x: t, z: c, yaw: side > 0 ? Math.PI : 0 } : { x: c, z: t, yaw: side > 0 ? -Math.PI / 2 : Math.PI / 2 });
-      }
-    }
+    let k = 0;
+    along(r, 32, 12, (p, d) => {
+      const side = k++ % 2 === 0 ? 1 : -1;
+      const off = ROAD_HALF + 0.45;
+      const q = { x: p.x + d.z * off * side, z: p.z - d.x * off * side };
+      if (!inPlay(q) || clear.some((c) => Math.hypot(c.x - q.x, c.z - q.z) < 7)) return;
+      // The arm points over the road (towards the axis).
+      out.push({ ...q, yaw: Math.atan2(-d.z * side, d.x * side) });
+    });
   }
-  return out.filter((p) => !BUS_STOPS.some((b) => Math.hypot(b.shelter.x - p.x, b.shelter.z - p.z) < 3));
+  return out;
 }
 
-/** Walls filling the frontage gaps of every block, so no block shows an open edge. */
-export function frontageWalls(): Box2D[] {
-  const covers: Box2D[] = [
-    ...HOUSES.map((h) => frameRect(h.frame, 0, LOT_WIDTH, 0, LOT_DEPTH)),
-    ...CITY_LOTS.map((l) => frameRect(l.frame, 0, LOT_WIDTH, 0, LOT_DEPTH)),
-    ...STORES.slice(1).map((s) => frameRect(s.frame, 0, s.width, 0, s.depth)),
-    SHOP.lot,
-    frameRect(CHURCH.frame, 0, CHURCH.width, 0, CHURCH.depth),
-    frameRect(SCHOOL.frame, 0, SCHOOL.width, 0, SCHOOL.depth),
-    frameRect(SERVICES.frame, 0, SERVICES.width, 0, SERVICES.depth),
-    ...walkableAreas(),
-  ];
-  const walls: Box2D[] = [];
-  for (const block of BLOCKS) {
-    const b = block.box;
-    const edges: { axis: 'x' | 'z'; c: number; lo: number; hi: number; inward: number }[] = [
-      { axis: 'x', c: b.minZ, lo: b.minX, hi: b.maxX, inward: 1 }, { axis: 'x', c: b.maxZ, lo: b.minX, hi: b.maxX, inward: -1 },
-      { axis: 'z', c: b.minX, lo: b.minZ, hi: b.maxZ, inward: 1 }, { axis: 'z', c: b.maxX, lo: b.minZ, hi: b.maxZ, inward: -1 },
-    ];
-    for (const e of edges) {
-      const covered = covers.filter((c) => e.axis === 'x'
-        ? (Math.abs(c.minZ - e.c) < 0.05 || Math.abs(c.maxZ - e.c) < 0.05) && c.maxX > e.lo && c.minX < e.hi
-        : (Math.abs(c.minX - e.c) < 0.05 || Math.abs(c.maxX - e.c) < 0.05) && c.maxZ > e.lo && c.minZ < e.hi)
-        .map((c) => (e.axis === 'x' ? [c.minX, c.maxX] : [c.minZ, c.maxZ]) as [number, number])
-        .sort((p, q) => p[0] - q[0]);
-      let cursor = e.lo;
-      const flush = (to: number) => {
-        if (to - cursor > 0.3) {
-          const t0 = e.c; const t1 = e.c + e.inward * WALL_T;
-          walls.push(e.axis === 'x' ? { minX: cursor, maxX: to, minZ: Math.min(t0, t1), maxZ: Math.max(t0, t1) } : { minX: Math.min(t0, t1), maxX: Math.max(t0, t1), minZ: cursor, maxZ: to });
-        }
-      };
-      for (const [c0, c1] of covered) { if (c0 > cursor) flush(c0); cursor = Math.max(cursor, c1); }
-      flush(e.hi);
-    }
-  }
-  return walls;
-}
-
-/** Street trees on the new urban pavements, clear of lights, stops and junctions (pure; colliders too). */
 export function cityTrees(): TreeSpec[] {
   const trees: TreeSpec[] = [];
   const lights = streetLightPositions();
+  const clear = keepClear();
   const kinds: TreeSpec['kind'][] = ['oiti', 'oiti', 'ipe', 'oiti', 'ipe-roxo'];
   let k = 0;
   for (const r of ROADS) {
     if (r.kind !== 'urban') continue;
-    const s = roadSpan(r);
-    for (const [lo, hi] of outside(s.lo + E + 3, s.hi - E - 3, coreClip(r))) {
-      for (let t = lo + 14; t < hi - 2; t += 22) {
-        for (const side of [-1, 1]) {
-          const c = s.c + side * (ROAD_HALF + 0.75);
-          const [x, z] = s.axis === 'x' ? [t, c] : [c, t];
-          if (lights.some((l) => Math.hypot(l.x - x, l.z - z) < 3)) continue;
-          if (BUS_STOPS.some((b) => Math.hypot(b.shelter.x - x, b.shelter.z - z) < 4)) continue;
-          if (STORES.some((st) => Math.hypot(st.stop.x - x, st.stop.z - z) < 5)) continue;
-          trees.push({ x, z, kind: kinds[k++ % kinds.length]!, scale: 0.85 + (k % 4) * 0.08, solid: true });
-        }
+    let n = 0;
+    along(r, 26, 14, (p, d) => {
+      const side = n++ % 2 === 0 ? -1 : 1;
+      const off = ROAD_HALF + 0.75;
+      const q = { x: p.x + d.z * off * side, z: p.z - d.x * off * side };
+      if (!inPlay(q)) return;
+      if (lights.some((l) => Math.hypot(l.x - q.x, l.z - q.z) < 4)) return;
+      if (clear.some((c) => Math.hypot(c.x - q.x, c.z - q.z) < 9)) return;
+      trees.push({ x: q.x, z: q.z, kind: kinds[k++ % kinds.length]!, scale: 0.85 + (k % 4) * 0.08, solid: true });
+    });
+  }
+  // Trees inside the real parks mapped in OSM.
+  for (const a of OPEN_SPACES.filter((o) => o.kind === 'leisure:park')) {
+    const xs = a.pts.map((q) => q[0]); const zs = a.pts.map((q) => q[1]);
+    for (let x = Math.min(...xs) + 6; x < Math.max(...xs) - 4; x += 11) {
+      for (let z = Math.min(...zs) + 6; z < Math.max(...zs) - 4; z += 13) {
+        if (pointInPolygon(a.pts, x, z) && (Math.round(x + z) % 3 !== 0)) trees.push({ x, z, kind: kinds[k++ % kinds.length]!, scale: 1.1, solid: true });
       }
     }
   }
-  // Rural edge: groves along the exits and around the fields.
-  const rural: [number, number, TreeSpec['kind']][] = [
-    [-14, 100, 'oiti'], [12, 112, 'ipe'], [-20, 128, 'oiti'], [16, 138, 'oiti'], [-90, -2, 'oiti'], [-110, -40, 'ipe'],
-    [-130, 2, 'oiti'], [-96, -60, 'oiti'], [-14, -110, 'oiti'], [14, -130, 'ipe-roxo'], [-30, -150, 'oiti'], [40, -120, 'oiti'],
-    [90, 20, 'oiti'], [120, 40, 'ipe'], [100, 70, 'oiti'], [150, 10, 'oiti'], [-100, 60, 'ipe'], [-140, 100, 'oiti'],
-  ];
-  // Keep only trees clear of every street corridor and open space (the town grew over some).
-  const clear = (x: number, z: number) => !ROADS.some((r) => {
-    const s = roadSpan(r);
-    const [along, across] = s.axis === 'x' ? [x, z] : [z, x];
-    return along > s.lo - 8 && along < s.hi + 8 && Math.abs(across - s.c) < ROAD_HALF + SIDEWALK + 1.5;
-  }) && !walkableAreas().some((b) => x > b.minX - 1 && x < b.maxX + 1 && z > b.minZ - 1 && z < b.maxZ + 1);
-  for (const [x, z, kind] of rural) if (clear(x, z)) trees.push({ x, z, kind, scale: 1.3, solid: true });
   return trees;
 }
 
-/** Everything solid in the expansion: block fills, depot, shelters and the street/rural trees. */
-export function cityAllColliders(): Box2D[] {
-  return [
-    ...cityColliders(),
-    ...cityTrees().map((t) => ({ minX: t.x - 0.24 * t.scale, maxX: t.x + 0.24 * t.scale, minZ: t.z - 0.24 * t.scale, maxZ: t.z + 0.24 * t.scale })),
-  ];
+/** Frontage walls as oriented thin rectangles (closing every block edge between lots). */
+export function frontageWalls(): typeof GEO_WALLS { return GEO_WALLS; }
+
+/** Solids of the expansion that are not polygons already: none — kept for the old API. */
+export function cityAllColliders(): Box2D[] { return []; }
+
+/** Tree trunks as small square polygons (solid for the player). */
+export function treePolygons(): Poly2D[] {
+  return cityTrees().map((t) => { const r = 0.24 * t.scale; return makePoly([[t.x - r, t.z - r], [t.x + r, t.z - r], [t.x + r, t.z + r], [t.x - r, t.z + r]]); });
 }
 
-/** Chase-camera blockers of the expansion (houses, shops, landmarks, depot, frontage walls). */
+/** Chase-camera blockers: houses, shop walls and ceilings, depot walls, frontage walls (oriented). */
 export function cityCameraObstacles(): Box3D[] {
   const out: Box3D[] = [];
-  const box = (b: Box2D, h: number, y0 = 0): Box3D => ({ minX: b.minX, maxX: b.maxX, minZ: b.minZ, maxZ: b.maxZ, minY: y0, maxY: h });
+  const obox = (frame: { ox: number; oz: number }, yaw: number, lx0: number, lx1: number, lz0: number, lz1: number, y0: number, y1: number): Box3D =>
+    ({ minX: lx0, maxX: lx1, minZ: lz0, maxZ: lz1, minY: y0, maxY: y1, yaw, cx: frame.ox, cz: frame.oz });
   for (const l of CITY_LOTS) {
     const style = HOUSE_STYLES[l.style % HOUSE_STYLES.length]!;
     const [x0, x1] = houseSpan({ ...style, id: l.id, frame: l.frame });
-    out.push(box(frameRect(l.frame, x0, x1, style.setback, style.setback + HOUSE_DEPTH), 5.2));
+    const setback = Math.min(style.setback, Math.max(1.5, l.depth - HOUSE_DEPTH - 0.5));
+    out.push(obox(l.frame, yawOf(l.frame), x0, x1, setback, setback + HOUSE_DEPTH, 0, 5.2));
   }
-  // Shops and the depot are walk-in: walls block the camera and the ceiling keeps it inside.
-  for (const s of STORES.slice(1)) {
+  for (const s of STORES) {
+    const yaw = yawOf(s.frame);
     const L = storeLayout(s);
-    for (const w of L.walls) out.push(box(w, s.height + 0.6));
-    out.push(box(frameRect(s.frame, 0, s.width, 1.5, s.depth), s.height + 0.6, s.height - 0.45));
+    for (const w of L.walls) out.push(toBox(w, s.height + 0.6));
+    out.push(obox(s.frame, yaw, 0, s.width, 1.5, s.depth, s.height - 0.45, s.height + 0.6));
   }
-  const dl = depotLayout();
-  for (const w of dl.walls) out.push(box(w, DEPOT.height + 0.6));
-  out.push(box(DEPOT.building, DEPOT.height + 0.6, DEPOT.height - 0.6));
-  out.push(box(frameRect(CHURCH.frame, 0, CHURCH.width, 0, CHURCH.depth), 9));
-  out.push(box(frameRect(SCHOOL.frame, 0, SCHOOL.width, 2, SCHOOL.depth), 7));
-  out.push(box(frameRect(SERVICES.frame, 0, SERVICES.width, 2, SERVICES.depth), 6));
-  for (const w of frontageWalls()) out.push(box(w, 2.4));
+  for (const w of GEO_WALLS) out.push(obox(w.frame, yawOf(w.frame), 0, w.length, 0, 0.22, 0, 2.4));
+  // Depot shed: walls 9.6 m, roof slab (the yard stays open).
+  const shed = DEPOT.building;
+  const o = depotWorld(139.8, -92.2);
+  const yaw = depotYaw(Math.PI);
+  out.push(obox({ ox: o.x, oz: o.z }, yaw, 139.8 - shed.maxX, 139.8 - shed.minX, -92.2 - shed.maxZ, -92.2 - shed.minZ, DEPOT.height - 0.6, DEPOT.height + 0.6));
+  void framePoint; void nodeById; void SIDEWALK;
   return out;
+}
+
+function toBox(p: Poly2D, h: number): Box3D {
+  // Thin oriented wall polygon → oriented box (yaw from its long edge).
+  const [a, b, c] = [p.pts[0]!, p.pts[1]!, p.pts[2]!];
+  const ex = b[0] - a[0]; const ez = b[1] - a[1]; const L = Math.hypot(ex, ez) || 1;
+  const W = Math.hypot(c[0] - b[0], c[1] - b[1]);
+  // Frame axes: fx along a→b, inward towards c; yaw = atan2(ix, iz) with fx = (iz, −ix).
+  const yaw = Math.atan2(-ez / L, ex / L);
+  return { minX: 0, maxX: L, minZ: 0, maxZ: W, minY: 0, maxY: h, yaw, cx: a[0], cz: a[1] };
 }

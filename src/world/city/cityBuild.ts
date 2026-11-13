@@ -3,127 +3,122 @@ import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Scene } from '@babylonjs/core/scene';
 import type { Box2D } from '../../core/collision';
-import { buildHouse, placement, type Building, type SharedBatches } from '../buildings';
-import { BatchSet } from '../geometry';
+import { placement, type SharedBatches } from '../buildings';
+import { BatchSet, type P3 } from '../geometry';
 import { ballPart } from '../modelParts';
 import type { LabMaterial, Materials } from '../materials';
-import { CURB_H, HOUSE_STYLES, ROAD_HALF, SIDEWALK, WALL_H, WALL_T, type Frame } from '../layout';
-import { coreClip, frontageWalls, outside, streetLightPositions } from './cityLayout';
+import { CURB_H, ROAD_HALF, SIDEWALK, WALL_H } from '../layout';
+import { frontageWalls, streetLightPositions } from './cityLayout';
 import { buildAddresses } from '../../core/delivery/addresses';
-import {
-  BLOCKS, BUS_STOPS, CHURCH, CITY_LOTS, DEPOT, JUNCTION_HALF, NODES, ROADS, SCHOOL, SERVICES, SPEED_HUMPS, STORES,
-  STORE_SETBACK, SOUTH_Z, depotLayout, nodeById, pavementStrips, roadSpan, type Store,
-} from './cityPlan';
+import { BLOCKS, DEPOT, NODES, ROADS, STORES, STORE_SETBACK, depotLayout, depotWorld, type Store } from './cityPlan';
+import { OPEN_SPACES } from '../geo/geoCity';
+import { GEO } from '../geo/brejoAlegreData';
 
 /**
- * CORE-013 renderer for the expansion: roads from the shared network, the new buildings and the
- * frontage walls. Everything static is merged per material into the shared batches (few draw calls).
+ * CORE-015 renderer of the REAL town (OpenStreetMap geometry): asphalt ribbons along every OSM
+ * way, junction pads, kerbs and pavements from the real blocks, frontage walls, the eight shops
+ * and the depot placed on real lots, parks/pitch/cemetery from OSM, lamp posts and number plates.
+ * Houses are built by the sector streamer (features/city/houseStreamer.ts).
  */
-const E = ROAD_HALF + SIDEWALK;
 const flatOnly = { sides: false } as const;
-
-const rect = (axis: 'x' | 'z', a0: number, a1: number, c0: number, c1: number): Box2D =>
-  axis === 'x' ? { minX: a0, maxX: a1, minZ: c0, maxZ: c1 } : { minX: c0, maxX: c1, minZ: a0, maxZ: a1 };
+type XZ = readonly [number, number];
 
 function drawBox(set: BatchSet, m: LabMaterial, b: Box2D, y0: number, y1: number, options?: { sides?: boolean; top?: boolean }): void {
   set.box(m, b.minX, b.maxX, y0, y1, b.minZ, b.maxZ, options);
 }
 
-export function buildRoads(flat: BatchSet, upright: BatchSet, mats: Materials, scene: Scene): void {
+/** Triangulates a simple polygon (ear clipping); returns index triples. */
+export function triangulate(pts: readonly XZ[]): [number, number, number][] {
+  const idx = pts.map((_, i) => i);
+  const area = pts.reduce((t, a, i) => { const b = pts[(i + 1) % pts.length]!; return t + a[0] * b[1] - b[0] * a[1]; }, 0);
+  if (area < 0) idx.reverse();
+  const out: [number, number, number][] = [];
+  const cross = (a: XZ, b: XZ, c: XZ) => (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
+  const inTri = (p: XZ, a: XZ, b: XZ, c: XZ) => cross(a, b, p) >= 0 && cross(b, c, p) >= 0 && cross(c, a, p) >= 0;
+  let guard = 0;
+  while (idx.length > 3 && guard++ < 5000) {
+    let cut = false;
+    for (let i = 0; i < idx.length; i++) {
+      const i0 = idx[(i - 1 + idx.length) % idx.length]!; const i1 = idx[i]!; const i2 = idx[(i + 1) % idx.length]!;
+      const a = pts[i0]!; const b = pts[i1]!; const c = pts[i2]!;
+      if (cross(a, b, c) <= 1e-9) continue;
+      if (idx.some((k) => k !== i0 && k !== i1 && k !== i2 && inTri(pts[k]!, a, b, c))) continue;
+      out.push([i0, i1, i2]); idx.splice(i, 1); cut = true; break;
+    }
+    if (!cut) break;
+  }
+  if (idx.length === 3) out.push([idx[0]!, idx[1]!, idx[2]!]);
+  return out;
+}
+
+/** Horizontal filled polygon at height y (top face up), UVs in metres. */
+function fillPolygon(set: BatchSet, m: LabMaterial, pts: readonly XZ[], y: number): void {
+  const b = set.of(m);
+  for (const [i, j, k] of triangulate(pts)) {
+    const t = [pts[i]!, pts[j]!, pts[k]!];
+    // Counter-clockwise in (x, z) faces up (same convention as Batch.box top faces).
+    b.poly([[t[0]![0], y, t[0]![1]], [t[1]![0], y, t[1]![1]], [t[2]![0], y, t[2]![1]]], [[t[0]![0] / 2, t[0]![1] / 2], [t[1]![0] / 2, t[1]![1] / 2], [t[2]![0] / 2, t[2]![1] / 2]]);
+  }
+}
+
+/** Ribbon of width w along a polyline at height y (quads per segment). */
+function ribbon(set: BatchSet, m: LabMaterial, pts: readonly XZ[], w: number, y: number, offset = 0): void {
+  const b = set.of(m);
+  for (let i = 1; i < pts.length; i++) {
+    const a = pts[i - 1]!; const c = pts[i]!;
+    const L = Math.hypot(c[0] - a[0], c[1] - a[1]); if (L < 0.01) continue;
+    const nx = -(c[1] - a[1]) / L; const nz = (c[0] - a[0]) / L; // left normal
+    const l0 = offset - w / 2; const l1 = offset + w / 2;
+    const p0: P3 = [a[0] + nx * l0, y, a[1] + nz * l0]; const p1: P3 = [c[0] + nx * l0, y, c[1] + nz * l0];
+    const p2: P3 = [c[0] + nx * l1, y, c[1] + nz * l1]; const p3: P3 = [a[0] + nx * l1, y, a[1] + nz * l1];
+    b.poly([p0, p1, p2, p3], [[0, 0], [0, L / 2], [w / 2, L / 2], [w / 2, 0]]);
+  }
+}
+
+function disc(set: BatchSet, m: LabMaterial, x: number, z: number, r: number, y: number): void {
+  const n = 14; const pts: XZ[] = [];
+  for (let i = 0; i < n; i++) { const a = (i / n) * Math.PI * 2; pts.push([x + Math.cos(a) * r, z + Math.sin(a) * r]); }
+  fillPolygon(set, m, pts, y);
+}
+
+const UNPAVED = new Set(['unpaved', 'dirt', 'ground', 'gravel', 'earth', 'sand', 'compacted', 'grass']);
+const surfaceOf = (osmWay: number) => GEO.streets.find((s) => s.id === osmWay)?.surface ?? null;
+
+export function buildRoads(flat: BatchSet, upright: BatchSet, mats: Materials): void {
+  // Carriageways (8 m: an approximation; OSM has no widths here), unpaved rural ways in earth.
   for (const r of ROADS) {
-    if (r.kind === 'yard') continue; // the depot yard is paved as a whole
-    const s = roadSpan(r);
-    const clip = coreClip(r);
-    for (const [lo, hi] of outside(s.lo, s.hi, clip)) {
-      drawBox(flat, mats.asphalt, rect(s.axis, lo, hi, s.c - ROAD_HALF, s.c + ROAD_HALF), -0.05, 0, flatOnly);
-      // Lane markings: yellow dashed centre, white edge lines (interrupted at junction boxes).
-      const a = nodeById(r.a); const b = nodeById(r.b);
-      const mlo = Math.max(lo, s.lo + (a.exit ? 0 : JUNCTION_HALF + 2));
-      const mhi = Math.min(hi, s.hi - (b.exit ? 0 : JUNCTION_HALF + 2));
-      for (let t = mlo; t < mhi - 1; t += 6) drawBox(flat, mats.lineYellow, rect(s.axis, t, Math.min(t + 3, mhi), s.c - 0.06, s.c + 0.06), 0, 0.008, flatOnly);
-      for (const e of [-1, 1]) {
-        const c = s.c + e * (ROAD_HALF - 0.45);
-        if (mhi > mlo) drawBox(flat, mats.lineWhite, rect(s.axis, mlo, mhi, c - 0.06, c + 0.06), 0, 0.008, flatOnly);
-      }
-      if (r.kind === 'urban') {
-        for (const strip of pavementStrips(r)) {
-          const [p0, p1] = s.axis === 'x' ? [strip.minX, strip.maxX] : [strip.minZ, strip.maxZ];
-          for (const [q0, q1] of outside(Math.max(p0, lo), Math.min(p1, hi), clip)) {
-            const piece = s.axis === 'x' ? { ...strip, minX: q0, maxX: q1 } : { ...strip, minZ: q0, maxZ: q1 };
-            drawBox(upright, mats.pavement, piece, 0, CURB_H);
-            // Kerb stone on the road side and gutter strip.
-            const kerbSide = s.axis === 'x' ? (piece.minZ > s.c ? piece.minZ : piece.maxZ) : (piece.minX > s.c ? piece.minX : piece.maxX);
-            const k = kerbSide > s.c ? [kerbSide, kerbSide + 0.16] : [kerbSide - 0.16, kerbSide];
-            drawBox(upright, mats.curb, rect(s.axis, q0, q1, k[0]!, k[1]!), 0, CURB_H + 0.012);
-            const g = kerbSide > s.c ? [kerbSide - 0.38, kerbSide] : [kerbSide, kerbSide + 0.38];
-            drawBox(flat, mats.gutter, rect(s.axis, q0, q1, g[0]!, g[1]!), 0, 0.004, flatOnly);
-          }
+    const dirt = r.kind === 'rural' && UNPAVED.has(surfaceOf(r.osmWay) ?? '');
+    ribbon(flat, dirt ? mats.dirt : mats.asphalt, r.pts, ROAD_HALF * 2, 0);
+    for (const p of r.pts.slice(1, -1)) disc(flat, dirt ? mats.dirt : mats.asphalt, p[0], p[1], ROAD_HALF, 0.0005);
+    if (r.highway.startsWith('secondary')) {
+      // Dashed yellow centre line on the paved state/municipal roads.
+      const dash = 3; const gap = 3;
+      let acc = 0;
+      for (let i = 1; i < r.pts.length; i++) {
+        const a = r.pts[i - 1]!; const c = r.pts[i]!; const L = Math.hypot(c[0] - a[0], c[1] - a[1]);
+        for (let s = Math.max(0, Math.ceil(acc / (dash + gap)) * (dash + gap) - acc); s + dash <= L; s += dash + gap) {
+          const t0 = s / L; const t1 = (s + dash) / L;
+          ribbon(flat, mats.lineYellow, [[a[0] + (c[0] - a[0]) * t0, a[1] + (c[1] - a[1]) * t0], [a[0] + (c[0] - a[0]) * t1, a[1] + (c[1] - a[1]) * t1]], 0.12, 0.006);
         }
-      } else {
-        // Rural road: dirt shoulders.
-        for (const e of [-1, 1]) drawBox(flat, mats.dirt, rect(s.axis, lo, hi, s.c + e * ROAD_HALF + (e > 0 ? 0 : -1.4), s.c + e * ROAD_HALF + (e > 0 ? 1.4 : 0)), -0.03, -0.005, flatOnly);
+        acc += L;
       }
+      ribbon(flat, mats.lineWhite, r.pts, 0.1, 0.005, ROAD_HALF - 0.45);
+      ribbon(flat, mats.lineWhite, r.pts, 0.1, 0.005, -(ROAD_HALF - 0.45));
     }
   }
-  // Junction boxes and pavement corners for every non-core urban node.
-  for (const n of NODES) {
-    if (n.exit || n.id === 'centro' || n.id === 'docas') continue;
-    drawBox(flat, mats.asphalt, { minX: n.x - ROAD_HALF, maxX: n.x + ROAD_HALF, minZ: n.z - ROAD_HALF, maxZ: n.z + ROAD_HALF }, -0.05, 0, flatOnly);
-    for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
-      const c = { minX: Math.min(n.x + sx * ROAD_HALF, n.x + sx * E), maxX: Math.max(n.x + sx * ROAD_HALF, n.x + sx * E),
-        minZ: Math.min(n.z + sz * ROAD_HALF, n.z + sz * E), maxZ: Math.max(n.z + sz * ROAD_HALF, n.z + sz * E) };
-      drawBox(upright, mats.pavement, c, 0, CURB_H);
+  for (const n of NODES) disc(flat, mats.asphalt, n.x, n.z, ROAD_HALF + 0.4, 0.0008);
+  // Blocks: kerb face, gutter, pavement and the lot area behind it.
+  for (const b of BLOCKS) {
+    const k = b.kerb;
+    for (let i = 0; i < k.length; i++) {
+      const a = k[i]!; const c = k[(i + 1) % k.length]!;
+      // Kerb face (looks outwards, towards the road): CCW polygon → outward = right of a→c.
+      upright.of(mats.curb).poly([[a[0], 0, a[1]], [c[0], 0, c[1]], [c[0], CURB_H + 0.012, c[1]], [a[0], CURB_H + 0.012, a[1]]], [[0, 0], [1, 0], [1, 0.2], [0, 0.2]]);
     }
+    fillPolygon(flat, mats.pavement, k, CURB_H);
+    fillPolygon(flat, mats.grass, b.lot, CURB_H + 0.03);
   }
-  buildJunctionMarkings(flat, upright, mats, scene);
-  for (const h of SPEED_HUMPS) {
-    const [hx, hz] = h.alongX ? [ROAD_HALF, 0.9] : [0.9, ROAD_HALF];
-    const stripes = mats.stripes('lombada', '#e2b21c', '#1d1d1d', 8, false, 1.2);
-    upright.box(stripes, h.x - hx, h.x + hx, 0, 0.08, h.z - hz, h.z + hz);
-  }
-}
-
-/** Zebra crossings on every approach of urban junctions; stop lines on controlled approaches. */
-function buildJunctionMarkings(flat: BatchSet, upright: BatchSet, mats: Materials, scene: Scene): void {
-  for (const n of NODES) {
-    if (n.exit || n.control === 'free') continue;
-    for (const r of ROADS) {
-      if (r.a !== n.id && r.b !== n.id) continue;
-      if (r.kind === 'yard') continue;
-      const s = roadSpan(r);
-      // Centro: the W009 core already paints the avenue arms; only the cross street is added, with
-      // the core's wider spacing (zebra 6.6–9.6 m, stop line at 10.25 m, matching the traffic lanes).
-      if (n.id === 'centro' && s.axis === 'z') continue;
-      const core = n.id === 'centro' ? 2 : 0;
-      const dir = r.a === n.id ? 1 : -1; // direction from the node along the road
-      const along = (s.axis === 'x' ? n.x : n.z) + dir * (ROAD_HALF + 0.6 + core);
-      for (let c = -ROAD_HALF + 0.4; c <= ROAD_HALF - 0.4; c += 0.8) {
-        drawBox(flat, mats.lineWhite, rect(s.axis, Math.min(along, along + dir * 3), Math.max(along, along + dir * 3), s.c + c - 0.2, s.c + c + 0.2), 0, 0.008, flatOnly);
-      }
-      const minorStop = n.control === 'stop' && r.priority < Math.max(...ROADS.filter((q) => q.a === n.id || q.b === n.id).map((q) => q.priority));
-      if (n.control === 'signal' || minorStop) {
-        // Stop line across the inbound lane (right-hand lane when approaching the node).
-        const line = along + dir * (4 + (core ? 0.05 : 0));
-        const lane = s.axis === 'x' ? (dir > 0 ? [s.c, s.c + ROAD_HALF - 0.2] : [s.c - ROAD_HALF + 0.2, s.c])
-          : (dir > 0 ? [s.c - ROAD_HALF + 0.2, s.c] : [s.c, s.c + ROAD_HALF - 0.2]);
-        drawBox(flat, mats.lineWhite, rect(s.axis, Math.min(line, line + dir * 0.35), Math.max(line, line + dir * 0.35), lane[0]!, lane[1]!), 0, 0.008, flatOnly);
-      }
-      if (minorStop) {
-        // PARE sign on the right-hand pavement of the inbound lane.
-        const across = s.axis === 'x' ? (dir > 0 ? s.c + ROAD_HALF + 0.5 : s.c - ROAD_HALF - 0.5) : (dir > 0 ? s.c - ROAD_HALF - 0.5 : s.c + ROAD_HALF + 0.5);
-        const [x, z] = s.axis === 'x' ? [n.x + dir * (E + 0.4), across] : [across, n.z + dir * (E + 0.4)];
-        stopSign(upright, mats, scene, x, z);
-      }
-    }
-  }
-}
-
-function stopSign(set: BatchSet, mats: Materials, scene: Scene, x: number, z: number): void {
-  set.box(mats.paint('#70757a', 0.2), x - 0.03, x + 0.03, CURB_H, CURB_H + 2.6, z - 0.03, z + 0.03);
-  const plate = CreateCylinder('pare', { diameter: 0.75, height: 0.04, tessellation: 8 }, scene);
-  plate.rotation.z = Math.PI / 2;
-  plate.position.set(x, CURB_H + 2.3, z);
-  set.absorb(mats.glow('#b5202a'), plate);
+  void SIDEWALK; void upright;
 }
 
 function buildStreetLights(set: BatchSet, mats: Materials, scene: Scene): void {
@@ -138,11 +133,26 @@ function buildStreetLights(set: BatchSet, mats: Materials, scene: Scene): void {
   }
 }
 
-/**
- * CORE-014 shop: hollow building with a glass front and a central door (matching
- * `storeLayout`), parapet, sign, awning, roll-up shutter (animated by the delivery layer), shop
- * floor, counter with till, stocked shelves, stock-room door and ceiling lights.
- */
+/** OSM open spaces: parks (grass, paths), the sports pitch (lines), the cemetery (walled). */
+function buildOpenSpaces(flat: BatchSet, upright: BatchSet, mats: Materials): void {
+  for (const a of OPEN_SPACES) {
+    if (a.kind === 'leisure:pitch') {
+      fillPolygon(flat, mats.paint('#5f8f45'), a.pts, CURB_H + 0.01);
+      for (let i = 0; i < a.pts.length; i++) ribbon(flat, mats.lineWhite, [a.pts[i]!, a.pts[(i + 1) % a.pts.length]!], 0.12, CURB_H + 0.016);
+    } else if (a.kind === 'landuse:cemetery') {
+      fillPolygon(flat, mats.paint('#b9b2a2'), a.pts, CURB_H + 0.008);
+      for (let i = 0; i < a.pts.length; i++) {
+        const p = a.pts[i]!; const q = a.pts[(i + 1) % a.pts.length]!;
+        // Both faces (OSM ring orientation varies).
+        upright.of(mats.plaster('#ece7dc')).poly([[q[0], CURB_H, q[1]], [p[0], CURB_H, p[1]], [p[0], CURB_H + 2, p[1]], [q[0], CURB_H + 2, q[1]]], [[0, 0], [1, 0], [1, 1], [0, 1]]);
+        upright.of(mats.plaster('#ece7dc')).poly([[p[0], CURB_H, p[1]], [q[0], CURB_H, q[1]], [q[0], CURB_H + 2, q[1]], [p[0], CURB_H + 2, p[1]]], [[0, 0], [1, 0], [1, 1], [0, 1]]);
+      }
+    } else {
+      fillPolygon(flat, mats.grass, a.pts, CURB_H + 0.01);
+    }
+  }
+}
+
 const PRODUCTS = ['#c9302c', '#2b5aa8', '#f2c230', '#1f8a5b', '#f4f1ea', '#7a3f8f', '#e07b39', '#9cc3d5', '#6b4f3a'];
 function buildStore(scene: Scene, mats: Materials, s: Store): { meshes: Mesh[]; shutter: Mesh } {
   const set = new BatchSet();
@@ -323,7 +333,7 @@ function buildDepot(scene: Scene, set: BatchSet, flat: BatchSet, mats: Materials
   ], 8, 64);
   set.of(ops).quad([100, y0 + 5.2, -126.3], [116, y0 + 5.2, -126.3], [116, y0 + 6.2, -126.3], [100, y0 + 6.2, -126.3], 1, 1);
   // Driveway apron over the pavement gap at the yard gate.
-  drawBox(flat, mats.plazaPaving, { minX: d.gate.x0, maxX: d.gate.x1, minZ: d.lot.maxZ, maxZ: SOUTH_Z - ROAD_HALF }, -0.03, 0.004, flatOnly);
+  drawBox(flat, mats.plazaPaving, { minX: d.gate.x0, maxX: d.gate.x1, minZ: d.lot.maxZ, maxZ: -86 - ROAD_HALF }, -0.03, 0.004, flatOnly);
   const sign = mats.sign('placa-galpao', '#1d4f9c', '#f2c230', [
     { text: 'GALPÃO LOGÍSTICO', size: 0.42, color: '#ffffff' },
     { text: 'BREJO ALEGRE · CARGA E DESCARGA', size: 0.2, color: '#f2c230', weight: '700' },
@@ -341,150 +351,59 @@ function buildDepot(scene: Scene, set: BatchSet, flat: BatchSet, mats: Materials
   }
 }
 
-function buildChurch(scene: Scene, mats: Materials): Mesh[] {
-  const set = new BatchSet();
-  set.setTransform(placement(CHURCH.frame));
-  const W = CHURCH.width; const D = CHURCH.depth;
-  const white = mats.plaster('#f7f3ea');
-  const trim = mats.plaster('#e2c98a');
-  const H = 7.5;
-  set.box(white, 0, W, 0, H, 3, D, { fitV: true });
-  set.box(trim, -0.05, W + 0.05, 0, 0.8, 2.95, D + 0.05, { fitV: true });
-  // Gable roof along the nave (local z), clay tiles.
-  const ridge = H + 3.2;
-  const roof = set.of(mats.roofTiles);
-  const t = mats.roofTiles.tileU;
-  roof.poly([[-0.4, H, 2.6], [W / 2, ridge, 2.6], [W / 2, ridge, D + 0.4], [-0.4, H, D + 0.4]], [[0, 0], [0, 2.4], [(D - 2) / t, 2.4], [(D - 2) / t, 0]]);
-  roof.poly([[W + 0.4, H, D + 0.4], [W / 2, ridge, D + 0.4], [W / 2, ridge, 2.6], [W + 0.4, H, 2.6]], [[0, 0], [0, 2.4], [(D - 2) / t, 2.4], [(D - 2) / t, 0]]);
-  set.of(white).poly([[0, H, 3], [W, H, 3], [W / 2, ridge, 3]], [[0, 0], [1, 0], [0.5, 0.5]]);
-  // Central bell tower over the entrance, with a cross.
-  const tw = 4;
-  set.box(white, W / 2 - tw / 2, W / 2 + tw / 2, 0, 15, 0.5, 4.5, { fitV: true });
-  set.box(trim, W / 2 - tw / 2 - 0.15, W / 2 + tw / 2 + 0.15, 15, 15.4, 0.35, 4.65);
-  const spire = CreateCylinder('torre', { diameterTop: 0, diameterBottom: 5.2, height: 4.5, tessellation: 4 }, scene);
-  spire.rotation.y = Math.PI / 4;
-  spire.position.set(W / 2, 17.65, 2.5);
-  set.absorb(mats.roofTiles, spire);
-  set.box(mats.paint('#d9b04a', 0.4), W / 2 - 0.08, W / 2 + 0.08, 19.9, 21.6, 2.42, 2.58);
-  set.box(mats.paint('#d9b04a', 0.4), W / 2 - 0.55, W / 2 + 0.55, 20.9, 21.06, 2.42, 2.58);
-  // Door, rose window, side windows, steps.
-  set.of(mats.door).quad([W / 2 - 1.1, 0.3, 0.47], [W / 2 + 1.1, 0.3, 0.47], [W / 2 + 1.1, 3.6, 0.47], [W / 2 - 1.1, 3.6, 0.47], 1, 1);
-  set.of(mats.window).quad([W / 2 - 0.9, 6.5, 0.47], [W / 2 + 0.9, 6.5, 0.47], [W / 2 + 0.9, 8.3, 0.47], [W / 2 - 0.9, 8.3, 0.47], 1, 1);
-  for (let zz = 6; zz < D - 2; zz += 4) {
-    set.of(mats.window).quad([-0.03, 2.5, zz + 1.4], [-0.03, 2.5, zz], [-0.03, 5.2, zz], [-0.03, 5.2, zz + 1.4], 1, 1);
-    set.of(mats.window).quad([W + 0.03, 2.5, zz], [W + 0.03, 2.5, zz + 1.4], [W + 0.03, 5.2, zz + 1.4], [W + 0.03, 5.2, zz], 1, 1);
-  }
-  for (let i = 0; i < 3; i++) set.box(mats.paint('#cfc6b4'), W / 2 - 2.5 + i * 0.2, W / 2 + 2.5 - i * 0.2, 0, 0.12 + i * 0.12, -0.6 + i * 0.35, 0.5);
-  set.setTransform(null);
-  return set.build('igreja', scene);
-}
-
-function buildCivic(scene: Scene, mats: Materials, name: string, lines: [string, string], frame: Frame, W: number, D: number, wallColour: string, bandColour: string): Mesh[] {
-  const set = new BatchSet();
-  set.setTransform(placement(frame));
-  const H = 3.6;
-  const wall = mats.plaster(wallColour);
-  set.box(wall, 0, W, 0, H, 4, D, { fitV: true });
-  set.box(mats.plaster(bandColour), -0.02, W + 0.02, 0, 1.0, 3.98, D + 0.02, { fitV: true });
-  set.box(mats.paint('#e9e4d8'), -0.1, W + 0.1, H, H + 0.25, 3.9, D + 0.1);
-  for (let x = 1.2; x < W - 2; x += 3) set.of(mats.window).quad([x, 1.1, 3.97], [x + 1.8, 1.1, 3.97], [x + 1.8, 2.5, 3.97], [x, 2.5, 3.97], 1, 1);
-  set.of(mats.door).quad([W / 2 - 1, 0, 3.96], [W / 2 + 1, 0, 3.96], [W / 2 + 1, 2.3, 3.96], [W / 2 - 1, 2.3, 3.96], 1, 1);
-  const sign = mats.sign(`placa-${name}`, '#f6f3ea', bandColour, [{ text: lines[0], size: 0.42, color: bandColour }, { text: lines[1], size: 0.2, color: '#333' }], 6, 96);
-  set.of(sign).quad([W / 2 - 4, 2.6, 3.95], [W / 2 + 4, 2.6, 3.95], [W / 2 + 4, 3.5, 3.95], [W / 2 - 4, 3.5, 3.95], 1, 1);
-  // Low wall with railing along the front and a gate.
-  set.box(wall, 0, W / 2 - 1.6, 0, 0.8, 0, WALL_T, { fitV: true });
-  set.box(wall, W / 2 + 1.6, W, 0, 0.8, 0, WALL_T, { fitV: true });
-  set.of(mats.railing).quad([0, 0.8, 0.1], [W / 2 - 1.6, 0.8, 0.1], [W / 2 - 1.6, 2.0, 0.1], [0, 2.0, 0.1], W / 2 - 1.6, 1);
-  set.of(mats.railing).quad([W / 2 + 1.6, 0.8, 0.1], [W, 0.8, 0.1], [W, 2.0, 0.1], [W / 2 + 1.6, 2.0, 0.1], W / 2 - 1.6, 1);
-  set.box(mats.plazaPaving, 0, W, 0, 0.012, 0, 4, { sides: false });
-  set.setTransform(null);
-  return set.build(`civico-${name}`, scene);
-}
-
-function buildBusStops(set: BatchSet, mats: Materials): void {
-  for (const b of BUS_STOPS) {
-    const { x, z, alongZ } = b.shelter;
-    const [hx, hz] = alongZ ? [0.45, 1.6] : [1.6, 0.45];
-    const y = CURB_H;
-    set.box(mats.paint('#2e5f8f', 0.3), x - hx, x + hx, y + 2.4, y + 2.5, z - hz, z + hz);
-    for (const [px, pz] of [[x - hx + 0.05, z - hz + 0.05], [x + hx - 0.05, z + hz - 0.05], [x - hx + 0.05, z + hz - 0.05], [x + hx - 0.05, z - hz + 0.05]] as const) {
-      set.box(mats.paint('#5d6368', 0.3), px - 0.04, px + 0.04, y, y + 2.4, pz - 0.04, pz + 0.04);
-    }
-    set.box(mats.paint('#7a5a3b'), x - hx * 0.8, x + hx * 0.8, y + 0.45, y + 0.5, z - hz * 0.8, z + hz * 0.8);
-    const sign = mats.sign('placa-onibus', '#1d4f9c', '#ffffff', [{ text: 'ÔNIBUS', size: 0.5, color: '#ffffff' }], 2, 64);
-    set.of(sign).quad([x - 0.4, y + 1.7, z], [x + 0.4, y + 1.7, z], [x + 0.4, y + 2.1, z], [x - 0.4, y + 2.1, z], 1, 1);
-  }
-}
-
 export type CityBuild = { bodies: Mesh[]; shutters: Map<string, Mesh> };
 
-/** Builds the expansion into the shared batches; returns the separate building meshes (shadow casters). */
+/** Builds the real town into the shared batches; returns the separate meshes (shops, depot shutters). */
 export function buildCity(scene: Scene, mats: Materials, shared: SharedBatches): CityBuild {
   const { flat, upright } = shared;
-  buildRoads(flat, upright, mats, scene);
-  buildStreetLights(upright, mats, scene);
-  buildBusStops(upright, mats);
-  buildDepot(scene, upright, flat, mats);
-  // Blocks: lot level ground (grass) under everything, then buildings.
-  for (const b of BLOCKS) drawBox(flat, mats.grass, b.box, CURB_H - 0.03, CURB_H - 0.025, flatOnly);
-  drawBox(flat, mats.grass, DEPOT.lot, CURB_H - 0.04, CURB_H - 0.035, flatOnly);
   const bodies: Mesh[] = [];
-  for (const l of CITY_LOTS) {
-    const style = HOUSE_STYLES[l.style % HOUSE_STYLES.length]!;
-    const building: Building = buildHouse(scene, mats, { ...style, id: l.id, frame: l.frame }, shared);
-    bodies.push(...building.body);
-  }
-  // CORE-014: enamel number plate at every deliverable house (W009 core included), on a slim post.
+  buildRoads(flat, upright, mats);
+  buildStreetLights(upright, mats, scene);
+  buildOpenSpaces(flat, upright, mats);
+  // Depot: the CORE-014 layout, rigidly placed on its real block.
+  const toWorld = (p: P3): P3 => { const w = depotWorld(p[0], p[2]); return [w.x, p[1], w.z]; };
+  upright.setTransform(toWorld); flat.setTransform(toWorld);
+  buildDepot(scene, upright, flat, mats);
+  upright.setTransform(null); flat.setTransform(null);
+  // Frontage walls (plaster, stone plinth, coping, pillars) along every block edge between lots.
+  const wallPaint = ['#e2d8c4', '#ece4d2', '#d9cdb5', '#e8dcc6'];
+  frontageWalls().forEach((w, i) => {
+    upright.setTransform(placement(w.frame));
+    const paint = mats.plaster(wallPaint[i % wallPaint.length]!);
+    const L = w.length;
+    upright.box(paint, 0, L, 0.35, WALL_H, 0, 0.22, { fitV: true });
+    upright.box(mats.paint('#9b9184'), -0.02, L + 0.02, 0, 0.35, -0.02, 0.24);
+    upright.box(mats.paint('#cfc6b4'), -0.05, L + 0.05, WALL_H, WALL_H + 0.07, -0.05, 0.27);
+    const n = Math.max(1, Math.round(L / 3.2));
+    for (let k = 0; k <= n; k++) {
+      const t = (L * k) / n;
+      upright.box(paint, t - 0.16, t + 0.16, 0, WALL_H + 0.18, -0.08, 0.3, { fitV: true });
+      upright.box(mats.paint('#cfc6b4'), t - 0.2, t + 0.2, WALL_H + 0.18, WALL_H + 0.25, -0.12, 0.34);
+    }
+  });
+  upright.setTransform(null);
+  // Enamel number plate at every deliverable house, on a slim post at the lot front.
   const digits = mats.digits();
   const post = mats.paint('#5d6368', 0.3);
   for (const a of buildAddresses()) {
-    const put = placement(a.frame);
-    shared.upright.setTransform(put);
+    upright.setTransform(placement(a.frame));
     const text = String(a.number);
     const w = 0.13 * text.length + 0.06;
     const x0 = 0.35; const y0 = 1.45; const z = -0.06;
-    shared.upright.box(post, x0 + w / 2 - 0.025, x0 + w / 2 + 0.025, 0, y0, z + 0.01, z + 0.06);
-    shared.upright.box(mats.paint('#f4f1ea'), x0 - 0.02, x0 + w + 0.02, y0 - 0.02, y0 + 0.2, z + 0.005, z + 0.04);
+    upright.box(post, x0 + w / 2 - 0.025, x0 + w / 2 + 0.025, 0, y0, z + 0.01, z + 0.06);
+    upright.box(mats.paint('#f4f1ea'), x0 - 0.02, x0 + w + 0.02, y0 - 0.02, y0 + 0.2, z + 0.005, z + 0.04);
     [...text].forEach((ch, i) => {
       const xa = x0 + 0.03 + i * 0.13; const xb = xa + 0.13;
-      shared.upright.of(digits).quad([xa, y0, z], [xb, y0, z], [xb, y0 + 0.18, z], [xa, y0 + 0.18, z], 0.1, 1, Number(ch) / 10, 0);
+      upright.of(digits).quad([xa, y0, z], [xb, y0, z], [xb, y0 + 0.18, z], [xa, y0 + 0.18, z], 0.1, 1, Number(ch) / 10, 0);
     });
-    shared.upright.setTransform(null);
   }
+  upright.setTransform(null);
   const shutters = new Map<string, Mesh>();
-  for (const s of STORES.slice(1)) {
+  for (const s of STORES) {
     const built = buildStore(scene, mats, s);
     bodies.push(...built.meshes, built.shutter);
     shutters.set(s.id, built.shutter);
   }
-  bodies.push(...buildChurch(scene, mats));
-  bodies.push(...buildCivic(scene, mats, 'escola', ['E.E. AGOSTINHO GRIGOLETO', 'Escola estadual · releitura no jogo'], SCHOOL.frame, SCHOOL.width, SCHOOL.depth, '#f4efe2', '#2b5aa8'));
-  bodies.push(...buildCivic(scene, mats, 'servicos', ['CENTRO DE SERVIÇOS', 'Prédio fictício do jogo'], SERVICES.frame, SERVICES.width, SERVICES.depth, '#eef0ea', '#3f7a55'));
-  // Frontage walls in the W009/CORE-010 manner: plastered wall, stone plinth, coping and pillars.
-  const wallPaint = ['#e2d8c4', '#ece4d2', '#d9cdb5', '#e8dcc6'];
-  frontageWalls().forEach((w, i) => {
-    const along = w.maxX - w.minX > w.maxZ - w.minZ;
-    const paint = mats.plaster(wallPaint[i % wallPaint.length]!);
-    upright.box(paint, w.minX, w.maxX, CURB_H + 0.35, CURB_H + WALL_H, w.minZ, w.maxZ, { fitV: true });
-    upright.box(mats.paint('#9b9184'), w.minX - 0.02, w.maxX + 0.02, CURB_H, CURB_H + 0.35, w.minZ - 0.02, w.maxZ + 0.02);
-    upright.box(mats.paint('#cfc6b4'), w.minX - 0.05, w.maxX + 0.05, CURB_H + WALL_H, CURB_H + WALL_H + 0.07, w.minZ - 0.05, w.maxZ + 0.05);
-    const length = along ? w.maxX - w.minX : w.maxZ - w.minZ;
-    const n = Math.max(1, Math.round(length / 3.2));
-    for (let k = 0; k <= n; k++) {
-      const t = (along ? w.minX : w.minZ) + (length * k) / n;
-      const [x0, x1, z0, z1] = along ? [t - 0.16, t + 0.16, w.minZ - 0.08, w.maxZ + 0.08] : [w.minX - 0.08, w.maxX + 0.08, t - 0.16, t + 0.16];
-      upright.box(paint, x0, x1, CURB_H, CURB_H + WALL_H + 0.18, z0, z1, { fitV: true });
-      upright.box(mats.paint('#cfc6b4'), x0 - 0.04, x1 + 0.04, CURB_H + WALL_H + 0.18, CURB_H + WALL_H + 0.25, z0 - 0.04, z1 + 0.04);
-    }
-  });
-  // Periphery fields: ploughed strips and pasture (visual only, walkable).
-  const fields: [Box2D, 'dirt' | 'grass'][] = [
-    // Outside the playable bounds since CORE-014 (the town now fills the old fields).
-    [{ minX: -232, maxX: -164, minZ: -150, maxZ: -40 }, 'dirt'], [{ minX: -232, maxX: -164, minZ: 4, maxZ: 120 }, 'dirt'],
-    [{ minX: 14, maxX: 120, minZ: 168, maxZ: 226 }, 'dirt'], [{ minX: -120, maxX: -14, minZ: -226, maxZ: -172 }, 'dirt'],
-  ];
-  for (const [f, kind] of fields) {
-    if (kind === 'dirt') for (let z = f.minZ; z < f.maxZ; z += 3) drawBox(flat, mats.dirt, { ...f, minZ: z, maxZ: z + 1.6 }, -0.028, -0.02, flatOnly);
-  }
+  void DEPOT;
   return { bodies, shutters };
 }

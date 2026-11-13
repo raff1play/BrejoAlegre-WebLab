@@ -19,7 +19,7 @@ export function buildSignalPlans(g: RoadGraph): Map<string, SignalPlan> {
   const T = SIGNAL_TIMING;
   NODES.filter((n) => n.control === 'signal').forEach((n, k) => {
     // Inbound lanes ordered clockwise from north so the sequence looks natural.
-    const approaches = g.lanes.filter((l) => l.to === n.id).sort((a, b) => Math.atan2(-a.dir.x, -a.dir.z) - Math.atan2(-b.dir.x, -b.dir.z)).map((l) => l.index);
+    const approaches = g.lanes.filter((l) => l.to === n.id).sort((a, b) => Math.atan2(-a.endDir.x, -a.endDir.z) - Math.atan2(-b.endDir.x, -b.endDir.z)).map((l) => l.index);
     const cycle = approaches.length * (T.green + T.yellow + T.allRed) + T.walk + T.flash + T.allRed;
     plans.set(n.id, { node: n.id, approaches, cycle, offset: k * 17 });
   });

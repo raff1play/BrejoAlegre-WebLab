@@ -12,7 +12,8 @@ export type Path = Readonly<{ points: readonly Vec[]; cum: readonly number[]; le
 
 export type Lane = Readonly<{
   index: number; id: string; road: CityRoad; from: string; to: string;
-  dir: Vec; path: Path;
+  /** Travel direction at the start and at the end of the lane (real roads bend). */
+  dir: Vec; endDir: Vec; path: Path;
   /** Movements leaving the end of this lane. */
   out: number[];
   speedLimit: number;
@@ -25,14 +26,39 @@ export type Movement = Readonly<{
   conflicts: number[];
 }>;
 
-/** Distance from a node centre to its stop lines (lanes end here). */
+export const degree = (id: string): number => ROADS.filter((r) => r.a === id || r.b === id).length;
+
+/**
+ * Distance from a node centre to its stop lines (lanes end here). CORE-015: real junctions can be
+ * a few metres apart (staggered crossings), so the setback is capped by the shortest arm.
+ */
 export function stopDistance(n: CityNode): number {
   if (n.exit) return 0;
-  if (n.id === 'centro') return 10.6;
-  return degree(n.id) === 1 ? 7 : 9;
+  const arms = ROADS.filter((r) => r.a === n.id || r.b === n.id);
+  const shortest = Math.min(...arms.map((r) => r.length));
+  const want = arms.length === 1 ? 3 : arms.length === 2 ? 2.5 : 9;
+  return Math.max(0.5, Math.min(want, shortest * 0.4));
 }
 
-export const degree = (id: string): number => ROADS.filter((r) => r.a === id || r.b === id).length;
+/** Polyline shifted `d` to the right of its direction (mitred joints). */
+function offsetRight(pts: Vec[], d: number): Vec[] {
+  return pts.map((p, i) => {
+    const a = pts[Math.max(0, i - 1)]!; const b = pts[Math.min(pts.length - 1, i + 1)]!;
+    const L = Math.hypot(b.x - a.x, b.z - a.z) || 1;
+    const r = { x: (b.z - a.z) / L, z: -(b.x - a.x) / L };
+    return { x: p.x + r.x * d, z: p.z + r.z * d };
+  });
+}
+
+/** Sub-polyline between arc lengths s0 and s1. */
+function trim(pts: Vec[], s0: number, s1: number): Vec[] {
+  const path = makePath(pts);
+  const at = (s: number) => { const q = pathPose(path, s); return { x: q.x, z: q.z }; };
+  const out = [at(s0)];
+  for (let i = 1; i < pts.length - 1; i++) if (path.cum[i]! > s0 + 0.05 && path.cum[i]! < s1 - 0.05) out.push(pts[i]!);
+  out.push(at(s1));
+  return out;
+}
 
 export function makePath(points: Vec[]): Path {
   const cum = [0];
@@ -51,7 +77,6 @@ export function pathPose(p: Path, s: number): { x: number; z: number; yaw: numbe
   return { x: a.x + (b.x - a.x) * k, z: a.z + (b.z - a.z) * k, yaw: Math.atan2(b.x - a.x, b.z - a.z) };
 }
 
-const right = (d: Vec): Vec => ({ x: d.z, z: -d.x });
 
 function speedLimitFor(r: CityRoad): number {
   if (r.kind === 'yard') return 4;
@@ -94,15 +119,20 @@ export type RoadGraph = Readonly<{ lanes: Lane[]; movements: Movement[]; byNode:
 export function buildRoadGraph(): RoadGraph {
   const lanes: Lane[] = [];
   for (const road of ROADS) {
-    for (const [from, to] of [[road.a, road.b], [road.b, road.a]] as const) {
+    const directions = road.oneway ? [[road.a, road.b]] as const : [[road.a, road.b], [road.b, road.a]] as const;
+    for (const [from, to] of directions) {
       const A = nodeById(from); const B = nodeById(to);
-      const len = Math.hypot(B.x - A.x, B.z - A.z);
-      const dir = { x: (B.x - A.x) / len, z: (B.z - A.z) / len };
-      const r = right(dir);
-      const ta = stopDistance(A); const tb = stopDistance(B);
-      const p0 = { x: A.x + dir.x * ta + r.x * LANE_OFFSET, z: A.z + dir.z * ta + r.z * LANE_OFFSET };
-      const p1 = { x: B.x - dir.x * tb + r.x * LANE_OFFSET, z: B.z - dir.z * tb + r.z * LANE_OFFSET };
-      lanes.push({ index: lanes.length, id: `${road.id}:${from}>${to}`, road, from, to, dir, path: makePath([p0, p1]), out: [], speedLimit: speedLimitFor(road) });
+      const axis = (from === road.a ? [...road.pts] : [...road.pts].reverse()).map(([x, z]) => ({ x, z }));
+      // One-way carriageways (OSM dual roads): the lane follows the way's own axis.
+      const shifted = offsetRight(axis, road.oneway ? 0.4 : LANE_OFFSET);
+      const total = makePath(shifted).length;
+      let ta = stopDistance(A); let tb = stopDistance(B);
+      if (ta + tb > total - 1) { const k = (total - 1) / (ta + tb); ta *= k; tb *= k; }
+      const pts = trim(shifted, ta, total - tb);
+      const path = makePath(pts);
+      const unit = (a: Vec, b: Vec) => { const L = Math.hypot(b.x - a.x, b.z - a.z) || 1; return { x: (b.x - a.x) / L, z: (b.z - a.z) / L }; };
+      const dir = unit(pts[0]!, pts[1]!); const endDir = unit(pts[pts.length - 2]!, pts[pts.length - 1]!);
+      lanes.push({ index: lanes.length, id: `${road.id}:${from}>${to}`, road, from, to, dir, endDir, path, out: [], speedLimit: speedLimitFor(road) });
     }
   }
   const movements: Movement[] = [];
@@ -116,16 +146,16 @@ export function buildRoadGraph(): RoadGraph {
       for (const b of outs) {
         const uturn = a.road === b.road;
         if (uturn && outs.length > 1) continue;
-        const P0 = a.path.points[1]!; const P2 = b.path.points[0]!;
-        const cross = a.dir.x * b.dir.z - a.dir.z * b.dir.x;
-        const dot = a.dir.x * b.dir.x + a.dir.z * b.dir.z;
+        const P0 = a.path.points[a.path.points.length - 1]!; const P2 = b.path.points[0]!;
+        const cross = a.endDir.x * b.dir.z - a.endDir.z * b.dir.x;
+        const dot = a.endDir.x * b.dir.x + a.endDir.z * b.dir.z;
         let pts: Vec[];
         let turn: Turn;
         if (uturn) {
           // Dead end: a wide turning loop (radius 6 m) beyond the lane ends, so long vehicles do
           // not sweep over the queue waiting on the inbound lane.
           turn = 'uturn';
-          const f = a.dir;
+          const f = a.endDir;
           const w = Math.hypot(P2.x - P0.x, P2.z - P0.z);
           const u = { x: (P2.x - P0.x) / w, z: (P2.z - P0.z) / w };
           const R = 6;
@@ -150,9 +180,9 @@ export function buildRoadGraph(): RoadGraph {
         } else {
           turn = cross < 0 ? 'right' : 'left';
           // Control point: where the inbound and outbound lane lines meet.
-          const den = a.dir.x * -b.dir.z + a.dir.z * b.dir.x;
+          const den = a.endDir.x * -b.dir.z + a.endDir.z * b.dir.x;
           const t = ((P2.x - P0.x) * -b.dir.z + (P2.z - P0.z) * b.dir.x) / den;
-          const C = { x: P0.x + a.dir.x * t, z: P0.z + a.dir.z * t };
+          const C = { x: P0.x + a.endDir.x * t, z: P0.z + a.endDir.z * t };
           pts = [];
           for (let i = 0; i <= 8; i++) {
             const u = i / 8;
@@ -183,11 +213,15 @@ export function nearestLane(g: RoadGraph, x: number, z: number, accept: (l: Lane
   let best: { lane: Lane; s: number; distance: number } | null = null;
   for (const lane of g.lanes) {
     if (!accept(lane)) continue;
-    const [a, b] = lane.path.points as [Vec, Vec];
-    const t = Math.max(0, Math.min(1, ((x - a.x) * (b.x - a.x) + (z - a.z) * (b.z - a.z)) / (lane.path.length ** 2)));
-    const px = a.x + (b.x - a.x) * t; const pz = a.z + (b.z - a.z) * t;
-    const d = Math.hypot(px - x, pz - z);
-    if (!best || d < best.distance) best = { lane, s: t * lane.path.length, distance: d };
+    const pts = lane.path.points;
+    for (let i = 1; i < pts.length; i++) {
+      const a = pts[i - 1]!; const b = pts[i]!;
+      const L2 = (b.x - a.x) ** 2 + (b.z - a.z) ** 2 || 1;
+      const t = Math.max(0, Math.min(1, ((x - a.x) * (b.x - a.x) + (z - a.z) * (b.z - a.z)) / L2));
+      const px = a.x + (b.x - a.x) * t; const pz = a.z + (b.z - a.z) * t;
+      const d = Math.hypot(px - x, pz - z);
+      if (!best || d < best.distance) best = { lane, s: lane.path.cum[i - 1]! + Math.sqrt(L2) * t, distance: d };
+    }
   }
   return best;
 }

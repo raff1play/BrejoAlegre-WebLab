@@ -33,8 +33,9 @@ export function setupEnvironment(scene: Scene, profile: GraphicsProfile): Enviro
   scene.ambientColor = new Color3(0.3, 0.3, 0.3);
   scene.fogMode = Scene.FOGMODE_LINEAR;
   scene.fogColor = Color3.FromHexString(HORIZON);
-  scene.fogStart = 95;
-  scene.fogEnd = 430;
+  // CORE-015: the real town is ~1.5 km wide; distant streets fade into the haze.
+  scene.fogStart = 110;
+  scene.fogEnd = 560;
   const grading = scene.imageProcessingConfiguration;
   grading.toneMappingEnabled = true;
   grading.toneMappingType = ImageProcessingConfiguration.TONEMAPPING_ACES;

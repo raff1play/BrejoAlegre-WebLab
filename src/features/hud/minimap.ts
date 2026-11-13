@@ -1,23 +1,22 @@
-import { BLOCKS, CITY_BOUNDS, DEPOT, ROADS, nodeById, pointsOfInterest, walkableAreas, type Poi } from '../../world/city/cityPlan';
-import { ROAD_HALF } from '../../world/layout';
+import { BLOCKS, CITY_BOUNDS, DEPOT, ROADS, depotPoly, pointsOfInterest, type Poi } from '../../world/city/cityPlan';
+import { OPEN_SPACES } from '../../world/geo/geoCity';
 
 /**
- * CORE-013 minimap drawn from the same city plan as the 3D world (no external map tiles).
- * North-up; the player is the arrow. The static layer is painted once; the visible window is
+ * CORE-015 minimap drawn from the same OpenStreetMap-derived data as the 3D world and the traffic
+ * (no external map tiles). TRUE north-up; the player is the arrow. The static layer is painted once; the visible window is
  * redrawn at ~8 Hz, never per frame. Tap/click (or M) toggles the expanded map with a legend.
  */
-const PX_PER_M = 2;
+const PX_PER_M = 1.2;
 const VIEW_RADIUS = 70;
-/** Expanded view: the built-up town (grid, depot, exits' first metres). */
-const EXPANDED = { cx: 34, cz: -37, radius: 125 };
+/** Expanded view: the whole urban seat. */
+const EXPANDED = { cx: (CITY_BOUNDS.minX + CITY_BOUNDS.maxX) / 2, cz: (CITY_BOUNDS.minZ + CITY_BOUNDS.maxZ) / 2, radius: Math.max(CITY_BOUNDS.maxX - CITY_BOUNDS.minX, CITY_BOUNDS.maxZ - CITY_BOUNDS.minZ) / 2 };
 const ICON: Record<Poi['kind'], { color: string; glyph: string }> = {
   loja: { color: '#e8b348', glyph: 'L' },
   galpao: { color: '#f2c230', glyph: 'G' },
-  igreja: { color: '#f4f1ea', glyph: '✝' },
-  escola: { color: '#8fc1e3', glyph: 'E' },
-  servicos: { color: '#b9a5d6', glyph: 'S' },
-  onibus: { color: '#58c27d', glyph: 'B' },
   praca: { color: '#7fc46a', glyph: 'P' },
+  esporte: { color: '#8fc1e3', glyph: 'C' },
+  cemiterio: { color: '#c9c2b2', glyph: '✝' },
+  lugar: { color: '#f4f1ea', glyph: '•' },
 };
 const SECTOR_FILL: Record<string, string> = {
   centro: '#4b5b44', residencial: '#465a3f', comercial: '#5a5547', logistico: '#56503f', periferia: '#3f5136',
@@ -71,27 +70,28 @@ export class Minimap {
     const c = this.base.getContext('2d')!;
     c.fillStyle = '#3d4f35';
     c.fillRect(0, 0, w, h);
-    const rect = (b: { minX: number; maxX: number; minZ: number; maxZ: number }, fill: string) => {
-      c.fillStyle = fill;
-      c.fillRect(this.sx(b.minX), this.sz(b.maxZ), (b.maxX - b.minX) * PX_PER_M, (b.maxZ - b.minZ) * PX_PER_M);
+    const poly = (pts: readonly (readonly [number, number])[], fill: string) => {
+      c.fillStyle = fill; c.beginPath();
+      pts.forEach((p, i) => (i ? c.lineTo(this.sx(p[0]), this.sz(p[1])) : c.moveTo(this.sx(p[0]), this.sz(p[1]))));
+      c.closePath(); c.fill();
     };
-    for (const b of BLOCKS) rect(b.box, SECTOR_FILL[b.sector] ?? '#4b5b44');
-    for (const a of walkableAreas()) rect(a, '#6f8a58');
-    rect(DEPOT.lot, '#6a6455');
-    rect({ minX: DEPOT.building.minX, maxX: DEPOT.building.maxX, minZ: DEPOT.building.minZ, maxZ: DEPOT.building.maxZ }, '#9a9488');
-    c.lineCap = 'square';
+    for (const b of BLOCKS) poly(b.kerb, SECTOR_FILL[b.sector] ?? '#4b5b44');
+    for (const a of OPEN_SPACES) poly(a.pts, a.kind === 'landuse:cemetery' ? '#8d887c' : '#6f8a58');
+    poly(depotPoly(DEPOT.lot).pts, '#6a6455');
+    poly(depotPoly(DEPOT.building).pts, '#9a9488');
+    c.lineCap = 'round'; c.lineJoin = 'round';
+    const line = (pts: readonly (readonly [number, number])[]) => {
+      c.beginPath(); pts.forEach((p, i) => (i ? c.lineTo(this.sx(p[0]), this.sz(p[1])) : c.moveTo(this.sx(p[0]), this.sz(p[1])))); c.stroke();
+    };
     for (const r of ROADS) {
-      const a = nodeById(r.a); const b = nodeById(r.b);
-      c.strokeStyle = r.kind === 'rural' ? '#a08a66' : r.kind === 'yard' ? '#77736a' : '#d8d4ca';
-      c.lineWidth = (r.kind === 'urban' ? ROAD_HALF * 2 + 2 : ROAD_HALF * 2 - 1) * PX_PER_M;
-      c.beginPath(); c.moveTo(this.sx(a.x), this.sz(a.z)); c.lineTo(this.sx(b.x), this.sz(b.z)); c.stroke();
+      c.strokeStyle = r.kind === 'rural' ? '#a08a66' : '#d8d4ca';
+      c.lineWidth = (r.kind === 'urban' ? 9 : 7) * PX_PER_M;
+      line(r.pts);
     }
     for (const r of ROADS) {
-      if (r.kind !== 'urban') continue;
-      const a = nodeById(r.a); const b = nodeById(r.b);
-      c.strokeStyle = r.priority >= 2 ? '#f0c75e' : '#ffffff';
-      c.lineWidth = PX_PER_M * 1.2;
-      c.beginPath(); c.moveTo(this.sx(a.x), this.sz(a.z)); c.lineTo(this.sx(b.x), this.sz(b.z)); c.stroke();
+      if (!r.highway.startsWith('secondary')) continue;
+      c.strokeStyle = '#f0c75e'; c.lineWidth = PX_PER_M * 2;
+      line(r.pts);
     }
   }
 
@@ -129,7 +129,7 @@ export class Minimap {
       c.beginPath(); c.arc(px, py, r, 0, Math.PI * 2); c.fill();
       c.fillStyle = '#152230';
       c.fillText(icon.glyph, px, py + 0.5);
-      if (this.expanded && p.kind !== 'onibus' && p.kind !== 'loja') {
+      if (this.expanded && p.kind !== 'loja' && p.kind !== 'lugar') {
         c.font = `700 ${Math.round(r * 1.1)}px system-ui, sans-serif`;
         c.fillStyle = '#f8fafc';
         c.strokeStyle = 'rgba(10, 16, 24, .9)'; c.lineWidth = 3 * dpr;

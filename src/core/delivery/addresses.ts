@@ -1,80 +1,83 @@
-import { HOUSES, LOT_WIDTH, SIDEWALK, framePoint, frameYaw, type Frame } from '../../world/layout.ts';
-import { BLOCKS, CITY_LOTS, ROADS, roadSpan, type CityRoad } from '../../world/city/cityPlan.ts';
+import { LOT_WIDTH, SIDEWALK, framePoint, yawOf, type Frame } from '../../world/layout.ts';
+import { BLOCKS, CITY_LOTS, ROADS } from '../../world/city/cityPlan.ts';
+import { TOWN_CENTRE } from '../../world/geo/geoCity.ts';
 
 /**
- * CORE-014 deliverable addresses: every house lot of the town (W009 core + expansion). Numbers
- * follow the Brazilian metric rule (distance from the start of the street, even on the right,
- * odd on the left); street names come from the plan, bairros other than Centro are fictional.
+ * CORE-015 deliverable addresses on the REAL streets of Brejo Alegre (names from OpenStreetMap).
+ * House positions are ESTIMATED (OSM has no lots or house numbers here) and the numbers follow the
+ * Brazilian metric rule from the end of the street nearest the town centre (even on the right):
+ * they are game numbers, not the real numbering of any property.
  */
 export type Address = Readonly<{
   id: string; lot: string; street: string; number: number; bairro: string; label: string;
   frame: Frame;
-  /** On the pavement in front of the gate: where the parcel is handed over. */
   door: { x: number; z: number };
-  /** Kerb-side spot on the carriageway to park the motorcycle. */
   stop: { x: number; z: number };
-  /** Number plate on the front wall, facing the street. */
   plate: { x: number; z: number; yaw: number };
+  estimated: true;
 }>;
 
-const BAIRRO: Record<string, string> = {
-  tiete: 'Jardim Tietê', primavera: 'Jardim Primavera', vilanova: 'Vila Nova',
-};
+export const DELIVERABLE_COUNT = 48;
 
-function bairroAt(x: number, z: number): string {
-  const block = BLOCKS.find((b) => x >= b.box.minX - 1 && x <= b.box.maxX + 1 && z >= b.box.minZ - 1 && z <= b.box.maxZ + 1);
-  const key = block?.id.split('-')[0] ?? '';
-  return BAIRRO[key] ?? 'Centro';
+/** Street origin (end closest to the centre) and direction, from all its real OSM segments. */
+function streetFrame(name: string): { ox: number; oz: number; dx: number; dz: number } | null {
+  const pts = ROADS.filter((r) => r.name === name).flatMap((r) => r.pts);
+  if (pts.length < 2) return null;
+  // The two most distant points are the street ends.
+  let best = { d: -1, a: pts[0]!, b: pts[1]! };
+  for (const a of pts) for (const b of pts) { const d = Math.hypot(a[0] - b[0], a[1] - b[1]); if (d > best.d) best = { d, a, b }; }
+  const da = Math.hypot(best.a[0] - TOWN_CENTRE[0], best.a[1] - TOWN_CENTRE[1]);
+  const db = Math.hypot(best.b[0] - TOWN_CENTRE[0], best.b[1] - TOWN_CENTRE[1]);
+  const [o, e] = da <= db ? [best.a, best.b] : [best.b, best.a];
+  const L = Math.hypot(e[0] - o[0], e[1] - o[1]) || 1;
+  return { ox: o[0], oz: o[1], dx: (e[0] - o[0]) / L, dz: (e[1] - o[1]) / L };
 }
 
-/** Street segment the lot fronts: the road whose axis is closest to the pavement point. */
-function frontingRoad(x: number, z: number): CityRoad {
-  let best: CityRoad = ROADS[0]!; let bestD = Infinity;
-  for (const r of ROADS) {
-    if (r.kind !== 'urban') continue;
-    const s = roadSpan(r);
-    const [along, across] = s.axis === 'x' ? [x, z] : [z, x];
-    const out = Math.max(0, s.lo - along, along - s.hi);
-    const d = Math.hypot(out, across - s.c);
-    if (d < bestD) { bestD = d; best = r; }
-  }
-  return best;
-}
-
-/** `free` (optional) checks a pavement spot; the door slides along the frontage around trees/shelters. */
+/** `free` (optional) checks a pavement spot; the door slides along the frontage around trees/poles. */
 export function buildAddresses(free: (x: number, z: number) => boolean = () => true): Address[] {
-  const lots = [
-    ...HOUSES.map((h) => ({ lot: h.id, frame: h.frame })),
-    ...CITY_LOTS.map((l) => ({ lot: l.id, frame: l.frame })),
-  ];
+  // Spread the deliverable houses over the whole seat: farthest-point sampling, deterministic.
+  const candidates = CITY_LOTS.filter((l) => l.street && !l.street.startsWith('Via sem nome') && !l.street.startsWith('Estrada'));
+  const centreOf = (l: (typeof CITY_LOTS)[number]) => framePoint(l.frame, l.width / 2, 0);
+  const chosen: (typeof CITY_LOTS)[number][] = [];
+  if (candidates.length) chosen.push(candidates[0]!);
+  while (chosen.length < Math.min(DELIVERABLE_COUNT, candidates.length)) {
+    let best = candidates[0]!; let bestD = -1;
+    for (const c of candidates) {
+      const p = centreOf(c);
+      const d = Math.min(...chosen.map((q) => { const r = centreOf(q); return Math.hypot(p.x - r.x, p.z - r.z); }));
+      if (d > bestD) { bestD = d; best = c; }
+    }
+    chosen.push(best);
+  }
+  chosen.sort((a, b) => a.id.localeCompare(b.id, 'en', { numeric: true }));
+  const frames = new Map<string, ReturnType<typeof streetFrame>>();
   const used = new Set<string>();
   const out: Address[] = [];
-  for (const { lot, frame } of lots) {
-    let lx = LOT_WIDTH / 2;
-    for (const t of [6, 4.6, 7.4, 3.2, 8.8, 2]) { const p = framePoint(frame, t, -0.9); if (free(p.x, p.z)) { lx = t; break; } }
+  for (const l of chosen) {
+    const frame = l.frame; const W = l.width ?? LOT_WIDTH;
+    let lx = W / 2;
+    for (const t of [W / 2, W / 2 - 1.4, W / 2 + 1.4, 2.5, W - 2.5]) { const p = framePoint(frame, t, -0.9); if (free(p.x, p.z)) { lx = t; break; } }
     const door = framePoint(frame, lx, -0.9);
     const stop = framePoint(frame, lx, -SIDEWALK - 1.3);
     const plateAt = framePoint(frame, 0.55, -0.02);
-    // Street and number come from the lot centre (stable whatever spot the door slides to).
-    const centre = framePoint(frame, LOT_WIDTH / 2, -0.9);
-    const road = frontingRoad(centre.x, centre.z);
-    const street = road.name;
-    // The whole street (all segments with the same name) is numbered from its lowest coordinate.
-    const segments = ROADS.filter((r) => r.name === street).map(roadSpan);
-    const start = Math.min(...segments.map((s) => s.lo));
-    const s = roadSpan(road);
-    const along = (s.axis === 'x' ? centre.x : centre.z) - start;
-    // Right-hand side when walking towards increasing numbers: even.
-    const across = (s.axis === 'x' ? centre.z : centre.x) - s.c;
-    const right = s.axis === 'x' ? across < 0 : across > 0;
-    let number = Math.max(1, Math.round(along));
-    if ((number % 2 === 0) !== right) number += 1;
+    const street = l.street!;
+    if (!frames.has(street)) frames.set(street, streetFrame(street));
+    const sf = frames.get(street)!;
+    const centre = framePoint(frame, W / 2, -0.9);
+    let number = 1;
+    if (sf) {
+      const along = (centre.x - sf.ox) * sf.dx + (centre.z - sf.oz) * sf.dz;
+      const across = (centre.x - sf.ox) * sf.dz - (centre.z - sf.oz) * sf.dx; // > 0: right-hand side
+      number = Math.max(1, Math.round(along));
+      if ((number % 2 === 0) !== across > 0) number += 1;
+    }
     while (used.has(`${street}#${number}`)) number += 2;
     used.add(`${street}#${number}`);
-    const bairro = bairroAt(door.x + (stop.x - door.x) * -4, door.z + (stop.z - door.z) * -4);
+    const block = BLOCKS.find((b) => b.id === l.block);
+    const bairro = block?.sector === 'centro' ? 'Centro' : 'Brejo Alegre';
     out.push({
-      id: `end-${lot}`, lot, street, number, bairro, label: `${street}, ${number} — ${bairro}`,
-      frame, door, stop, plate: { ...plateAt, yaw: frameYaw(frame.side) + Math.PI },
+      id: `end-${l.id}`, lot: l.id, street, number, bairro, label: `${street}, ${number} — ${bairro}`,
+      frame, door, stop, plate: { ...plateAt, yaw: yawOf(frame) + Math.PI }, estimated: true,
     });
   }
   return out;
