@@ -139,7 +139,8 @@ export function cityCameraObstacles(): Box3D[] {
   for (const s of STORES) {
     const yaw = yawOf(s.frame);
     const L = storeLayout(s);
-    for (const w of L.walls) out.push(toBox(w, s.height + 0.6));
+    // The first five are the shell; a sixth is the 2 m wall closing the rest of the lot.
+    L.walls.forEach((w, i) => out.push(toBox(w, i < 5 ? s.height + 0.6 : 2.2)));
     out.push(obox(s.frame, yaw, 0, s.width, 1.5, s.depth, s.height - 0.45, s.height + 0.6));
   }
   for (const w of GEO_WALLS) out.push(obox(w.frame, yawOf(w.frame), 0, w.length, 0, 0.22, 0, 2.4));

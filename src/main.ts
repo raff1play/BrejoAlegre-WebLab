@@ -95,11 +95,12 @@ function start(canvas: HTMLCanvasElement): void {
   // NPC vehicles are solid for the player; if one already overlaps (e.g. it was spawned there),
   // only the static world blocks so the player can always move away.
   let insideVehicle = false;
-  const rideGuard: MotionGuard = (x, z, r) => world.guard(x, z, r) && (insideVehicle || !cityLife.blocks(x, z, r));
+  const baseGuard: MotionGuard = (x, z, r) => world.guard(x, z, r) && (insideVehicle || !cityLife.blocks(x, z, r));
+  const rideGuard: MotionGuard = (x, z, r) => baseGuard(x, z, r) && !delivery.doorBlocked(x, z, r, true, moto.state);
 
   // On foot, the parked bike is solid too.
   const walkerGuard: MotionGuard = (x, z, r) => {
-    if (!rideGuard(x, z, r)) return false;
+    if (!baseGuard(x, z, r) || delivery.doorBlocked(x, z, r, false, walker.state)) return false;
     const s = moto.state;
     const ox = Math.sin(s.yaw) * MOTO.bodyOffset;
     const oz = Math.cos(s.yaw) * MOTO.bodyOffset;
@@ -130,7 +131,7 @@ function start(canvas: HTMLCanvasElement): void {
   const toggleMount = (): void => {
     if (mode === 'riding') {
       if (!isMotoStopped(moto.state)) { hud.toast('Pare a moto para descer'); return; }
-      const spot = findDismountSpot(moto.state, rideGuard);
+      const spot = findDismountSpot(moto.state, baseGuard);
       if (!spot) { hud.toast('Sem espaço para descer aqui'); return; }
       moto.state.speed = 0;
       moto.state.steer = 0;

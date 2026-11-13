@@ -119,6 +119,8 @@ export type Store = Readonly<{
   wall: string; band: string; sign: [string, string];
   stop: { x: number; z: number }; door: { x: number; z: number };
   sector: Sector; street: string | null;
+  /** Width of the real lot the shop stands on (≥ width); the gap is closed by a wall. */
+  lotWidth: number;
 }>;
 const SHOP_CONFIG: [StoreKind, string, string, { wall: string; band: string; sign: [string, string] }, number][] = [
   ['mercearia', 'Mercearia do Bairro', 'Padaria · Bebidas · Hortifruti', { wall: '#eadfc4', band: '#2f6688', sign: ['#f4c531', '#a3211c'] }, 4.4],
@@ -135,32 +137,68 @@ export const STORES: readonly Store[] = SHOP_LOTS.map((lot, i) => {
   const [id, name, subtitle, colours, height] = SHOP_CONFIG[i]!;
   const width = Math.min(lot.width, 14); const depth = Math.min(lot.depth, 18);
   return {
-    id, name, subtitle, frame: lot.frame, width, depth, height, ...colours, sector: 'comercial' as Sector, street: lot.street,
+    id, name, subtitle, frame: lot.frame, width, depth, height, ...colours, sector: 'comercial' as Sector, street: lot.street, lotWidth: lot.width,
     door: framePoint(lot.frame, width / 2, -0.6), stop: framePoint(lot.frame, width / 2, -SIDEWALK - LANE_OFFSET - 0.2),
   };
 });
 
+export type Rect = Readonly<{ x0: number; x1: number; z0: number; z1: number }>;
+/**
+ * CORE-015.1 shop floor plan in LOT coordinates — the single source for what is drawn
+ * (cityBuild.buildStore) and what is solid (storeLayout), so models and colliders cannot drift.
+ * A 3.9 m aisle runs from the door to the counter; displays hug the walls and the windows.
+ */
+export function storePlan(s: Pick<Store, 'width' | 'depth' | 'lotWidth'>): {
+  cz: number; door0: number; door1: number; counter: Rect; backShelf: Rect; sideShelf: Rect;
+  displayLeft: Rect; displayRight: Rect; windowDisplay: Rect; feature: Rect; sideWall: Rect | null;
+} {
+  const W = s.width; const D = s.depth; const t = 0.25; const L = STORE_SETBACK;
+  const cz = D * 0.52; const door0 = W / 2 - 1.3; const door1 = W / 2 + 1.3;
+  return {
+    cz, door0, door1,
+    counter: { x0: 1.2, x1: W - 3.2, z0: cz - 0.35, z1: cz + 0.35 },
+    backShelf: { x0: 0.6, x1: W - 0.6, z0: D - 1.0, z1: D - t },
+    sideShelf: { x0: t, x1: t + 0.6, z0: cz + 1.2, z1: D - 1.6 },
+    displayLeft: { x0: t, x1: t + 0.75, z0: L + t + 1.5, z1: cz - 1.7 },
+    displayRight: { x0: W - t - 0.75, x1: W - t, z0: L + t + 1.5, z1: cz - 1.9 },
+    windowDisplay: { x0: 1.0, x1: Math.min(2.8, door0 - 0.6), z0: L + t + 0.2, z1: L + t + 1.0 },
+    feature: { x0: Math.max(door1 + 0.4, W - 3.3), x1: W - 1.5, z0: L + t + 0.2, z1: L + t + 1.1 },
+    sideWall: s.lotWidth - W > 0.3 ? { x0: W, x1: s.lotWidth, z0: L, z1: L + 0.2 } : null,
+  };
+}
+
 export type StoreLayout = Readonly<{
   floor: Poly2D; walls: Poly2D[]; counter: Poly2D; shelves: Poly2D[];
+  /** Wall and window displays in the customer area (solid). */
+  displays: Poly2D[];
+  /** The door opening (2.6 m): never ridden through; closed for walkers while the shutter is down. */
+  doorway: Poly2D;
+  /** Inside the shell (the customer and staff floor). */
+  interior: Poly2D;
   door: { x: number; z: number }; pickup: { x: number; z: number }; employee: { x: number; z: number };
   stock: { x: number; z: number }; queue: { x: number; z: number }[]; facing: number;
 }>;
 export const STORE_SETBACK = 1.5;
-/** Shop floor plan in lot coordinates (glass front with a central door, counter, stock, queue). */
+/** Shop floor plan as world polygons and interaction spots. */
 export function storeLayout(s: Store): StoreLayout {
   const f = s.frame; const W = s.width; const D = s.depth; const t = 0.25;
   const P = (lx: number, lz: number) => framePoint(f, lx, lz);
   const R = (x0: number, x1: number, z0: number, z1: number) => makePoly(frameCorners(f, x0, x1, z0, z1));
-  const cz = D * 0.52;
-  const door0 = W / 2 - 1.3; const door1 = W / 2 + 1.3;
+  const Q = (r: Rect) => R(r.x0, r.x1, r.z0, r.z1);
+  const p = storePlan(s); const cz = p.cz;
+  const walls = [
+    R(0, t, STORE_SETBACK, D), R(W - t, W, STORE_SETBACK, D), R(0, W, D - t, D),
+    R(0, p.door0, STORE_SETBACK, STORE_SETBACK + t), R(p.door1, W, STORE_SETBACK, STORE_SETBACK + t),
+  ];
+  if (p.sideWall) walls.push(Q(p.sideWall));
   return {
     floor: R(0, W, 0, D),
-    walls: [
-      R(0, t, STORE_SETBACK, D), R(W - t, W, STORE_SETBACK, D), R(0, W, D - t, D),
-      R(0, door0, STORE_SETBACK, STORE_SETBACK + t), R(door1, W, STORE_SETBACK, STORE_SETBACK + t),
-    ],
-    counter: R(1.2, W - 3.2, cz - 0.35, cz + 0.35),
-    shelves: [R(0.6, W - 0.6, D - 1.0, D - t), R(t, t + 0.6, cz + 1.2, D - 1.6)],
+    walls,
+    counter: Q(p.counter),
+    shelves: [Q(p.backShelf), Q(p.sideShelf)],
+    displays: [Q(p.displayLeft), Q(p.displayRight), Q(p.windowDisplay), Q(p.feature)],
+    doorway: R(p.door0, p.door1, STORE_SETBACK, STORE_SETBACK + t),
+    interior: R(t, W - t, STORE_SETBACK + t, D - t),
     door: P(W / 2, STORE_SETBACK - 0.6), pickup: P(W / 2 + 1.0, cz - 1.0), employee: P(W / 2 - 0.5, cz + 0.9),
     stock: P(W / 2 + 1.5, D - 1.6),
     queue: [P(W / 2 - 1.6, cz - 1.0), P(W / 2 - 1.6, cz - 2.0), P(W / 2 - 2.6, cz - 2.6), P(W / 2 - 3.4, cz - 3.2)],
@@ -178,7 +216,7 @@ export function walkablePolys(): Poly2D[] {
 /** Everything solid in the town as convex polygons (houses, walls, shop shells, depot). */
 export function cityPolygons(): Poly2D[] {
   const out = geoSolids();
-  for (const s of STORES) { const L = storeLayout(s); out.push(...L.walls, L.counter, ...L.shelves); }
+  for (const s of STORES) { const L = storeLayout(s); out.push(...L.walls, L.counter, ...L.shelves, ...L.displays); }
   const dl = depotLayout();
   out.push(...dl.walls.map(depotPoly), ...dl.furniture.map(depotPoly));
   // Depot fence on the street with the gate opening, and its side/back fences.

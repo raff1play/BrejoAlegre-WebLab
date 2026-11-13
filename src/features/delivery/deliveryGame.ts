@@ -9,6 +9,7 @@ import type { Crowd, Pedestrian as CrowdPed } from '../../core/city/pedestrians'
 import { STORE_HOURS, STORE_STAFF, createStoreOps, isOpen, joinQueue, stepStore, type StoreOps } from '../../core/delivery/stores';
 import { DEPOT_LOCAL_SPOTS, ROUTINE, Workday, type DepotRole } from '../../core/delivery/workday';
 import type { GraphicsProfile } from '../../config/graphics';
+import { circleIntersectsPoly, pointInPoly } from '../../core/collision';
 import { STORES, depotWorld, depotYaw, storeLayout, type StoreKind, type StoreLayout } from '../../world/city/cityPlan';
 import type { Materials } from '../../world/materials';
 import { NpcPerson, civilianLook } from '../city/npcPerson';
@@ -177,6 +178,19 @@ export class DeliveryGame {
       npc.update(dt, ground(npc.x, npc.z), Math.hypot(player.x - npc.x, player.z - npc.z) < 45);
     }
     void hour;
+  }
+
+  /**
+   * CORE-015.1 shop doorways: the bike never fits through; on foot the roll-up shutter is solid
+   * while it is down — except from the inside, so nobody is locked in at closing time.
+   */
+  doorBlocked(x: number, z: number, r: number, riding: boolean, from: { x: number; z: number }): boolean {
+    for (const s of this.stores.values()) {
+      if (!circleIntersectsPoly(x, z, r, s.layout.doorway)) continue;
+      if (riding) return true;
+      if (s.ops.shutter < 0.6 && !pointInPoly(s.layout.interior.pts, from.x, from.z)) return true;
+    }
+    return false;
   }
 
   /** The contextual action for the player's current spot (or null when nothing is nearby). */

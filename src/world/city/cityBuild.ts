@@ -10,7 +10,7 @@ import type { LabMaterial, Materials } from '../materials';
 import { CURB_H, ROAD_HALF, SIDEWALK, WALL_H } from '../layout';
 import { frontageWalls, streetLightPositions } from './cityLayout';
 import { buildAddresses } from '../../core/delivery/addresses';
-import { BLOCKS, DEPOT, NODES, ROADS, STORES, STORE_SETBACK, depotLayout, depotWorld, type Store } from './cityPlan';
+import { BLOCKS, DEPOT, NODES, ROADS, STORES, STORE_SETBACK, depotLayout, depotWorld, storePlan, type Rect, type Store } from './cityPlan';
 import { OPEN_SPACES } from '../geo/geoCity';
 import { GEO } from '../geo/brejoAlegreData';
 
@@ -178,7 +178,183 @@ function buildOpenSpaces(flat: BatchSet, upright: BatchSet, mats: Materials): vo
   }
 }
 
-const PRODUCTS = ['#c9302c', '#2b5aa8', '#f2c230', '#1f8a5b', '#f4f1ea', '#7a3f8f', '#e07b39', '#9cc3d5', '#6b4f3a'];
+/** CORE-015.1 look of each (fictional) shop: goods palette, wall displays and a signature fixture. */
+type Display = 'shelf' | 'crates' | 'pallet' | 'baskets';
+type Feature = 'fridge' | 'freezer' | 'copier' | 'case' | 'stack' | 'pallet' | 'crates';
+const STORE_LOOK: Record<Store['id'], { goods: string[]; left: Display; right: Display; window: Display; feature: Feature; floor: [string, string]; top: string }> = {
+  mercearia: { goods: ['#c9302c', '#f2c230', '#2b5aa8', '#e9dcc0', '#6b4f3a', '#1f8a5b'], left: 'shelf', right: 'shelf', window: 'crates', feature: 'fridge', floor: ['#d8cfbd', '#d2c8b5'], top: '#7a5a3a' },
+  farmacia: { goods: ['#ffffff', '#e8f3ee', '#9cc3d5', '#1f8a5b', '#f4d7da', '#d9e6f2'], left: 'shelf', right: 'shelf', window: 'shelf', feature: 'case', floor: ['#eef1ef', '#e6ece8'], top: '#f4f6f4' },
+  papelaria: { goods: ['#e23d3d', '#2b5aa8', '#f2c230', '#34a26b', '#f08a3c', '#8a4fb0', '#ffffff'], left: 'shelf', right: 'shelf', window: 'shelf', feature: 'copier', floor: ['#dfd9cc', '#d8d1c3'], top: '#3b4a63' },
+  supermercado: { goods: ['#c9302c', '#f2c230', '#2b5aa8', '#1f8a5b', '#f4f1ea', '#e07b39', '#7a3f8f'], left: 'shelf', right: 'shelf', window: 'baskets', feature: 'freezer', floor: ['#e6e3dc', '#dfdbd3'], top: '#b9bcc0' },
+  padaria: { goods: ['#c98a45', '#a8672c', '#e2b671', '#f1dfb8', '#8a4f25'], left: 'shelf', right: 'crates', window: 'crates', feature: 'case', floor: ['#e3d2b4', '#dccaa9'], top: '#8a5a34' },
+  variedades: { goods: ['#7a3f8f', '#e23d3d', '#2bb3a3', '#f2c230', '#f08ab0', '#3d6fd0', '#f4f1ea'], left: 'shelf', right: 'shelf', window: 'shelf', feature: 'stack', floor: ['#e2dbe4', '#dbd3dd'], top: '#5b3a68' },
+  construcao: { goods: ['#8f9498', '#b85c38', '#d0761f', '#e9e3d6', '#3d4552', '#f2c230'], left: 'pallet', right: 'shelf', window: 'pallet', feature: 'pallet', floor: ['#bfbbb2', '#b8b4aa'], top: '#6b6f73' },
+  hortifruti: { goods: ['#4f8a2f', '#d1362f', '#f08a1c', '#f2d13a', '#8fbf3f', '#7a2f5a'], left: 'crates', right: 'crates', window: 'crates', feature: 'crates', floor: ['#dfe0cc', '#d8d9c3'], top: '#7a5a3a' },
+};
+
+/**
+ * Interior of a shop from its floor plan (cityPlan.storePlan): what is drawn here is exactly what
+ * storeLayout() makes solid. Procedural boxes only (no external assets).
+ */
+function furnishStore(set: BatchSet, mats: Materials, s: Store): void {
+  const W = s.width; const D = s.depth; const H = s.height; const t = 0.25; const L = STORE_SETBACK;
+  const p = storePlan(s); const cz = p.cz;
+  const look = STORE_LOOK[s.id];
+  const rack = mats.paint('#cfd2d4', 0.25);
+  const wood = mats.paint('#9a7446', 0.08);
+  const goods = look.goods.map((c) => mats.paint(c, 0.12));
+  let n = s.id.length * 13 + 5;
+  const rnd = () => { n = (n * 37 + 11) % 101; return n; };
+  // Floor: two-tone tiles (0.6 m bands), skirting along the walls.
+  set.box(mats.stripes(`piso-${s.id}`, look.floor[0], look.floor[1], 2, false, 0.9), t, W - t, 0.004, 0.014, L + t, D - t, { sides: false });
+  const skirt = mats.paint('#6d665c', 0.1);
+  set.box(skirt, t, t + 0.03, 0.014, 0.12, L + t, D - t); set.box(skirt, W - t - 0.03, W - t, 0.014, 0.12, L + t, D - t);
+
+  /** Shelving run with goods on every level; `alongZ` when the unit stands against a side wall. */
+  const shelf = (r: Rect, levels: number, alongZ: boolean) => {
+    set.box(rack, r.x0, r.x1, 0, 0.08, r.z0, r.z1);
+    for (let k = 1; k <= levels; k++) set.box(rack, r.x0, r.x1, k * 0.5 - 0.02, k * 0.5, r.z0, r.z1);
+    const top = levels * 0.5 + 0.1;
+    if (alongZ) { for (const z of [r.z0, r.z1 - 0.04]) set.box(rack, r.x0, r.x1, 0, top, z, z + 0.04); }
+    else { for (const x of [r.x0, r.x1 - 0.04]) set.box(rack, x, x + 0.04, 0, top, r.z0, r.z1); }
+    const [a0, a1] = alongZ ? [r.z0, r.z1] : [r.x0, r.x1];
+    for (let k = 0; k < levels; k++) {
+      for (let a = a0 + 0.1; a < a1 - 0.3; a += 0.3 + (rnd() % 3) * 0.05) {
+        const h = 0.16 + (rnd() % 5) * 0.05; const m = goods[rnd() % goods.length]!;
+        const y0 = k * 0.5 + (k === 0 ? 0.08 : 0);
+        if (alongZ) set.box(m, r.x0 + 0.06, r.x1 - 0.06, y0, k * 0.5 + h + 0.08, a, a + 0.24);
+        else set.box(m, a, a + 0.24, y0, k * 0.5 + h + 0.08, r.z0 + 0.05, r.z1 - 0.05);
+      }
+    }
+  };
+  /** Slanted wooden crates of loose goods (produce, bread baskets). */
+  const crates = (r: Rect, alongZ: boolean) => {
+    const [a0, a1] = alongZ ? [r.z0, r.z1] : [r.x0, r.x1];
+    const count = Math.max(1, Math.floor((a1 - a0) / 0.85));
+    const step = (a1 - a0) / count;
+    for (let i = 0; i < count; i++) {
+      const c0 = a0 + i * step + 0.04; const c1 = a0 + (i + 1) * step - 0.04;
+      const box = (y0: number, y1: number, m: LabMaterial, inset = 0) => (alongZ
+        ? set.box(m, r.x0 + inset, r.x1 - inset, y0, y1, c0 + inset, c1 - inset)
+        : set.box(m, c0 + inset, c1 - inset, y0, y1, r.z0 + inset, r.z1 - inset));
+      box(0, 0.12, mats.paint('#5d4a36', 0.05), 0.08); // legs/base
+      box(0.12, 0.62, wood);
+      const m = goods[(i + rnd()) % goods.length]!;
+      box(0.62, 0.7, m, 0.05);
+      // A few pieces heaped on top.
+      for (let k = 0; k < 3; k++) {
+        const u = 0.15 + ((rnd() % 50) / 100) * 0.5; const v = 0.2 + ((rnd() % 50) / 100) * 0.4;
+        const [cx, cz2] = alongZ ? [r.x0 + (r.x1 - r.x0) * v, c0 + (c1 - c0) * u] : [c0 + (c1 - c0) * u, r.z0 + (r.z1 - r.z0) * v];
+        set.box(goods[rnd() % goods.length]!, cx - 0.09, cx + 0.09, 0.7, 0.8, cz2 - 0.09, cz2 + 0.09);
+      }
+    }
+  };
+  /** Pallets with stacked bags or bricks (building supplies, bulk goods). */
+  const pallet = (r: Rect) => {
+    set.box(wood, r.x0 + 0.03, r.x1 - 0.03, 0, 0.12, r.z0 + 0.03, r.z1 - 0.03);
+    const layers = 4 + (rnd() % 3);
+    for (let k = 0; k < layers; k++) {
+      const m = goods[(k + (rnd() % 2)) % 3]!; const i = k % 2 ? 0.1 : 0.06;
+      set.box(m, r.x0 + i, r.x1 - i, 0.12 + k * 0.16, 0.12 + k * 0.16 + 0.15, r.z0 + i, r.z1 - i);
+    }
+  };
+  const display = (kind: Display, r: Rect, alongZ: boolean) => {
+    if (r.x1 - r.x0 < 0.3 || r.z1 - r.z0 < 0.3) return;
+    if (kind === 'crates') crates(r, alongZ);
+    else if (kind === 'pallet') pallet(r);
+    else if (kind === 'baskets') { // stacked shopping baskets and a promo stand
+      for (let k = 0; k < 6; k++) set.box(mats.paint('#c9302c', 0.2), r.x0 + 0.1, r.x0 + 0.6, k * 0.09, k * 0.09 + 0.07, r.z0 + 0.15, r.z1 - 0.15);
+      shelf({ x0: r.x0 + 0.75, x1: r.x1, z0: r.z0, z1: r.z1 }, 2, false);
+    } else shelf(r, alongZ ? 4 : 2, alongZ);
+  };
+  display(look.left, p.displayLeft, true);
+  display(look.right, p.displayRight, true);
+  display(look.window, p.windowDisplay, false);
+
+  // Signature fixture behind the right-hand window.
+  const f = p.feature; const fx = (f.x0 + f.x1) / 2;
+  const white = mats.paint('#f1f3f2', 0.3); const dark = mats.paint('#2b2d31', 0.3);
+  switch (look.feature) {
+    case 'fridge': { // upright drinks cooler with lit shelves
+      set.box(dark, f.x0, f.x1, 0, 1.95, f.z0, f.z1);
+      set.box(mats.glow('#eaf6ff'), f.x0 + 0.06, f.x1 - 0.06, 0.18, 1.8, f.z1, f.z1 + 0.012);
+      for (let k = 0; k < 4; k++) for (let x = f.x0 + 0.12; x < f.x1 - 0.2; x += 0.16) set.box(goods[rnd() % goods.length]!, x, x + 0.1, 0.24 + k * 0.4, 0.5 + k * 0.4, f.z1 + 0.012, f.z1 + 0.05);
+      set.box(mats.paint('#c9302c', 0.2), f.x0, f.x1, 1.95, 2.2, f.z0, f.z1);
+      break;
+    }
+    case 'freezer': { // chest freezer with a glass lid
+      set.box(white, f.x0, f.x1, 0, 0.85, f.z0, f.z1);
+      set.box(mats.paint('#9cc3d5', 0.5), f.x0 + 0.06, f.x1 - 0.06, 0.85, 0.89, f.z0 + 0.06, f.z1 - 0.06);
+      set.box(mats.paint('#2b5aa8', 0.2), f.x0, f.x1, 0.3, 0.42, f.z1, f.z1 + 0.01);
+      break;
+    }
+    case 'copier': { // photocopier with paper tray and a ream stack
+      set.box(mats.paint('#d9dcde', 0.2), fx - 0.45, fx + 0.45, 0, 1.0, f.z0, f.z1 - 0.1);
+      set.box(dark, fx - 0.4, fx + 0.4, 1.0, 1.06, f.z0 + 0.05, f.z1 - 0.15);
+      set.box(white, fx - 0.3, fx + 0.3, 0.55, 0.6, f.z1 - 0.1, f.z1);
+      for (let k = 0; k < 4; k++) set.box(white, f.x1 - 0.42, f.x1 - 0.1, k * 0.06, k * 0.06 + 0.05, f.z0 + 0.2, f.z0 + 0.65);
+      break;
+    }
+    case 'case': { // glass display case (bread / pharmacy items)
+      set.box(mats.paint(s.band, 0.15), f.x0, f.x1, 0, 0.75, f.z0, f.z1);
+      set.box(mats.paint(look.top, 0.2), f.x0 - 0.02, f.x1 + 0.02, 0.75, 0.8, f.z0 - 0.02, f.z1 + 0.02);
+      for (let x = f.x0 + 0.1; x < f.x1 - 0.25; x += 0.3) set.box(goods[rnd() % goods.length]!, x, x + 0.22, 0.8, 0.92 + (rnd() % 3) * 0.04, f.z0 + 0.2, f.z1 - 0.2);
+      set.of(mats.glass()).quad([f.x0, 0.8, f.z1], [f.x1, 0.8, f.z1], [f.x1, 1.25, f.z1], [f.x0, 1.25, f.z1], 1, 1);
+      set.box(rack, f.x0, f.x1, 1.25, 1.28, f.z0, f.z1);
+      break;
+    }
+    case 'stack': { // stacked basins, buckets and boxed goods
+      for (let i = 0; i < 3; i++) {
+        const x = f.x0 + 0.1 + i * ((f.x1 - f.x0 - 0.2) / 3);
+        for (let k = 0; k < 3 + (rnd() % 3); k++) set.box(goods[(i + k) % goods.length]!, x + k * 0.02, x + 0.42 - k * 0.02, k * 0.22, k * 0.22 + 0.2, f.z0 + 0.15 + k * 0.02, f.z1 - 0.15 - k * 0.02);
+      }
+      break;
+    }
+    case 'pallet': pallet({ x0: f.x0, x1: fx - 0.05, z0: f.z0, z1: f.z1 }); pallet({ x0: fx + 0.05, x1: f.x1, z0: f.z0, z1: f.z1 }); break;
+    default: crates(f, false);
+  }
+
+  // Counter: plinth, body in the shop colour, front panel, worktop with overhang, till, glass case.
+  const c = p.counter;
+  set.box(mats.paint('#3a3632', 0.1), c.x0 + 0.04, c.x1 - 0.04, 0, 0.1, c.z0 + 0.06, c.z1);
+  set.box(mats.paint(s.band, 0.15), c.x0, c.x1, 0.1, 0.94, c.z0, c.z1);
+  for (let x = c.x0 + 0.5; x < c.x1 - 0.3; x += 1.1) set.box(mats.paint('#3a3632', 0.1), x, x + 0.02, 0.14, 0.9, c.z0 - 0.006, c.z0);
+  set.box(mats.paint(s.sign[0] === '#ffffff' ? '#e9e4d8' : s.sign[0], 0.2), c.x0, c.x1, 0.5, 0.58, c.z0 - 0.012, c.z0);
+  set.box(mats.paint(look.top, 0.25), c.x0 - 0.06, c.x1 + 0.06, 0.94, 1.0, c.z0 - 0.1, c.z1 + 0.06);
+  set.box(dark, W / 2 - 0.3, W / 2 + 0.1, 1.0, 1.28, cz - 0.15, cz + 0.15);
+  set.box(mats.paint('#9aa0a6', 0.3), W / 2 - 0.25, W / 2 + 0.05, 1.28, 1.3, cz - 0.1, cz + 0.12);
+  // Small glass case on the customer end of the counter.
+  const g0 = c.x0 + 0.2; const g1 = Math.min(c.x0 + 1.9, W / 2 - 0.6);
+  if (g1 - g0 > 0.6) {
+    for (let x = g0 + 0.08; x < g1 - 0.2; x += 0.26) set.box(goods[rnd() % goods.length]!, x, x + 0.18, 1.0, 1.1 + (rnd() % 3) * 0.03, cz - 0.2, cz + 0.2);
+    set.of(mats.glass()).quad([g0, 1.0, c.z0 - 0.02], [g1, 1.0, c.z0 - 0.02], [g1, 1.32, c.z0 - 0.02], [g0, 1.32, c.z0 - 0.02], 1, 1);
+    set.box(rack, g0, g1, 1.32, 1.34, c.z0 - 0.04, cz + 0.28);
+  }
+  // Pickup point: hanging sign over the counter and a marked square on the floor.
+  const px = W / 2 + 1.0;
+  const pick = mats.sign('placa-retirada', '#f2c230', '#1d1d1d', [
+    { text: 'RETIRADA', size: 0.5, color: '#1d1d1d' },
+    { text: 'DE ENCOMENDAS', size: 0.24, color: '#1d1d1d', weight: '700' },
+  ], 3, 128);
+  set.of(pick).quad([px - 0.9, 2.25, c.z0 - 0.075], [px + 0.9, 2.25, c.z0 - 0.075], [px + 0.9, 2.85, c.z0 - 0.075], [px - 0.9, 2.85, c.z0 - 0.075], 1, 1);
+  set.box(dark, px - 0.93, px + 0.93, 2.22, 2.88, c.z0 - 0.06, c.z0 - 0.02);
+  for (const x of [px - 0.7, px + 0.7]) set.box(dark, x - 0.012, x + 0.012, 2.87, H - 0.4, c.z0 - 0.045, c.z0 - 0.025);
+  const mark = mats.lineYellow; const m0 = cz - 1.5; const m1 = cz - 0.5;
+  set.box(mark, px - 0.5, px + 0.5, 0.015, 0.02, m0, m0 + 0.06, { sides: false }); set.box(mark, px - 0.5, px + 0.5, 0.015, 0.02, m1 - 0.06, m1, { sides: false });
+  set.box(mark, px - 0.5, px - 0.44, 0.015, 0.02, m0, m1, { sides: false }); set.box(mark, px + 0.44, px + 0.5, 0.015, 0.02, m0, m1, { sides: false });
+
+  // Stock shelves behind the counter, stock-room door, ceiling light panels.
+  shelf(p.backShelf, 4, false);
+  shelf(p.sideShelf, 4, true);
+  set.box(mats.paint('#5a4636', 0.15), W - 2.4, W - 1.4, 0, 2.1, D - t - 0.02, D - t);
+  for (const z of [L + t + 1.6, cz - 1.2, cz + 1.3]) {
+    for (let x = 1.6; x < W - 1.4; x += 2.6) {
+      set.box(mats.paint('#e9e7e0', 0.2), x - 0.06, x + 1.36, H - 0.47, H - 0.41, z - 0.16, z + 0.16);
+      set.box(mats.glow('#fff6dc'), x, x + 1.3, H - 0.49, H - 0.47, z - 0.11, z + 0.11, { sides: false, top: false, bottom: true });
+    }
+  }
+}
+
 function buildStore(scene: Scene, mats: Materials, s: Store): { meshes: Mesh[]; shutter: Mesh } {
   const set = new BatchSet();
   set.setTransform(placement(s.frame));
@@ -214,32 +390,7 @@ function buildStore(scene: Scene, mats: Materials, s: Store): { meshes: Mesh[]; 
   set.of(glass).quad([door0, 2.6, L + 0.12], [door1, 2.6, L + 0.12], [door1, 3.0, L + 0.12], [door0, 3.0, L + 0.12], 1, 1);
   // Shutter housing above the opening.
   set.box(mats.paint('#6d7379', 0.2), 0.3, W - 0.3, 3.0, 3.32, L - 0.28, L);
-  // Interior: tiled floor, counter with till, shelves of goods, stock-room door, ceiling lights.
-  set.box(mats.paint('#d9d4ca', 0.12), t, W - t, 0.004, 0.012, L + t, D - t, { sides: false });
-  const cz = D * 0.52;
-  set.box(mats.paint(s.band, 0.15), 1.2, W - 3.2, 0, 0.95, cz - 0.35, cz + 0.35);
-  set.box(mats.paint('#7a5a3a', 0.2), 1.15, W - 3.15, 0.95, 1.0, cz - 0.4, cz + 0.4);
-  set.box(mats.paint('#2b2d31', 0.3), W / 2 - 0.3, W / 2 + 0.1, 1.0, 1.28, cz - 0.15, cz + 0.15);
-  set.box(mats.paint('#9aa0a6', 0.3), W / 2 - 0.25, W / 2 + 0.05, 1.28, 1.3, cz - 0.1, cz + 0.12);
-  const rack = mats.paint('#cfd2d4', 0.25);
-  const shelf = (x0: number, x1: number, z0: number, z1: number, levels: number, seed: number) => {
-    set.box(rack, x0, x1, 0, 0.08, z0, z1);
-    for (let k = 1; k <= levels; k++) set.box(rack, x0, x1, k * 0.5 - 0.02, k * 0.5, z0, z1);
-    for (const x of [x0, x1 - 0.04]) set.box(rack, x, x + 0.04, 0, levels * 0.5 + 0.1, z0, z1);
-    let n = seed;
-    for (let k = 0; k < levels; k++) {
-      for (let x = x0 + 0.1; x < x1 - 0.3; x += 0.32 + (n % 3) * 0.05) {
-        n = (n * 7 + 3) % 97;
-        const h = 0.18 + (n % 5) * 0.05;
-        set.box(mats.paint(PRODUCTS[n % PRODUCTS.length]!, 0.12), x, x + 0.26, k * 0.5 + 0.08 * (k === 0 ? 1 : 0), k * 0.5 + h, z0 + 0.05, z1 - 0.05);
-      }
-    }
-  };
-  shelf(0.6, W - 0.6, D - 1.0, D - t, 4, s.id.length * 5);
-  shelf(t, t + 0.6, cz + 1.2, D - 1.6, 4, s.id.length * 11);
-  set.box(mats.paint('#5a4636', 0.15), W - 2.4, W - 1.4, 0, 2.1, D - t - 0.02, D - t);
-  for (let x = 2; x < W - 1; x += 3.5) set.box(mats.glow('#fff6dc'), x, x + 1.4, H - 0.47, H - 0.42, cz - 2.5, cz - 2.3);
-  for (let x = 2; x < W - 1; x += 3.5) set.box(mats.glow('#fff6dc'), x, x + 1.4, H - 0.47, H - 0.42, cz + 1.2, cz + 1.4);
+  furnishStore(set, mats, s);
   // Awning and sign board.
   const awning = mats.stripes(`toldo-${s.id}`, s.band, '#f4f1e8', 8, false, 3.2);
   set.of(awning).quad([0.4, 2.95, L - 1.5], [W - 0.4, 2.95, L - 1.5], [W - 0.4, 3.35, L - 0.28], [0.4, 3.35, L - 0.28], (W - 0.8) / 3.2, 1);
@@ -251,6 +402,13 @@ function buildStore(scene: Scene, mats: Materials, s: Store): { meshes: Mesh[]; 
   set.of(sign).quad([0.5, 3.4, L - 0.04], [W - 0.5, 3.4, L - 0.04], [W - 0.5, H - 0.05, L - 0.04], [0.5, H - 0.05, L - 0.04], 1, 1);
   // Forecourt paving.
   set.box(mats.plazaPaving, 0, W, 0, 0.012, 0, L + t, { sides: false });
+  // The rest of the real lot beside the shop is closed by a plastered wall (same line as the front).
+  const side = storePlan(s).sideWall;
+  if (side) {
+    set.box(wall, side.x0, side.x1, 0.35, WALL_H, side.z0, side.z1, { fitV: true });
+    set.box(mats.paint('#9b9184'), side.x0, side.x1 + 0.02, 0, 0.35, side.z0 - 0.02, side.z1 + 0.02);
+    set.box(trim, side.x0, side.x1 + 0.03, WALL_H, WALL_H + 0.07, side.z0 - 0.04, side.z1 + 0.04);
+  }
   set.setTransform(null);
   const meshes = set.build(`loja-${s.id}`, scene);
   // Roll-up shutter: its own mesh, scaled about the housing (1 = closed, ~0 = rolled up).
