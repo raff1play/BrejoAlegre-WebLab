@@ -66,7 +66,7 @@ export class PatchPilot {
       const copy = copyInstance(this.scene, model, 'patch-transeunte-animada');
       // The Patch anymove model has in-place Idle/Walk clips and is measured at 1.70m.
       // Root-motion variants are deliberately not played: simulation coordinates remain authoritative.
-      if (!copy.clips.some((clip) => clip.name === 'Walk') || !copy.clips.some((clip) => clip.name === 'Idle')) {
+      if (!copy.clips.some((clip) => /(?:^|-)Walk$/.test(clip.name)) || !copy.clips.some((clip) => /(?:^|-)Idle$/.test(clip.name))) {
         copy.root.dispose(false, false);
         throw new Error('Expected in-place Walk and Idle animation clips');
       }
@@ -107,7 +107,7 @@ export class PatchPilot {
     const desired = p.state === 'walk' || p.state === 'cross' ? 'Walk' : 'Idle';
     if (actor.current === desired) return;
     for (const clip of actor.clips) clip.stop();
-    const clip = actor.clips.find((c) => c.name === desired);
+    const clip = actor.clips.find((c) => c.name === desired || c.name.endsWith(`-${desired}`));
     clip?.start(true);
     actor.current = desired;
   }
