@@ -59,3 +59,19 @@ jobs:
               print(f'IMG_{name}='+base64.b64encode(data).decode())
             except Exception as e: print('IMGERROR_'+name+': '+str(e))
           PY
+      - name: Download selected GLBs into isolated scratch dir
+        continue-on-error: true
+        run: |
+          mkdir -p /tmp/patch-pilot
+          cd /tmp/patch-pilot
+          pch assets add --to /tmp/patch-pilot/import polyfork:city-bus-49fd97 anymove:woman mpfb:human-0192
+          find /tmp/patch-pilot -type f -printf '%p %s bytes\\n' | head -70
+          python3 - <<'PY'
+          import json,struct,pathlib
+          for p in pathlib.Path('/tmp/patch-pilot').rglob('*.glb'):
+            data=p.read_bytes()
+            magic,version,length=struct.unpack_from('<III',data)
+            jlen,jtyp=struct.unpack_from('<II',data,12)
+            doc=json.loads(data[20:20+jlen])
+            print('GLB',p,'version',version,'bytes',length,'meshes',len(doc.get('meshes',[])),'animations',[a.get('name') for a in doc.get('animations',[])],'skins',len(doc.get('skins',[])),'nodes',len(doc.get('nodes',[])))
+          PY
