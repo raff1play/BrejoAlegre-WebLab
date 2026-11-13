@@ -9,6 +9,7 @@ on:
     branches: [preview]
     paths:
       - .github/workflows/osm-fetch.yml
+      - scripts/geo/fetch-osm.mjs
 
 permissions:
   contents: write
@@ -20,7 +21,7 @@ concurrency:
 jobs:
   fetch:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
         with:
