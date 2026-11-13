@@ -10,11 +10,11 @@ import type { GeoStreet, XZ } from './geoTypes.ts';
  */
 
 /** The urban seat (main grid + the northern cluster) as mapped in OSM, with a margin. */
-export const SEDE: Box2D = { minX: -440, maxX: 700, minZ: -360, maxZ: 680 };
+export const SEDE: Box2D = { minX: -510, maxX: 700, minZ: -380, maxZ: 680 };
 /** Where the player can go: the seat plus the first metres of every approach road. */
-export const PLAY_BOUNDS: Box2D = { minX: -520, maxX: 780, minZ: -440, maxZ: 760 };
+export const PLAY_BOUNDS: Box2D = { minX: -590, maxX: 780, minZ: -460, maxZ: 760 };
 /** Roads are drawn (and traffic enters/leaves) up to here, out of the player's reach. */
-export const NET_BOUNDS: Box2D = { minX: -640, maxX: 900, minZ: -560, maxZ: 880 };
+export const NET_BOUNDS: Box2D = { minX: -710, maxX: 900, minZ: -580, maxZ: 880 };
 
 const DRIVABLE = new Set(['primary', 'secondary', 'tertiary', 'unclassified', 'residential', 'living_street', 'primary_link', 'secondary_link', 'tertiary_link']);
 
@@ -99,7 +99,7 @@ export function buildNetwork(): Network {
         const h = w.street.highway;
         // Urban: the stretch lies in the seat (by its middle point); slip roads stay rural.
         const mid = pts[Math.floor(pts.length / 2)]!;
-        const urban = inside(SEDE, mid) && inside(SEDE, pts[0]!) && inside(SEDE, pts[pts.length - 1]!) && h !== 'secondary_link';
+        const urban = (h === 'residential' || h === 'living_street' || (inside(SEDE, mid) && inside(SEDE, pts[0]!) && inside(SEDE, pts[pts.length - 1]!))) && h !== 'secondary_link';
         roads.push({
           id: `r${roads.length}`, name: w.street.name, a: a.id, b: b.id, pts, length, highway: h, osmWay: w.street.id,
           kind: urban ? 'urban' : 'rural',

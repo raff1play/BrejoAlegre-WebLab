@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { behindHeadingAlpha, followAngle, safeCameraDistance, segmentBoxEntry } from '../src/core/cameraFollow.ts';
 import { angleDelta } from '../src/core/math.ts';
 import { cameraObstacles } from '../src/world/cameraObstacles.ts';
-import { DEPOT, CITY_BOUNDS } from '../src/world/city/cityPlan.ts';
+import { DEPOT, CITY_BOUNDS, CITY_LOTS } from '../src/world/city/cityPlan.ts';
+import { framePoint } from '../src/world/layout.ts';
 
 const wall = { minX: -1, maxX: 1, minY: 0, maxY: 4, minZ: -4, maxZ: -3 };
 
@@ -46,15 +47,17 @@ test('world camera obstacles include buildings and street furniture', () => {
 });
 
 
-test('CORE-013: chase camera knows the new depot and town boundaries', () => {
+test('CORE-015: chase camera knows the real town (rotated houses, depot roof, shop ceilings)', () => {
   const solids = cameraObstacles();
-  const d = DEPOT.building;
-  assert.ok(solids.some((box) =>
-    box.minX <= d.minX && box.maxX >= d.maxX &&
-    box.minZ <= d.minZ && box.maxZ >= d.maxZ && box.maxY >= DEPOT.height),
-  'galpão logístico should obstruct the GTA camera at its full height');
-  assert.ok(solids.some((box) => box.maxX > 70 && box.minX < CITY_BOUNDS.maxX && box.maxZ > -80),
-    'new eastern town blocks should be covered');
-  assert.ok(solids.some((box) => box.minX < -70 && box.maxZ > 60),
-    'new northern/western street furniture should be covered');
+  assert.ok(solids.some((box) => box.yaw !== undefined && box.maxY >= DEPOT.height && box.minY > 5), 'depot roof slab (oriented)');
+  assert.ok(solids.filter((b) => b.yaw !== undefined).length > CITY_LOTS.length, 'every house is an oriented blocker');
+  // A camera ray through a rotated house is blocked; one along the street in front of it is not.
+  const lot = CITY_LOTS[0]!;
+  const inside = framePoint(lot.frame, lot.width / 2, 9);
+  const front = framePoint(lot.frame, lot.width / 2, -4);
+  const sideways = framePoint(lot.frame, lot.width / 2 + 30, -4);
+  assert.ok(safeCameraDistance({ x: front.x, y: 1.5, z: front.z }, { x: inside.x, y: 2, z: inside.z }, solids) < 12, 'blocked by the house');
+  const along = safeCameraDistance({ x: front.x, y: 1.5, z: front.z }, { x: sideways.x, y: 1.5, z: sideways.z }, solids);
+  assert.ok(along > 2, `free along the street (${along.toFixed(1)} m)`);
+  void CITY_BOUNDS;
 });

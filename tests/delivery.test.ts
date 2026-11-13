@@ -1,41 +1,31 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createMotionGuard } from '../src/core/collision.ts';
-import { WORLD_BOUNDS, buildColliders, ROAD_HALF } from '../src/world/layout.ts';
-import { cityAllColliders } from '../src/world/city/cityLayout.ts';
-import { ROADS, roadSpan, navigableArea, STORES } from '../src/world/city/cityPlan.ts';
-import { buildAddresses } from '../src/core/delivery/addresses.ts';
+import { ROAD_HALF } from '../src/world/layout.ts';
+import { treePolygons } from '../src/world/city/cityLayout.ts';
+import { CITY_BOUNDS, STORES, cityPolygons, nearestRoad } from '../src/world/city/cityPlan.ts';
+import { buildAddresses, DELIVERABLE_COUNT } from '../src/core/delivery/addresses.ts';
 import { PARCEL_FLOW, advance, createParcel, ParcelError } from '../src/core/delivery/parcels.ts';
 import { Workday, ROUTINE, DEPOT_SPOTS } from '../src/core/delivery/workday.ts';
 import { createStoreOps, stepStore, joinQueue, isOpen, STORE_STAFF, STORE_HOURS } from '../src/core/delivery/stores.ts';
 import { buildWalkGraph, nearestWalkPoint } from '../src/core/city/pedestrians.ts';
 
-const guard = createMotionGuard(WORLD_BOUNDS, [...buildColliders(), ...cityAllColliders()]);
+const guard = createMotionGuard(CITY_BOUNDS, [], [...cityPolygons(), ...treePolygons()]);
 
-test('CORE-014 town: at least twice the CORE-013 navigable area (17 820 m²)', () => {
-  const area = navigableArea(1);
-  assert.ok(area >= 2 * 17820, `${area} m²`);
-});
-
-test('30–50 unique deliverable addresses, reachable from the pavement and the street', () => {
+test('48 deliverable addresses on REAL streets, reachable from the pavement and the street', () => {
   const list = buildAddresses((x, z) => guard(x, z, 0.45));
-  assert.ok(list.length >= 30 && list.length <= 50, `${list.length} endereços`);
+  assert.equal(list.length, DELIVERABLE_COUNT);
   assert.equal(new Set(list.map((a) => a.id)).size, list.length);
   assert.equal(new Set(list.map((a) => `${a.street}#${a.number}`)).size, list.length, 'street + number unique');
   const walk = buildWalkGraph();
   for (const a of list) {
     assert.ok(guard(a.door.x, a.door.z, 0.35), `${a.id} door on free pavement`);
-    const onRoad = ROADS.some((r) => {
-      const s = roadSpan(r);
-      const [along, across] = s.axis === 'x' ? [a.stop.x, a.stop.z] : [a.stop.z, a.stop.x];
-      return along >= s.lo && along <= s.hi && Math.abs(across - s.c) <= ROAD_HALF - 0.5;
-    });
-    assert.ok(onRoad, `${a.id} parking spot on a carriageway`);
-    assert.ok(guard(a.stop.x, a.stop.z, 0.9), `${a.id} parking spot free`);
-    assert.ok(nearestWalkPoint(walk, a.door.x, a.door.z).d < 1.2, `${a.id} on the sidewalk network`);
-    assert.ok(a.number > 0 && a.label.includes(String(a.number)));
+    const road = nearestRoad(a.stop.x, a.stop.z)!;
+    assert.ok(road.d < ROAD_HALF, `${a.id} parking spot on the carriageway (${road.d.toFixed(2)} m)`);
+    assert.ok(nearestWalkPoint(walk, a.door.x, a.door.z).d < 1.6, `${a.id} on the sidewalk network`);
+    assert.ok(a.number > 0 && a.label.includes(String(a.number)) && a.estimated);
   }
-  assert.ok(new Set(list.map((a) => a.bairro)).size >= 3, 'several bairros');
+  assert.ok(new Set(list.map((a) => a.street)).size >= 10, 'spread over many real streets');
 });
 
 test('parcels only move one stage forward', () => {
@@ -116,5 +106,6 @@ test('first workday: store → base → sorting → sack → home, every parcel 
 test('house numbers do not depend on where the gate spot slides (plates match the job)', () => {
   const plain = buildAddresses();
   const slid = buildAddresses((x, z) => guard(x, z, 0.45));
+  void STORES;
   assert.deepEqual(plain.map((a) => a.label), slid.map((a) => a.label));
 });

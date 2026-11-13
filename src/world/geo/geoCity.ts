@@ -146,6 +146,26 @@ function rectsOverlap(a: P[], b: P[]): boolean {
   return true;
 }
 
+/** True when a lot rectangle comes closer than the carriageway + pavement to any road axis. */
+function rectNearRoad(rect: P[]): boolean {
+  const pts: P[] = [...rect];
+  for (let i = 0; i < 4; i++) { const a = rect[i]!; const b = rect[(i + 1) % 4]!; pts.push([(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]); }
+  const minX = Math.min(...pts.map((q) => q[0])) - E; const maxX = Math.max(...pts.map((q) => q[0])) + E;
+  const minZ = Math.min(...pts.map((q) => q[1])) - E; const maxZ = Math.max(...pts.map((q) => q[1])) + E;
+  for (const r of NETWORK.roads) {
+    for (let i = 1; i < r.pts.length; i++) {
+      const a = r.pts[i - 1]!; const b = r.pts[i]!;
+      if (Math.max(a[0], b[0]) < minX || Math.min(a[0], b[0]) > maxX || Math.max(a[1], b[1]) < minZ || Math.min(a[1], b[1]) > maxZ) continue;
+      const dx = b[0] - a[0]; const dz = b[1] - a[1]; const L2 = dx * dx + dz * dz || 1;
+      for (const q of pts) {
+        const t = Math.max(0, Math.min(1, ((q[0] - a[0]) * dx + (q[1] - a[1]) * dz) / L2));
+        if (Math.hypot(a[0] + dx * t - q[0], a[1] + dz * t - q[1]) < E - 0.05) return true;
+      }
+    }
+  }
+  return false;
+}
+
 function streetNear(x: number, z: number): string | null {
   let best: { d: number; name: string | null } = { d: Infinity, name: null };
   for (const r of NETWORK.roads) {
@@ -175,7 +195,7 @@ function buildLots(): { lots: GeoLot[]; walls: GeoWall[] } {
       const yaw = Math.atan2(-tz, tx);
       const frameAt = (s: number): Frame => ({ ox: a[0] + tx * s, oz: a[1] + tz * s, side: 1, yaw });
       const usable = L - 2 * CORNER;
-      const count = usable >= 10 ? Math.max(1, Math.floor(usable / LOT_W)) : 0;
+      const count = usable >= 10 ? Math.max(1, Math.round(usable / LOT_W)) : 0;
       const w = count ? usable / count : 0;
       let covered: [number, number][] = [];
       for (let k = 0; k < count; k++) {
@@ -186,6 +206,8 @@ function buildLots(): { lots: GeoLot[]; walls: GeoWall[] } {
           const rect = frameCorners(f, 0.05, w - 0.05, 0.05, depth);
           if (!rect.every((q) => pointInPolygon(p, q[0], q[1]))) continue;
           if (placed.some((o) => rectsOverlap(o, rect))) continue;
+          // Dead-end or internal ways inside a block (OSM): keep every lot off every carriageway.
+          if (rectNearRoad(rect)) continue;
           placed.push(rect);
           const mid = framePoint(f, w / 2, -SIDEWALK - 1);
           lots.push({ id: `${b.id}-l${lots.length + 1}`, block: b.id, frame: f, width: w, depth, use: 'casa', style: style++ % 10, street: streetNear(mid.x, mid.z) });

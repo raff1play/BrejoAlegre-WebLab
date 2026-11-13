@@ -62,7 +62,7 @@ export function buildWalkGraph(): WalkGraph {
     for (let i = 0; i < ring.length; i++) {
       const A = ring[i]!; const B = ring[(i + 1) % ring.length]!;
       if (A.road === B.road) {
-        if (n.control !== 'free') link(A.id, B.id, { node: n.id, road: A.road });
+        link(A.id, B.id, { node: n.id, road: A.road });
         continue;
       }
       const pa = points[A.id]!; const pb = points[B.id]!;
