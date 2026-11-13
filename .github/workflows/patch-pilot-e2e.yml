@@ -1,0 +1,36 @@
+name: Patch model browser pilot (one-time)
+on:
+  push:
+    branches: [preview]
+    paths: ['.github/workflows/patch-pilot-e2e.yml']
+permissions:
+  contents: write
+jobs:
+  browser-pilot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: true }
+      - uses: actions/setup-node@v4
+        with: { node-version: '22', cache: npm }
+      - name: Install project and Playwright
+        run: |
+          npm ci --no-audit --no-fund
+          npm install --no-save --package-lock=false --no-audit --no-fund playwright@1.57.0
+          npx playwright install --with-deps chromium
+      - name: Build staging and run real Chromium probe
+        run: |
+          npm run build:staging
+          npm run preview -- --host 127.0.0.1 > /tmp/vite-patch.log 2>&1 &
+          for i in $(seq 1 40); do if curl -fsS http://127.0.0.1:4173/ >/dev/null; then break; fi; sleep 1; done
+          node tests/e2e/patchPilot.cjs
+      - name: Store real screenshot and test evidence (no Pages deployment)
+        if: success()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/evidence/patch-pilot-*.jpg docs/evidence/patch-pilot-test.log
+          git diff --cached --quiet && exit 0
+          git commit -m "test(patch): record Chromium screenshots of opt-in NPC and bus comparison"
+          git push origin HEAD:preview
