@@ -118,6 +118,14 @@ export class PatchPilot {
     this.activePed = 0;
   }
 
+  /** Cleanup hook if the game scene is ever rebuilt during a preview session. */
+  dispose(): void {
+    this.buses.forEach(({ root }) => root.dispose(false, false));
+    this.pedestrian?.root.dispose(false, false);
+    this.busSource?.dispose();
+    this.pedestrianSource?.dispose();
+  }
+
   status(): PatchPilotState {
     return { requested: true, bus: this.busState, pedestrian: this.pedState,
       visibleBuses: this.activeBuses, visiblePedestrians: this.activePed };
