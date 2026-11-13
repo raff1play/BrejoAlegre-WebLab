@@ -7,9 +7,9 @@ import type { Scene } from '@babylonjs/core/scene';
 import type { ShadowGenerator } from '@babylonjs/core/Lights/Shadows/shadowGenerator';
 import type { Crowd, Pedestrian as CrowdPed } from '../../core/city/pedestrians';
 import { STORE_HOURS, STORE_STAFF, createStoreOps, isOpen, joinQueue, stepStore, type StoreOps } from '../../core/delivery/stores';
-import { DEPOT_SPOTS, ROUTINE, Workday, type DepotRole } from '../../core/delivery/workday';
+import { DEPOT_LOCAL_SPOTS, ROUTINE, Workday, type DepotRole } from '../../core/delivery/workday';
 import type { GraphicsProfile } from '../../config/graphics';
-import { STORES, storeLayout, type StoreKind, type StoreLayout } from '../../world/city/cityPlan';
+import { STORES, depotWorld, depotYaw, storeLayout, type StoreKind, type StoreLayout } from '../../world/city/cityPlan';
 import type { Materials } from '../../world/materials';
 import { NpcPerson, civilianLook } from '../city/npcPerson';
 
@@ -54,7 +54,7 @@ export class DeliveryGame {
     }
     for (const st of this.workday.staff) {
       const npc = new NpcPerson(scene, mats, `galpao-${st.role}`, civilianLook(DEPOT_LOOKS[st.role]), cast);
-      npc.place(st.station.x, st.station.z, Math.PI / 2);
+      npc.place(st.station.x, st.station.z, depotYaw(Math.PI / 2));
       this.depotStaff.set(st.role, npc);
     }
     // Objective marker: a slowly turning amber pin and a ground ring, unlit so it reads at night.
@@ -142,15 +142,16 @@ export class DeliveryGame {
   }
 
   private updateDepot(dt: number, hour: number, player: { x: number; z: number }, ground: (x: number, z: number) => number): void {
-    const S = DEPOT_SPOTS;
-    const near = Math.hypot(player.x - 112, player.z - -125) < 90;
+    const S = DEPOT_LOCAL_SPOTS;
+    const centre = depotWorld(112, -125);
+    const near = Math.hypot(player.x - centre.x, player.z - centre.z) < 90;
     const loop = (a: Spot, b: Spot, period: number) => (Math.floor(this.time / period) % 2 === 0 ? a : b);
     for (const st of this.workday.staff) {
       const npc = this.depotStaff.get(st.role)!;
       const on = st.state !== 'fora do turno' && near;
       npc.setEnabled(on);
       if (!on) continue;
-      let go: Spot = st.station; let face = Math.PI / 2;
+      let go: Spot | null = null; let face = Math.PI / 2;
       npc.activity = 'work';
       switch (st.role) {
         case 'porteiro': go = { x: 97.8, z: -96.2 }; face = 0; break;
@@ -169,8 +170,10 @@ export class DeliveryGame {
         case 'expedidor': go = { x: 92.75, z: -129.9 }; face = Math.PI / 2; break;
         case 'supervisor': go = st.state === 'na sala de controle' ? S.office : loop({ x: 110, z: -133.8 }, { x: 99, z: -127 }, 10); face = Math.PI; npc.activity = st.state === 'na sala de controle' ? 'work' : 'idle'; break;
       }
-      npc.walkTo(go.x, go.z);
-      if (!npc.moving) npc.lookAt(face);
+      // Spots and headings are in the CORE-014 depot frame → world.
+      const at = go ? depotWorld(go.x, go.z) : st.station;
+      npc.walkTo(at.x, at.z);
+      if (!npc.moving) npc.lookAt(depotYaw(face));
       npc.update(dt, ground(npc.x, npc.z), Math.hypot(player.x - npc.x, player.z - npc.z) < 45);
     }
     void hour;
@@ -190,10 +193,10 @@ export class DeliveryGame {
       if (can === 'cedo') return { label: 'Volumes às 12h', available: false, run: null };
       return { label: `Retirar com ${name}`, available: true, run: () => `${name} conferiu e entregou ${w.collect(kind, hour)} volume(s)` };
     }
-    if (close({ x: 95.4, z: DEPOT_SPOTS.receiving.z }, 2.2) && w.carrying().length) {
+    if (close(depotWorld(95.4, DEPOT_LOCAL_SPOTS.receiving.z), 2.2) && w.carrying().length) {
       return { label: 'Entregar ao conferente', available: true, run: () => `Conferente recebendo ${w.handOver(hour)} volume(s)` };
     }
-    if (close({ x: 95.4, z: DEPOT_SPOTS.dispatch.z }, 2.2) && (w.phase === 'SACA' || w.phase === 'TRIAGEM')) {
+    if (close(depotWorld(95.4, DEPOT_LOCAL_SPOTS.dispatch.z), 2.2) && (w.phase === 'SACA' || w.phase === 'TRIAGEM')) {
       if (!w.canTakeSack(hour)) return { label: hour < ROUTINE.sackFrom ? 'Saca às 15h' : 'Triagem em curso', available: false, run: null };
       return { label: 'Retirar a saca', available: true, run: () => `Saca com ${w.takeSack(hour)} volume(s) — rota no mapa` };
     }

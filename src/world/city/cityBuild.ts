@@ -115,8 +115,17 @@ export function buildRoads(flat: BatchSet, upright: BatchSet, mats: Materials): 
       // Kerb face (looks outwards, towards the road): CCW polygon → outward = right of a→c.
       upright.of(mats.curb).poly([[a[0], 0, a[1]], [c[0], 0, c[1]], [c[0], CURB_H + 0.012, c[1]], [a[0], CURB_H + 0.012, a[1]]], [[0, 0], [1, 0], [1, 0.2], [0, 0.2]]);
     }
-    fillPolygon(flat, mats.pavement, k, CURB_H);
-    fillPolygon(flat, mats.grass, b.lot, CURB_H + 0.03);
+    // Pavement as a ring between kerb and lot line (both are insets of the same block face, so
+    // their vertices correspond); the lot grass sits just below, so floors and yards drawn at
+    // kerb height (depot, shops) are never covered by it and nothing overlaps (no z-fighting).
+    const l = b.lot;
+    if (l.length === k.length) {
+      for (let i = 0; i < k.length; i++) {
+        const j = (i + 1) % k.length;
+        fillPolygon(flat, mats.pavement, [k[i]!, k[j]!, l[j]!, l[i]!], CURB_H);
+      }
+    } else fillPolygon(flat, mats.pavement, k, CURB_H);
+    fillPolygon(flat, mats.grass, l, CURB_H - 0.012);
   }
   void SIDEWALK; void upright;
 }

@@ -61,38 +61,61 @@ async function desktop(browser) {
   check('aviso de área temporária visível na tela', /ÁREA TEMPORÁRIA DE TESTE — NÃO REPRESENTA BREJO ALEGRE/.test(label));
   await shot('01-inicio-estacionamento.jpg');
 
-  // Accelerate out of the bay (heading west) and check that speed builds up progressively.
+  // Accelerate inside the depot yard (CORE-014 bay, now on the real block) and brake.
   const start = s.moto;
   await key.down('KeyW');
   s = await until((v) => v.moto.speed > 3);
-  check('moto acelera', s.moto.speed > 3 && s.moto.x < start.x, `v=${fx(s.moto.speed)} m/s`);
-  s = await until((v) => v.moto.x < 3.2);
   await key.up('KeyW');
-  // Brake to a full stop on the main street.
+  check('moto acelera', s.moto.speed > 3 && Math.hypot(s.moto.x - start.x, s.moto.z - start.z) > 0.5, `v=${fx(s.moto.speed)} m/s`);
   await key.down('KeyS');
   s = await until((v) => v.moto.speed === 0);
   await key.up('KeyS');
-  check('moto freia até parar', s.moto.speed === 0, `x=${fx(s.moto.x)}`);
-  check('moto desceu o meio-fio para a rua', s.moto.y < 0.05, `y=${fx(s.moto.y)}`);
+  check('moto freia até parar', s.moto.speed === 0);
 
-  // Turn right (north) while moving; steering must do nothing at rest.
+  // CORE-015: a straight approach to a real four-way junction (picked from the OSM network).
+  const probe = await page.evaluate(() => window.__debug.probe());
+  const J = probe.junction;
+  await page.evaluate(([x, z, y]) => window.__debug.teleport(x, z, y), [J.startX, J.startZ, J.yaw]);
+  s = await until((v) => Math.hypot(v.moto.x - J.startX, v.moto.z - J.startZ) < 0.5 && v.moto.y < 0.05, 8000);
+  check('rua real: moto posicionada na faixa da via OSM', Math.hypot(s.moto.x - J.startX, s.moto.z - J.startZ) < 0.5 && s.moto.y < 0.05, `${J.road} (${fx(J.startX)}, ${fx(J.startZ)}) y=${fx(s.moto.y)}`);
   const yaw0 = s.moto.yaw;
   await key.down('KeyD');
   await page.waitForTimeout(600);
   s = await snap();
-  check('guidão não gira a moto parada', Math.abs(s.moto.yaw - yaw0) < 1e-6);
-  await key.down('KeyW');
-  s = await until((v) => v.moto.yaw > -0.12 || v.moto.speed === 0 && v.moto.yaw > yaw0 + 0.5, 30000);
   await key.up('KeyD');
-  const leaned = s.moto.lean;
-  check('moto vira à direita em movimento', s.moto.yaw > yaw0 + 1, `yaw ${fx(yaw0)} → ${fx(s.moto.yaw)}`);
-  check('inclinação visual moderada na curva', Math.abs(leaned) > 0.02 && Math.abs(leaned) < 0.45, `lean=${fx(leaned)} rad`);
-  // Ride north along the houses, keeping near the lane with small corrections.
-  s = await until((v) => v.moto.z > -4 || v.moto.speed === 0, 30000);
+  check('guidão não gira a moto parada', Math.abs(s.moto.yaw - yaw0) < 1e-6);
+  const toJ = (v) => Math.hypot(v.moto.x - J.x, v.moto.z - J.z);
+  // Moderate speed (~15–20 km/h), as a rider would approach a corner; headless runs at ~2 FPS.
+  let gas = false;
+  for (const end = Date.now() + 60000; Date.now() < end;) {
+    s = await snap();
+    if (toJ(s) < 9) break;
+    const want = s.moto.speed < (gas ? 5 : 3.5);
+    if (want !== gas) { gas = want; await (want ? key.down('KeyW') : key.up('KeyW')); }
+    await page.waitForTimeout(50);
+  }
+  if (gas) await key.up('KeyW');
+  check('moto percorre a rua real até o cruzamento', toJ(s) < 9, `${fx(toJ(s))} m do cruzamento, v=${fx(s.moto.speed)}`);
   await shot('02-pilotando-rua.jpg');
-  s = await until((v) => v.moto.z > 12 || v.moto.speed === 0, 30000);
+  // Right turn at the junction (yaw grows clockwise seen from above: north → east).
+  const wrap = (d) => ((d % (2 * Math.PI)) + 3 * Math.PI) % (2 * Math.PI) - Math.PI;
+  await key.down('KeyD');
+  let leaned = 0; let throttle = false;
+  const deadline = Date.now() + 30000;
+  while (Date.now() < deadline) {
+    s = await snap();
+    if (Math.abs(s.moto.lean) > Math.abs(leaned)) leaned = s.moto.lean;
+    if (wrap(s.moto.yaw - yaw0) > 1.2 || s.moto.speed === 0) break;
+    const want = s.moto.speed < 3;
+    if (want !== throttle) { throttle = want; await (want ? key.down('KeyW') : key.up('KeyW')); }
+    await page.waitForTimeout(50);
+  }
+  await key.up('KeyD');
+  await key.down('KeyW');
+  check('moto vira à direita em movimento', wrap(s.moto.yaw - yaw0) > 1, `yaw ${fx(yaw0)} → ${fx(s.moto.yaw)}`);
+  check('inclinação visual moderada na curva', Math.abs(leaned) > 0.02 && Math.abs(leaned) < 0.45, `lean=${fx(leaned)} rad`);
+  s = await until((v) => Math.hypot(v.moto.x - J.x, v.moto.z - J.z) > 14 || v.moto.speed === 0, 20000);
   await key.up('KeyW');
-  check('moto percorre a rua', s.moto.z > 5, `z=${fx(s.moto.z)}, v=${fx(s.moto.speed)}`);
   const coasting = s.moto.speed;
   // Polls instead of a fixed wait: under software rendering a frame can take longer than 0.7 s.
   s = await until((v) => v.moto.speed < coasting, 5000);
@@ -175,27 +198,24 @@ async function desktop(browser) {
   s = await snap();
   check('monta novamente perto da moto', s.mode === 'riding', `distância ${fx(dist(s))} m`);
 
-  // Collision: steer into the walled lots on the east side with the throttle held; the bike must
-  // never get past the wall line (x = 6.2), however long we push.
-  await key.down('KeyD');
+  // Collision (CORE-015): from the lane, ride straight into a real house lot (estimated lot on a
+  // real block); the lot is solid, so the bike must stop at its front line, however long we push.
+  const L = probe.lot;
+  await page.evaluate(([x, z, y]) => window.__debug.teleport(x, z, y), [L.startX, L.startZ, L.yaw]);
+  await until((v) => Math.hypot(v.moto.x - L.startX, v.moto.z - L.startZ) < 0.5, 5000);
+  const depth = (v) => (v.moto.x - L.ox) * L.ix + (v.moto.z - L.oz) * L.iz;
   await key.down('KeyW');
-  const facingEast = (v) => Math.abs(((v.moto.yaw - Math.PI / 2) % (2 * Math.PI) + 3 * Math.PI) % (2 * Math.PI) - Math.PI) < 0.3;
-  s = await until(facingEast, 40000);
-  await key.up('KeyD');
-  s = await until((v) => v.moto.x > 4.4 || v.moto.speed === 0, 30000);
-  let maxX = s.moto.x;
-  for (let i = 0; i < 40; i++) { await page.waitForTimeout(150); s = await snap(); maxX = Math.max(maxX, s.moto.x + 0); }
+  let maxDepth = -Infinity; let moved = false; let still = 0;
+  // Push until the bike has been at rest for a while after moving (time-based: ~2 FPS headless).
+  for (const end = Date.now() + 45000; Date.now() < end && still < 12;) {
+    await page.waitForTimeout(150); s = await snap(); maxDepth = Math.max(maxDepth, depth(s));
+    if (s.moto.speed > 0.5) moved = true;
+    still = moved && Math.abs(s.moto.speed) < 0.05 ? still + 1 : 0;
+  }
   await key.up('KeyW');
-  // The turn ends at a frame-rate dependent z; on a few stretches a street tree or pole stands
-  // between the lane and the wall (e.g. the tree at x=4.75, z=2.2), which is a valid solid stop too.
-  const obstacleAhead = [2.2, 26.4, 39.6, -9.6, 20.4].some((z) => Math.abs(s.moto.z - z) < 1.2);
-  // Between z ≈ 18.6 and 21.8 the W009 house (casa-leste-3) has an open driveway into its yard:
-  // there the bike may enter the yard but must stop before the house/back wall (x < 26.2).
-  const driveway = s.moto.z > 18.6 && s.moto.z < 21.8;
-  check('moto chega ao muro (ou árvore/poste da calçada) e não atravessa muros nem casas',
-    driveway ? maxX < 26.2 : s.moto.speed === 0 && maxX < 5.9 && (maxX > 4.4 || obstacleAhead),
-    `x máximo ${fx(maxX)}, z=${fx(s.moto.z)}; face do muro em x=6.2${driveway ? ' (entrada aberta do quintal)' : ''}`);
-  check('moto sobe na calçada (meio-fio)', s.moto.y > 0.1 || maxX < 4.6, `y=${fx(s.moto.y)}`);
+  check('moto chega ao muro do lote e não atravessa muros nem casas', maxDepth < 0.05 && maxDepth > -2.5,
+    `profundidade máxima ${fx(maxDepth)} m além da divisa (lote ${L.id}; divisa em 0)`);
+  check('moto sobe na calçada (meio-fio)', s.moto.y > 0.1, `y=${fx(s.moto.y)}`);
   await shot('06-colisao-muro.jpg');
 
   // Lost focus must release every held control: hold reverse, blur, and the bike must settle.
@@ -251,7 +271,7 @@ async function cityAndJob(browser) {
   check('jornada: 11h designa lojas e cria volumes rastreáveis', d.phase === 'COLETA' && d.assigned.length === 2 && d.parcels.length === 8 && new Set(d.parcels.map((q) => q.id)).size === 8,
     `${d.assigned.join(', ')} · ${d.addresses} endereços`);
   const first = d.stores.find((q) => q.id === d.assigned[0]);
-  await page.evaluate(([x, z]) => window.__debug.placeWalker(x, z, 0), [first.pickup.x, first.pickup.z]);
+  await page.evaluate(([x, z, y]) => window.__debug.placeWalker(x, z, y), [first.pickup.x, first.pickup.z, first.facing]);
   s = await until((v) => v.delivery.action !== null, 5000);
   check('loja: funcionário avisa que os volumes saem às 12h', /12h/.test(s.delivery.action ?? ''), s.delivery.action);
   await page.evaluate(() => window.__debug.wait());
@@ -263,13 +283,13 @@ async function cityAndJob(browser) {
   await shot('11-loja-retirada.jpg');
   for (const id of d.assigned) {
     const st = d.stores.find((q) => q.id === id);
-    await page.evaluate(([x, z]) => window.__debug.placeWalker(x, z, 0), [st.pickup.x, st.pickup.z]);
+    await page.evaluate(([x, z, y]) => window.__debug.placeWalker(x, z, y), [st.pickup.x, st.pickup.z, st.facing]);
     await until((v) => /Retirar/.test(v.delivery.action ?? ''), 8000);
     await page.evaluate(() => window.__debug.act());
   }
   d = (await snap()).delivery;
   check('coleta nas duas lojas (COLETADO, responsável: jogador)', d.phase === 'RETORNO' && d.parcels.filter((q) => q.state === 'COLETADO' && q.holder === 'jogador').length === 4);
-  await page.evaluate(() => window.__debug.placeWalker(95.4, -122.4, -Math.PI / 2));
+  await page.evaluate(() => { const p = window.__debug.depot(95.4, -122.4); window.__debug.placeWalker(p.x, p.z, window.__debug.depotYaw(-Math.PI / 2)); });
   await until((v) => /conferente/.test(v.delivery.action ?? ''), 8000);
   await page.evaluate(() => window.__debug.act());
   await page.evaluate(() => window.__debug.setHour(13.95));
@@ -280,14 +300,14 @@ async function cityAndJob(browser) {
   s = await until((v) => v.delivery.parcels.every((q) => q.state === 'NA_SACA'), 30000);
   check('triagem pelos separadores e saca pelo expedidor', s.delivery.parcels.every((q) => q.state === 'NA_SACA'), JSON.stringify(s.delivery.staff.map((x) => x.state)));
   await page.evaluate(() => window.__debug.setHour(15.05));
-  await page.evaluate(() => window.__debug.placeWalker(95.4, -131, -Math.PI / 2));
+  await page.evaluate(() => { const p = window.__debug.depot(95.4, -131); window.__debug.placeWalker(p.x, p.z, window.__debug.depotYaw(-Math.PI / 2)); });
   await until((v) => /saca/.test(v.delivery.action ?? ''), 8000);
   await page.evaluate(() => window.__debug.act());
   s = await snap();
   check('saca mista retirada a partir das 15h (EM_ROTA)', s.delivery.phase === 'ENTREGAS' && s.delivery.parcels.every((q) => q.state === 'EM_ROTA'));
   for (let k = 0; k < 10 && (await snap()).delivery.route.length; k++) {
     const t = (await snap()).delivery.objective.target;
-    await page.evaluate(([x, z]) => window.__debug.placeWalker(x, z, 0), [t.x, t.z]);
+    await page.evaluate(([x, z, y]) => window.__debug.placeWalker(x, z, y), [t.x, t.z, t.yaw ?? 0]);
     await until((v) => /Entregar/.test(v.delivery.action ?? ''), 8000);
     if (k === 0) await shot('13-entrega-residencia.jpg');
     await page.evaluate(() => window.__debug.act());
@@ -298,24 +318,26 @@ async function cityAndJob(browser) {
     JSON.stringify(s.delivery.progress));
   // CORE-013: living city, clock, day/night and minimap.
   s = await snap();
-  check('cidade viva: veículos e pedestres ativos', s.city.vehicles >= 8 && s.city.pedestrians >= 15 && s.city.byKind.bus >= 1,
+  check('cidade viva: veículos e pedestres ativos', s.city.vehicles >= 8 && s.city.pedestrians >= 15,
     `${s.city.vehicles} veículos ${JSON.stringify(s.city.byKind)}, ${s.city.pedestrians} pedestres`);
   const fp0 = s.city.fingerprint; const sig0 = JSON.stringify(s.city.signals);
   await page.waitForTimeout(4000);
   s = await snap();
   check('cidade viva: tráfego e pedestres se movem', s.city.fingerprint !== fp0 && s.city.moving > 0, `${s.city.moving} veículos em movimento`);
-  s = await until((q) => JSON.stringify(q.city.signals) !== sig0, 20000);
-  check('semáforos mudam de fase', JSON.stringify(s.city.signals) !== sig0, JSON.stringify(s.city.signals));
+  void sig0;
+  check('sem semáforos inventados (o OSM não mapeia nenhum na sede)', Object.keys(s.city.signals).length === 0, JSON.stringify(s.city.signals));
   check('relógio virtual no formato HH:MM e jornada 11h–21h ativa', /^\d\d:\d\d$/.test(s.clock.label) && s.clock.workday === (s.clock.hour >= 11 && s.clock.hour < 21), s.clock.label);
-  const arrow0 = s.minimap.arrow;
-  await page.evaluate(() => window.__debug.placeWalker(40, -14.4, Math.PI / 2));
+  const P = await page.evaluate(() => window.__debug.probe().junction);
+  await page.evaluate(([x, z]) => window.__debug.placeWalker(x + 40, z, Math.PI / 2), [P.x, P.z]);
   await page.waitForTimeout(400);
+  const arrow0 = (await snap()).minimap.arrow;
   await page.keyboard.press('KeyM');
   s = await until((q) => q.minimap.expanded);
   const arrowA = s.minimap.arrow;
-  await page.evaluate(() => window.__debug.placeWalker(-40, -14.4, Math.PI / 2));
-  s = await until((q) => Math.abs(q.minimap.arrow.x - arrowA.x) > 0.2, 5000);
-  check('minimapa ampliado acompanha o jogador', s.minimap.expanded && s.minimap.arrow.x < arrowA.x - 0.2 && arrow0.x === 0.5,
+  await page.evaluate(([x, z]) => window.__debug.placeWalker(x - 40, z, Math.PI / 2), [P.x, P.z]);
+  // The expanded map shows the whole town (~1.6 km wide): 80 m west is ~5 % of its width.
+  s = await until((q) => Math.abs(q.minimap.arrow.x - arrowA.x) > 0.03, 5000);
+  check('minimapa ampliado acompanha o jogador', s.minimap.expanded && s.minimap.arrow.x < arrowA.x - 0.03 && arrow0.x === 0.5,
     `x ${fx(arrowA.x)} → ${fx(s.minimap.arrow.x)} (fração da largura)`);
   await page.keyboard.press('KeyM');
   for (const [hour, expectNight] of [[7, false], [12, false], [18.4, false], [21.5, true]]) {

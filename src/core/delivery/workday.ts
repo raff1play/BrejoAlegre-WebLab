@@ -1,4 +1,5 @@
-import { DEPOT, STORES, type StoreKind } from '../../world/city/cityPlan.ts';
+import { DEPOT, STORES, depotWorld, depotYaw, type StoreKind } from '../../world/city/cityPlan.ts';
+import { yawOf } from '../../world/layout.ts';
 import { rng } from '../city/traffic.ts';
 import { buildAddresses, type Address } from './addresses.ts';
 import { advance, createParcel, type Parcel, type ParcelState, type Platform } from './parcels.ts';
@@ -13,11 +14,15 @@ import { advance, createParcel, type Parcel, type ParcelState, type Platform } f
 export const ROUTINE = Object.freeze({ assign: 11, pickupFrom: 12, returnBy: 14, sortFrom: 14, sackFrom: 15, deliveriesFrom: 16, end: 21 });
 
 export type Phase = 'ANTES' | 'COLETA' | 'RETORNO' | 'CONFERENCIA' | 'TRIAGEM' | 'SACA' | 'ENTREGAS' | 'CONCLUIDA' | 'ENCERRADA';
-export type Target = Readonly<{ kind: 'loja' | 'galpao' | 'endereco'; id: string; x: number; z: number; label: string }>;
+/** `yaw`: heading that faces the counter/desk/gate from the target spot (CORE-015: real frontages face any direction). */
+export type Target = Readonly<{ kind: 'loja' | 'galpao' | 'endereco'; id: string; x: number; z: number; label: string; yaw?: number }>;
 export type Objective = Readonly<{ title: string; detail: string; target: Target | null; waitUntil: number | null }>;
 
-/** Depot layout used by the staff and by the player interactions (inside the building). */
-export const DEPOT_SPOTS = Object.freeze({
+/**
+ * Depot layout used by the staff and by the player interactions (inside the building), in the
+ * CORE-014 depot frame; CORE-015 places that frame rigidly on the real block (see depotWorld).
+ */
+export const DEPOT_LOCAL_SPOTS = Object.freeze({
   door: { x: DEPOT.building.minX - 0.8, z: -122.2 },
   receiving: { x: 95.6, z: -122.4 },
   dispatch: { x: 95.6, z: -131 },
@@ -27,6 +32,11 @@ export const DEPOT_SPOTS = Object.freeze({
   gatehouse: { x: 99, z: -95 },
   office: { x: 128, z: -138.5 },
 });
+type SpotName = keyof typeof DEPOT_LOCAL_SPOTS;
+/** The same spots in world coordinates (metres on the real map). */
+export const DEPOT_SPOTS = Object.freeze(Object.fromEntries(
+  (Object.keys(DEPOT_LOCAL_SPOTS) as SpotName[]).map((k) => [k, depotWorld(DEPOT_LOCAL_SPOTS[k].x, DEPOT_LOCAL_SPOTS[k].z)]),
+) as Record<SpotName, { x: number; z: number }>);
 
 export type DepotRole = 'porteiro' | 'conferente' | 'descarregador-1' | 'descarregador-2' | 'separador-1' | 'separador-2' | 'expedidor' | 'supervisor';
 export type DepotStaff = { role: DepotRole; state: string; station: { x: number; z: number }; shift: [number, number]; carrying: boolean };
@@ -61,8 +71,8 @@ export class Workday {
     const st = (role: DepotRole, station: { x: number; z: number }, shift: [number, number]): DepotStaff => ({ role, state: 'fora', station, shift, carrying: false });
     this.staff = [
       st('porteiro', S.gatehouse, [6, 22]), st('conferente', S.receiving, [10, 21]),
-      st('descarregador-1', { x: 104, z: -121 }, [10, 19]), st('descarregador-2', { x: 120, z: -121 }, [10, 19]),
-      st('separador-1', { x: 108, z: -128 }, [12, 20]), st('separador-2', { x: 113, z: -131 }, [12, 20]),
+      st('descarregador-1', depotWorld(104, -121), [10, 19]), st('descarregador-2', depotWorld(120, -121), [10, 19]),
+      st('separador-1', depotWorld(108, -128), [12, 20]), st('separador-2', depotWorld(113, -131), [12, 20]),
       st('expedidor', S.dispatch, [13, 21.5]), st('supervisor', S.office, [9, 21]),
     ];
   }
@@ -245,7 +255,7 @@ export class Workday {
   // ------------------------------------------------------------------ guidance
 
   objective(hour: number): Objective {
-    const depot = (label: string): Target => ({ kind: 'galpao', id: 'galpao', ...DEPOT_SPOTS.receiving, label });
+    const depot = (label: string): Target => ({ kind: 'galpao', id: 'galpao', ...DEPOT_SPOTS.receiving, label, yaw: depotYaw(-Math.PI / 2) });
     switch (this.phase) {
       case 'ANTES': return { title: 'Aguardando o início da jornada', detail: 'A designação das lojas sai às 11h', target: null, waitUntil: ROUTINE.assign };
       case 'COLETA': {
@@ -255,7 +265,7 @@ export class Workday {
         return {
           title: `Coletar em ${store.name}`,
           detail: `${this.readyAt(next).length} volume(s) · coleta das 12h às 14h${early ? ' — chegue e aguarde' : ''}`,
-          target: { kind: 'loja', id: next, x: store.door.x, z: store.door.z, label: store.name }, waitUntil: early ? ROUTINE.pickupFrom : null,
+          target: { kind: 'loja', id: next, x: store.door.x, z: store.door.z, label: store.name, yaw: yawOf(store.frame) }, waitUntil: early ? ROUTINE.pickupFrom : null,
         };
       }
       case 'RETORNO': return { title: 'Levar os volumes ao galpão', detail: `${this.carrying().length} volume(s) · entregar ao conferente até 14h`, target: depot('Recebimento'), waitUntil: null };
@@ -270,7 +280,7 @@ export class Workday {
       }
       case 'ENTREGAS': {
         const a = this.byAddress.get(this.route[0]!)!;
-        return { title: `Entregar em ${a.street}, ${a.number}`, detail: `${a.bairro} · ${this.count('ENTREGUE')}/${this.parcels.length} entregues · até 21h`, target: { kind: 'endereco', id: a.id, x: a.door.x, z: a.door.z, label: a.label }, waitUntil: null };
+        return { title: `Entregar em ${a.street}, ${a.number}`, detail: `${a.bairro} · ${this.count('ENTREGUE')}/${this.parcels.length} entregues · até 21h`, target: { kind: 'endereco', id: a.id, x: a.door.x, z: a.door.z, label: a.label, yaw: yawOf(a.frame) }, waitUntil: null };
       }
       case 'CONCLUIDA': return { title: 'Jornada concluída', detail: `${this.count('ENTREGUE')}/${this.parcels.length} volumes entregues${this.late ? ' (retorno após 14h)' : ''}`, target: null, waitUntil: null };
       default: return { title: 'Jornada encerrada às 21h', detail: `${this.count('ENTREGUE')}/${this.parcels.length} entregues`, target: null, waitUntil: null };

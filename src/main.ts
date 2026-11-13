@@ -17,8 +17,9 @@ import { Motorcycle, PLAYER_LOOK } from './features/driving/motorcycle';
 import { Hud, type HudMode } from './features/hud/hud';
 import { Pedestrian } from './features/walking/pedestrian';
 import { setupEnvironment } from './world/environment';
-import { CURB_H } from './world/layout';
-import { depotWorld, depotYaw } from './world/city/cityPlan';
+import { CURB_H, yawOf } from './world/layout';
+import { STORES, depotWorld, depotYaw } from './world/city/cityPlan';
+import { buildProbe } from './world/city/testProbe';
 import { HouseStreamer } from './features/city/houseStreamer';
 import { buildTemporaryWorld } from './world/temporaryWorld';
 import { cameraObstacles } from './world/cameraObstacles';
@@ -272,6 +273,11 @@ function start(canvas: HTMLCanvasElement): void {
         },
         endView: () => { freeView = false; scene.fogEnabled = true; scene.getMeshByName('ceu-domo')?.setEnabled(true); },
         wait: () => onAction('wait'),
+        /** CORE-015 fixtures for tests/e2e on the real map (depot transform, a junction, a lot). */
+        probe: () => { const p = buildProbe(); return { junction: p.junction, lot: p.lot }; },
+        depot: (x: number, z: number) => depotWorld(x, z),
+        depotLocal: (x: number, z: number) => buildProbe().depotLocal(x, z),
+        depotYaw: (yaw: number) => depotYaw(yaw),
       },
     });
   }
@@ -297,7 +303,7 @@ function start(canvas: HTMLCanvasElement): void {
           route: [...delivery.workday.route],
           parcels: delivery.workday.parcels.map((p) => ({ id: p.id, state: p.state, holder: p.holder, origin: p.origin, destination: p.destination, platform: p.platform, region: p.region })),
           staff: delivery.workday.staff.map((st) => ({ role: st.role, state: st.state })),
-          stores: [...delivery.stores].map(([id, st]) => ({ id, employee: st.ops.employee, shutter: st.ops.shutter, queue: st.ops.queue.length, served: st.ops.served, pickup: st.layout.pickup })),
+          stores: [...delivery.stores].map(([id, st]) => ({ id, employee: st.ops.employee, shutter: st.ops.shutter, queue: st.ops.queue.length, served: st.ops.served, pickup: st.layout.pickup, facing: yawOf(STORES.find((q) => q.id === id)!.frame) })),
           addresses: delivery.workday.addresses.length,
           action: delivery.action(clock.hour, mode === 'riding' ? { x: moto.state.x, z: moto.state.z, riding: true } : { x: walker.state.x, z: walker.state.z, riding: false })?.label ?? null,
           waiting: delivery.waiting,

@@ -1,11 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { createMotionGuard } from '../src/core/collision.ts';
+import { createMotionGuard, pointInPoly } from '../src/core/collision.ts';
 import { GEO } from '../src/world/geo/brejoAlegreData.ts';
 import { NETWORK, SEDE, degreeOf } from '../src/world/geo/network.ts';
 import { GEO_BLOCKS, GEO_LOTS, pointInPolygon } from '../src/world/geo/geoCity.ts';
-import { CITY_BOUNDS, CITY_LOTS, DEPOT, ROADS, STORES, cityPolygons, depotWorld, nearestRoad, storeLayout } from '../src/world/city/cityPlan.ts';
+import { CITY_BOUNDS, CITY_LOTS, DEPOT, ROADS, STORES, cityPolygons, depotPoly, depotWorld, nearestRoad, storeLayout } from '../src/world/city/cityPlan.ts';
 import { treePolygons } from '../src/world/city/cityLayout.ts';
 import { ROAD_HALF, SIDEWALK, frameCorners, framePoint } from '../src/world/layout.ts';
 import { DEPOT_SPOTS } from '../src/core/delivery/workday.ts';
@@ -128,6 +128,9 @@ test('everything needed for the job is reachable on foot from the depot; house i
   }
   const reach = (p: { x: number; z: number }) => [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]].some(([a, b]) => seen.has(key(p.x + a!, p.z + b!)));
   for (const s of STORES) assert.ok(reach(storeLayout(s).pickup), `${s.id} counter reachable`);
+  // The desks are in world coordinates INSIDE the depot shed on the real block (not in the fields).
+  const shed = depotPoly(DEPOT.building);
+  for (const k of ['receiving', 'dispatch', 'sorting', 'office'] as const) assert.ok(pointInPoly(shed.pts, DEPOT_SPOTS[k].x, DEPOT_SPOTS[k].z), `${k} inside the shed`);
   assert.ok(reach(DEPOT_SPOTS.receiving) && reach(DEPOT_SPOTS.dispatch), 'depot desks reachable');
   let blocked = 0;
   for (const l of CITY_LOTS.slice(0, 200)) { const c = framePoint(l.frame, l.width / 2, l.depth - 4); if (seen.has(key(c.x, c.z))) blocked++; }
