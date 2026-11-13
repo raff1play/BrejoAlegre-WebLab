@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { behindHeadingAlpha, followAngle, safeCameraDistance, segmentBoxEntry } from '../src/core/cameraFollow.ts';
 import { angleDelta } from '../src/core/math.ts';
 import { cameraObstacles } from '../src/world/cameraObstacles.ts';
+import { DEPOT, CITY_BOUNDS } from '../src/world/city/cityPlan.ts';
 
 const wall = { minX: -1, maxX: 1, minY: 0, maxY: 4, minZ: -4, maxZ: -3 };
 
@@ -42,4 +43,18 @@ test('world camera obstacles include buildings and street furniture', () => {
   const solids = cameraObstacles();
   assert.ok(solids.length > 30);
   assert.ok(solids.every((b) => b.minX <= b.maxX && b.minY < b.maxY && b.minZ <= b.maxZ));
+});
+
+
+test('CORE-013: chase camera knows the new depot and town boundaries', () => {
+  const solids = cameraObstacles();
+  const d = DEPOT.building;
+  assert.ok(solids.some((box) =>
+    box.minX <= d.minX && box.maxX >= d.maxX &&
+    box.minZ <= d.minZ && box.maxZ >= d.maxZ && box.maxY >= DEPOT.height),
+  'galpão logístico should obstruct the GTA camera at its full height');
+  assert.ok(solids.some((box) => box.maxX > 70 && box.minX < CITY_BOUNDS.maxX && box.maxZ > -80),
+    'new eastern town blocks should be covered');
+  assert.ok(solids.some((box) => box.minX < -70 && box.maxZ > 60),
+    'new northern/western street furniture should be covered');
 });
