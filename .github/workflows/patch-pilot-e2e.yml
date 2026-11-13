@@ -24,7 +24,7 @@ jobs:
           npm run build:staging
           npm run preview -- --host 127.0.0.1 > /tmp/vite-patch.log 2>&1 &
           for i in $(seq 1 40); do if curl -fsS http://127.0.0.1:4173/ >/dev/null; then break; fi; sleep 1; done
-          echo 'Inspecting Patch animation warning diagnostics'
+          echo 'Rechecking normalized Babylon animation names'
           node tests/e2e/patchPilot.cjs
       - name: Store real screenshot and test evidence (no Pages deployment)
         if: success()
