@@ -13,8 +13,9 @@ import { RegisterSceneLoaderPlugin } from '@babylonjs/core/Loading/sceneLoader';
 import { GLTFFileLoaderMetadata } from '@babylonjs/loaders/glTF/glTFFileLoader.metadata';
 import { registerGLTFExtension } from '@babylonjs/loaders/glTF/2.0/glTFLoaderExtensionRegistry';
 import '@babylonjs/core/Meshes/instancedMesh';
-import { CURB_H, SIDEWALK, framePoint, yawOf } from './layout';
-import { STORES, depotWorld, depotYaw } from './city/cityPlan';
+import { CURB_H } from './layout';
+import { depotWorld, depotYaw } from './city/cityPlan';
+import { shopFurniture } from './city/cityLayout';
 
 /**
  * CORE-011: real external 3D models (CC0, Poly Haven), optimised offline with glTF-Transform and
@@ -130,16 +131,9 @@ async function loadModel(scene: Scene, id: ExternalModelId): Promise<Mesh[]> {
  * roll-up door closes the last dock of the depot.
  */
 export function externalPlacements(): Record<ExternalModelId, Placement[]> {
-  const lamps: Placement[] = []; const planters: Placement[] = [];
-  for (const s of STORES) {
-    const yaw = yawOf(s.frame) + Math.PI; // models look out to the street
-    for (const lx of [-0.9, s.width + 0.9]) {
-      const p = framePoint(s.frame, lx, -SIDEWALK + 0.45);
-      lamps.push({ x: p.x, y: CURB_H, z: p.z, yaw, scale: [1.08, 1.08, 1.08] });
-    }
-    const q = framePoint(s.frame, 1.6, -0.55);
-    planters.push({ x: q.x, y: CURB_H, z: q.z, yaw: yaw + Math.PI / 2, scale: [1.1, 1.05, 1.05] });
-  }
+  const f = shopFurniture();
+  const lamps: Placement[] = f.lamps.map((l) => ({ x: l.x, y: CURB_H, z: l.z, yaw: l.yaw, scale: [1.08, 1.08, 1.08] }));
+  const planters: Placement[] = f.planters.map((q) => ({ x: q.x, y: CURB_H, z: q.z, yaw: q.yaw, scale: [1.1, 1.05, 1.05] }));
   const dock = depotWorld(128, -118.02);
   return {
     street_lamp_01: lamps,

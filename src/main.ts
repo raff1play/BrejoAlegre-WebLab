@@ -271,7 +271,7 @@ function start(canvas: HTMLCanvasElement): void {
           scene.fogEnabled = false;
           scene.getMeshByName('ceu-domo')?.setEnabled(false);
         },
-        endView: () => { freeView = false; scene.fogEnabled = true; scene.getMeshByName('ceu-domo')?.setEnabled(true); },
+        endView: () => { freeView = false; rig.camera.maxZ = 2000; scene.fogEnabled = true; scene.getMeshByName('ceu-domo')?.setEnabled(true); },
         wait: () => onAction('wait'),
         /** CORE-015 fixtures for tests/e2e on the real map (depot transform, a junction, a lot). */
         probe: () => { const p = buildProbe(); return { junction: p.junction, lot: p.lot }; },

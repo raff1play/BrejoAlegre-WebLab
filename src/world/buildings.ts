@@ -125,8 +125,11 @@ export function buildHouse(scene: Scene, mats: Materials, spec: HouseSpec, share
   const { flat, upright } = shared;
   flat.setTransform(place);
   upright.setTransform(place);
-  const W = LOT_WIDTH;
-  const D = LOT_DEPTH;
+  // CORE-015.1: the plan follows the REAL lot size, so walls never leave the lot (they used to be
+  // drawn 12 × 20 m on lots as narrow as 10 m and as shallow as 12 m: into neighbours and streets).
+  const W = spec.lotWidth ?? LOT_WIDTH;
+  const D = spec.lotDepth ?? LOT_DEPTH;
+  const cityLot = spec.lotWidth !== undefined;
   const wall = mats.plaster(spec.wallColor);
   const band = mats.plaster(spec.bandColor);
   const trim = mats.paint('#ece8de');
@@ -137,7 +140,8 @@ export function buildHouse(scene: Scene, mats: Materials, spec: HouseSpec, share
   const gateDoor: [number, number] = spec.garageSide === -1 ? [3.55, 4.45] : [W - 4.45, W - 3.55];
 
   // Yard: grass with a concrete driveway and front path.
-  flat.box(mats.grass, 0, W, -0.02, 0, 0, D, { sides: false });
+  // On city lots the block already has its grass (no second, nearly coplanar layer).
+  if (!cityLot) flat.box(mats.grass, 0, W, -0.02, 0, 0, D, { sides: false });
   flat.of(mats.plazaPaving).box(garage[0] - 0.2, garage[1] + 0.2, 0, 0.012, 0, back, mats.plazaPaving.tileU, mats.plazaPaving.tileV, { sides: false });
   flat.of(mats.plazaPaving).box(hx0, hx1, 0, 0.012, 0, sb, mats.plazaPaving.tileU, mats.plazaPaving.tileV, { sides: false });
 
@@ -252,7 +256,7 @@ export function buildHouse(scene: Scene, mats: Materials, spec: HouseSpec, share
 
   if (spec.waterTank) {
     if (parapet) waterTank(scene, solid, mats, hx0 + 1.6, bodyTop - 0.3, back - 1.8);
-    else {
+    else if (back + 3.2 <= D - WALL_T) {
       // Masonry tower in the back yard, taller than the eaves for water pressure.
       const tx = spec.garageSide === -1 ? hx1 - 1.2 : hx0 + 1.2;
       solid.box(mats.blockwork, tx - 0.7, tx + 0.7, 0, 4.4, back + 1.6, back + 3.0);

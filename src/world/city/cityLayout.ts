@@ -1,7 +1,7 @@
 import { makePoly, type Box2D, type Poly2D } from '../../core/collision.ts';
 import type { Box3D } from '../../core/math.ts';
-import { HOUSE_DEPTH, HOUSE_STYLES, ROAD_HALF, SIDEWALK, framePoint, houseSpan, yawOf, type TreeSpec } from '../layout.ts';
-import { CITY_LOTS, DEPOT, ROADS, STORES, depotWorld, depotYaw, nodeById, storeLayout, type CityRoad } from './cityPlan.ts';
+import { HOUSE_DEPTH, HOUSE_STYLES, ROAD_HALF, SIDEWALK, frameCorners, framePoint, houseSpan, yawOf, type TreeSpec } from '../layout.ts';
+import { CITY_LOTS, DEPOT, ROADS, STORES, cityPolygons, depotWorld, depotYaw, nodeById, storeLayout, type CityRoad } from './cityPlan.ts';
 import { GEO_WALLS, OPEN_SPACES, pointInPolygon } from '../geo/geoCity.ts';
 import { PLAY_BOUNDS } from '../geo/network.ts';
 
@@ -97,6 +97,34 @@ export function treePolygons(): Poly2D[] {
   return cityTrees().map((t) => { const r = 0.24 * t.scale; return makePoly([[t.x - r, t.z - r], [t.x + r, t.z - r], [t.x + r, t.z + r], [t.x - r, t.z + r]]); });
 }
 
+/**
+ * CORE-011 Poly Haven furniture at the shops: a colonial lamp at each end of the frontage (kerb
+ * side of the pavement) and a planter box in the forecourt under the left window (off the public
+ * pavement, where pedestrians walk). One source for the models AND their colliders.
+ */
+export function shopFurniture(): { lamps: { x: number; z: number; yaw: number }[]; planters: { x: number; z: number; yaw: number; poly: Poly2D }[] } {
+  const lamps: { x: number; z: number; yaw: number }[] = []; const planters: { x: number; z: number; yaw: number; poly: Poly2D }[] = [];
+  for (const s of STORES) {
+    const yaw = yawOf(s.frame) + Math.PI; // models look out to the street
+    for (const lx of [-0.9, s.width + 0.9]) { const p = framePoint(s.frame, lx, -SIDEWALK + 0.45); lamps.push({ x: p.x, z: p.z, yaw }); }
+    const q = framePoint(s.frame, 1.7, 0.85);
+    planters.push({ x: q.x, z: q.z, yaw: yaw + Math.PI / 2, poly: makePoly(frameCorners(s.frame, 1.05, 2.35, 0.55, 1.15)) });
+  }
+  return { lamps, planters };
+}
+
+/** Solid street furniture: lamp posts (generic and colonial) and the shop planters. */
+export function furniturePolygons(): Poly2D[] {
+  const post = (x: number, z: number, r: number) => makePoly([[x - r, z - r], [x + r, z - r], [x + r, z + r], [x - r, z + r]]);
+  const f = shopFurniture();
+  return [...streetLightPositions().map((l) => post(l.x, l.z, 0.12)), ...f.lamps.map((l) => post(l.x, l.z, 0.14)), ...f.planters.map((q) => q.poly)];
+}
+
+/** Every static solid of the town for the player, the bike and the tests. */
+export function solidPolygons(): Poly2D[] {
+  return [...cityPolygons(), ...treePolygons(), ...furniturePolygons()];
+}
+
 /** Chase-camera blockers: houses, shop walls and ceilings, depot walls, frontage walls (oriented). */
 export function cityCameraObstacles(): Box3D[] {
   const out: Box3D[] = [];
@@ -104,7 +132,7 @@ export function cityCameraObstacles(): Box3D[] {
     ({ minX: lx0, maxX: lx1, minZ: lz0, maxZ: lz1, minY: y0, maxY: y1, yaw, cx: frame.ox, cz: frame.oz });
   for (const l of CITY_LOTS) {
     const style = HOUSE_STYLES[l.style % HOUSE_STYLES.length]!;
-    const [x0, x1] = houseSpan({ ...style, id: l.id, frame: l.frame });
+    const [x0, x1] = houseSpan({ garageSide: style.garageSide, lotWidth: l.width });
     const setback = Math.min(style.setback, Math.max(1.5, l.depth - HOUSE_DEPTH - 0.5));
     out.push(obox(l.frame, yawOf(l.frame), x0, x1, setback, setback + HOUSE_DEPTH, 0, 5.2));
   }

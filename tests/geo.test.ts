@@ -4,10 +4,10 @@ import { readFileSync } from 'node:fs';
 import { createMotionGuard, pointInPoly } from '../src/core/collision.ts';
 import { GEO } from '../src/world/geo/brejoAlegreData.ts';
 import { NETWORK, SEDE, degreeOf } from '../src/world/geo/network.ts';
-import { GEO_BLOCKS, GEO_LOTS, pointInPolygon } from '../src/world/geo/geoCity.ts';
+import { GEO_BLOCKS, GEO_LOTS, GEO_WALLS, pointInPolygon, roadDistance } from '../src/world/geo/geoCity.ts';
 import { CITY_BOUNDS, CITY_LOTS, DEPOT, ROADS, STORES, cityPolygons, depotPoly, depotWorld, nearestRoad, storeLayout } from '../src/world/city/cityPlan.ts';
-import { treePolygons } from '../src/world/city/cityLayout.ts';
-import { ROAD_HALF, SIDEWALK, frameCorners, framePoint } from '../src/world/layout.ts';
+import { solidPolygons } from '../src/world/city/cityLayout.ts';
+import { HOUSE_DEPTH, HOUSE_STYLES, HOUSE_WIDTH, ROAD_HALF, SIDEWALK, frameCorners, framePoint, houseSpan } from '../src/world/layout.ts';
 import { DEPOT_SPOTS } from '../src/core/delivery/workday.ts';
 
 const raw = JSON.parse(readFileSync('data/osm/brejo-alegre.raw.json', 'utf8'));
@@ -112,7 +112,7 @@ test('blocks are real faces of the street graph; lots never stand on a street or
 });
 
 test('everything needed for the job is reachable on foot from the depot; house interiors are not', () => {
-  const guard = createMotionGuard(CITY_BOUNDS, [], [...cityPolygons(), ...treePolygons()]);
+  const guard = createMotionGuard(CITY_BOUNDS, [], solidPolygons());
   const start = depotWorld(84, -111);
   const step = 1;
   const key = (x: number, z: number) => `${Math.round(x / step)},${Math.round(z / step)}`;
@@ -135,4 +135,44 @@ test('everything needed for the job is reachable on foot from the depot; house i
   let blocked = 0;
   for (const l of CITY_LOTS.slice(0, 200)) { const c = framePoint(l.frame, l.width / 2, l.depth - 4); if (seen.has(key(c.x, c.z))) blocked++; }
   assert.equal(blocked, 0, 'house interiors unreachable');
+});
+
+// ------------------------------------------------------------------ CORE-015.1 regressions
+
+test('CORE-015.1: kerbs follow the real carriageway (no pavement on the asphalt, also on curves and dead ends)', () => {
+  let total = 0; let inside = 0; let worst = Infinity;
+  for (const b of GEO_BLOCKS) {
+    const k = b.kerb;
+    assert.equal(k.length, b.lot.length, `${b.id}: kerb and lot line correspond vertex by vertex`);
+    for (let i = 0; i < k.length; i++) {
+      const a = k[i]!; const c = k[(i + 1) % k.length]!; const L = Math.hypot(c[0] - a[0], c[1] - a[1]);
+      for (let s = 0; s <= L; s += 1) {
+        const d = roadDistance(a[0] + ((c[0] - a[0]) * s) / L, a[1] + ((c[1] - a[1]) * s) / L);
+        total++; worst = Math.min(worst, d);
+        if (d < ROAD_HALF - 0.3) inside++;
+      }
+    }
+  }
+  // Before the fix: 357 of 16 369 samples were inside the asphalt (worst: on the road axis).
+  assert.ok(inside <= total * 0.001, `${inside}/${total} kerb samples inside the carriageway`);
+  assert.ok(worst > ROAD_HALF - 1, `worst kerb point ${worst.toFixed(2)} m from a road axis`);
+});
+
+test('CORE-015.1: frontage walls and house walls stay inside their lots, off every street', () => {
+  const E = ROAD_HALF + SIDEWALK;
+  for (const w of GEO_WALLS) {
+    for (let s = 0; s <= w.length; s += 0.5) {
+      const p = framePoint(w.frame, s, 0.11);
+      assert.ok(roadDistance(p.x, p.z) >= E - 0.35, `wall of ${w.block} at ${p.x.toFixed(1)},${p.z.toFixed(1)} is ${roadDistance(p.x, p.z).toFixed(2)} m from a road axis`);
+    }
+  }
+  for (const l of CITY_LOTS) {
+    // The visual plan is built with the lot's own size: body, garage and walls fit inside it.
+    const style = HOUSE_STYLES[l.style % HOUSE_STYLES.length]!;
+    const [x0, x1] = houseSpan({ garageSide: style.garageSide, lotWidth: l.width });
+    assert.ok(x0 >= 0.2 && x1 <= l.width - 0.2 && Math.abs(x1 - x0 - HOUSE_WIDTH) < 1e-9, `${l.id}: house body inside the lot width ${l.width.toFixed(1)}`);
+    const setback = Math.min(style.setback, Math.max(1.5, l.depth - HOUSE_DEPTH - 0.5));
+    assert.ok(setback + HOUSE_DEPTH <= l.depth - 0.2, `${l.id}: house body inside the lot depth ${l.depth}`);
+    for (const c of frameCorners(l.frame, 0, l.width, 0, l.depth)) assert.ok(roadDistance(c[0], c[1]) >= E - 0.35, `${l.id}: lot corner off the street`);
+  }
 });

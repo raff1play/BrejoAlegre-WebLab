@@ -85,6 +85,8 @@ export function createMotionGuard(bounds: Box2D, obstacles: readonly Box2D[], po
 
 export type SlideResult = { x: number; z: number; blocked: boolean; stuck: boolean };
 
+const SLIDE_TURNS: readonly (readonly [number, number])[] = [15, 30, 45, 60, 75].map((d) => [Math.cos((d * Math.PI) / 180), Math.sin((d * Math.PI) / 180)] as const);
+
 /** Longest step tested at once; smaller than any wall thickness plus body radius, so nothing tunnels. */
 const MAX_SUBSTEP = 0.2;
 
@@ -106,6 +108,18 @@ export function slideMove(
   for (let i = 0; i < steps; i++) {
     if (allowed(x + sx, z + sz)) { x += sx; z += sz; continue; }
     blocked = true;
+    // CORE-015.1: real streets (and their walls) run at any angle. Slide along the obstacle: the
+    // smallest deflection of the step that fits, shortened by its cosine (its projection on the
+    // wall). Deflections stop at 75°, so pushing straight into a wall does not creep sideways.
+    let slid = false;
+    for (const [c, sn] of SLIDE_TURNS) {
+      for (const sign of [1, -1]) {
+        const rx = (sx * c - sz * sn * sign) * c; const rz = (sx * sn * sign + sz * c) * c;
+        if (allowed(x + rx, z + rz)) { x += rx; z += rz; slid = true; break; }
+      }
+      if (slid) break;
+    }
+    if (slid) continue;
     if (sx !== 0 && allowed(x + sx, z)) { x += sx; continue; }
     if (sz !== 0 && allowed(x, z + sz)) { z += sz; continue; }
     stuck = true;

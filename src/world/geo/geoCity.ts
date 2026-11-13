@@ -67,20 +67,59 @@ function faces(): P[][] {
   return result;
 }
 
-/** Removes near-collinear and duplicate vertices (keeps the real shape). */
-function simplify(p: P[], degrees = 4): P[] {
-  let pts = p.filter((a, i) => { const b = p[(i + 1) % p.length]!; return Math.hypot(a[0] - b[0], a[1] - b[1]) > 0.5; });
-  let changed = true;
-  while (changed && pts.length > 3) {
-    changed = false;
-    for (let i = 0; i < pts.length; i++) {
-      const a = pts[(i - 1 + pts.length) % pts.length]!; const b = pts[i]!; const c = pts[(i + 1) % pts.length]!;
-      const d1 = Math.atan2(b[1] - a[1], b[0] - a[0]); const d2 = Math.atan2(c[1] - b[1], c[0] - b[0]);
-      let t = Math.abs(d2 - d1); if (t > Math.PI) t = Math.PI * 2 - t;
-      if (t < (degrees * Math.PI) / 180) { pts = pts.filter((_, k) => k !== i); changed = true; break; }
-    }
+/**
+ * CORE-015.1: simplifies a block face with Douglas–Peucker (the result never leaves the real road
+ * axis by more than `tol` metres — the old "merge bends under 4°" rule collapsed whole curves into
+ * chords, which put kerbs and walls on the asphalt). Dead-end roads inside a block appear in the
+ * face as a slit (out and back along the same axis); their tip gets a square cap so the inset goes
+ * AROUND the dead end instead of through it.
+ */
+function simplify(p: P[], tol = 0.3): P[] {
+  const pts = p.filter((a, i) => { const b = p[(i + 1) % p.length]!; return Math.hypot(a[0] - b[0], a[1] - b[1]) > 0.05; });
+  const n = pts.length;
+  if (n <= 4) return pts;
+  // Corners that must survive: U-turns (dead-end tips) and sharp turns.
+  const keep = new Array<boolean>(n).fill(false);
+  const turnAt = (i: number) => {
+    const a = pts[(i - 1 + n) % n]!; const b = pts[i]!; const c = pts[(i + 1) % n]!;
+    let t = Math.abs(Math.atan2(c[1] - b[1], c[0] - b[0]) - Math.atan2(b[1] - a[1], b[0] - a[0]));
+    if (t > Math.PI) t = Math.PI * 2 - t;
+    return t;
+  };
+  for (let i = 0; i < n; i++) if (turnAt(i) > 0.6) keep[i] = true;
+  if (!keep.some(Boolean)) { keep[0] = true; keep[Math.floor(n / 2)] = true; }
+  const dist = (q: P, a: P, b: P) => {
+    const dx = b[0] - a[0]; const dz = b[1] - a[1]; const L2 = dx * dx + dz * dz;
+    if (L2 < 1e-9) return Math.hypot(q[0] - a[0], q[1] - a[1]);
+    const t = Math.max(0, Math.min(1, ((q[0] - a[0]) * dx + (q[1] - a[1]) * dz) / L2));
+    return Math.hypot(a[0] + dx * t - q[0], a[1] + dz * t - q[1]);
+  };
+  const dp = (i0: number, i1: number) => { // indices along the ring, i1 may exceed n
+    if (i1 - i0 < 2) return;
+    let worst = -1; let at = -1;
+    for (let k = i0 + 1; k < i1; k++) { const d = dist(pts[k % n]!, pts[i0 % n]!, pts[i1 % n]!); if (d > worst) { worst = d; at = k; } }
+    if (worst > tol) { keep[at % n] = true; dp(i0, at); dp(at, i1); }
+  };
+  const anchors = keep.map((k, i) => (k ? i : -1)).filter((i) => i >= 0);
+  for (let k = 0; k < anchors.length; k++) {
+    const i0 = anchors[k]!; const i1 = k + 1 < anchors.length ? anchors[k + 1]! : anchors[0]! + n;
+    dp(i0, i1);
   }
-  return pts;
+  const kept = pts.filter((_, i) => keep[i]);
+  // Square cap at every U-turn (dead-end tip): two vertices 2 cm apart, across the travel direction.
+  const out: P[] = [];
+  for (let i = 0; i < kept.length; i++) {
+    const a = kept[(i - 1 + kept.length) % kept.length]!; const b = kept[i]!; const c = kept[(i + 1) % kept.length]!;
+    const d1 = Math.atan2(b[1] - a[1], b[0] - a[0]); const d2 = Math.atan2(c[1] - b[1], c[0] - b[0]);
+    let t = Math.abs(d2 - d1); if (t > Math.PI) t = Math.PI * 2 - t;
+    if (t > 2.6) {
+      const L = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+      const ux = (b[0] - a[0]) / L; const uz = (b[1] - a[1]) / L; // travel direction into the tip
+      // The face is on the left, so the path turns clockwise at the tip: left bank first.
+      out.push([b[0] - uz * 0.01, b[1] + ux * 0.01], [b[0] + uz * 0.01, b[1] - ux * 0.01]);
+    } else out.push(b);
+  }
+  return out;
 }
 
 /** Inward offset of a counter-clockwise polygon by d (intersection of offset edge lines). */
@@ -166,6 +205,21 @@ function rectNearRoad(rect: P[]): boolean {
   return false;
 }
 
+/** Distance from a point to the nearest road axis (any drivable road of the network). */
+export function roadDistance(x: number, z: number): number {
+  let best = Infinity;
+  for (const r of NETWORK.roads) {
+    for (let i = 1; i < r.pts.length; i++) {
+      const a = r.pts[i - 1]!; const b = r.pts[i]!;
+      if (Math.min(a[0], b[0]) - best > x || Math.max(a[0], b[0]) + best < x || Math.min(a[1], b[1]) - best > z || Math.max(a[1], b[1]) + best < z) continue;
+      const dx = b[0] - a[0]; const dz = b[1] - a[1]; const L2 = dx * dx + dz * dz || 1;
+      const t = Math.max(0, Math.min(1, ((x - a[0]) * dx + (z - a[1]) * dz) / L2));
+      best = Math.min(best, Math.hypot(a[0] + dx * t - x, a[1] + dz * t - z));
+    }
+  }
+  return best;
+}
+
 function streetNear(x: number, z: number): string | null {
   let best: { d: number; name: string | null } = { d: Infinity, name: null };
   for (const r of NETWORK.roads) {
@@ -221,7 +275,23 @@ function buildLots(): { lots: GeoLot[]; walls: GeoWall[] } {
       covered = covered.sort((u, v) => u[0] - v[0]);
       let cursor = 0;
       for (const [s0, s1] of [...covered, [L, L] as [number, number]]) {
-        if (s0 - cursor > 0.3) walls.push({ block: b.id, frame: frameAt(cursor), length: s0 - cursor });
+        if (s0 - cursor > 0.3) {
+          // CORE-015.1: a wall never stands on a carriageway or pavement of ANY road (tight
+          // junction triangles and internal ways): keep only the stretches clear of every axis.
+          let run: number | null = null;
+          const end = s0;
+          for (let q = cursor; ; q = Math.min(end, q + 0.5)) {
+            const pt = framePoint(frameAt(q), 0, 0.11);
+            const clear = roadDistance(pt.x, pt.z) >= E - 0.2;
+            if (clear && run === null) run = q;
+            if ((!clear || q >= end) && run !== null) {
+              const stop = clear ? q : q - 0.5;
+              if (stop - run > 0.6) walls.push({ block: b.id, frame: frameAt(run), length: stop - run });
+              run = null;
+            }
+            if (q >= end) break;
+          }
+        }
         cursor = Math.max(cursor, s1);
       }
     }

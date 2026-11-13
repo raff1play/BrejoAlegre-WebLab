@@ -107,6 +107,9 @@ export type HouseSpec = Readonly<{
   setback: number;
   carport: boolean;
   waterTank: boolean;
+  /** CORE-015.1: real lot size (estimated lots are 10–17.6 m wide, 12–20 m deep). Default 12 × 20. */
+  lotWidth?: number;
+  lotDepth?: number;
 }>;
 
 export const HOUSE_WIDTH = 8;
@@ -114,8 +117,9 @@ export const HOUSE_DEPTH = 9.5;
 export const HOUSE_WALL_H = 3;
 
 /** Local x-range of the house body inside its lot. */
-export function houseSpan(spec: HouseSpec): [number, number] {
-  return spec.garageSide === -1 ? [LOT_WIDTH - 0.7 - HOUSE_WIDTH, LOT_WIDTH - 0.7] : [0.7, 0.7 + HOUSE_WIDTH];
+export function houseSpan(spec: Pick<HouseSpec, 'garageSide' | 'lotWidth'>): [number, number] {
+  const W = spec.lotWidth ?? LOT_WIDTH;
+  return spec.garageSide === -1 ? [W - 0.7 - HOUSE_WIDTH, W - 0.7] : [0.7, 0.7 + HOUSE_WIDTH];
 }
 
 type Style = Omit<HouseSpec, 'id' | 'frame'>;

@@ -62,7 +62,7 @@ function fillPolygon(set: BatchSet, m: LabMaterial, pts: readonly XZ[], y: numbe
 }
 
 /** Ribbon of width w along a polyline at height y (quads per segment). */
-function ribbon(set: BatchSet, m: LabMaterial, pts: readonly XZ[], w: number, y: number, offset = 0): void {
+function ribbon(set: BatchSet, m: LabMaterial, pts: readonly XZ[], w: number, y: number, offset = 0, worldUv = false): void {
   const b = set.of(m);
   for (let i = 1; i < pts.length; i++) {
     const a = pts[i - 1]!; const c = pts[i]!;
@@ -71,7 +71,23 @@ function ribbon(set: BatchSet, m: LabMaterial, pts: readonly XZ[], w: number, y:
     const l0 = offset - w / 2; const l1 = offset + w / 2;
     const p0: P3 = [a[0] + nx * l0, y, a[1] + nz * l0]; const p1: P3 = [c[0] + nx * l0, y, c[1] + nz * l0];
     const p2: P3 = [c[0] + nx * l1, y, c[1] + nz * l1]; const p3: P3 = [a[0] + nx * l1, y, a[1] + nz * l1];
-    b.poly([p0, p1, p2, p3], [[0, 0], [0, L / 2], [w / 2, L / 2], [w / 2, 0]]);
+    // World-space UVs: where ribbons of two roads (or a junction disc) overlap at the same height,
+    // both surfaces show the SAME texel, so coplanar overlaps cannot flicker (CORE-015.1).
+    if (worldUv) b.poly([p0, p1, p2, p3], [p0, p1, p2, p3].map((q) => [q[0] / 2, q[2] / 2] as [number, number]));
+    else b.poly([p0, p1, p2, p3], [[0, 0], [0, L / 2], [w / 2, L / 2], [w / 2, 0]]);
+  }
+}
+
+/** One pavement stretch between kerb (a→b) and lot line (c←d): slabs run ALONG the street. */
+function pavementQuad(set: BatchSet, m: LabMaterial, a: XZ, b: XZ, c: XZ, d: XZ): void {
+  const L = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+  const tx = (b[0] - a[0]) / L; const tz = (b[1] - a[1]) / L;
+  const uv = (p: XZ): [number, number] => [((p[0] - a[0]) * tx + (p[1] - a[1]) * tz) / 2, ((p[0] - a[0]) * -tz + (p[1] - a[1]) * tx) / 2];
+  const pts = [a, b, c, d];
+  const batch = set.of(m);
+  for (const [i, j, k] of triangulate(pts)) {
+    const t = [pts[i]!, pts[j]!, pts[k]!];
+    batch.poly(t.map((q) => [q[0], CURB_H, q[1]] as P3), t.map(uv));
   }
 }
 
@@ -88,8 +104,8 @@ export function buildRoads(flat: BatchSet, upright: BatchSet, mats: Materials): 
   // Carriageways (8 m: an approximation; OSM has no widths here), unpaved rural ways in earth.
   for (const r of ROADS) {
     const dirt = r.kind === 'rural' && UNPAVED.has(surfaceOf(r.osmWay) ?? '');
-    ribbon(flat, dirt ? mats.dirt : mats.asphalt, r.pts, ROAD_HALF * 2, 0);
-    for (const p of r.pts.slice(1, -1)) disc(flat, dirt ? mats.dirt : mats.asphalt, p[0], p[1], ROAD_HALF, 0.0005);
+    ribbon(flat, dirt ? mats.dirt : mats.asphalt, r.pts, ROAD_HALF * 2, 0, 0, true);
+    for (const p of r.pts.slice(1, -1)) disc(flat, dirt ? mats.dirt : mats.asphalt, p[0], p[1], ROAD_HALF, 0);
     if (r.highway.startsWith('secondary')) {
       // Dashed yellow centre line on the paved state/municipal roads.
       const dash = 3; const gap = 3;
@@ -106,7 +122,7 @@ export function buildRoads(flat: BatchSet, upright: BatchSet, mats: Materials): 
       ribbon(flat, mats.lineWhite, r.pts, 0.1, 0.005, -(ROAD_HALF - 0.45));
     }
   }
-  for (const n of NODES) disc(flat, mats.asphalt, n.x, n.z, ROAD_HALF + 0.4, 0.0008);
+  for (const n of NODES) disc(flat, mats.asphalt, n.x, n.z, ROAD_HALF + 0.4, 0);
   // Blocks: kerb face, gutter, pavement and the lot area behind it.
   for (const b of BLOCKS) {
     const k = b.kerb;
@@ -122,7 +138,7 @@ export function buildRoads(flat: BatchSet, upright: BatchSet, mats: Materials): 
     if (l.length === k.length) {
       for (let i = 0; i < k.length; i++) {
         const j = (i + 1) % k.length;
-        fillPolygon(flat, mats.pavement, [k[i]!, k[j]!, l[j]!, l[i]!], CURB_H);
+        pavementQuad(flat, mats.pavement, k[i]!, k[j]!, l[j]!, l[i]!);
       }
     } else fillPolygon(flat, mats.pavement, k, CURB_H);
     fillPolygon(flat, mats.grass, l, CURB_H - 0.012);
@@ -342,7 +358,7 @@ function buildDepot(scene: Scene, set: BatchSet, flat: BatchSet, mats: Materials
   ], 8, 64);
   set.of(ops).quad([100, y0 + 5.2, -126.3], [116, y0 + 5.2, -126.3], [116, y0 + 6.2, -126.3], [100, y0 + 6.2, -126.3], 1, 1);
   // Driveway apron over the pavement gap at the yard gate.
-  drawBox(flat, mats.plazaPaving, { minX: d.gate.x0, maxX: d.gate.x1, minZ: d.lot.maxZ, maxZ: -86 - ROAD_HALF }, -0.03, 0.004, flatOnly);
+  drawBox(flat, mats.plazaPaving, { minX: d.gate.x0, maxX: d.gate.x1, minZ: d.lot.maxZ, maxZ: -86 - ROAD_HALF }, -0.03, 0.015, flatOnly);
   const sign = mats.sign('placa-galpao', '#1d4f9c', '#f2c230', [
     { text: 'GALPÃO LOGÍSTICO', size: 0.42, color: '#ffffff' },
     { text: 'BREJO ALEGRE · CARGA E DESCARGA', size: 0.2, color: '#f2c230', weight: '700' },

@@ -10,8 +10,8 @@ import { BatchSet } from './geometry';
 import { Materials } from './materials';
 import { buildBackdrop } from './backdrop';
 import { buildCity } from './city/cityBuild';
-import { cityTrees, treePolygons } from './city/cityLayout';
-import { CITY_BOUNDS, cityPolygons, cityRaised } from './city/cityPlan';
+import { cityTrees, solidPolygons } from './city/cityLayout';
+import { CITY_BOUNDS, cityRaised } from './city/cityPlan';
 import { NET_BOUNDS } from './geo/network';
 import { buildTrees } from './props';
 
@@ -38,7 +38,9 @@ export function buildTemporaryWorld(scene: Scene, profile: GraphicsProfile): Wor
   const flat = new BatchSet();
   const upright = new BatchSet();
   const m = 220;
-  flat.box(materials.grass, NET_BOUNDS.minX - m, NET_BOUNDS.maxX + m, -0.06, -0.03, NET_BOUNDS.minZ - m, NET_BOUNDS.maxZ + m, { sides: false });
+  // 6 cm under the carriageways: resolvable by a 24-bit depth buffer up to ~390 m (3 cm was not
+  // beyond ~270 m), while the rider on open fields still looks grounded.
+  flat.box(materials.grass, NET_BOUNDS.minX - m, NET_BOUNDS.maxX + m, -0.09, -0.06, NET_BOUNDS.minZ - m, NET_BOUNDS.maxZ + m, { sides: false });
   const city = buildCity(scene, materials, { flat, upright });
   const flatMeshes = flat.build('chao', scene);
   const uprightMeshes = upright.build('urbano', scene);
@@ -52,7 +54,7 @@ export function buildTemporaryWorld(scene: Scene, profile: GraphicsProfile): Wor
     mesh.freezeWorldMatrix();
     mesh.isPickable = false;
   }
-  const polygons = [...cityPolygons(), ...treePolygons()];
+  const polygons = solidPolygons();
   return {
     materials,
     bounds: CITY_BOUNDS,

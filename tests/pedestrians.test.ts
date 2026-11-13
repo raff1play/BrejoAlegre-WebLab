@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createMotionGuard } from '../src/core/collision.ts';
-import { treePolygons } from '../src/world/city/cityLayout.ts';
+import { solidPolygons } from '../src/world/city/cityLayout.ts';
 import { CITY_BOUNDS, cityPolygons } from '../src/world/city/cityPlan.ts';
 import { Crowd, buildWalkGraph } from '../src/core/city/pedestrians.ts';
 import { buildRoadGraph } from '../src/core/city/roadGraph.ts';
@@ -13,7 +13,7 @@ import { Traffic } from '../src/core/city/traffic.ts';
  * church or school in the seat, so pedestrians cross at the kerb when the arm is clear and
  * walk to the (fictional) shops, the real parks and along the pavements.
  */
-const guard = createMotionGuard(CITY_BOUNDS, [], [...cityPolygons(), ...treePolygons()]);
+const guard = createMotionGuard(CITY_BOUNDS, [], solidPolygons());
 const free = (x: number, z: number) => guard(x, z, 0.3);
 
 test('sidewalk graph is connected, stays on walkable ground and has crosswalks', () => {

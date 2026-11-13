@@ -21,7 +21,7 @@ type Sector = { key: string; cx: number; cz: number; lots: CityLot[]; lod: Mesh[
 export function specOf(l: CityLot): HouseSpec {
   const style = HOUSE_STYLES[l.style % HOUSE_STYLES.length]!;
   const setback = Math.min(style.setback, Math.max(1.5, l.depth - HOUSE_DEPTH - 0.5));
-  return { ...style, setback, id: l.id, frame: l.frame };
+  return { ...style, setback, id: l.id, frame: l.frame, lotWidth: l.width, lotDepth: l.depth };
 }
 
 export class HouseStreamer {
