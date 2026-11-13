@@ -362,3 +362,5 @@ FPS do headless (5–7) não representa hardware. **Galaxy S24 / Chrome Android:
 | Unitários | TESTADO: **79/79** | `npm run test:unit` |
 | Qualidade visual vs. CORE-012 | AVALIAÇÃO HUMANA PENDENTE | `docs/VISUAL_AUDIT_CORE014.md` |
 | FPS no Android | **NÃO MEDIDO** (headless: ~3 FPS por GPU de software, não é medida) | — |
+
+- **Integração (13/11/2026):** os commits da CORE-014 foram rebaseados sobre a correção de câmera e o deploy aprovado da CORE-013 (`e1cfd7b`). Conflito em `src/world/cameraObstacles.ts` resolvido mantendo os volumes da CORE-013, exceto o bloco sólido do galpão e o mobiliário interno (o galpão e as lojas agora são acessíveis; paredes e tetos entram por `cityCameraObstacles()`). Após o rebase: 80/80 unitários e **70/70** no navegador (`docs/evidence/e2e-core014.log`). A CORE-014 **não foi publicada**: `docs/PREVIEW_DEPLOY_TRIGGER.md` não foi alterado.
