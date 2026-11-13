@@ -12,7 +12,7 @@ import { CROSS_Z, CURB_H, FRONT, ROAD_HALF, SIDEWALK, SHOP, framePoint, frameRec
  */
 export type NodeControl = 'signal' | 'stop' | 'free';
 export type CityNode = Readonly<{ id: string; x: number; z: number; control: NodeControl; exit?: boolean }>;
-export type RoadKind = 'urban' | 'rural';
+export type RoadKind = 'urban' | 'rural' | 'yard';
 export type CityRoad = Readonly<{
   id: string; name: string; a: string; b: string; kind: RoadKind;
   /** Higher wins at unsignalised junctions (preferential road). */
@@ -42,6 +42,8 @@ export const NODES: readonly CityNode[] = [
   node('so', -GRID_X, SOUTH_Z, 'free'),
   node('se', GRID_X, SOUTH_Z, 'stop'),
   node('base', RING_X, SOUTH_Z, 'free'),
+  node('portao', 106, SOUTH_Z, 'stop'),
+  node('docas', 106, -110, 'free'),
   node('anel', RING_X, CROSS_Z, 'stop'),
   node('saida-norte', 0, CITY_BOUNDS.maxZ + 30, 'free', true),
   node('saida-sul', 0, CITY_BOUNDS.minZ - 30, 'free', true),
@@ -69,7 +71,9 @@ export const ROADS: readonly CityRoad[] = [
   road('nove-leste', 'R. 9 de Julho', 'norte', 'ne', 'urban', 1, true),
   road('treze-oeste', 'R. 13 de Maio', 'so', 'sul', 'urban', 1, false),
   road('treze-centro', 'R. 13 de Maio', 'sul', 'se', 'urban', 2, true),
-  road('treze-base', 'R. 13 de Maio', 'se', 'base', 'urban', 2, true),
+  road('treze-base', 'R. 13 de Maio', 'se', 'portao', 'urban', 2, true),
+  road('treze-portao', 'R. 13 de Maio', 'portao', 'base', 'urban', 2, true),
+  road('patio', 'Pátio do galpão', 'docas', 'portao', 'yard', 0, true),
   road('anel-base', 'Estrada da Base', 'base', 'anel', 'urban', 2, true),
 ];
 

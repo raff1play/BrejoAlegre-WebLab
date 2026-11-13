@@ -28,6 +28,7 @@ function drawBox(set: BatchSet, m: LabMaterial, b: Box2D, y0: number, y1: number
 
 export function buildRoads(flat: BatchSet, upright: BatchSet, mats: Materials, scene: Scene): void {
   for (const r of ROADS) {
+    if (r.kind === 'yard') continue; // the depot yard is paved as a whole
     const s = roadSpan(r);
     const clip = coreClip(r);
     for (const [lo, hi] of outside(s.lo, s.hi, clip)) {
@@ -63,7 +64,7 @@ export function buildRoads(flat: BatchSet, upright: BatchSet, mats: Materials, s
   }
   // Junction boxes and pavement corners for every non-core urban node.
   for (const n of NODES) {
-    if (n.exit || n.id === 'centro') continue;
+    if (n.exit || n.id === 'centro' || n.id === 'docas') continue;
     drawBox(flat, mats.asphalt, { minX: n.x - ROAD_HALF, maxX: n.x + ROAD_HALF, minZ: n.z - ROAD_HALF, maxZ: n.z + ROAD_HALF }, -0.05, 0, flatOnly);
     for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
       const c = { minX: Math.min(n.x + sx * ROAD_HALF, n.x + sx * E), maxX: Math.max(n.x + sx * ROAD_HALF, n.x + sx * E),
