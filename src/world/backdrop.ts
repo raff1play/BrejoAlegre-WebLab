@@ -12,8 +12,8 @@ import { boxPart } from './modelParts';
  * Purely decorative, far outside the walls: no colliders, no shadows, one mesh per material.
  * FICTIONAL: it does not depict the real Brejo Alegre.
  */
-const INNER = 175;
-const OUTER = 340;
+const INNER = 245;
+const OUTER = 420;
 
 function seeded(seed: number): () => number {
   let a = seed;

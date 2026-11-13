@@ -6,7 +6,7 @@ import { ballPart, boxPart, rodPart } from './modelParts';
 import type { LabMaterial, Materials } from './materials';
 import {
   CURB_H, HOUSE_DEPTH, HOUSE_WALL_H, LOT_DEPTH, LOT_WIDTH, PORCH_DEPTH, SHOP, SIDEWALK, SHOWCASE_IDS, WALL_H, WALL_T,
-  houseSpan, isShowcase, porchPillars, porchSpan, type Frame, type HouseSpec,
+  frameAxes, houseSpan, isShowcase, porchPillars, porchSpan, type Frame, type HouseSpec,
 } from './layout';
 
 /** The meshes of one building body: they cast shadows and fade when they hide the player. */
@@ -16,10 +16,9 @@ export type Building = { body: Mesh[] };
 export type SharedBatches = { flat: BatchSet; upright: BatchSet };
 
 /** Lot coordinates (x along the frontage, z into the lot) to world, standing on the pavement level. */
-function placement(frame: Frame): (p: P3) => P3 {
-  return frame.side === 1
-    ? ([x, y, z]) => [frame.ox + z, y + CURB_H, frame.oz - x]
-    : ([x, y, z]) => [frame.ox - z, y + CURB_H, frame.oz + x];
+export function placement(frame: Frame, base = CURB_H): (p: P3) => P3 {
+  const a = frameAxes(frame.side);
+  return ([x, y, z]) => [frame.ox + a.fx * x + a.ix * z, y + base, frame.oz + a.fz * x + a.iz * z];
 }
 
 /**

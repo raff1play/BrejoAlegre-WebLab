@@ -21,8 +21,12 @@ export const CROSS_SOUTH = CROSS_Z - ROAD_HALF;
 export const CROSS_FRONT_N = CROSS_NORTH + SIDEWALK;
 export const CROSS_FRONT_S = CROSS_SOUTH - SIDEWALK;
 /** How far the streets are drawn; the playable area ends earlier, at WORLD_BOUNDS. */
-export const EXTENT = 90;
-export const WORLD_BOUNDS: Box2D = { minX: -46, maxX: 46, minZ: -56, maxZ: 56 };
+export const EXTENT = 63.8;
+/**
+ * Playable area. CORE-013 expanded it from the W009 core (±46 × ±56) to the whole re-imagined town
+ * (see world/city/cityPlan.ts, which re-exports it as CITY_BOUNDS).
+ */
+export const WORLD_BOUNDS: Box2D = { minX: -158, maxX: 158, minZ: -166, maxZ: 146 };
 
 export const LOT_WIDTH = 12;
 export const LOT_DEPTH = 20;
@@ -31,20 +35,40 @@ export const WALL_H = 2.0;
 
 /**
  * A building frame: local +x runs along the frontage, local +z goes into the lot, the facade is at
- * local z = 0. side = 1 means the lot lies east of its front line (facade looks west).
+ * local z = 0. `side` says where the lot lies from its front line:
+ *   1 → east of it (facade looks west), -1 → west (looks east),
+ *   2 → north of it (facade looks south, toward -z), -2 → south (looks north).
+ * All four are rotations (no mirroring), so the same lot plan works on every street.
  */
-export type Frame = Readonly<{ ox: number; oz: number; side: 1 | -1 }>;
+export type FrameSide = 1 | -1 | 2 | -2;
+export type Frame = Readonly<{ ox: number; oz: number; side: FrameSide }>;
 
-export function frameRect(frame: Frame, lx0: number, lx1: number, lz0: number, lz1: number): Box2D {
-  if (frame.side === 1) {
-    return { minX: frame.ox + lz0, maxX: frame.ox + lz1, minZ: frame.oz - lx1, maxZ: frame.oz - lx0 };
+/** Frontage direction (local +x) and inward direction (local +z) in world x/z for each side. */
+export function frameAxes(side: FrameSide): { fx: number; fz: number; ix: number; iz: number } {
+  switch (side) {
+    case 1: return { fx: 0, fz: -1, ix: 1, iz: 0 };
+    case -1: return { fx: 0, fz: 1, ix: -1, iz: 0 };
+    case 2: return { fx: 1, fz: 0, ix: 0, iz: 1 };
+    default: return { fx: -1, fz: 0, ix: 0, iz: -1 };
   }
-  return { minX: frame.ox - lz1, maxX: frame.ox - lz0, minZ: frame.oz + lx0, maxZ: frame.oz + lx1 };
 }
 
 /** Lot coordinates to a world point on the ground plane (see frameRect). */
 export function framePoint(frame: Frame, lx: number, lz: number): { x: number; z: number } {
-  return frame.side === 1 ? { x: frame.ox + lz, z: frame.oz - lx } : { x: frame.ox - lz, z: frame.oz + lx };
+  const a = frameAxes(frame.side);
+  return { x: frame.ox + a.fx * lx + a.ix * lz, z: frame.oz + a.fz * lx + a.iz * lz };
+}
+
+export function frameRect(frame: Frame, lx0: number, lx1: number, lz0: number, lz1: number): Box2D {
+  const p = framePoint(frame, lx0, lz0);
+  const q = framePoint(frame, lx1, lz1);
+  return { minX: Math.min(p.x, q.x), maxX: Math.max(p.x, q.x), minZ: Math.min(p.z, q.z), maxZ: Math.max(p.z, q.z) };
+}
+
+/** Yaw (Babylon rotation.y) that turns local +z (into the lot) to the frame's inward direction. */
+export function frameYaw(side: FrameSide): number {
+  const a = frameAxes(side);
+  return Math.atan2(a.ix, a.iz);
 }
 
 export type RoofKind = 'hip-x' | 'hip-z' | 'parapet' | 'shed';
@@ -75,6 +99,8 @@ export function houseSpan(spec: HouseSpec): [number, number] {
 }
 
 type Style = Omit<HouseSpec, 'id' | 'frame'>;
+/** House styles, reused by the CORE-013 expansion (index into HOUSE_STYLES). */
+export type HouseStyle = Omit<HouseSpec, 'id' | 'frame'>;
 const EAST_STYLES: Style[] = [
   { wallColor: '#e9d8a6', bandColor: '#b98d55', gateColor: '#7d8389', roof: 'hip-x', front: 'wall', garageSide: -1, setback: 4.2, carport: true, waterTank: false },
   { wallColor: '#a9c6d3', bandColor: '#5f8498', gateColor: '#e8e6df', roof: 'parapet', front: 'railing', garageSide: 1, setback: 3.6, carport: false, waterTank: true },
@@ -101,6 +127,7 @@ export const HOUSES: readonly HouseSpec[] = [
     frame: { ox: -FRONT, oz: FIRST_LOT_Z + i * LOT_WIDTH, side: -1 },
   })),
 ];
+export const HOUSE_STYLES: readonly HouseStyle[] = [...EAST_STYLES, ...WEST_STYLES];
 export const LOTS_END_Z = FIRST_LOT_Z + EAST_STYLES.length * LOT_WIDTH;
 
 /** Generic corner shop, set back from the main street behind a forecourt with motorcycle bays. */
@@ -186,23 +213,17 @@ export const BENCHES: readonly BenchSpec[] = [
 ];
 
 /** Blank boundary walls of the unbuilt lots that close the playable area. */
+/**
+ * Walls inside the core blocks. Since CORE-013 the walls along block frontages are generated from
+ * the gaps between buildings (world/city/cityBuild.ts), so only interior dividers stay here.
+ */
 export const WALL_RUNS: readonly WallRun[] = [
-  { box: { minX: FRONT, maxX: FRONT + WALL_T, minZ: LOTS_END_Z, maxZ: 70 }, color: '#d8cdb8', raw: false },
-  { box: { minX: FRONT, maxX: FRONT + WALL_T, minZ: 70, maxZ: EXTENT }, color: '#c9b79c', raw: true },
-  { box: { minX: -FRONT - WALL_T, maxX: -FRONT, minZ: LOTS_END_Z, maxZ: 64 }, color: '#c9b79c', raw: true },
-  { box: { minX: -FRONT - WALL_T, maxX: -FRONT, minZ: 64, maxZ: EXTENT }, color: '#e1d6c3', raw: false },
-  { box: { minX: FRONT + LOT_DEPTH, maxX: 52, minZ: CROSS_FRONT_N, maxZ: CROSS_FRONT_N + WALL_T }, color: '#e4dccb', raw: false },
-  { box: { minX: 52, maxX: EXTENT, minZ: CROSS_FRONT_N, maxZ: CROSS_FRONT_N + WALL_T }, color: '#c9b79c', raw: true },
-  { box: { minX: -48, maxX: -FRONT - LOT_DEPTH, minZ: CROSS_FRONT_N, maxZ: CROSS_FRONT_N + WALL_T }, color: '#c9b79c', raw: true },
-  { box: { minX: -EXTENT, maxX: -48, minZ: CROSS_FRONT_N, maxZ: CROSS_FRONT_N + WALL_T }, color: '#dfd3bd', raw: false },
   { box: { minX: 30, maxX: 30 + WALL_T, minZ: -46, maxZ: CROSS_FRONT_S }, color: '#d5cbb9', raw: false },
   { box: { minX: FRONT, maxX: 30 + WALL_T, minZ: -46 - WALL_T, maxZ: -46 }, color: '#c9b79c', raw: true },
-  { box: { minX: 30 + WALL_T, maxX: EXTENT, minZ: CROSS_FRONT_S - WALL_T, maxZ: CROSS_FRONT_S }, color: '#e1d6c3', raw: false },
-  { box: { minX: FRONT, maxX: FRONT + WALL_T, minZ: -EXTENT, maxZ: -46 - WALL_T }, color: '#dccfb6', raw: false },
   { box: { minX: -34 - WALL_T, maxX: -34, minZ: -50 - WALL_T, maxZ: CROSS_FRONT_S }, color: '#c9b79c', raw: true },
-  { box: { minX: -34, maxX: -FRONT, minZ: -50 - WALL_T, maxZ: -50 }, color: '#e4dccb', raw: false },
-  { box: { minX: -EXTENT, maxX: -34 - WALL_T, minZ: CROSS_FRONT_S - WALL_T, maxZ: CROSS_FRONT_S }, color: '#d8cdb8', raw: false },
-  { box: { minX: -FRONT - WALL_T, maxX: -FRONT, minZ: -EXTENT, maxZ: -50 - WALL_T }, color: '#c9b79c', raw: true },
+  // Square's south wall, open in front of the church (CORE-013: x -29..-15).
+  { box: { minX: -34, maxX: -29, minZ: -50 - WALL_T, maxZ: -50 }, color: '#e4dccb', raw: false },
+  { box: { minX: -15, maxX: -FRONT, minZ: -50 - WALL_T, maxZ: -50 }, color: '#e4dccb', raw: false },
 ];
 
 /** Crates and a freezer by the shop door. Solid. */
@@ -259,7 +280,7 @@ function yardPlantsLocal(spec: HouseSpec, index: number): { lx: number; lz: numb
 export function showcasePlants(): PlantSpec[] {
   return HOUSES.filter(isShowcase).flatMap((spec, index) => yardPlantsLocal(spec, index).map((p, i) => {
     const w = framePoint(spec.frame, p.lx, p.lz);
-    return { x: w.x, z: w.z, kind: p.kind, scale: p.scale, turn: p.kind === 'buganvilia' ? (spec.frame.side === 1 ? Math.PI / 2 : -Math.PI / 2) : (i * 1.7 + index) % (Math.PI * 2), base: plantBase(spec, p.kind) };
+    return { x: w.x, z: w.z, kind: p.kind, scale: p.scale, turn: p.kind === 'buganvilia' ? frameYaw(spec.frame.side) : (i * 1.7 + index) % (Math.PI * 2), base: plantBase(spec, p.kind) };
   }));
 }
 

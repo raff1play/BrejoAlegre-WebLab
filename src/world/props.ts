@@ -225,17 +225,20 @@ export function buildStreetFurniture(scene: Scene, set: BatchSet, mats: Material
   return casters;
 }
 
-export function buildTrees(scene: Scene, mats: Materials, backdropDensity: number): AbstractMesh[] {
+export function buildTrees(scene: Scene, mats: Materials, backdropDensity: number, extra: readonly TreeSpec[] = [],
+  ground: (x: number, z: number) => number = () => CURB_H): AbstractMesh[] {
   const prototypes = { oiti: treePrototype(scene, mats, 'oiti'), ipe: treePrototype(scene, mats, 'ipe'), 'ipe-roxo': treePrototype(scene, mats, 'ipe-roxo') };
   const casters: AbstractMesh[] = [];
   const random = seeded(99);
   let backdropIndex = 0;
-  for (const tree of TREES) {
+  // CORE-013: the old unreachable backdrop trees now stand inside the expanded town; they are
+  // replaced by the city's own street and rural trees (`extra`).
+  for (const tree of [...TREES.filter((t) => t.solid), ...extra]) {
     const turn = random() * Math.PI * 2;
     if (!tree.solid && (backdropIndex++ % 4) / 4 >= backdropDensity) continue;
     for (const prototype of prototypes[tree.kind]) {
       const instance = prototype.createInstance(`${prototype.name}@${tree.x},${tree.z}`);
-      instance.position.set(tree.x, tree.solid ? CURB_H : 0, tree.z);
+      instance.position.set(tree.x, ground(tree.x, tree.z), tree.z);
       instance.scaling.setAll(tree.scale);
       instance.rotation.y = turn;
       instance.isPickable = false;
@@ -374,6 +377,8 @@ export function buildSigns(scene: Scene, set: BatchSet, mats: Materials): void {
   // Stop signs for traffic on the main street.
   const stop = mats.sign('placa-pare', '#b5202a', '#f4f4f4', [{ text: 'PARE', size: 0.36, color: '#ffffff' }], 1, 128);
   const street = mats.sign('placa-rua', '#1d4f9c', '#f4f4f4', [{ text: 'R. PROVISÓRIA', size: 0.5, color: '#ffffff' }], 4.2, 64);
+  // CORE-013: the central junction is now signalised, so its old PARE signs are gone; the street
+  // name plates stay on their own posts.
   for (const [x, z, yaw] of [[ROAD_HALF + 0.5, CROSS_SOUTH - 0.6, 0], [-ROAD_HALF - 0.5, CROSS_NORTH + 0.6, Math.PI]] as const) {
     set.setTransform(placed(x, CURB_H, z, yaw));
     set.box(mats.paint('#70757a', 0.2), -0.03, 0.03, 0, 2.95, -0.03, 0.03);
@@ -381,8 +386,8 @@ export function buildSigns(scene: Scene, set: BatchSet, mats: Materials): void {
     plate.rotation.x = Math.PI / 2;
     plate.rotation.y = Math.PI / 8;
     plate.position.set(0, 2.45, -0.05);
-    set.absorb(mats.paint('#b5202a'), plate);
-    set.of(stop).quad([-0.26, 2.19, -0.07], [0.26, 2.19, -0.07], [0.26, 2.71, -0.07], [-0.26, 2.71, -0.07], 1, 1);
+    plate.dispose();
+    void stop;
     set.of(street).quad([-0.5, 2.97, -0.035], [0.5, 2.97, -0.035], [0.5, 3.21, -0.035], [-0.5, 3.21, -0.035], 1, 1);
     set.of(street).quad([0.5, 2.97, 0.035], [-0.5, 2.97, 0.035], [-0.5, 3.21, 0.035], [0.5, 3.21, 0.035], 1, 1);
     set.setTransform(null);
@@ -399,14 +404,14 @@ export function buildSigns(scene: Scene, set: BatchSet, mats: Materials): void {
       set.box(legs, lx - 0.04, lx + 0.04, 0, 1.17, lz - 0.04, lz + 0.04);
     }
   };
-  const end = mats.sign('placa-fim', '#f3f1ea', '#c62828', [{ text: 'FIM DA ÁREA DE TESTE', size: 0.42, color: '#a01e1e' }], 5, 64);
-  for (const z of [WORLD_BOUNDS.maxZ + 0.35, WORLD_BOUNDS.minZ - 0.35]) {
-    for (const x of [-2.7, 0, 2.7]) trestle(x, z, true);
-    board(set, mats, 0, 0, z + Math.sign(z) * 0.5, z > 0 ? 0 : Math.PI, 3, 0.6, 1.4, end, false);
+  // CORE-013: the town continues past the old ends. At the playable limit on each exit road the
+  // trestles stand on the shoulders (NPC traffic keeps flowing) and the player meets the boundary.
+  const end = mats.sign('placa-fim', '#f3f1ea', '#c62828', [{ text: 'LIMITE DA ÁREA JOGÁVEL', size: 0.4, color: '#a01e1e' }], 5, 64);
+  for (const z of [WORLD_BOUNDS.maxZ, WORLD_BOUNDS.minZ]) {
+    for (const x of [-ROAD_HALF - 1.4, ROAD_HALF + 1.4]) trestle(x, z, true);
+    board(set, mats, ROAD_HALF + 3.2, 0, z, z > 0 ? 0 : Math.PI, 3, 0.6, 1.4, end, false);
   }
   const crossZ = (CROSS_NORTH + CROSS_SOUTH) / 2;
-  for (const x of [WORLD_BOUNDS.maxX + 0.35, WORLD_BOUNDS.minX - 0.35]) {
-    for (const dz of [-2.7, 0, 2.7]) trestle(x, crossZ + dz, false);
-    board(set, mats, x + Math.sign(x) * 0.5, 0, crossZ, x > 0 ? Math.PI / 2 : -Math.PI / 2, 3, 0.6, 1.4, end, false);
-  }
+  for (const dz of [-ROAD_HALF - 1.4, ROAD_HALF + 1.4]) trestle(WORLD_BOUNDS.minX, crossZ + dz, false);
+  board(set, mats, WORLD_BOUNDS.minX, 0, crossZ + ROAD_HALF + 3.2, -Math.PI / 2, 3, 0.6, 1.4, end, false);
 }

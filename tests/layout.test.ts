@@ -9,7 +9,11 @@ import {
   ROAD_HALF, SHOP, SPAWN, TREES, POLES, WORLD_BOUNDS,
 } from '../src/world/layout.ts';
 
-const colliders = buildColliders();
+import { cityAllColliders } from '../src/world/city/cityLayout.ts';
+import { BLOCKS, CITY_LOTS, walkableAreas } from '../src/world/city/cityPlan.ts';
+
+// Since CORE-013 the playable area is the whole re-imagined town: W009 colliders plus the city's.
+const colliders = [...buildColliders(), ...cityAllColliders()];
 const guard = createMotionGuard(WORLD_BOUNDS, colliders);
 
 test('scene plan has the elements required for 0.1', () => {
@@ -72,10 +76,18 @@ test('the playable area is sealed: nothing reachable lies outside streets, forec
     }
   }
   assert.ok(reachedPlaza && reachedNorthEnd, 'streets, square and street ends are connected');
-  const total = ((WORLD_BOUNDS.maxX - WORLD_BOUNDS.minX) * (WORLD_BOUNDS.maxZ - WORLD_BOUNDS.minZ)) / (step * step);
-  assert.ok(seen.size < total * 0.45, `walled blocks are not reachable (${seen.size}/${total})`);
-  // No reachable cell is inside a house body.
-  for (const house of HOUSES) {
+  // CORE-013: no reachable cell inside a block, except its declared walkable areas.
+  const open = walkableAreas();
+  const inBox = (x: number, z: number, b: { minX: number; maxX: number; minZ: number; maxZ: number }) => x > b.minX + 0.5 && x < b.maxX - 0.5 && z > b.minZ + 0.5 && z < b.maxZ - 0.5;
+  let leaks = 0;
+  for (const cell of seen) {
+    const [i, j] = cell.split(',').map(Number) as [number, number];
+    const [x, z] = [i * step, j * step];
+    if (BLOCKS.some((b) => inBox(x, z, b.box)) && !open.some((o) => x > o.minX - 0.5 && x < o.maxX + 0.5 && z > o.minZ - 0.5 && z < o.maxZ + 0.5)) leaks++;
+  }
+  assert.equal(leaks, 0, `cells inside solid blocks reached: ${leaks}`);
+  // No reachable cell is inside a house body (W009 and CORE-013 lots).
+  for (const house of [...HOUSES, ...CITY_LOTS.map((l) => ({ ...HOUSES[0]!, id: l.id, frame: l.frame }))]) {
     const body = frameRect(house.frame, 4, 8, house.setback + 1, house.setback + 8);
     const cx = (body.minX + body.maxX) / 2;
     const cz = (body.minZ + body.maxZ) / 2;

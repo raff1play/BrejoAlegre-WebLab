@@ -2,6 +2,7 @@ import type { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import type { Scene } from '@babylonjs/core/scene';
 import { createMotionGuard, type Box2D, type MotionGuard } from '../core/collision';
+import { heightAt } from '../core/terrain';
 import type { Box3D } from '../core/math';
 import type { RaisedArea } from '../core/terrain';
 import type { GraphicsProfile } from '../config/graphics';
@@ -9,6 +10,9 @@ import { buildHouse, buildShop, type Building } from './buildings';
 import { BatchSet } from './geometry';
 import { Materials } from './materials';
 import { buildBackdrop } from './backdrop';
+import { buildCity } from './city/cityBuild';
+import { cityAllColliders, cityTrees } from './city/cityLayout';
+import { cityRaised } from './city/cityPlan';
 import { buildBenches, buildPoles, buildShowcasePlants, buildSigns, buildStreetFurniture, buildTrees } from './props';
 import { contactBlot } from './buildings';
 import {
@@ -28,7 +32,7 @@ export type World = {
 };
 
 function buildGround(set: BatchSet, mats: Materials): void {
-  const far = EXTENT + 80;
+  const far = 300;
   set.box(mats.grass, -far, far, -0.06, -0.03, -far, far, { sides: false });
   set.box(mats.asphalt, -ROAD_HALF, ROAD_HALF, -0.05, 0, -EXTENT, EXTENT, { sides: false });
   set.box(mats.asphalt, -EXTENT, -ROAD_HALF, -0.05, 0, CROSS_SOUTH, CROSS_NORTH, { sides: false });
@@ -168,10 +172,15 @@ export function buildTemporaryWorld(scene: Scene, profile: GraphicsProfile): Wor
   const shared = { flat, upright };
   const buildings: Building[] = [...HOUSES.map((spec) => buildHouse(scene, materials, spec, shared)), buildShop(scene, materials)];
   const occluders = buildings.map((building, i) => ({ box: occluderBoxes[i]!.box, meshes: building.body }));
+  // CORE-013 expansion: roads, blocks, shops, depot, church, school, walls, street furniture. It
+  // writes into the shared batches, so it runs before they are built.
+  const city = buildCity(scene, materials, shared);
   const flatMeshes = flat.build('chao', scene);
   const uprightMeshes = upright.build('urbano', scene);
-  const bodies = buildings.flatMap((b) => b.body);
-  const trees = buildTrees(scene, materials, profile.backdropDensity);
+  const bodies = [...buildings.flatMap((b) => b.body), ...city.bodies];
+  const raised = [...buildRaisedAreas(), ...cityRaised()];
+  const extraTrees = cityTrees();
+  const trees = buildTrees(scene, materials, profile.backdropDensity, extraTrees, (x, z) => heightAt(x, z, raised));
   const plants = buildShowcasePlants(scene, materials);
   buildBackdrop(scene, materials);
 
@@ -181,13 +190,15 @@ export function buildTemporaryWorld(scene: Scene, profile: GraphicsProfile): Wor
     mesh.doNotSyncBoundingInfo = true;
   }
 
-  const colliders = buildColliders();
+  const colliders = [
+    ...buildColliders(), ...cityAllColliders(),
+  ];
   return {
     materials,
     bounds: WORLD_BOUNDS,
     colliders,
     guard: createMotionGuard(WORLD_BOUNDS, colliders),
-    raised: buildRaisedAreas(),
+    raised,
     occluders,
     shadowCasters: [...uprightMeshes, ...bodies, ...trees, ...(profile.detailShadows ? [...plants, ...furniture] : [])],
   };
