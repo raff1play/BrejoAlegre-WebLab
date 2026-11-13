@@ -146,11 +146,11 @@ button.active { background: #e8ae3c; color: #142232; }
 
 /* CORE-014 minimal HUD: objective card top-left, speed + minimap top-right, controls at the bottom. */
 .pause-button {
-  position: absolute; left: var(--edge-l); top: var(--edge-t); width: 40px; height: 40px; border-radius: 12px;
+  position: absolute; left: var(--edge-l); top: var(--edge-t); width: 44px; height: 44px; border-radius: 12px;
   font-size: 18px; background: var(--panel); pointer-events: auto;
 }
 .objective {
-  position: absolute; left: calc(var(--edge-l) + 48px); top: var(--edge-t); max-width: min(340px, 38vw);
+  position: absolute; left: calc(var(--edge-l) + 52px); top: var(--edge-t); max-width: min(340px, 38vw);
   display: grid; gap: 3px; padding: 8px 12px; background: var(--panel); border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, .14); box-shadow: 0 6px 18px rgba(0, 0, 0, .22);
 }
@@ -178,7 +178,7 @@ button.active { background: #e8ae3c; color: #142232; }
 .about-notice { margin: 0; color: #ffe08f; font-weight: 800; font-size: 12px; letter-spacing: .05em; }
 .about-text { margin: 0; font-size: 12px; color: #c9d4e0; line-height: 1.45; }
 @media (max-height: 480px) {
-  .objective { padding: 6px 10px; max-width: min(300px, 40vw); }
+  .objective { padding: 6px 10px; max-width: min(300px, 40vw); gap: 2px; }
   .objective strong { font-size: 12px; }
-  .objective span { font-size: 10px; }
+  #objective-detail { display: none; }
 }

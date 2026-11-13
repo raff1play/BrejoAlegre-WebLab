@@ -92,3 +92,14 @@ Não marcar bloqueio como corrigido sem evidência de execução, timestamp e, q
 | C13-06 | Baixa | DECISÃO PENDENTE | O aviso "ÁREA TEMPORÁRIA DE TESTE — NÃO REPRESENTA BREJO ALEGRE" foi mantido (regra do validador). Se o usuário quiser um texto de "releitura fictícia", alterar HUD, placas 3D e validador juntos. |
 
 - **C13-07 — CORRIGIDO NO CÓDIGO, PENDENTE NO APARELHO:** a CORE-013 inicialmente não adicionava os novos prédios/galpão/postes aos obstáculos de câmera GTA; corrigido adicionando os volumes estáticos em `src/world/cameraObstacles.ts`, com regressão unitária. Validar em Chrome Android, principalmente câmera muito próxima de muros e galpão.
+## CORE-014 — Simulador de entregas
+
+| ID | Prioridade | Status | Ação / decisão |
+|---|---|---|---|
+| C14-01 | Alta | **NÃO MEDIDO** | FPS/termal no Galaxy S24 com personagens articulados (até 10 transeuntes perto + 8 funcionários de loja + 8 do galpão). Perfil leve limita a 5 transeuntes articulados e sem sombras deles. |
+| C14-02 | Alta | AVALIAÇÃO HUMANA | Aprovação estética das lojas, galpão, veículos e pessoas frente à CORE-012 (`docs/VISUAL_AUDIT_CORE014.md`). |
+| C14-03 | Média | ABERTO | Modelos externos (Kenney/Quaternius/Poly Haven) não foram buscados nesta sessão; tudo é procedural. Se houver veículos/pessoas com licença verificada, substituir. |
+| C14-04 | Média | ABERTO | Interior das lojas: piso sem textura e produtos como volumes coloridos; laterais externas simples. A mercearia W009 atende na porta (sem interior). |
+| C14-05 | Média | ABERTO | Clientes andam em linha reta dentro da loja (sem colisão com o balcão); fila limitada a 4. |
+| C14-06 | Baixa | ABERTO | Controle de hora de desenvolvimento pode levar a jornada a "ENCERRADA" ao pular para depois das 21h (só em dev). |
+| C14-07 | Baixa | ABERTO | Volumes não aparecem fisicamente no baú/saca da moto; só nas mãos do entregador a pé. |

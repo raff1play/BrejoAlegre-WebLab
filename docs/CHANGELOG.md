@@ -114,3 +114,9 @@ Próximas mudanças devem registrar PR/SHA e resultados verificáveis.
 - `92b5e16` — rede de faixas, conversões e conflitos; semáforos com fases exclusivas, amarelo, vermelho geral e fase de pedestre; veículos IDM com PARE, preferência, rotas de ônibus/vans/caminhões.
 - commit seguinte — pedestres (grafo de calçadas, travessia em faixas, lojas, praça, ônibus).
 - commit seguinte — renderização instanciada de veículos/pedestres/semáforos, luz por hora (sol, céu, névoa, sombras, poças de luz dos postes, faróis), minimapa e relógio no HUD, controle de hora de desenvolvimento, testes.
+
+## 2026-11-13 — CORE-014 simulador de entregas (branch `preview`)
+
+- `5c0e8bb` — cidade com 2,15× a área navegável (novos bairros fictícios), 48 endereços entregáveis, domínio de entregas puro (endereços, volumes, lojas, galpão, jornada) e testes.
+- `a66e79a` — câmera única em terceira pessoa (GTA/ISO removido), HUD mínimo com Pausa/Sobre, lojas ocas com vitrine, porta de enrolar, balcão e estoque, galpão com interior e operação, funcionários e clientes articulados, veículos NPC com silhueta real, placas de número, jornada jogável.
+- commit seguinte — correção de shader (instâncias com cor), câmera em interiores, teste de navegador da jornada completa, auditoria visual e documentação.

@@ -1,5 +1,6 @@
 # Estado factual — Brejo Alegre Web Lab
 
+> **Estado atual 13/11/2026 (CORE-014, branch `preview`):** simulador de entregas jogável — câmera única em 3ª pessoa, HUD mínimo com Pausa/Sobre, cidade com 2,15× a área navegável, 48 endereços, 8 lojas com horário/funcionário/clientes, galpão com equipe operando, jornada completa 11h–21h. Detalhes na seção "CORE-014" ao fim. Nada publicado; sem merge na `main`.
 > **Estado atual 13/11/2026 (CORE-013, branch `preview`):** cidade ampliada como releitura fictícia de Brejo Alegre, com tráfego, pedestres, semáforos, minimapa, relógio virtual (1 h = 4 min; jornada 11h–21h) e ciclo dia/noite. Detalhes, testes e pendências na seção "CORE-013" ao fim deste arquivo. Nada publicado; sem merge na `main`.
 > **Estado atual 12/11/2026:** únicas branches no GitHub: `main` e `preview` (CORE-012 integral). PR #6 de consolidação em rascunho; commits unitários e código real preservados, sem Easter egg. As seções antigas abaixo são registros históricos, não instruções vigentes. Seguir `docs/WORKFLOW.md`.
 
@@ -345,3 +346,19 @@ FPS do headless (5–7) não representa hardware. **Galaxy S24 / Chrome Android:
 | FPS no Android | **NÃO MEDIDO** (headless/swiftshader: 4–5 FPS desktop, ~3 FPS celular emulado — não serve de medida) | — |
 
 - **Auditoria pré-publicação (13/11/2026):** ajustados volumes de colisão visual da câmera GTA para a cidade expandida, inclusive altura do galpão, árvores e postes novos (`src/world/cameraObstacles.ts`). Teste unitário de regressão incluído em `tests/cameraFollow.test.ts`; conferir CI da HEAD. Imagens e 59/59 verificações de navegador são da versão anterior à correção pontual: não alegar que o E2E foi repetido após o ajuste. Sem resultado FPS real no Galaxy S24.
+
+## CORE-014 — simulador de entregas (13/11/2026)
+
+| Item | Situação | Evidência |
+|---|---|---|
+| Câmera única em 3ª pessoa (GTA/ISO removido), sobe sobre obstáculos, interiores | TESTADO no navegador | `docs/evidence/e2e-core014.log`, `core014-09-*.jpg` |
+| HUD mínimo; aviso fictício na Pausa/Sobre; pausa congela o relógio | TESTADO no navegador | `core014-10-*.jpg` |
+| Área navegável 17.820 → 38.296 m² (+ interiores) | TESTADO (unitário) | `tests/delivery.test.ts` |
+| 48 endereços únicos, porta livre na calçada, vaga na rua, na rede de pedestres; números iguais nas placas | TESTADO (unitário) | idem |
+| 8 lojas: horários, porta de enrolar, funcionário exclusivo, fila de clientes atendida no balcão | TESTADO (unitário) + visto no navegador | `core014-depois-loja-interior.jpg` |
+| Galpão: 8 funcionários com papel e turno; conferência, triagem e saca sem duplicar volumes | TESTADO (unitário e navegador) | `core014-12-*.jpg` |
+| Jornada completa loja → galpão → saca → residência (8/8) | TESTADO no navegador (posicionamento por ferramenta de depuração; ações reais) | `core014-11/13-*.jpg` |
+| Regressão: pilotagem, caminhada, colisão, câmera, toque, tráfego, minimapa, dia/noite | TESTADO: **70/70** no Chromium headless | log |
+| Unitários | TESTADO: **79/79** | `npm run test:unit` |
+| Qualidade visual vs. CORE-012 | AVALIAÇÃO HUMANA PENDENTE | `docs/VISUAL_AUDIT_CORE014.md` |
+| FPS no Android | **NÃO MEDIDO** (headless: ~3 FPS por GPU de software, não é medida) | — |

@@ -107,3 +107,15 @@
 - Relógio: **mantida a regra aprovada de 1 hora virtual = 4 minutos reais e jornada 11h–21h**; o relógio agora roda 24 h para existir manhã/noite, começa às 11h e o controle de hora só aparece em desenvolvimento (`npm run dev`) ou com `?devtime=1` (`?hora=18` define a hora inicial).
 - Saídas da cidade a 226 m do centro (≥ 80 m além dos limites jogáveis) para os veículos surgirem/sumirem fora do alcance, na névoa.
 - Sem novos assets externos nem dependências. Não reincorpora W010–W012 nem PWA. FPS em Android **não medido**.
+
+## CORE-014 — Simulador de entregas (pedido de 13/11/2026)
+
+- Pedido explícito: transformar a CORE-013 em simulador de entregador com padrão visual da CORE-012, na `preview`, sem PR, merge ou publicação.
+- **Câmera:** removida a alternância GTA/ISO por pedido; só terceira pessoa (traseira na moto, sobre o ombro a pé). A câmera sobe por cima de obstáculos antes de encurtar; paredes e tetos de lojas/galpão são obstáculos de câmera.
+- **HUD:** objetivo, progresso, velocímetro, relógio, minimapa e um botão de ação contextual. Instruções, versão, FPS e o aviso obrigatório "ÁREA TEMPORÁRIA DE TESTE — NÃO REPRESENTA BREJO ALEGRE" (exigido pelo validador) ficam na tela de **Pausa/Sobre**.
+- **Cidade:** área navegável 17.820 m² → 38.296 m² + interiores (≥ 2×, medido por `navigableArea()`); novas ruas "Rua 1–4" e bairros Jardim Tietê, Jardim Primavera e Vila Nova são **fictícios**; continuações usam os nomes reais já documentados.
+- **48 endereços entregáveis** (10 casas W009 + 38 lotes) com número métrico brasileiro (par à direita), placa, ponto de entrega na calçada e vaga na rua.
+- **Rotina aprovada preservada:** 11h designação, 12h–14h coleta, retorno até 14h, triagem 14h–15h, saca a partir das 15h, entregas até 21h; 1 h = 4 min reais. "Aguardar" só acelera o relógio enquanto o jogador espera um horário da rotina (×24) — não muda a escala.
+- Plataformas **fictícias** "ML" e "SHP" (códigos, sem marca). Fluxo dos volumes da loja: NA_LOJA → COLETADO → EM_TRANSPORTE → RECEBIDO_BASE → TRIADO → NA_SACA → EM_ROTA → ENTREGUE; volumes das plataformas chegam de caminhão já EM_TRANSPORTE. Estados só avançam um passo (erro caso contrário).
+- Prova vertical: 2 lojas designadas, 2 volumes por loja + 4 das plataformas = 8 entregas. Generalizável por opção (`Workday({ stores, perStore, marketplace })`).
+- **Assets:** nenhum asset externo novo; todos os modelos novos são procedurais (fontes externas não foram verificadas nesta sessão). Sem dependências novas.

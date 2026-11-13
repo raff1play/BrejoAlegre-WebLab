@@ -6,3 +6,7 @@
 - Não extrair mapas geográficos de imagens ou inventar nomes de ruas. Registrar fonte cartográfica, licença, data, método de transformação e limitações.
 - Se usar OSM, verificar ODbL e atribuição aplicável antes de redistribuir dados, e testar malha viária em vez de assumir completude.
 - Não adicionar assets pesados sem testar peso do bundle, VRAM e FPS no Android.
+
+## CORE-014 (13/11/2026)
+
+Nenhum asset externo novo. Veículos NPC, pessoas (funcionários, clientes, transeuntes), interiores das lojas, galpão, placas de número (atlas de dígitos desenhado em canvas) e mobiliário são **procedurais**, gerados no código (`src/features/city/vehicleModels.ts`, `src/features/shared/character.ts`, `src/world/city/cityBuild.ts`). Os assets CC0 da CORE-011 (Poly Haven) continuam como estavam. Fontes externas de modelos (Kenney, Quaternius, ambientCG) não foram consultadas nesta sessão; substituições futuras exigem registro de fonte, autor, licença e tamanho aqui.

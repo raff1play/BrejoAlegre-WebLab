@@ -52,12 +52,12 @@ async function open(browser, options, query) {
 }
 
 async function desktop(browser) {
-  const g = await open(browser, { viewport: { width: 640, height: 360 }, deviceScaleFactor: 1, shotSize: { width: 1280, height: 720 } }, 'gfx=desktop');
+  const g = await open(browser, { viewport: { width: 640, height: 360 }, deviceScaleFactor: 1, shotSize: { width: 1280, height: 720 } }, 'gfx=desktop&trafego=0');
   const { page, snap, until, shot } = g;
   const key = page.keyboard;
   let s = await snap();
   check('abre sem erro e inicia pilotando na vaga', g.errors.length === 0 && s.mode === 'riding' && s.moto.speed === 0, g.errors.join(' | '));
-  const label = await page.textContent('.prototype-label');
+  const label = await page.textContent('.about-notice');
   check('aviso de área temporária visível na tela', /ÁREA TEMPORÁRIA DE TESTE — NÃO REPRESENTA BREJO ALEGRE/.test(label));
   await shot('01-inicio-estacionamento.jpg');
 
@@ -215,25 +215,86 @@ async function desktop(browser) {
   s = await until((v) => v.renderSize[0] === 900, 8000);
   check('redimensiona o canvas com a janela', s.renderSize[0] === 900 && s.renderSize[1] === 420, s.renderSize.join('x'));
 
-  // CORE-012: the new GTA mode is optional; the original isometric camera must survive round-trips.
-  check('isométrica continua sendo o modo inicial', (await snap()).camera.mode === 'isometric');
-  await key.press('KeyC');
-  s = await until((v) => v.camera.mode === 'third-person', 5000);
-  // The framing eases in over ~1 s of frames; poll so slow software rendering does not fail it.
+  // CORE-014: one third-person camera (GTA/ISO toggle removed), pause screen with the notice.
   s = await until((v) => v.camera.radius <= 9, 8000);
-  check('C ativa câmera GTA com enquadramento próximo',
-    s.camera.mode === 'third-person' && s.camera.radius <= 9 && s.camera.radius > 0.5,
-    `raio ${fx(s.camera.radius)}`);
-  await shot('09-camera-gta-desktop.jpg');
-  const alphaGta = s.camera.alpha;
-  await key.down('KeyE');
-  s = await until((v) => Math.abs(v.camera.alpha - alphaGta) > 0.3, 15000);
-  await key.up('KeyE');
-  check('modo GTA aceita giro manual', Math.abs(s.camera.alpha - alphaGta) > 0.3);
+  check('câmera única em terceira pessoa, enquadramento próximo', s.camera.mode === 'third-person' && s.camera.radius <= 9 && s.camera.radius > 0.5, `raio ${fx(s.camera.radius)}`);
   await key.press('KeyC');
-  s = await until((v) => v.camera.mode === 'isometric', 5000);
-  await page.waitForTimeout(900);
-  check('C restaura câmera isométrica', s.camera.mode === 'isometric');
+  await page.waitForTimeout(600);
+  check('tecla C não alterna mais a câmera', (await snap()).camera.mode === 'third-person');
+  check('sem botão GTA/ISO no HUD', (await page.$('[data-action="camera-mode"]')) === null && (await page.$('.camera-bar')) === null);
+  await key.press('KeyP');
+  s = await until((v) => v.paused, 5000);
+  const notice = await page.isVisible('.about-notice');
+  check('pausa abre com aviso de releitura fictícia', s.paused && notice);
+  const frozen = s.clock.hour;
+  await page.waitForTimeout(1200);
+  check('pausa congela o relógio', Math.abs((await snap()).clock.hour - frozen) < 1e-6);
+  await key.press('KeyP');
+  s = await until((v) => !v.paused, 5000);
+  await shot('09-camera-terceira-pessoa-desktop.jpg');
+  check('sem erros de console no desktop', g.errors.length === 0, g.errors.join(' | '));
+  console.log(`   desktop headless: ${fx(s.fps)} FPS (GPU por software, não representa aparelho real)`);
+  await g.context.close();
+}
+
+/** CORE-013/014: living city, clock, minimap and the first complete workday, in a fresh page. */
+async function cityAndJob(browser) {
+  const g = await open(browser, { viewport: { width: 640, height: 360 }, deviceScaleFactor: 1, shotSize: { width: 1280, height: 720 } }, 'gfx=desktop');
+  const { page, snap, until, shot } = g;
+  const key = page.keyboard;
+  let s;
+  // Workday first (from 11h, before the day/night jumps below).
+  // CORE-014: first complete workday (debug helpers place the rider; the actions are the real ones).
+  await page.evaluate(() => window.__debug.setHour(11.2));
+  let d = (await snap()).delivery;
+  check('jornada: 11h designa lojas e cria volumes rastreáveis', d.phase === 'COLETA' && d.assigned.length === 2 && d.parcels.length === 8 && new Set(d.parcels.map((q) => q.id)).size === 8,
+    `${d.assigned.join(', ')} · ${d.addresses} endereços`);
+  const first = d.stores.find((q) => q.id === d.assigned[0]);
+  await page.evaluate(([x, z]) => window.__debug.placeWalker(x, z, 0), [first.pickup.x, first.pickup.z]);
+  s = await until((v) => v.delivery.action !== null, 5000);
+  check('loja: funcionário avisa que os volumes saem às 12h', /12h/.test(s.delivery.action ?? ''), s.delivery.action);
+  await page.evaluate(() => window.__debug.wait());
+  s = await until((v) => v.clock.speed > 1, 5000);
+  check('aguardar acelera o relógio até 12h (escala 1 h = 4 min mantida)', s.clock.speed === 24 && s.delivery.waiting === 12, `×${s.clock.speed}`);
+  await page.evaluate(() => window.__debug.setHour(12.05));
+  s = await until((v) => v.clock.speed === 1, 5000);
+  check('relógio volta à escala normal após a espera', s.clock.speed === 1 && s.delivery.waiting === null);
+  await shot('11-loja-retirada.jpg');
+  for (const id of d.assigned) {
+    const st = d.stores.find((q) => q.id === id);
+    await page.evaluate(([x, z]) => window.__debug.placeWalker(x, z, 0), [st.pickup.x, st.pickup.z]);
+    await until((v) => /Retirar/.test(v.delivery.action ?? ''), 8000);
+    await page.evaluate(() => window.__debug.act());
+  }
+  d = (await snap()).delivery;
+  check('coleta nas duas lojas (COLETADO, responsável: jogador)', d.phase === 'RETORNO' && d.parcels.filter((q) => q.state === 'COLETADO' && q.holder === 'jogador').length === 4);
+  await page.evaluate(() => window.__debug.placeWalker(95.4, -122.4, -Math.PI / 2));
+  await until((v) => /conferente/.test(v.delivery.action ?? ''), 8000);
+  await page.evaluate(() => window.__debug.act());
+  await page.evaluate(() => window.__debug.setHour(13.95));
+  s = await until((v) => v.delivery.parcels.every((q) => q.state === 'RECEBIDO_BASE'), 30000);
+  check('galpão: conferente recebe volumes da loja e do caminhão', s.delivery.parcels.every((q) => q.state === 'RECEBIDO_BASE' && q.holder === 'conferente'));
+  await shot('12-galpao-conferencia.jpg');
+  await page.evaluate(() => window.__debug.setHour(14.3));
+  s = await until((v) => v.delivery.parcels.every((q) => q.state === 'NA_SACA'), 30000);
+  check('triagem pelos separadores e saca pelo expedidor', s.delivery.parcels.every((q) => q.state === 'NA_SACA'), JSON.stringify(s.delivery.staff.map((x) => x.state)));
+  await page.evaluate(() => window.__debug.setHour(15.05));
+  await page.evaluate(() => window.__debug.placeWalker(95.4, -131, -Math.PI / 2));
+  await until((v) => /saca/.test(v.delivery.action ?? ''), 8000);
+  await page.evaluate(() => window.__debug.act());
+  s = await snap();
+  check('saca mista retirada a partir das 15h (EM_ROTA)', s.delivery.phase === 'ENTREGAS' && s.delivery.parcels.every((q) => q.state === 'EM_ROTA'));
+  for (let k = 0; k < 10 && (await snap()).delivery.route.length; k++) {
+    const t = (await snap()).delivery.objective.target;
+    await page.evaluate(([x, z]) => window.__debug.placeWalker(x, z, 0), [t.x, t.z]);
+    await until((v) => /Entregar/.test(v.delivery.action ?? ''), 8000);
+    if (k === 0) await shot('13-entrega-residencia.jpg');
+    await page.evaluate(() => window.__debug.act());
+  }
+  s = await snap();
+  check('primeira jornada completa: 8/8 entregues, sem duplicar nem perder volumes',
+    s.delivery.phase === 'CONCLUIDA' && s.delivery.parcels.length === 8 && s.delivery.parcels.every((q) => q.state === 'ENTREGUE' && q.holder === 'destinatario'),
+    JSON.stringify(s.delivery.progress));
   // CORE-013: living city, clock, day/night and minimap.
   s = await snap();
   check('cidade viva: veículos e pedestres ativos', s.city.vehicles >= 8 && s.city.pedestrians >= 15 && s.city.byKind.bus >= 1,
@@ -244,14 +305,14 @@ async function desktop(browser) {
   check('cidade viva: tráfego e pedestres se movem', s.city.fingerprint !== fp0 && s.city.moving > 0, `${s.city.moving} veículos em movimento`);
   s = await until((q) => JSON.stringify(q.city.signals) !== sig0, 20000);
   check('semáforos mudam de fase', JSON.stringify(s.city.signals) !== sig0, JSON.stringify(s.city.signals));
-  check('relógio virtual começa às 11h e conta a jornada', /^1[1-2]:\d\d$/.test(s.clock.label) && s.clock.workday, s.clock.label);
+  check('relógio virtual no formato HH:MM e jornada 11h–21h ativa', /^\d\d:\d\d$/.test(s.clock.label) && s.clock.workday === (s.clock.hour >= 11 && s.clock.hour < 21), s.clock.label);
   const arrow0 = s.minimap.arrow;
-  await page.evaluate(() => window.__debug.teleport(40, -20, Math.PI / 2));
+  await page.evaluate(() => window.__debug.placeWalker(40, -14.4, Math.PI / 2));
   await page.waitForTimeout(400);
   await page.keyboard.press('KeyM');
   s = await until((q) => q.minimap.expanded);
   const arrowA = s.minimap.arrow;
-  await page.evaluate(() => window.__debug.teleport(-40, -20, Math.PI / 2));
+  await page.evaluate(() => window.__debug.placeWalker(-40, -14.4, Math.PI / 2));
   s = await until((q) => Math.abs(q.minimap.arrow.x - arrowA.x) > 0.2, 5000);
   check('minimapa ampliado acompanha o jogador', s.minimap.expanded && s.minimap.arrow.x < arrowA.x - 0.2 && arrow0.x === 0.5,
     `x ${fx(arrowA.x)} → ${fx(s.minimap.arrow.x)} (fração da largura)`);
@@ -263,8 +324,7 @@ async function desktop(browser) {
   }
   await shot('core013-noite.jpg');
   await page.evaluate(() => window.__debug.setHour(12));
-  check('sem erros de console no desktop', g.errors.length === 0, g.errors.join(' | '));
-  console.log(`   desktop headless: ${fx(s.fps)} FPS (GPU por software, não representa aparelho real)`);
+  check('sem erros de console na cidade/jornada', g.errors.length === 0, g.errors.join(' | '));
   await g.context.close();
 }
 
@@ -280,7 +340,7 @@ async function phone(browser) {
 
   const layout = await page.evaluate(() => {
     const rect = (el) => { const r = el.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height, id: el.dataset.control || el.dataset.action }; };
-    const buttons = [...document.querySelectorAll('.pad button, .camera-bar button')].map(rect);
+    const buttons = [...document.querySelectorAll('.pad button, .pause-button')].map(rect);
     const stick = rect(document.querySelector('#movement-stick'));
     stick.id = 'stick';
     buttons.push(stick);
@@ -293,7 +353,7 @@ async function phone(browser) {
     for (let i = 0; i < buttons.length; i++) for (let j = i + 1; j < buttons.length; j++) if (overlap(buttons[i], buttons[j])) collisions.push(`${buttons[i].id}/${buttons[j].id}`);
     const inside = buttons.every((b) => b.x >= 0 && b.y >= 0 && b.x + b.w <= innerWidth && b.y + b.h <= innerHeight);
     const centre = { x: innerWidth * 0.3, y: innerHeight * 0.25, w: innerWidth * 0.4, h: innerHeight * 0.5 };
-    const panels = [...document.querySelectorAll('.brand, .telemetry, .status-panel, .pad, .joystick-zone, .camera-bar')].map(rect);
+    const panels = [...document.querySelectorAll('.objective, .telemetry, .minimap, .pad, .joystick-zone')].map(rect);
     return { buttons, collisions, inside, centreFree: !panels.some((p) => overlap(p, centre)), portrait: getComputedStyle(document.querySelector('.portrait-warning')).display };
   });
   const smallest = Math.min(...layout.buttons.filter((b) => b.id !== 'minimap').map((b) => Math.min(b.w, b.h)));
@@ -352,15 +412,13 @@ async function phone(browser) {
   await until((v) => v.moto.speed === 0, 15000);
   await lift(5);
 
-  // Camera buttons and pinch.
+  // Camera: one-finger drag on the scene orbits, pinch zooms (no camera buttons since CORE-014).
   const cam0 = (await snap()).camera;
-  await press(6, 'camera-right');
-  await until((v) => Math.abs(v.camera.alpha - cam0.alpha) > 0.35, 20000);
-  await lift(6);
-  await press(7, 'zoom-in');
-  s = await until((v) => v.camera.radius < cam0.radius - 2, 20000);
-  await lift(7);
-  check('[toque] botões de câmera giram e aproximam', Math.abs(s.camera.alpha - cam0.alpha) > 0.3 && s.camera.radius < cam0.radius - 1.5);
+  fingers.set(6, { x: 390, y: 150, id: 6 }); await send('touchStart');
+  for (let i = 1; i <= 6; i++) { fingers.set(6, { x: 390 + i * 30, y: 150, id: 6 }); await send('touchMove'); await page.waitForTimeout(40); }
+  fingers.clear(); await send('touchEnd');
+  s = await until((v) => Math.abs(v.camera.alpha - cam0.alpha) > 0.3, 15000);
+  check('[toque] arrastar na cena gira a câmera', Math.abs(s.camera.alpha - cam0.alpha) > 0.3, `Δalpha=${fx(s.camera.alpha - cam0.alpha)}`);
   const r0 = s.camera.radius;
   const pinch = async (spread) => {
     fingers.set(8, { x: 390 - spread, y: 150, id: 8 });
@@ -391,17 +449,16 @@ async function phone(browser) {
   s = await snap();
   check('[toque] botão Montar funciona perto da moto', s.mode === 'riding');
 
-  // Verify the actual on-screen control rather than invoking private camera methods.
-  const gtaButton = centreOf('camera-mode');
-  await page.touchscreen.tap(gtaButton.x, gtaButton.y);
-  s = await until((v) => v.camera.mode === 'third-person', 5000);
-  const returnLabel = await page.getAttribute('[data-action="camera-mode"]', 'aria-label');
-  check('[toque] botão GTA alterna para terceira pessoa',
-    s.camera.mode === 'third-person' && returnLabel === 'Mudar para câmera isométrica');
-  await shot('10-camera-gta-celular-emulado.jpg');
-  await page.touchscreen.tap(gtaButton.x, gtaButton.y);
-  s = await until((v) => v.camera.mode === 'isometric', 5000);
-  check('[toque] botão ISO restaura câmera original', s.camera.mode === 'isometric');
+  // Pause button opens and closes the pause screen.
+  const pauseBtn = await page.$eval('.pause-button', (el) => { const r = el.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; });
+  await page.touchscreen.tap(pauseBtn.x, pauseBtn.y);
+  s = await until((v) => v.paused, 5000);
+  check('[toque] botão de pausa abre a tela de pausa', s.paused);
+  await shot('10-pausa-celular-emulado.jpg');
+  const resume = await page.$eval('.pause-actions .primary', (el) => { const r = el.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; });
+  await page.touchscreen.tap(resume.x, resume.y);
+  s = await until((v) => !v.paused, 5000);
+  check('[toque] Continuar fecha a pausa', !s.paused);
   check('[toque] sem erros de console', g.errors.length === 0, g.errors.join(' | '));
   console.log(`   celular emulado headless: ${fx(s.fps)} FPS em ${s.renderSize.join('x')} (GPU por software; NÃO é medição em Android)`);
   await g.context.close();
@@ -412,6 +469,7 @@ async function phone(browser) {
   const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
   try {
     await desktop(browser);
+    await cityAndJob(browser);
     await phone(browser);
   } finally {
     await browser.close();

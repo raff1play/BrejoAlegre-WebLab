@@ -1,0 +1,74 @@
+PASS  abre sem erro e inicia pilotando na vaga
+PASS  aviso de área temporária visível na tela
+PASS  moto acelera  (v=3.08 m/s)
+PASS  moto freia até parar  (x=0.22)
+PASS  moto desceu o meio-fio para a rua  (y=0)
+PASS  guidão não gira a moto parada
+PASS  moto vira à direita em movimento  (yaw -1.57 → -0.07)
+PASS  inclinação visual moderada na curva  (lean=0.42 rad)
+PASS  moto percorre a rua  (z=12.29, v=13.35)
+PASS  moto desacelera sozinha sem acelerador  (13.35 → 13.19)
+PASS  não desce com a moto em movimento
+PASS  câmera gira (teclado)  (Δalpha=0.44)
+PASS  câmera aproxima  (raio 5.6 → 2.2)
+PASS  câmera afasta (roda do mouse)  (raio 2.2 → 8.78)
+PASS  câmera gira arrastando na cena
+PASS  câmera acompanha a moto
+PASS  desce com a moto parada
+PASS  personagem caminha  (1.99 m com KeyA)
+PASS  moto não se move enquanto a pé
+PASS  não monta longe da moto  (3.33 m)
+PASS  personagem não atravessa a moto estacionada  (distância 1.56 m)
+PASS  monta novamente perto da moto  (distância 1.56 m)
+PASS  moto chega ao muro (ou árvore/poste da calçada) e não atravessa muros nem casas  (x máximo 5.24, z=24.48; face do muro em x=6.2)
+PASS  moto sobe na calçada (meio-fio)  (y=0.15)
+PASS  ré lenta ao frear parado  (v=-0.57)
+PASS  perda de foco solta as teclas
+PASS  redimensiona o canvas com a janela  (900x420)
+PASS  câmera única em terceira pessoa, enquadramento próximo  (raio 5.6)
+PASS  tecla C não alterna mais a câmera
+PASS  sem botão GTA/ISO no HUD
+PASS  pausa abre com aviso de releitura fictícia
+PASS  pausa congela o relógio
+PASS  sem erros de console no desktop
+   desktop headless: 3.04 FPS (GPU por software, não representa aparelho real)
+PASS  jornada: 11h designa lojas e cria volumes rastreáveis  (construcao, farmacia · 48 endereços)
+PASS  loja: funcionário avisa que os volumes saem às 12h  (Volumes às 12h)
+PASS  aguardar acelera o relógio até 12h (escala 1 h = 4 min mantida)  (×24)
+PASS  relógio volta à escala normal após a espera
+PASS  coleta nas duas lojas (COLETADO, responsável: jogador)
+PASS  galpão: conferente recebe volumes da loja e do caminhão
+PASS  triagem pelos separadores e saca pelo expedidor  (["na portaria","aguardando recebimento","organizando pallets","organizando pallets","arrumando prateleiras","arrumando prateleiras","saca pronta, aguardando entregador","na sala de controle"])
+PASS  saca mista retirada a partir das 15h (EM_ROTA)
+PASS  primeira jornada completa: 8/8 entregues, sem duplicar nem perder volumes  ({"collected":4,"delivered":8,"total":8})
+PASS  cidade viva: veículos e pedestres ativos  (19 veículos {"bus":2,"van":1,"truck":1,"car":12,"moto":2,"bike":1}, 47 pedestres)
+PASS  cidade viva: tráfego e pedestres se movem  (18 veículos em movimento)
+PASS  semáforos mudam de fase  ({"centro":"av-sul:green/stop","leste":"coroados-leste:green/stop","sul":"-:red/stop"})
+PASS  relógio virtual no formato HH:MM e jornada 11h–21h ativa  (15:03)
+PASS  minimapa ampliado acompanha o jogador  (x 0.52 → 0.2 (fração da largura))
+PASS  controle de hora (dev): 7h dia  (07:00 noite=0)
+PASS  controle de hora (dev): 12h dia  (12:00 noite=0)
+PASS  controle de hora (dev): 18.4h dia  (18:24 noite=0)
+PASS  controle de hora (dev): 21.5h noite  (21:30 noite=1)
+PASS  sem erros de console na cidade/jornada
+PASS  [toque] perfil gráfico móvel escolhido automaticamente  (render 1170x540)
+PASS  [toque] botões com tamanho para dedos (≥ 44 px)  (menor lado 44 px)
+PASS  [toque] botões dentro da tela e sem sobreposição
+PASS  [toque] HUD deixa o centro da tela livre
+PASS  [toque] botão acelerar move a moto  (v=2.63)
+PASS  [toque] botão mostra estado pressionado
+PASS  [toque] dois dedos: acelerar + virar ao mesmo tempo  (Δyaw=0.25)
+PASS  [toque] soltar os dedos não deixa comando preso  (v 6.65 → 6.04)
+PASS  [toque] botão frear para a moto
+PASS  [toque] toque cancelado solta o comando
+PASS  [toque] arrastar na cena gira a câmera  (Δalpha=-0.97)
+PASS  [toque] pinça afasta a câmera  (raio 5.6 → 8.81)
+PASS  [toque] botão Descer funciona parado
+PASS  [toque] personagem anda pelo analógico
+PASS  [toque] botão Montar funciona perto da moto
+PASS  [toque] botão de pausa abre a tela de pausa
+PASS  [toque] Continuar fecha a pausa
+PASS  [toque] sem erros de console
+   celular emulado headless: 3.05 FPS em 1170x540 (GPU por software; NÃO é medição em Android)
+
+70/70 verificações passaram.

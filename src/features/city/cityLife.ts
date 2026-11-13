@@ -64,11 +64,12 @@ export type CityLife = {
   stats(): { vehicles: number; moving: number; pedestrians: number; visiblePedestrians: number; byKind: Record<string, number>; signals: Record<string, string>; vehicleIds: number[]; fingerprint: number };
 };
 
-export function buildCityLife(scene: Scene, mats: Materials, profile: GraphicsProfile, shadows: ShadowGenerator, free: (x: number, z: number) => boolean): CityLife {
+export function buildCityLife(scene: Scene, mats: Materials, profile: GraphicsProfile, shadows: ShadowGenerator, free: (x: number, z: number) => boolean, traffic0 = true): CityLife {
   const graph = buildRoadGraph();
   const plans = buildSignalPlans(graph);
   const light = profile.name === 'mobile';
-  const traffic = new Traffic(graph, plans, { capacity: light ? 16 : 28, vans: 3, trucks: light ? 1 : 2, buses: 2 });
+  // `traffic0 = false` (URL ?trafego=0) leaves the streets empty, for deterministic control tests.
+  const traffic = new Traffic(graph, plans, traffic0 ? { capacity: light ? 16 : 28, vans: 3, trucks: light ? 1 : 2, buses: 2 } : { capacity: 0, vans: 0, trucks: 0, buses: 0 });
   const crowd = new Crowd(light ? 26 : 48, free);
   const MAXV = 64; const MAXP = 72;
 

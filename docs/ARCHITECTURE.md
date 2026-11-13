@@ -86,3 +86,10 @@ Nova feature → pasta `src/features/<name>/` com controlador e API clara; regra
 - **Apresentação (`src/features/city/cityLife.ts`):** thin instances por protótipo (≈ 3 draw calls por tipo de veículo, 3 para pedestres, 1 para lâmpadas de semáforo); cores por instância; poças de luz e faróis só à noite. NPCs distantes atualizam em frames alternados e somem além de 150–190 m.
 - **HUD:** `src/features/hud/minimap.ts` (canvas 2D, camada estática pintada uma vez, redesenho a ~8 Hz) e relógio no `hud.ts`. `src/world/environment.ts#applyLighting` aplica a luz duas vezes por segundo.
 - **Colisão com o jogador:** veículos NPC bloqueiam a moto/pedestre (retângulo orientado); se já houver sobreposição, só o mundo estático bloqueia para o jogador conseguir sair.
+
+## Entregas (CORE-014)
+
+- **Regras puras (`src/core/delivery/`):** `addresses.ts` (48 endereços, numeração métrica), `parcels.ts` (fluxo de estados que só avança), `stores.ts` (horários, porta de enrolar, rotina do funcionário, fila), `workday.ts` (rotina 11h–21h, galpão: conferência, triagem, saca, equipe de 8 papéis, objetivos).
+- **Plantas:** `storeLayout()` e `depotLayout()` em `cityPlan.ts` geram paredes, balcões, estoque, filas e pontos de interação — usados por colisão, câmera, renderização e NPCs.
+- **Apresentação:** `src/features/delivery/deliveryGame.ts` (funcionários `NpcPerson`, clientes da multidão na fila, marcador de objetivo, ação contextual); `src/features/city/npcPerson.ts` (personagem articulado civil); `vehicleModels.ts` (veículos NPC).
+- **LOD de pessoas:** os mais próximos (até 10/5 por perfil) usam o personagem articulado (um por visual, 12 visuais); os demais, figuras instanciadas com as mesmas cores.
