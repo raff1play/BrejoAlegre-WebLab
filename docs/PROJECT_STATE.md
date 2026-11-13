@@ -343,3 +343,5 @@ FPS do headless (5–7) não representa hardware. **Galaxy S24 / Chrome Android:
 | Regressão CORE-012 (moto, caminhada, câmeras GTA/ISO, toque, HUD) + verificações da cidade viva | TESTADO: **59/59** no Chromium headless (dev) | `docs/evidence/e2e-core013.log`, `core013-*.jpg` |
 | Unitários | TESTADO: **73/73** | `npm run test:unit` |
 | FPS no Android | **NÃO MEDIDO** (headless/swiftshader: 4–5 FPS desktop, ~3 FPS celular emulado — não serve de medida) | — |
+
+- **Auditoria pré-publicação (13/11/2026):** ajustados volumes de colisão visual da câmera GTA para a cidade expandida, inclusive altura do galpão, árvores e postes novos (`src/world/cameraObstacles.ts`). Teste unitário de regressão incluído em `tests/cameraFollow.test.ts`; conferir CI da HEAD. Imagens e 59/59 verificações de navegador são da versão anterior à correção pontual: não alegar que o E2E foi repetido após o ajuste. Sem resultado FPS real no Galaxy S24.
