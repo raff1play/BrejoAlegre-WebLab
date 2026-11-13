@@ -31,7 +31,7 @@ export const DEPOT_SPOTS = Object.freeze({
 export type DepotRole = 'porteiro' | 'conferente' | 'descarregador-1' | 'descarregador-2' | 'separador-1' | 'separador-2' | 'expedidor' | 'supervisor';
 export type DepotStaff = { role: DepotRole; state: string; station: { x: number; z: number }; shift: [number, number]; carrying: boolean };
 
-export type WorkdayOptions = Readonly<{ seed?: number; stores?: number; perStore?: number; marketplace?: number }>;
+export type WorkdayOptions = Readonly<{ seed?: number; stores?: number; perStore?: number; marketplace?: number; free?: (x: number, z: number) => boolean }>;
 
 export class Workday {
   readonly parcels: Parcel[] = [];
@@ -46,6 +46,7 @@ export class Workday {
   private readonly random: () => number;
   private counting: string[] = [];
   private work = 0;
+  private lastHour: number | null = null;
   private truckArrived = false;
   late = false;
 
@@ -54,7 +55,7 @@ export class Workday {
   constructor(options: WorkdayOptions = {}) {
     this.options = options;
     this.random = rng(options.seed ?? 2026);
-    this.addresses = buildAddresses();
+    this.addresses = buildAddresses(options.free);
     for (const a of this.addresses) this.byAddress.set(a.id, a);
     const S = DEPOT_SPOTS;
     const st = (role: DepotRole, station: { x: number; z: number }, shift: [number, number]): DepotStaff => ({ role, state: 'fora', station, shift, carrying: false });
@@ -192,22 +193,31 @@ export class Workday {
       for (const p of this.parcels) if (p.state === 'EM_TRANSPORTE' && p.holder === 'motorista') this.counting.push(p.id);
       this.say('Caminhão nas docas: descarregando volumes das plataformas');
     }
-    this.work += dt;
-    // Checker: one parcel every 1.5 s.
-    if (this.counting.length && this.work >= 1.5) {
-      this.work = 0;
-      const p = this.parcels.find((q) => q.id === this.counting[0])!;
-      this.counting.shift();
-      advance(p, 'RECEBIDO_BASE', 'conferente', hour);
+    // Staff work is measured in virtual minutes (so it also speeds up while the player waits).
+    const dh = this.lastHour === null ? 0 : hour - this.lastHour;
+    this.lastHour = hour;
+    if (dh > 0) this.work = Math.min(this.work + dh * 60, 30);
+    void dt;
+    const allIn = () => this.parcels.length > 0 && this.parcels.every((p) => PARCEL_DONE_IN(p.state));
+    for (let guard = 0; guard < 16; guard++) {
+      // Checker: 0.4 virtual minutes per parcel (≈1.6 s real at the normal scale).
+      if (this.counting.length && this.work >= 0.4) {
+        this.work -= 0.4;
+        const p = this.parcels.find((q) => q.id === this.counting[0])!;
+        this.counting.shift();
+        advance(p, 'RECEBIDO_BASE', 'conferente', hour);
+        continue;
+      }
+      // Sorters from 14h (RECEBIDO_BASE → TRIADO), then the dispatcher bags them (NA_SACA).
+      if (hour >= ROUTINE.sortFrom && allIn() && this.work >= 0.3) {
+        const sort = this.parcels.find((p) => p.state === 'RECEBIDO_BASE');
+        const bag = this.parcels.find((p) => p.state === 'TRIADO');
+        if (sort) { advance(sort, 'TRIADO', 'separador', hour); this.work -= 0.3; continue; }
+        if (bag) { advance(bag, 'NA_SACA', 'expedidor', hour); this.work -= 0.3; if (this.count('TRIADO') === 0) this.say('Saca mista pronta na expedição'); continue; }
+      }
+      break;
     }
-    // Sorters from 14h: RECEBIDO_BASE → TRIADO, then the dispatcher bags them (NA_SACA).
-    const allIn = this.parcels.length > 0 && this.parcels.every((p) => PARCEL_DONE_IN(p.state));
-    if (hour >= ROUTINE.sortFrom && allIn && this.work >= 1.0) {
-      const sort = this.parcels.find((p) => p.state === 'RECEBIDO_BASE');
-      const bag = this.parcels.find((p) => p.state === 'TRIADO');
-      if (sort) { advance(sort, 'TRIADO', 'separador', hour); this.work = 0; }
-      else if (bag) { advance(bag, 'NA_SACA', 'expedidor', hour); this.work = 0; if (this.count('TRIADO') === 0) this.say('Saca mista pronta na expedição'); }
-    }
+    if (!this.counting.length && !(hour >= ROUTINE.sortFrom && this.count('RECEBIDO_BASE') + this.count('TRIADO') > 0)) this.work = Math.min(this.work, 0.4);
     if (this.phase === 'CONFERENCIA' && !this.counting.length && this.count('RECEBIDO_BASE') + this.count('TRIADO') + this.count('NA_SACA') > 0) this.phase = 'TRIAGEM';
     if (this.phase === 'TRIAGEM' && this.count('NA_SACA') > 0 && this.count('TRIADO') + this.count('RECEBIDO_BASE') === 0) this.phase = 'SACA';
     this.updateStaff(hour);

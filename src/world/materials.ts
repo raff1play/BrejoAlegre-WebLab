@@ -208,6 +208,42 @@ export class Materials {
     return this.tinted(base, color);
   }
 
+  /**
+   * CORE-014: lacquer for thin-instanced NPC vehicles. A separate material from `lacquer` so the
+   * instance-colour shader variant never mixes with the player's (faded/alpha) meshes.
+   */
+  npcLacquer(color: string): LabMaterial {
+    const base = this.make('verniz-npc', '#ffffff', { specular: 0.6 });
+    base.material.specularPower = 80;
+    return this.tinted(base, color);
+  }
+
+  /**
+   * CORE-014 house-number plates: one atlas with the digits 0–9 (enamel plate: white digits on
+   * blue), so every number plate of the town is one draw call. u = digit / 10.
+   */
+  digits(): LabMaterial {
+    const texture = this.texture('tx-numeros', () => paintTexture(this.scene, 'tx-numeros',
+      { size: 64, width: 640, clamp: true, anisotropy: this.profile.anisotropy },
+      (ctx, size) => {
+        const c = ctx as unknown as CanvasRenderingContext2D;
+        c.fillStyle = '#1f4f8f'; c.fillRect(0, 0, size * 10, size);
+        c.fillStyle = '#ffffff'; c.font = `700 ${Math.round(size * 0.78)}px system-ui, sans-serif`;
+        c.textAlign = 'center'; c.textBaseline = 'middle';
+        for (let d = 0; d < 10; d++) c.fillText(String(d), d * size + size / 2, size * 0.54);
+      }));
+    return this.make('placa-numeros', '#ffffff', { receiveShadows: false, emissive: 0.1 }, texture);
+  }
+
+  /** CORE-014 shop-window glass: transparent, glossy, shows the interior behind it. */
+  glass(): LabMaterial {
+    const entry = this.make('vidro-vitrine', '#9fb7c4', { specular: 0.9, receiveShadows: false });
+    entry.material.alpha = 0.26;
+    entry.material.specularPower = 110;
+    entry.material.backFaceCulling = false;
+    return entry;
+  }
+
   /** Glowing surface (lamps, tail lights). */
   glow(color: string): LabMaterial {
     // One unlit material for every lamp: the output is the vertex colour itself, so lights of any

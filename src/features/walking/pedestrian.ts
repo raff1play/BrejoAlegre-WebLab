@@ -5,7 +5,9 @@ import type { MotionGuard } from '../../core/collision';
 import { approach } from '../../core/math';
 import { stepWalker, WALKER, type WalkControls, type WalkerState } from '../../core/walking';
 import type { Materials } from '../../world/materials';
-import { Character, RIDER_LOOK, walkingPose } from '../shared/character';
+import { Character, RIDER_LOOK, carryingPose, walkingPose } from '../shared/character';
+import type { Mesh } from '@babylonjs/core/Meshes/mesh';
+import { BatchSet } from '../../world/geometry';
 
 const STEP_OFF_TIME = 0.38;
 /** Distance covered by one full gait cycle (two steps) at full speed. */
@@ -27,11 +29,20 @@ export class Pedestrian {
   /** Visual-only offset that eases to zero after stepping off the bike. */
   private from = { x: 0, y: 0, z: 0 };
   private transition = 1;
+  /** CORE-014: parcels in the hands (between the shop counter and the bike, or at a gate). */
+  carrying = false;
+  private readonly parcel: Mesh;
 
   constructor(scene: Scene, mats: Materials, helmetColor: string) {
     this.body = new Character(scene, mats, 'pedestre', { ...RIDER_LOOK, helmet: helmetColor });
     this.root = this.body.root;
-    this.meshes = this.body.meshes;
+    const box = new BatchSet();
+    box.box(mats.paint('#b88a55'), -0.2, 0.2, -0.14, 0.14, -0.15, 0.15);
+    box.box(mats.paint('#d9c9a6'), -0.205, 0.205, -0.02, 0.02, -0.155, 0.155);
+    this.parcel = box.build('pedestre-pacote', scene, this.root)[0]!;
+    this.parcel.position.set(0, 1.08, 0.36);
+    this.parcel.isVisible = false;
+    this.meshes = [...this.body.meshes, this.parcel];
     this.root.setEnabled(false);
   }
 
@@ -73,7 +84,8 @@ export class Pedestrian {
       this.state.z + this.from.z * rest,
     );
     this.root.rotation.y = this.state.yaw;
-    const pose = walkingPose(this.phase, this.amount, this.time);
+    const pose = this.carrying ? carryingPose(this.phase, this.amount, this.time) : walkingPose(this.phase, this.amount, this.time);
+    this.parcel.isVisible = this.carrying;
     if (rest > 0) {
       // Landing: knees absorb the step, arms come off the handlebar.
       pose.pelvis.y -= Math.sin(this.transition * Math.PI) * 0.12;

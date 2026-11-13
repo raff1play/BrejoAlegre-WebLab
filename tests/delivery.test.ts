@@ -112,3 +112,9 @@ test('first workday: store → base → sorting → sack → home, every parcel 
   for (const r of ['porteiro', 'conferente', 'descarregador-1', 'separador-1', 'expedidor', 'supervisor']) assert.ok(states.includes(r as never));
   assert.ok(DEPOT_SPOTS.receiving && ROUTINE.end === 21);
 });
+
+test('house numbers do not depend on where the gate spot slides (plates match the job)', () => {
+  const plain = buildAddresses();
+  const slid = buildAddresses((x, z) => guard(x, z, 0.45));
+  assert.deepEqual(plain.map((a) => a.label), slid.map((a) => a.label));
+});

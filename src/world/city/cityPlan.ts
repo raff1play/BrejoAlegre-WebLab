@@ -1,5 +1,5 @@
 import type { Box2D } from '../../core/collision.ts';
-import { CROSS_Z, CURB_H, FRONT, ROAD_HALF, SIDEWALK, SHOP, framePoint, frameRect, type Frame, type HouseSpec } from '../layout.ts';
+import { CROSS_Z, CURB_H, FRONT, ROAD_HALF, SIDEWALK, SHOP, frameAxes, framePoint, frameRect, type Frame, type HouseSpec } from '../layout.ts';
 
 /**
  * CORE-013 city plan: a PLAYABLE RE-READING inspired by Brejo Alegre/SP (IBGE 3507753), not a
@@ -264,6 +264,71 @@ export const SPEED_HUMPS: readonly { x: number; z: number; alongX: boolean }[] =
   { x: 0, z: -62, alongX: true },
 ];
 
+/**
+ * CORE-014 store floor plan in lot coordinates (lx along the frontage, lz into the lot): an open
+ * shop floor behind a glass front with a central door, a counter, stock shelves at the back and a
+ * customer queue. The W009 mercearia keeps its own building: it serves at its door.
+ */
+export type StoreLayout = Readonly<{
+  floor: Box2D; walls: Box2D[]; counter: Box2D; shelves: Box2D[];
+  door: { x: number; z: number }; pickup: { x: number; z: number }; employee: { x: number; z: number };
+  stock: { x: number; z: number }; queue: { x: number; z: number }[]; facing: number;
+}>;
+export const STORE_SETBACK = 1.5;
+export function storeLayout(s: Store): StoreLayout {
+  const f = s.frame; const W = s.width; const D = s.depth; const t = 0.25;
+  const P = (lx: number, lz: number) => framePoint(f, lx, lz);
+  const R = (x0: number, x1: number, z0: number, z1: number) => frameRect(f, x0, x1, z0, z1);
+  const yaw = Math.atan2(frameAxes(f.side).ix, frameAxes(f.side).iz); // facing into the shop
+  if (s.id === 'mercearia') {
+    const door = P(W / 2, -0.3);
+    return { floor: R(0, 0, 0, 0), walls: [], counter: R(0, 0, 0, 0), shelves: [], door, pickup: P(W / 2, -1.2), employee: P(W / 2, 0.2), stock: P(W / 2 + 2, 0.2), queue: [P(W / 2 - 1.5, -1.6), P(W / 2 - 1.5, -2.6)], facing: yaw };
+  }
+  const cz = D * 0.52;
+  const door0 = W / 2 - 1.3; const door1 = W / 2 + 1.3;
+  return {
+    floor: R(0, W, 0, D),
+    walls: [
+      R(0, t, STORE_SETBACK, D), R(W - t, W, STORE_SETBACK, D), R(0, W, D - t, D),
+      R(0, door0, STORE_SETBACK, STORE_SETBACK + t), R(door1, W, STORE_SETBACK, STORE_SETBACK + t),
+    ],
+    counter: R(1.2, W - 3.2, cz - 0.35, cz + 0.35),
+    shelves: [R(0.6, W - 0.6, D - 1.0, D - t), R(t, t + 0.6, cz + 1.2, D - 1.6)],
+    door: P(W / 2, STORE_SETBACK - 0.6),
+    pickup: P(W / 2 + 1.0, cz - 1.0),
+    employee: P(W / 2 - 0.5, cz + 0.9),
+    stock: P(W / 2 + 1.5, D - 1.6),
+    queue: [P(W / 2 - 1.6, cz - 1.0), P(W / 2 - 1.6, cz - 2.0), P(W / 2 - 2.6, cz - 2.6), P(W / 2 - 3.4, cz - 3.2)],
+    facing: yaw,
+  };
+}
+
+/** CORE-014 depot: walls with a staff door (west) and dock doors (north), interior furniture. */
+export function depotLayout(): { walls: Box2D[]; furniture: Box2D[]; floor: Box2D } {
+  const b = DEPOT.building; const t = 0.3;
+  const walls: Box2D[] = [
+    { minX: b.minX, maxX: b.maxX, minZ: b.minZ, maxZ: b.minZ + t },
+    { minX: b.maxX - t, maxX: b.maxX, minZ: b.minZ, maxZ: b.maxZ },
+    // West wall with the staff door (z -123.4 … -121).
+    { minX: b.minX, maxX: b.minX + t, minZ: b.minZ, maxZ: -123.4 }, { minX: b.minX, maxX: b.minX + t, minZ: -121, maxZ: b.maxZ },
+  ];
+  // North (yard) wall between the dock doors (each 3.2 m wide).
+  let x = b.minX;
+  for (const d of DEPOT.docks) { walls.push({ minX: x, maxX: d - 1.6, minZ: b.maxZ - t, maxZ: b.maxZ }); x = d + 1.6; }
+  walls.push({ minX: x, maxX: b.maxX, minZ: b.maxZ - t, maxZ: b.maxZ });
+  const furniture: Box2D[] = [
+    { minX: 93.2, maxX: 94.4, minZ: -124.4, maxZ: -120.6 }, // receiving desk
+    { minX: 93.2, maxX: 94.4, minZ: -133, maxZ: -129 },     // dispatch counter
+    { minX: 105, maxX: 117, minZ: -130.4, maxZ: -128.6 },    // sorting conveyor / bench
+    { minX: 100, maxX: 134, minZ: -141.6, maxZ: -140.2 },    // racks along the back wall
+    { minX: 124, maxX: 134, minZ: -137, maxZ: -136.4 },      // office partition
+    { minX: 100, maxX: 103, minZ: -126, maxZ: -124 },        // pallets
+    { minX: 120, maxX: 123, minZ: -126, maxZ: -124 },
+    { minX: 127, maxX: 129.5, minZ: -131, maxZ: -128.6 },    // roll cages
+  ];
+  return { walls, furniture, floor: b };
+}
+
 /** CORE-014 open spaces (fictional): dirt football pitch and a neighbourhood square. */
 export const CAMPINHO: Box2D = { minX: -58, maxX: -12, minZ: -134, maxZ: SOUTH_Z - E };
 export const PRACA_PRIMAVERA: Box2D = { minX: -FAR_X + E, maxX: -100, minZ: NORTH_Z + E, maxZ: 122 };
@@ -284,6 +349,8 @@ export function walkableAreas(): Box2D[] {
     // CORE-014: neighbourhood football pitch (campinho) open to R. 13 de Maio, and Praça Primavera.
     CAMPINHO,
     PRACA_PRIMAVERA,
+    // CORE-014: shop floors (except the W009 mercearia) and the depot interior are walkable.
+    ...STORES.filter((st) => st.id !== 'mercearia').map((st) => storeLayout(st).floor),
   ];
   return open;
 }
@@ -312,8 +379,14 @@ export function cityColliders(): Box2D[] {
   const solid = BLOCKS.flatMap((b) => subtractBoxes(b.box, open));
   const d = DEPOT;
   const fence = 0.15;
+  for (const st of STORES) {
+    if (st.id === 'mercearia') continue;
+    const L = storeLayout(st);
+    solid.push(...L.walls, L.counter, ...L.shelves);
+  }
+  const dl = depotLayout();
+  solid.push(...dl.walls, ...dl.furniture);
   solid.push(
-    d.building,
     // Yard fence along R. 13 de Maio with the gate opening, and the side fences.
     { minX: d.lot.minX, maxX: d.gate.x0, minZ: d.lot.maxZ - fence, maxZ: d.lot.maxZ },
     { minX: d.gate.x1, maxX: d.lot.maxX, minZ: d.lot.maxZ - fence, maxZ: d.lot.maxZ },
@@ -389,7 +462,7 @@ export type CityHouse = HouseSpec;
  * rasterised at `cell` metres so overlaps at junctions count once.
  */
 export function navigableArea(cell = 1): number {
-  const boxes: Box2D[] = [...walkableAreas(), DEPOT.yard];
+  const boxes: Box2D[] = [...walkableAreas(), DEPOT.yard, DEPOT.building];
   for (const r of ROADS) {
     const s = roadSpan(r);
     const lo = Math.max(s.lo, s.axis === 'x' ? CITY_BOUNDS.minX : CITY_BOUNDS.minZ);

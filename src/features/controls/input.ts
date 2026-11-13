@@ -5,7 +5,7 @@ import { VirtualJoystick } from './virtualJoystick';
 export type Control =
   | 'accelerate' | 'brake' | 'left' | 'right'
   | 'camera-left' | 'camera-right' | 'zoom-in' | 'zoom-out';
-export type Action = 'mount' | 'graphics' | 'camera-mode';
+export type Action = 'mount' | 'graphics' | 'pause' | 'wait';
 
 const KEYBOARD = 'keyboard';
 /** Physical key positions (event.code), so WASD works on any keyboard layout. */
@@ -18,7 +18,7 @@ const HOLD_KEYS: Record<string, Control> = {
   KeyZ: 'zoom-in', Equal: 'zoom-in', NumpadAdd: 'zoom-in',
   KeyX: 'zoom-out', Minus: 'zoom-out', NumpadSubtract: 'zoom-out',
 };
-const ACTION_KEYS: Record<string, Action> = { KeyF: 'mount', Enter: 'mount', KeyG: 'graphics', KeyC: 'camera-mode' };
+const ACTION_KEYS: Record<string, Action> = { KeyF: 'mount', Enter: 'mount', KeyG: 'graphics', KeyP: 'pause', Escape: 'pause', KeyH: 'wait' };
 
 /**
  * Keyboard and touch input. Hold controls come from `[data-control]` buttons, one-shot actions

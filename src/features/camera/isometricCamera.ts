@@ -21,9 +21,10 @@ const CHASE = Object.freeze({
 });
 
 /**
- * One Babylon camera, two reversible perspectives. The isometric view retains its original orbit
- * and zoom; the GTA-style view follows the bike's yaw, allows independent free-look, and retracts
- * before static buildings, walls, poles and trunks. No changes to vehicle/walking physics.
+ * CORE-014: one third-person camera only (the CORE-012 GTA/ISO toggle was removed by request).
+ * Riding: smooth chase behind the bike with free-look and automatic recentring. On foot: close,
+ * over-the-shoulder framing (the shoulder offset is applied to the target by the caller). It
+ * retracts before buildings, walls, poles and trunks. No changes to vehicle/walking physics.
  */
 export class IsometricCameraRig {
   readonly camera: ArcRotateCamera;
@@ -33,10 +34,10 @@ export class IsometricCameraRig {
   private readonly focus: Vector3;
   private readonly pointers = new Map<number, { x: number; y: number }>();
   private pinchDistance = 0;
-  private modeValue: CameraMode = 'isometric';
-  private savedIsometric: { alpha: number; beta: number; radius: number } | null = null;
+  private readonly modeValue: CameraMode = 'third-person';
   private manualLook = 0;
   private wasRiding = true;
+  private lifted = 0;
 
   constructor(
     scene: Scene, private readonly canvas: HTMLCanvasElement, start: Vector3, radius: number,
@@ -45,33 +46,26 @@ export class IsometricCameraRig {
     this.radius = radius;
     this.focus = start.clone();
     this.camera = new ArcRotateCamera('camera-jogo', this.alpha, this.beta, radius, this.focus.clone(), scene);
-    this.camera.minZ = 0.5;
+    this.camera.minZ = 0.15;
     this.camera.maxZ = 2000;
-    this.camera.fov = 0.62;
+    this.camera.fov = CHASE.fov;
+    this.beta = CHASE.ridingBeta;
+    this.radius = CHASE.ridingRadius;
+    this.camera.beta = this.beta;
+    this.camera.radius = this.radius;
     this.camera.inputs.clear();
     this.attachPointerControls();
   }
 
   get mode(): CameraMode { return this.modeValue; }
 
-  /** Called by the camera toggle button (or C on a keyboard). */
-  toggleMode(heading: number, riding: boolean): CameraMode {
-    if (this.modeValue === 'third-person') {
-      this.modeValue = 'isometric';
-      const old = this.savedIsometric;
-      if (old) { this.alpha = old.alpha; this.beta = old.beta; this.radius = old.radius; }
-      this.savedIsometric = null;
-    } else {
-      this.savedIsometric = { alpha: this.alpha, beta: this.beta, radius: this.radius };
-      this.modeValue = 'third-person';
-      this.alpha = behindHeadingAlpha(heading);
-      this.beta = riding ? CHASE.ridingBeta : CHASE.walkingBeta;
-      this.radius = riding ? CHASE.ridingRadius : CHASE.walkingRadius;
-      this.wasRiding = riding;
-      this.manualLook = 0;
-    }
-    this.camera.minZ = this.modeValue === 'third-person' ? 0.15 : 0.5;
-    return this.modeValue;
+  /** Faces the camera behind a heading (spawn, teleport). */
+  resetBehind(heading: number, riding: boolean): void {
+    this.alpha = behindHeadingAlpha(heading);
+    this.camera.alpha = this.alpha;
+    this.beta = riding ? CHASE.ridingBeta : CHASE.walkingBeta;
+    this.radius = riding ? CHASE.ridingRadius : CHASE.walkingRadius;
+    this.manualLook = 0;
   }
 
   rotate(deltaRadians: number): void {
@@ -143,14 +137,29 @@ export class IsometricCameraRig {
 
     if (this.modeValue === 'third-person') {
       const distance = this.camera.radius;
-      const horizontal = Math.sin(this.camera.beta) * distance;
-      const eye = {
-        x: this.focus.x + Math.cos(this.camera.alpha) * horizontal,
-        y: this.focus.y + Math.cos(this.camera.beta) * distance,
-        z: this.focus.z + Math.sin(this.camera.alpha) * horizontal,
+      const safeAt = (beta: number) => {
+        const horizontal = Math.sin(beta) * distance;
+        const eye = {
+          x: this.focus.x + Math.cos(this.camera.alpha) * horizontal,
+          y: this.focus.y + Math.cos(beta) * distance,
+          z: this.focus.z + Math.sin(this.camera.alpha) * horizontal,
+        };
+        return safeCameraDistance(this.focus, eye, this.obstacles);
       };
-      // Retract immediately when obstructed; restore distance gradually after clearance.
-      this.camera.radius = Math.min(distance, safeCameraDistance(this.focus, eye, this.obstacles));
+      // CORE-014: with a wall right behind (narrow streets, shop doors, the depot) the camera
+      // first rises over it, and only then retracts; it settles back when the view clears.
+      let safe = safeAt(this.camera.beta);
+      if (safe < distance * 0.75) {
+        for (const lift of [0.22, 0.44, 0.62]) {
+          const b = Math.max(0.55, this.beta - lift);
+          const d = safeAt(b);
+          if (d > safe + 0.3) { safe = d; this.lifted = Math.max(this.lifted, lift); }
+          if (d >= distance * 0.75) break;
+        }
+      }
+      this.lifted = Math.max(0, this.lifted - dt * 0.25);
+      this.camera.beta = Math.min(this.camera.beta, this.beta - this.lifted);
+      this.camera.radius = Math.min(distance, safeAt(this.camera.beta));
     }
   }
 

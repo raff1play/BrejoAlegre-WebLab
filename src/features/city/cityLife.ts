@@ -1,7 +1,6 @@
 import '@babylonjs/core/Meshes/thinInstanceMesh';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { Matrix } from '@babylonjs/core/Maths/math.vector';
-import { CreateCylinder } from '@babylonjs/core/Meshes/Builders/cylinderBuilder';
 import { CreateDisc } from '@babylonjs/core/Meshes/Builders/discBuilder';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
@@ -15,6 +14,9 @@ import { buildSignalPlans, signalState, type SignalPlan } from '../../core/city/
 import { Traffic, VEHICLE_SPECS, type VehicleKind } from '../../core/city/traffic';
 import type { GraphicsProfile } from '../../config/graphics';
 import { BatchSet } from '../../world/geometry';
+import { buildVehicleModel } from './vehicleModels';
+import { NpcPerson, civilianLook } from './npcPerson';
+import { rodPart, ballPart, boxPart } from '../../world/modelParts';
 import type { Materials } from '../../world/materials';
 import { CURB_H, ROAD_HALF } from '../../world/layout';
 import { LANE_OFFSET, NODES, nodeById } from '../../world/city/cityPlan';
@@ -34,84 +36,26 @@ const PALETTE: Record<VehicleKind, string[]> = {
   truck: ['#f4f1ea', '#d9d4c7'],
   bus: ['#2f7d4f', '#2b5aa8'],
 };
-const SHIRTS = ['#c9302c', '#2b5aa8', '#f4f1ea', '#e3b23c', '#1f8a5b', '#7a3f8f', '#f08a4b', '#3d3f44', '#8fc1e3', '#d94f7a'];
-const PANTS = ['#2d3a55', '#3d3f44', '#6b5a45', '#20242a', '#8c8f94'];
-const SKINS = ['#f0c8a0', '#d9a273', '#a8714a', '#6e4529'];
+/** Twelve civilian looks shared by the far (instanced) and near (articulated) pedestrians. */
+const LOOKS: { shirt: string; trousers: string; skin: string; hair: string; cap?: string; longHair?: boolean }[] = [
+  { shirt: '#c9302c', trousers: '#2d3a55', skin: '#d9a273', hair: '#2a1d16' },
+  { shirt: '#f4f1ea', trousers: '#3d3f44', skin: '#8f5f42', hair: '#151311', longHair: true },
+  { shirt: '#2b5aa8', trousers: '#6b5a45', skin: '#f0c8a0', hair: '#a5642c', cap: '#20242a' },
+  { shirt: '#e3b23c', trousers: '#20242a', skin: '#a8714a', hair: '#2b2622' },
+  { shirt: '#1f8a5b', trousers: '#8c8f94', skin: '#e0b48e', hair: '#5a3a24', longHair: true },
+  { shirt: '#7a3f8f', trousers: '#2d3a55', skin: '#6e4529', hair: '#151311' },
+  { shirt: '#f08a4b', trousers: '#3d3f44', skin: '#d6a37b', hair: '#3b2a1e', cap: '#f4f1ea' },
+  { shirt: '#3d3f44', trousers: '#2d3a55', skin: '#c99a76', hair: '#8a8580' },
+  { shirt: '#8fc1e3', trousers: '#6b5a45', skin: '#b67f5a', hair: '#2a1d16', longHair: true },
+  { shirt: '#d94f7a', trousers: '#20242a', skin: '#f0c8a0', hair: '#c49a5a', longHair: true },
+  { shirt: '#9a8f6a', trousers: '#384050', skin: '#8f5f42', hair: '#151311', cap: '#2f6688' },
+  { shirt: '#eadfc4', trousers: '#5a4a3c', skin: '#e9c19c', hair: '#d8d4cc' },
+];
+const lookOf = (p: { shirt: number; pants: number; skin: number }) => (p.shirt + p.pants * 3 + p.skin * 5) % LOOKS.length;
 
 type Proto = { meshes: Mesh[]; tinted: Mesh[]; beams: Mesh; matrices: Float32Array; colors: Float32Array };
 
 function hex(c: string): [number, number, number] { const k = Color3.FromHexString(c); return [k.r, k.g, k.b]; }
-
-function wheel(scene: Scene, set: BatchSet, mats: Materials, x: number, z: number, r: number, w: number): void {
-  const t = CreateCylinder('roda', { diameter: r * 2, height: w, tessellation: 10 }, scene);
-  t.rotation.z = Math.PI / 2;
-  t.position.set(x, r, z);
-  set.absorb(mats.paint('#1b1c1e'), t);
-}
-
-function rider(set: BatchSet, mats: Materials, z: number, seat: number, shirt: string): void {
-  set.box(mats.paint(shirt), -0.2, 0.2, seat, seat + 0.62, z - 0.14, z + 0.14);
-  set.box(mats.paint('#2d3a55'), -0.18, 0.18, seat - 0.12, seat + 0.05, z - 0.1, z + 0.45);
-  set.box(mats.paint('#f0c8a0'), -0.11, 0.11, seat + 0.66, seat + 0.9, z - 0.1, z + 0.1);
-  set.box(mats.paint('#20242a', 0.3), -0.14, 0.14, seat + 0.8, seat + 0.98, z - 0.14, z + 0.14);
-}
-
-/** Builds body (instance-tinted), details and lamps for one vehicle kind, in local metres (z forward). */
-function buildVehicle(scene: Scene, mats: Materials, kind: VehicleKind): { body: BatchSet; detail: BatchSet } {
-  const body = new BatchSet(); const detail = new BatchSet();
-  const white = mats.paint('#ffffff', 0.2);
-  const glass = mats.paint('#2a343c', 0.4);
-  const dark = mats.paint('#2a2b2e');
-  const head = mats.glow('#fff4d6'); const tail = mats.glow('#c4231c');
-  const s = VEHICLE_SPECS[kind];
-  const L = s.length / 2; const W = s.width / 2;
-  if (kind === 'car') {
-    body.box(white, -W, W, 0.32, 0.86, -L, L);
-    body.box(white, -W + 0.1, W - 0.1, 0.86, 1.36, -L + 1.0, L - 1.25);
-    detail.box(glass, -W + 0.12, W - 0.12, 0.9, 1.3, L - 1.27, L - 1.2);
-    detail.box(glass, -W + 0.12, W - 0.12, 0.9, 1.3, -L + 0.95, -L + 1.02);
-    detail.box(glass, -W + 0.08, W - 0.08, 0.92, 1.28, -L + 1.1, L - 1.35);
-    detail.box(dark, -W, W, 0.22, 0.42, L - 0.05, L + 0.05);
-    detail.box(dark, -W, W, 0.22, 0.42, -L - 0.05, -L + 0.05);
-    for (const x of [-W + 0.25, W - 0.25]) { detail.box(head, x - 0.18, x + 0.18, 0.62, 0.74, L, L + 0.03); detail.box(tail, x - 0.18, x + 0.18, 0.64, 0.76, -L - 0.03, -L); }
-    for (const z of [L - 0.8, -L + 0.8]) for (const x of [-W + 0.1, W - 0.1]) wheel(scene, detail, mats, x, z, 0.31, 0.22);
-  } else if (kind === 'van') {
-    body.box(white, -W, W, 0.34, 2.3, -L, L - 0.9);
-    body.box(white, -W, W, 0.34, 1.3, L - 0.9, L);
-    detail.box(glass, -W + 0.05, W - 0.05, 1.32, 2.1, L - 0.95, L - 0.4);
-    detail.box(dark, -W - 0.01, W + 0.01, 0.9, 1.1, -L + 0.3, L - 1.2); // livery band
-    detail.box(dark, -W, W, 0.24, 0.44, L - 0.05, L + 0.05);
-    for (const x of [-W + 0.25, W - 0.25]) { detail.box(head, x - 0.17, x + 0.17, 0.95, 1.1, L, L + 0.03); detail.box(tail, x - 0.12, x + 0.12, 1.1, 1.6, -L - 0.03, -L); }
-    for (const z of [L - 0.9, -L + 0.9]) for (const x of [-W + 0.12, W - 0.12]) wheel(scene, detail, mats, x, z, 0.34, 0.24);
-  } else if (kind === 'truck') {
-    body.box(white, -W, W, 1.05, 3.6, -L, L - 2.4);
-    const cab = mats.paint('#2b5aa8', 0.2);
-    detail.box(cab, -W + 0.05, W - 0.05, 0.6, 2.9, L - 2.2, L);
-    detail.box(glass, -W + 0.12, W - 0.12, 1.8, 2.6, L, L + 0.02);
-    detail.box(dark, -W + 0.1, W - 0.1, 0.5, 1.05, -L + 0.2, L - 2.3);
-    for (const x of [-W + 0.3, W - 0.3]) { detail.box(head, x - 0.18, x + 0.18, 0.85, 1.0, L + 0.01, L + 0.04); detail.box(tail, x - 0.15, x + 0.15, 1.1, 1.4, -L - 0.03, -L); }
-    for (const z of [L - 1.2, -L + 2.2, -L + 1.0]) for (const x of [-W + 0.15, W - 0.15]) wheel(scene, detail, mats, x, z, 0.48, 0.32);
-  } else if (kind === 'bus') {
-    body.box(white, -W, W, 0.38, 3.1, -L, L);
-    detail.box(glass, -W - 0.01, W + 0.01, 1.45, 2.45, -L + 0.8, L - 0.5);
-    detail.box(glass, -W + 0.1, W - 0.1, 1.2, 2.6, L, L + 0.02);
-    detail.box(mats.paint('#f4f1ea'), -W - 0.02, W + 0.02, 2.6, 2.75, -L + 0.2, L - 0.2);
-    detail.box(mats.glow('#ffb43a'), -0.7, 0.7, 2.75, 2.95, L + 0.01, L + 0.04); // route display
-    for (const x of [-W + 0.3, W - 0.3]) { detail.box(head, x - 0.2, x + 0.2, 0.7, 0.86, L + 0.01, L + 0.04); detail.box(tail, x - 0.15, x + 0.15, 0.9, 1.3, -L - 0.03, -L); }
-    for (const z of [L - 2.2, -L + 2.4]) for (const x of [-W + 0.15, W - 0.15]) wheel(scene, detail, mats, x, z, 0.5, 0.32);
-  } else {
-    // Two-wheelers: tinted frame/tank, rider in fixed colours, simplified.
-    const moto = kind === 'moto';
-    const r = moto ? 0.3 : 0.33;
-    body.box(white, -0.12, 0.12, moto ? 0.42 : 0.5, moto ? 0.78 : 0.62, -L + 0.4, L - 0.4);
-    if (moto) body.box(white, -0.18, 0.18, 0.62, 0.9, -0.1, 0.45);
-    wheel(scene, detail, mats, 0, L - r - 0.02, r, moto ? 0.12 : 0.05);
-    wheel(scene, detail, mats, 0, -L + r + 0.02, r, moto ? 0.12 : 0.05);
-    rider(detail, mats, moto ? -0.2 : -0.15, moto ? 0.82 : 0.95, moto ? '#3d3f44' : '#e3b23c');
-    if (moto) { detail.box(head, -0.08, 0.08, 0.85, 0.97, L - 0.25, L - 0.2); detail.box(tail, -0.06, 0.06, 0.7, 0.8, -L - 0.02, -L + 0.02); }
-  }
-  return { body, detail };
-}
 
 export type CityLife = {
   traffic: Traffic; crowd: Crowd; graph: RoadGraph; plans: Map<string, SignalPlan>;
@@ -139,7 +83,7 @@ export function buildCityLife(scene: Scene, mats: Materials, profile: GraphicsPr
 
   const protos = new Map<VehicleKind, Proto>();
   for (const kind of KINDS) {
-    const { body, detail } = buildVehicle(scene, mats, kind);
+    const { body, detail } = buildVehicleModel(scene, mats, kind);
     const tinted = body.build(`npc-${kind}-carroceria`, scene);
     const rest = detail.build(`npc-${kind}`, scene);
     const s = VEHICLE_SPECS[kind];
@@ -152,7 +96,8 @@ export function buildCityLife(scene: Scene, mats: Materials, profile: GraphicsPr
     const proto: Proto = { meshes: [...tinted, ...rest, beam], tinted, beams: beam, matrices: new Float32Array(MAXV * 16), colors: new Float32Array(MAXV * 4) };
     for (const m of proto.meshes) {
       m.thinInstanceSetBuffer('matrix', proto.matrices, 16, false);
-      m.thinInstanceCount = 0;
+      m.thinInstanceCount = 1;
+      m.setEnabled(false);
       m.isPickable = false;
       m.alwaysSelectAsActiveMesh = true; // instances span the town; per-instance culling is not worth it
     }
@@ -164,12 +109,18 @@ export function buildCityLife(scene: Scene, mats: Materials, profile: GraphicsPr
   // Pedestrians: torso + arms (shirt), head (skin), one leg mesh instanced twice (trousers).
   const torso = new BatchSet(); const headSet = new BatchSet(); const legSet = new BatchSet();
   const w = mats.paint('#ffffff');
-  torso.box(w, -0.21, 0.21, 0.84, 1.42, -0.12, 0.12);
-  torso.box(w, -0.29, -0.21, 0.86, 1.38, -0.07, 0.07);
-  torso.box(w, 0.21, 0.29, 0.86, 1.38, -0.07, 0.07);
-  headSet.box(w, -0.1, 0.1, 1.44, 1.68, -0.11, 0.11);
-  headSet.box(mats.paint('#3a2a20'), -0.11, 0.11, 1.62, 1.72, -0.12, 0.1); // hair (dark × skin)
-  legSet.box(w, -0.08, 0.08, -0.86, 0, -0.08, 0.08);
+  // Far LOD figure (beyond the articulated NPCs): tapered torso, shoulders, arms, rounded head.
+  const flat = (m: Mesh) => { m.scaling.z *= 0.62; return m; };
+  torso.absorb(w, flat(rodPart(scene, [0, 0.86, 0], [0, 1.42, 0], 0.34, 0.42, 10)));
+  for (const side of [-1, 1]) {
+    torso.absorb(w, ballPart(scene, [0.16, 0.14, 0.18], [side * 0.19, 1.38, 0], 5));
+    torso.absorb(w, rodPart(scene, [side * 0.22, 1.38, 0], [side * 0.25, 0.9, 0.02], 0.09, 0.07, 6));
+  }
+  headSet.absorb(w, rodPart(scene, [0, 1.4, 0], [0, 1.5, 0], 0.1, 0.09, 6));
+  headSet.absorb(w, ballPart(scene, [0.19, 0.24, 0.21], [0, 1.6, 0.005], 8));
+  headSet.absorb(mats.paint('#3a2a20'), ballPart(scene, [0.205, 0.16, 0.22], [0, 1.66, -0.012], 7));
+  legSet.absorb(w, rodPart(scene, [0, 0, 0], [0, -0.82, 0], 0.15, 0.1, 8));
+  legSet.absorb(mats.paint('#2a2522'), boxPart(scene, [0.1, 0.07, 0.24], [0, -0.83, 0.05]));
   const pedMeshes = [...torso.build('npc-pessoa-tronco', scene), ...headSet.build('npc-pessoa-cabeca', scene)];
   const legMeshes = legSet.build('npc-pessoa-perna', scene);
   const pedMatrices = new Float32Array(MAXP * 16); const shirtCol = new Float32Array(MAXP * 4); const skinCol = new Float32Array(MAXP * 4);
@@ -178,7 +129,7 @@ export function buildCityLife(scene: Scene, mats: Materials, profile: GraphicsPr
   const headMeshes = pedMeshes.filter((m) => m.name.includes('cabeca'));
   for (const m of [...pedMeshes, ...legMeshes]) {
     m.thinInstanceSetBuffer('matrix', legMeshes.includes(m) ? legMatrices : pedMatrices, 16, false);
-    m.thinInstanceCount = 0; m.isPickable = false; m.alwaysSelectAsActiveMesh = true; m.receiveShadows = true;
+    m.thinInstanceCount = 1; m.setEnabled(false); m.isPickable = false; m.alwaysSelectAsActiveMesh = true; m.receiveShadows = true;
     if (!light) shadows.addShadowCaster(m, false);
   }
   for (const m of torsoMeshes) m.thinInstanceSetBuffer('color', shirtCol, 4, false);
@@ -260,7 +211,15 @@ export function buildCityLife(scene: Scene, mats: Materials, profile: GraphicsPr
   };
   const writeColor = (buf: Float32Array, i: number, c: [number, number, number]) => { buf[i * 4] = c[0]; buf[i * 4 + 1] = c[1]; buf[i * 4 + 2] = c[2]; buf[i * 4 + 3] = 1; };
   const palettes = new Map(KINDS.map((k) => [k, PALETTE[k].map(hex)]));
-  const shirts = SHIRTS.map(hex); const pants = PANTS.map(hex); const skins = SKINS.map(hex);
+  const lookColors = LOOKS.map((l) => ({ shirt: hex(l.shirt), trousers: hex(l.trousers), skin: hex(l.skin) }));
+  // Articulated near-LOD people: one per look, enabled only when a pedestrian of that look is close.
+  const NEAR_RANGE = light ? 22 : 32;
+  const nearCap = light ? 5 : 10;
+  const nearPool = LOOKS.map((l, i) => {
+    const npc = new NpcPerson(scene, mats, `transeunte-${i}`, civilianLook(l), light ? undefined : shadows);
+    npc.setEnabled(false);
+    return npc;
+  });
   const m1 = Matrix.Identity(); const m2 = Matrix.Identity(); const m3 = Matrix.Identity();
   let lastNight = -1;
   let poolsOn = false;
@@ -299,15 +258,31 @@ export function buildCityLife(scene: Scene, mats: Materials, profile: GraphicsPr
       }
       for (const [kind, proto] of protos) {
         const n = counts.get(kind)!;
-        for (const m of proto.meshes) { m.thinInstanceCount = n; m.thinInstanceBufferUpdated('matrix'); }
+        // Never 0 instances on a mesh with an instance-colour buffer (Babylon keeps INSTANCESCOLOR
+        // but drops INSTANCES and the shader fails): disable the mesh instead.
+        for (const m of proto.meshes) { m.thinInstanceCount = Math.max(1, n); m.thinInstanceBufferUpdated('matrix'); if (m !== proto.beams) m.setEnabled(n > 0); }
         for (const m of proto.tinted) m.thinInstanceBufferUpdated('color');
         proto.beams.setEnabled(night > 0.45 && n > 0);
       }
 
-      // Pedestrians.
+      // Pedestrians, near LOD: the closest ones are drawn by articulated characters (one per look).
+      const nearIds = new Set<number>();
+      const usedLook = new Set<number>();
+      const close = crowd.people.filter((p) => p.active && p.visible && Math.hypot(p.x - player.x, p.z - player.z) < NEAR_RANGE)
+        .sort((a, b) => Math.hypot(a.x - player.x, a.z - player.z) - Math.hypot(b.x - player.x, b.z - player.z));
+      for (const p of close) {
+        if (nearIds.size >= nearCap) break;
+        const li = lookOf(p);
+        if (usedLook.has(li)) continue;
+        usedLook.add(li); nearIds.add(p.id);
+        const npc = nearPool[li]!;
+        npc.setEnabled(true);
+        npc.follow(p.x, p.z, p.yaw, dt, ground(p.x, p.z));
+      }
+      nearPool.forEach((npc, i) => { if (!usedLook.has(i)) npc.setEnabled(false); });
       let n = 0;
       for (const p of crowd.people) {
-        if (!p.active || !p.visible || n >= MAXP) continue;
+        if (!p.active || !p.visible || n >= MAXP || nearIds.has(p.id)) continue;
         if (Math.hypot(p.x - player.x, p.z - player.z) > 150) continue;
         const y = ground(p.x, p.z);
         const sc = p.scale;
@@ -316,8 +291,8 @@ export function buildCityLife(scene: Scene, mats: Materials, profile: GraphicsPr
         m2.multiplyToRef(m1, m3);
         m3.setTranslationFromFloats(p.x, y, p.z);
         m3.copyToArray(pedMatrices, n * 16);
-        writeColor(shirtCol, n, shirts[p.shirt % shirts.length]!);
-        writeColor(skinCol, n, skins[p.skin % skins.length]!);
+        writeColor(shirtCol, n, lookColors[lookOf(p)]!.shirt);
+        writeColor(skinCol, n, lookColors[lookOf(p)]!.skin);
         const moving = p.state === 'walk' || p.state === 'cross';
         const swing = moving ? Math.sin(p.phase) * 0.45 : 0;
         for (const [k, side] of [[0, -1], [1, 1]] as const) {
@@ -329,14 +304,14 @@ export function buildCityLife(scene: Scene, mats: Materials, profile: GraphicsPr
           const lx = side * 0.1 * sc;
           m2.setTranslationFromFloats(p.x + Math.cos(p.yaw) * lx, y + 0.86 * sc, p.z - Math.sin(p.yaw) * lx);
           m2.copyToArray(legMatrices, (n * 2 + k) * 16);
-          writeColor(legCol, n * 2 + k, pants[p.pants % pants.length]!);
+          writeColor(legCol, n * 2 + k, lookColors[lookOf(p)]!.trousers);
         }
         n++;
       }
-      for (const m of [...pedMeshes]) { m.thinInstanceCount = n; m.thinInstanceBufferUpdated('matrix'); }
+      for (const m of [...pedMeshes]) { m.thinInstanceCount = Math.max(1, n); m.thinInstanceBufferUpdated('matrix'); m.setEnabled(n > 0); }
       for (const m of torsoMeshes) m.thinInstanceBufferUpdated('color');
       for (const m of headMeshes) m.thinInstanceBufferUpdated('color');
-      for (const m of legMeshes) { m.thinInstanceCount = n * 2; m.thinInstanceBufferUpdated('matrix'); m.thinInstanceBufferUpdated('color'); }
+      for (const m of legMeshes) { m.thinInstanceCount = Math.max(1, n * 2); m.thinInstanceBufferUpdated('matrix'); m.thinInstanceBufferUpdated('color'); m.setEnabled(n > 0); }
 
       // Signal lamps.
       const blink = Math.floor(time * 2) % 2 === 0;

@@ -1,7 +1,8 @@
 import type { Box2D } from '../../core/collision.ts';
-import { CROSS_Z, HOUSES, LOT_DEPTH, LOT_WIDTH, ROAD_HALF, SHOP, SIDEWALK, WALL_T, frameRect, type TreeSpec } from '../layout.ts';
+import type { Box3D } from '../../core/math.ts';
+import { CROSS_Z, HOUSES, HOUSE_DEPTH, HOUSE_STYLES, LOT_DEPTH, LOT_WIDTH, ROAD_HALF, SHOP, SIDEWALK, WALL_T, frameRect, houseSpan, type TreeSpec } from '../layout.ts';
 import {
-  BLOCKS, BUS_STOPS, CHURCH, CITY_LOTS, CORE_EXTENT, ROADS, SCHOOL, SERVICES, STORES, cityColliders, roadSpan, walkableAreas,
+  BLOCKS, BUS_STOPS, CHURCH, CITY_LOTS, CORE_EXTENT, DEPOT, ROADS, SCHOOL, SERVICES, STORES, cityColliders, depotLayout, roadSpan, storeLayout, walkableAreas,
   type CityRoad,
 } from './cityPlan.ts';
 
@@ -128,4 +129,29 @@ export function cityAllColliders(): Box2D[] {
     ...cityColliders(),
     ...cityTrees().map((t) => ({ minX: t.x - 0.24 * t.scale, maxX: t.x + 0.24 * t.scale, minZ: t.z - 0.24 * t.scale, maxZ: t.z + 0.24 * t.scale })),
   ];
+}
+
+/** Chase-camera blockers of the expansion (houses, shops, landmarks, depot, frontage walls). */
+export function cityCameraObstacles(): Box3D[] {
+  const out: Box3D[] = [];
+  const box = (b: Box2D, h: number, y0 = 0): Box3D => ({ minX: b.minX, maxX: b.maxX, minZ: b.minZ, maxZ: b.maxZ, minY: y0, maxY: h });
+  for (const l of CITY_LOTS) {
+    const style = HOUSE_STYLES[l.style % HOUSE_STYLES.length]!;
+    const [x0, x1] = houseSpan({ ...style, id: l.id, frame: l.frame });
+    out.push(box(frameRect(l.frame, x0, x1, style.setback, style.setback + HOUSE_DEPTH), 5.2));
+  }
+  // Shops and the depot are walk-in: walls block the camera and the ceiling keeps it inside.
+  for (const s of STORES.slice(1)) {
+    const L = storeLayout(s);
+    for (const w of L.walls) out.push(box(w, s.height + 0.6));
+    out.push(box(frameRect(s.frame, 0, s.width, 1.5, s.depth), s.height + 0.6, s.height - 0.45));
+  }
+  const dl = depotLayout();
+  for (const w of dl.walls) out.push(box(w, DEPOT.height + 0.6));
+  out.push(box(DEPOT.building, DEPOT.height + 0.6, DEPOT.height - 0.6));
+  out.push(box(frameRect(CHURCH.frame, 0, CHURCH.width, 0, CHURCH.depth), 9));
+  out.push(box(frameRect(SCHOOL.frame, 0, SCHOOL.width, 2, SCHOOL.depth), 7));
+  out.push(box(frameRect(SERVICES.frame, 0, SERVICES.width, 2, SERVICES.depth), 6));
+  for (const w of frontageWalls()) out.push(box(w, 2.4));
+  return out;
 }

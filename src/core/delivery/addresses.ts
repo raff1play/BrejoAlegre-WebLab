@@ -55,15 +55,17 @@ export function buildAddresses(free: (x: number, z: number) => boolean = () => t
     const door = framePoint(frame, lx, -0.9);
     const stop = framePoint(frame, lx, -SIDEWALK - 1.3);
     const plateAt = framePoint(frame, 0.55, -0.02);
-    const road = frontingRoad(door.x, door.z);
+    // Street and number come from the lot centre (stable whatever spot the door slides to).
+    const centre = framePoint(frame, LOT_WIDTH / 2, -0.9);
+    const road = frontingRoad(centre.x, centre.z);
     const street = road.name;
     // The whole street (all segments with the same name) is numbered from its lowest coordinate.
     const segments = ROADS.filter((r) => r.name === street).map(roadSpan);
     const start = Math.min(...segments.map((s) => s.lo));
     const s = roadSpan(road);
-    const along = (s.axis === 'x' ? door.x : door.z) - start;
+    const along = (s.axis === 'x' ? centre.x : centre.z) - start;
     // Right-hand side when walking towards increasing numbers: even.
-    const across = (s.axis === 'x' ? door.z : door.x) - s.c;
+    const across = (s.axis === 'x' ? centre.z : centre.x) - s.c;
     const right = s.axis === 'x' ? across < 0 : across > 0;
     let number = Math.max(1, Math.round(along));
     if ((number % 2 === 0) !== right) number += 1;

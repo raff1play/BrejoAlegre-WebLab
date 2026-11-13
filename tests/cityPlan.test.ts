@@ -2,8 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   BLOCKS, BUS_STOPS, CHURCH, CITY_BOUNDS, CITY_LOTS, DEPOT, NODES, ROADS, SCHOOL, SERVICES, STORES,
-  cityColliders, nodeById, pointsOfInterest, roadSpan, subtractBoxes, walkableAreas,
-} from '../src/world/city/cityPlan.ts';
+  cityColliders, nodeById, pointsOfInterest, roadSpan, subtractBoxes, walkableAreas, storeLayout } from '../src/world/city/cityPlan.ts';
 import { frameRect, HOUSES, ROAD_HALF, SHOP, LOT_WIDTH, LOT_DEPTH } from '../src/world/layout.ts';
 import type { Box2D } from '../src/core/collision.ts';
 
@@ -64,8 +63,11 @@ test('box subtraction keeps area and leaves holes open', () => {
   for (const p of pieces) for (const h of holes) assert.ok(!overlap(p, h));
   // Walkable areas are not covered by the block fill.
   const solid = cityColliders();
+  // Shop floors have a counter in the middle: their customer spot (pickup) is checked instead.
+  const floors = STORES.filter((st) => st.id !== 'mercearia').map((st) => storeLayout(st));
   for (const w of walkableAreas()) {
-    const cx = (w.minX + w.maxX) / 2; const cz = (w.minZ + w.maxZ) / 2;
+    const shop = floors.find((f) => f.floor === w || (f.floor.minX === w.minX && f.floor.maxZ === w.maxZ && f.floor.minZ === w.minZ));
+    const cx = shop ? shop.pickup.x : (w.minX + w.maxX) / 2; const cz = shop ? shop.pickup.z : (w.minZ + w.maxZ) / 2;
     assert.ok(!solid.some((c) => cx > c.minX && cx < c.maxX && cz > c.minZ && cz < c.maxZ), 'walkable centre is free');
   }
   assert.ok(CITY_BOUNDS.maxX > 140 && CITY_BOUNDS.minZ < -150);

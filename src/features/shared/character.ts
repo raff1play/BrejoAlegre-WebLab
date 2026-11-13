@@ -13,7 +13,11 @@ import { ballPart, boxPart, ringPart, rodPart } from '../../world/modelParts';
  * segments placed every frame by two-bone IK from a pose (all points in the character root space,
  * +z forward, y up, ground at y = 0). Presentation only: the simulation never reads it.
  */
-export type CharacterLook = { jacket: string; vest?: string; trim: string; jeans: string; boots: string; gloves: string; helmet: string; helmetStripe: string; skin: string };
+export type CharacterLook = {
+  jacket: string; vest?: string; trim: string; jeans: string; boots: string; gloves: string; helmet: string; helmetStripe: string; skin: string;
+  /** CORE-014 civilians: hair or a cap instead of the rider's helmet, optional apron. */
+  headwear?: 'helmet' | 'hair' | 'cap'; hair?: string; cap?: string; apron?: string; longHair?: boolean;
+};
 export const RIDER_LOOK: CharacterLook = {
   // CORE-010: black riding jacket with yellow panels, dark trousers, dark helmet with yellow stripe.
   jacket: '#202226', vest: '#f6c624', trim: '#f2c12e', jeans: '#23272d', boots: '#1d1a17', gloves: '#141516',
@@ -99,16 +103,44 @@ export class Character {
     torso.absorb(mats.paint('#16191c'), boxPart(scene, [0.02, 0.4, 0.02], [0, 0.22, 0.125]));
     build(this.torso, torso);
 
-    // Head: neck, full-face helmet with visor, stripe and chin bar.
+    // Head: neck plus either the rider's full-face helmet or a civilian head (face, hair, cap).
     this.head = node('cabeca', this.torso);
     this.head.position.y = BODY.neckUp;
     const head = new BatchSet();
     head.absorb(skinTone, rodPart(scene, [0, -0.06, 0], [0, 0.06, 0], 0.11, 0.1, 8));
-    head.absorb(mats.lacquer(look.helmet), ballPart(scene, [0.29, 0.3, 0.32], [0, 0.17, 0], 9));
-    head.absorb(mats.lacquer(look.helmetStripe), ballPart(scene, [0.06, 0.305, 0.325], [0, 0.175, -0.002], 7));
-    head.absorb(mats.lacquer('#121619'), ballPart(scene, [0.235, 0.115, 0.17], [0, 0.185, 0.085], 7));
-    head.absorb(mats.lacquer(look.helmet), boxPart(scene, [0.17, 0.07, 0.07], [0, 0.07, 0.125], [0.25, 0, 0]));
+    if ((look.headwear ?? 'helmet') === 'helmet') {
+      head.absorb(mats.lacquer(look.helmet), ballPart(scene, [0.29, 0.3, 0.32], [0, 0.17, 0], 9));
+      head.absorb(mats.lacquer(look.helmetStripe), ballPart(scene, [0.06, 0.305, 0.325], [0, 0.175, -0.002], 7));
+      head.absorb(mats.lacquer('#121619'), ballPart(scene, [0.235, 0.115, 0.17], [0, 0.185, 0.085], 7));
+      head.absorb(mats.lacquer(look.helmet), boxPart(scene, [0.17, 0.07, 0.07], [0, 0.07, 0.125], [0.25, 0, 0]));
+    } else {
+      const hair = mats.paint(look.hair ?? '#2a1d16');
+      head.absorb(skinTone, ballPart(scene, [0.19, 0.24, 0.215], [0, 0.15, 0.005], 9));        // skull and face
+      head.absorb(skinTone, ballPart(scene, [0.12, 0.09, 0.08], [0, 0.07, 0.05], 6));          // jaw
+      head.absorb(skinTone, ballPart(scene, [0.035, 0.05, 0.05], [0, 0.135, 0.11], 4));        // nose
+      for (const side of [-1, 1]) {
+        head.absorb(skinTone, ballPart(scene, [0.03, 0.06, 0.045], [side * 0.097, 0.145, -0.005], 4)); // ears
+        head.absorb(mats.paint('#1b1612'), ballPart(scene, [0.03, 0.018, 0.012], [side * 0.042, 0.17, 0.103], 4)); // eyes
+        head.absorb(hair, boxPart(scene, [0.06, 0.012, 0.012], [side * 0.042, 0.195, 0.104])); // brows
+      }
+      head.absorb(hair, ballPart(scene, [0.205, 0.17, 0.225], [0, 0.205, -0.01], 8));          // hair cap
+      if (look.longHair) head.absorb(hair, ballPart(scene, [0.2, 0.26, 0.12], [0, 0.1, -0.08], 7));
+      if (look.headwear === 'cap') {
+        const cap = mats.paint(look.cap ?? '#2b5aa8', 0.15);
+        head.absorb(cap, ballPart(scene, [0.215, 0.13, 0.235], [0, 0.245, -0.005], 8));
+        head.absorb(cap, boxPart(scene, [0.17, 0.014, 0.11], [0, 0.235, 0.135], [-0.12, 0, 0]));
+      }
+    }
     build(this.head, head);
+    if (look.apron) {
+      // Shop apron over the front of the torso and thighs.
+      const apron = new BatchSet();
+      apron.absorb(mats.paint(look.apron), boxPart(scene, [0.3, 0.42, 0.02], [0, 0.18, 0.13]));
+      build(this.torso, apron);
+      const skirt = new BatchSet();
+      skirt.absorb(mats.paint(look.apron), boxPart(scene, [0.34, 0.36, 0.02], [0, -0.12, 0.135]));
+      build(this.pelvis, skirt);
+    }
 
     for (const side of [-1, 1] as const) {
       const upper = node(`braco-${side}`, this.root);
@@ -240,5 +272,25 @@ export function walkingPose(phase: number, amount: number, t: number): Pose {
   pose.yaw = -Math.sin(phase) * 0.12 * amount;
   pose.roll = Math.sin(phase) * 0.025 * amount;
   pose.headYaw = Math.sin(phase) * 0.06 * amount;
+  return pose;
+}
+
+/** Hands forward at counter height (serving, typing, checking parcels); `t` animates small motions. */
+export function workingPose(t: number, busy = 1): Pose {
+  const pose = standingPose(t);
+  const k = Math.sin(t * 3.1) * 0.05 * busy;
+  pose.pitch = 0.16;
+  pose.hands = [v(-0.18, 1.0 + k, 0.36), v(0.18, 1.0 - k, 0.38)];
+  pose.elbowPoles = [v(-0.5, 1.0, -0.3), v(0.5, 1.0, -0.3)];
+  pose.headPitch = 0.25;
+  return pose;
+}
+
+/** Walking while carrying a box in both hands. */
+export function carryingPose(phase: number, amount: number, t: number): Pose {
+  const pose = walkingPose(phase, amount, t);
+  pose.hands = [v(-0.17, 1.06, 0.34), v(0.17, 1.06, 0.34)];
+  pose.elbowPoles = [v(-0.5, 0.9, -0.2), v(0.5, 0.9, -0.2)];
+  pose.pitch = 0.04;
   return pose;
 }

@@ -27,6 +27,7 @@ import { VirtualClock } from './core/city/clock';
 import { lightingAt } from './core/city/dayNight';
 import { buildCityLife } from './features/city/cityLife';
 import { Minimap } from './features/hud/minimap';
+import { DeliveryGame } from './features/delivery/deliveryGame';
 
 /** Composition root: wires input → simulation → presentation. Game rules live in core/ and features/. */
 function start(canvas: HTMLCanvasElement): void {
@@ -74,6 +75,8 @@ function start(canvas: HTMLCanvasElement): void {
   let lighting = lightingAt(clock.hour);
   environment.applyLighting(lighting);
   let lightTimer = 0;
+  let devSpeed = 1;
+  const delivery = new DeliveryGame(scene, world.materials, profile, environment.shadows, world.shutters, (x, z) => world.guard(x, z, 0.45));
   let simTime = 0;
   // NPC vehicles are solid for the player; if one already overlaps (e.g. it was spawned there),
   // only the static world blocks so the player can always move away.
@@ -102,7 +105,7 @@ function start(canvas: HTMLCanvasElement): void {
     if (panel) panel.hidden = false;
     const apply = (key: string) => {
       if (key === '+1') clock.setHour(Math.floor(clock.hour) + 1);
-      else if (key === 'speed') { clock.speedFactor = clock.speedFactor === 1 ? 30 : 1; if (speedButton) speedButton.textContent = `×${clock.speedFactor}`; }
+      else if (key === 'speed') { devSpeed = devSpeed === 1 ? 30 : 1; if (speedButton) speedButton.textContent = `×${devSpeed}`; }
       else clock.setHour(Number(key));
       lightTimer = 0;
     };
@@ -130,18 +133,30 @@ function start(canvas: HTMLCanvasElement): void {
       const side = (walker.state.x - m.x) * Math.cos(m.yaw) - (walker.state.z - m.z) * Math.sin(m.yaw) < 0 ? -1 : 1;
       moto.setRidden(true, side);
       mode = 'riding';
+      // Riding away with parcels from a shop counter: they are now in transport.
+      delivery.workday.depart(clock.hour);
     }
     // Held keys never carry over from one body to the other.
     input.reset();
   };
+  /** The one contextual button: a job interaction when one is at hand, otherwise mount/dismount. */
+  const contextAction = (): void => {
+    const here = mode === 'riding' ? { x: moto.state.x, z: moto.state.z, riding: true } : { x: walker.state.x, z: walker.state.z, riding: false };
+    const job = delivery.action(clock.hour, here);
+    if (job?.available && job.run) { const msg = job.run(); if (msg) hud.toast(msg); return; }
+    if (job && !job.available && mode === 'walking' && !canMount(walker.state, moto.state)) { hud.toast(job.label); return; }
+    toggleMount();
+  };
   const onAction = (action: Action): void => {
-    if (action === 'mount') toggleMount();
+    if (action === 'pause') { hud.setPaused(!hud.paused); input.reset(); return; }
+    if (hud.paused && action !== 'graphics') return;
+    if (action === 'mount') contextAction();
     else if (action === 'graphics') switchGraphicsProfile(profile);
-    else if (action === 'camera-mode') {
-      const yaw = mode === 'riding' ? moto.state.yaw : walker.state.yaw;
-      const next = rig.toggleMode(yaw, mode === 'riding');
-      hud.setCameraMode(next);
-      hud.toast(next === 'third-person' ? 'Câmera: terceira pessoa' : 'Câmera: isométrica');
+    else if (action === 'wait') {
+      const w = delivery.waitOption(clock.hour);
+      const still = mode === 'walking' || isMotoStopped(moto.state);
+      if (w && still) { delivery.startWait(w.until); hud.toast(`${w.label}…`); }
+      else if (w) hud.toast('Pare a moto para aguardar');
     }
   };
   const input = new GameInput(document, onAction);
@@ -149,7 +164,7 @@ function start(canvas: HTMLCanvasElement): void {
   const startFocus = new Vector3(SPAWN.x, 1, SPAWN.z);
   const narrow = Math.min(window.innerWidth, window.innerHeight) < 520;
   const rig = new IsometricCameraRig(scene, canvas, startFocus, narrow ? 15 : 18, cameraObstacles());
-  hud.setCameraMode(rig.mode);
+  rig.resetBehind(SPAWN.yaw, true);
   const fader = new OcclusionFader(world.occluders);
   const cameraTarget = new Vector3();
   const playerCentre = new Vector3();
@@ -157,7 +172,8 @@ function start(canvas: HTMLCanvasElement): void {
 
   scene.onBeforeRenderObservable.add(() => {
     // Clamp the step so a hitch or a background tab cannot teleport anything.
-    const dt = Math.min(0.05, engine.getDeltaTime() / 1000);
+    // Paused: nothing advances (the scene keeps rendering behind the pause card).
+    const dt = hud.paused ? 0 : Math.min(0.05, engine.getDeltaTime() / 1000);
     const m = moto.state;
     insideVehicle = mode === 'riding' ? cityLife.blocks(m.x, m.z, MOTO.bodyRadius) : cityLife.blocks(walker.state.x, walker.state.z, 0.3);
     if (mode === 'riding') {
@@ -166,7 +182,7 @@ function start(canvas: HTMLCanvasElement): void {
         brake: input.isDown('brake') ? 1 : 0,
         steer: input.steer(),
       }, rideGuard, ground(m.x, m.z));
-      const lead = rig.mode === 'third-person' ? Math.min(0.5, Math.max(0, m.speed) * 0.07) : m.speed * 0.28;
+      const lead = Math.min(0.5, Math.max(0, m.speed) * 0.07);
       cameraTarget.set(m.x + Math.sin(m.yaw) * lead, moto.root.position.y + 0.95, m.z + Math.cos(m.yaw) * lead);
       playerCentre.set(m.x, moto.root.position.y + 1.0, m.z);
     } else {
@@ -174,14 +190,18 @@ function start(canvas: HTMLCanvasElement): void {
       const w = walker.state;
       walker.update(dt, input.walkingAxes(),
         rig.viewYaw, walkerGuard, ground(w.x, w.z));
-      cameraTarget.set(w.x, walker.root.position.y + (rig.mode === 'third-person' ? 1.35 : 1.05), w.z);
-      playerCentre.copyFrom(cameraTarget);
+      // Over-the-shoulder: the target sits right of the character, relative to the view.
+      const yaw = rig.viewYaw;
+      playerCentre.set(w.x, walker.root.position.y + 1.35, w.z);
+      cameraTarget.set(w.x + Math.cos(yaw) * 0.42, walker.root.position.y + 1.45, w.z - Math.sin(yaw) * 0.42);
     }
     rig.update(dt, cameraTarget, input.axis('camera-right', 'camera-left'), input.axis('zoom-out', 'zoom-in'),
       mode === 'riding' ? m.yaw : walker.state.yaw, mode === 'riding');
     fader.update(dt, rig.camera.position, playerCentre);
     environment.focusShadows(playerCentre.x, playerCentre.z);
     // Virtual clock, light (twice a second, the sun moves slowly), city simulation, minimap.
+    // Waiting for the routine (e.g. pickups at 12h) runs the clock faster; the scale is unchanged.
+    clock.speedFactor = delivery.waiting !== null ? 24 : devSpeed;
     clock.advance(dt);
     simTime += dt;
     lightTimer -= dt;
@@ -190,8 +210,22 @@ function start(canvas: HTMLCanvasElement): void {
     cityLife.update(dt, simTime, clock.hour, lighting.night, player, ground);
     hud.setClock(clock.label, clock.isWorkday, lighting.night > 0.5);
     minimap.update(player.x, player.z, mode === 'riding' ? m.yaw : walker.state.yaw, performance.now());
-    const available = mode === 'riding' ? isMotoStopped(m) : canMount(walker.state, m);
-    hud.update(mode, mode === 'riding' ? Math.abs(m.speed) * 3.6 : 0, engine.getFps(), available);
+    // Delivery job: shops, depot staff, customers, objective marker and contextual action.
+    const here = mode === 'riding' ? { x: m.x, z: m.z, riding: true } : { x: walker.state.x, z: walker.state.z, riding: false };
+    delivery.update(dt, clock.hour, cityLife.crowd, here, ground, () => false);
+    for (const msg of delivery.workday.events.splice(0)) hud.toast(msg);
+    const objective = delivery.workday.objective(clock.hour);
+    const progress = delivery.workday.progress();
+    const wait = delivery.waiting === null ? delivery.waitOption(clock.hour) : null;
+    hud.setObjective(objective.title, objective.detail,
+      `Coletados ${progress.collected}/${delivery.workday.parcels.filter((p) => p.platform === 'LOJA').length} · Entregues ${progress.delivered}/${progress.total}`,
+      delivery.waiting !== null ? 'Aguardando…' : wait?.label ?? null);
+    minimap.setTarget(objective.target);
+    walker.carrying = mode === 'walking' && (delivery.workday.carrying().length > 0 || delivery.workday.phase === 'ENTREGAS');
+    const job = delivery.action(clock.hour, here);
+    const label = job ? job.label : mode === 'riding' ? 'Descer' : 'Montar';
+    const available = job ? job.available : mode === 'riding' ? isMotoStopped(m) : canMount(walker.state, m);
+    hud.update(mode, mode === 'riding' ? Math.abs(m.speed) * 3.6 : 0, engine.getFps(), label, available);
   });
 
   applyResolution();
@@ -208,6 +242,13 @@ function start(canvas: HTMLCanvasElement): void {
         teleport: (x: number, z: number, yaw: number) => Object.assign(moto.state, { x, z, yaw, speed: 0 }),
         camera: (alpha: number, beta: number, radius: number) => rig.debugSet(alpha, beta, radius),
         setHour: (hour: number) => { clock.setHour(hour); lightTimer = 0; },
+        /** Puts the rider on foot at a spot (the bike stays where it is). */
+        placeWalker: (x: number, z: number, yaw = 0) => {
+          if (mode === 'riding') { moto.state.speed = 0; moto.setRidden(false); walker.root.setEnabled(true); mode = 'walking'; }
+          walker.place(x, z, yaw, ground(x, z));
+        },
+        act: () => contextAction(),
+        wait: () => onAction('wait'),
       },
     });
   }
@@ -224,7 +265,21 @@ function start(canvas: HTMLCanvasElement): void {
         walker: { ...walker.state, y: walker.root.position.y },
         camera: { mode: rig.mode, alpha: rig.camera.alpha, beta: rig.camera.beta, radius: rig.camera.radius, target: rig.camera.target.asArray() },
         fadedBuildings: fader.fadedCount,
-        clock: { label: clock.label, hour: clock.hour, workday: clock.isWorkday, night: lighting.night, devTime },
+        clock: { label: clock.label, hour: clock.hour, workday: clock.isWorkday, night: lighting.night, devTime, speed: clock.speedFactor },
+        delivery: {
+          phase: delivery.workday.phase,
+          objective: delivery.workday.objective(clock.hour),
+          progress: delivery.workday.progress(),
+          assigned: [...delivery.workday.assigned],
+          route: [...delivery.workday.route],
+          parcels: delivery.workday.parcels.map((p) => ({ id: p.id, state: p.state, holder: p.holder, origin: p.origin, destination: p.destination, platform: p.platform, region: p.region })),
+          staff: delivery.workday.staff.map((st) => ({ role: st.role, state: st.state })),
+          stores: [...delivery.stores].map(([id, st]) => ({ id, employee: st.ops.employee, shutter: st.ops.shutter, queue: st.ops.queue.length, served: st.ops.served, pickup: st.layout.pickup })),
+          addresses: delivery.workday.addresses.length,
+          action: delivery.action(clock.hour, mode === 'riding' ? { x: moto.state.x, z: moto.state.z, riding: true } : { x: walker.state.x, z: walker.state.z, riding: false })?.label ?? null,
+          waiting: delivery.waiting,
+        },
+        paused: hud.paused,
         city: cityLife.stats(),
         minimap: { expanded: minimap.isExpanded, arrow: minimap.arrowAt() },
         externalAssets: external,

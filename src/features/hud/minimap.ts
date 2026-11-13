@@ -32,6 +32,10 @@ export class Minimap {
   private last = -1;
   private expanded = false;
   private x = 0; private z = 0; private yaw = 0;
+  private target: { x: number; z: number } | null = null;
+
+  /** CORE-014: current objective (drawn as a star; clamped to the edge when off the window). */
+  setTarget(t: { x: number; z: number } | null): void { this.target = t; }
 
   constructor(doc: Document) {
     const root = doc.querySelector<HTMLElement>('#minimap');
@@ -133,6 +137,16 @@ export class Minimap {
         c.fillText(p.label, px, py - r * 2);
         c.font = `800 ${Math.round(r * 1.25)}px system-ui, sans-serif`;
       }
+    }
+    if (this.target) {
+      const m = r * 1.6;
+      const tx = Math.min(size - m, Math.max(m, toX(this.target.x)));
+      const ty = Math.min(size - m, Math.max(m, toY(this.target.z)));
+      c.strokeStyle = 'rgba(255, 90, 60, .55)'; c.lineWidth = 2 * dpr; c.setLineDash([4 * dpr, 4 * dpr]);
+      c.beginPath(); c.moveTo(toX(this.x), toY(this.z)); c.lineTo(tx, ty); c.stroke(); c.setLineDash([]);
+      c.fillStyle = 'rgba(16, 24, 32, .9)'; c.beginPath(); c.arc(tx, ty, r * 1.25, 0, Math.PI * 2); c.fill();
+      c.fillStyle = '#ff5a3c'; c.beginPath(); c.arc(tx, ty, r * 1.05, 0, Math.PI * 2); c.fill();
+      c.fillStyle = '#ffffff'; c.fillText('★', tx, ty + 0.5);
     }
     // Player arrow (north-up map, so it turns with the heading).
     const ax = toX(this.x); const ay = toY(this.z);

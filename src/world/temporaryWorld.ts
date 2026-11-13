@@ -29,6 +29,8 @@ export type World = {
   /** Buildings that are faded when they stand between the camera and the player. */
   occluders: { box: Box3D; meshes: Mesh[] }[];
   shadowCasters: AbstractMesh[];
+  /** CORE-014 roll-up shutters of the shops, animated by the store operations. */
+  shutters: Map<string, Mesh>;
 };
 
 function buildGround(set: BatchSet, mats: Materials): void {
@@ -184,7 +186,9 @@ export function buildTemporaryWorld(scene: Scene, profile: GraphicsProfile): Wor
   const plants = buildShowcasePlants(scene, materials);
   buildBackdrop(scene, materials);
 
+  const animated = new Set<Mesh>(city.shutters.values());
   for (const mesh of [...flatMeshes, ...uprightMeshes, ...bodies]) {
+    if (animated.has(mesh)) continue;
     mesh.computeWorldMatrix(true);
     mesh.freezeWorldMatrix();
     mesh.doNotSyncBoundingInfo = true;
@@ -200,6 +204,7 @@ export function buildTemporaryWorld(scene: Scene, profile: GraphicsProfile): Wor
     guard: createMotionGuard(WORLD_BOUNDS, colliders),
     raised,
     occluders,
+    shutters: city.shutters,
     shadowCasters: [...uprightMeshes, ...bodies, ...trees, ...(profile.detailShadows ? [...plants, ...furniture] : [])],
   };
 }
