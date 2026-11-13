@@ -1,22 +1,32 @@
-# Brejo Alegre Web Lab — protótipo single-player no navegador
+# Brejo Alegre Web Lab — simulador 3D experimental
 
-> **Estado: VERSÃO 0.1 JOGÁVEL NA BRANCH `setup/weblab-foundation`, testada em Chromium headless; AINDA NÃO TESTADA EM ANDROID REAL.** Repositório: https://github.com/raff1play/BrejoAlegre-WebLab. PR em rascunho: https://github.com/raff1play/BrejoAlegre-WebLab/pull/1. A `main` não foi alterada e nada foi publicado no Pages.
+**Código de trabalho:** branch permanente [`preview`](https://github.com/raff1play/BrejoAlegre-WebLab/tree/preview). **Versão estável:** `main` (consolidação em revisão). **Jogo público:** https://raff1play.github.io/BrejoAlegre-WebLab/
 
-![Captura real do Babylon.js na rua de teste](docs/evidence/02-pilotando-rua.jpg)
+O Web Lab é um protótipo **single-player** no navegador com Babylon.js 9.35.0, TypeScript 5.9.3 e Vite 7.3.0. A versão de jogo definitiva em Godot/Android, com multiplayer e logística, é um projeto futuro distinto. A cidade atual é fictícia, com aviso na tela.
 
-**O que é:** laboratório 3D descartável (Babylon.js 9.35.0 + TypeScript 5.9.3 + Vite 7.3.0), feito para experimentar direção, interações e direção de arte por navegador desktop ou Android. Não é o jogo final em Godot e não existe multiplayer ou backend nesta fase.
+![Captura real de gameplay](docs/evidence/02-pilotando-rua.jpg)
 
-**Importante:** O antigo erro 403 da integração GitHub foi resolvido; o registro histórico está em `docs/GITHUB_UPLOAD_BLOCKER.md`. Para começar, leia `docs/PROJECT_STATE.md` e `docs/NEXT_TASK_FOR_FABLE.md`. Não fazer merge/deploy sem aprovação.
+## Estado da experiência
 
-**CI remoto (11/11/2026):** [execução #43036567194](https://github.com/raff1play/BrejoAlegre-WebLab/actions/runs/43036567194) passou na HEAD `f1615d9` (`npm ci`, validação, 25 testes, build de staging). O roteiro de navegador (`npm run test:e2e`, 44 verificações) roda fora da CI; resultado e capturas em `docs/evidence/`. **FPS em aparelho real não foi medido.**
+- W009: moto/entregador articulados, analógico, caminhar/montar/desmontar e cenário urbano.
+- CORE-010: remasterização de luz, vegetação e fachadas.
+- CORE-011: modelos e texturas externos Poly Haven com licença CC0 (veja `public/assets/ASSET_MANIFEST.md`).
+- CORE-012: câmera em terceira pessoa estilo GTA, botão **GTA/ISO** para voltar à isométrica e tecla **C**.
+- O Easter egg W010–W012 pertence exclusivamente à branch arquivada `setup/weblab-foundation` e não foi incorporado à linha real. O PWA foi suspenso; usar navegador.
+- CI da CORE-012 passou com **56/56 testes unitários** e build staging; os novos cenários E2E de câmera foram adicionados, mas não são executados automaticamente pela CI.
+- FPS, ergonomia e câmera no Galaxy S24 exigem validação no aparelho real. Não inferir isso de um navegador headless.
 
-**Leia antes de implementar:** [`AGENTS.md`](AGENTS.md) → [`docs/00_START_HERE.md`](docs/00_START_HERE.md) → [`docs/PROJECT_STATE.md`](docs/PROJECT_STATE.md) → [`docs/VISUAL_DIRECTION.md`](docs/VISUAL_DIRECTION.md) → [`docs/NEXT_TASK_FOR_FABLE.md`](docs/NEXT_TASK_FOR_FABLE.md). Essas referências foram criadas para outros chats e outras IAs trabalharem sem acesso a memória externa.
+## Fluxo de trabalho
 
-## Rodar no computador
+As mudanças normais são commits na `preview` — **não abrimos uma branch/PR para cada ajuste**. A CI valida os commits, mas **não publica automaticamente**. Só quando o usuário autoriza, o arquivo `docs/PREVIEW_DEPLOY_TRIGGER.md` é atualizado e o workflow da `preview` publica no único site GitHub Pages. Para consolidar uma versão estável, fazemos PR de `preview` para `main`, revisamos e só então integramos.
 
-É preciso **Node.js >=22.12**, npm e conexão ao registro npm ao menos na primeira instalação.
+Leia [`AGENTS.md`](AGENTS.md), [`docs/WORKFLOW.md`](docs/WORKFLOW.md) e [`docs/PROJECT_STATE.md`](docs/PROJECT_STATE.md). Não fazer merge ou deploy sem autorização.
 
-```sh
+## Rodar localmente
+
+Requer Node.js **22.12+**, npm e acesso inicial ao registro de pacotes.
+
+```bash
 npm ci
 npm run validate:repo
 npm run test:unit
@@ -24,80 +34,23 @@ npm run typecheck
 npm run dev
 ```
 
-Abra http://localhost:5173. Para testar no Chrome Android da mesma rede Wi-Fi, abra `http://IP_DO_COMPUTADOR:5173` e autorize a conexão no firewall local. A orientação horizontal é recomendada.
+Abra http://localhost:5173. `npm run build:staging` compila o staging e `npm run preview` serve a compilação local; nenhum desses comandos publica online.
 
-```sh
-npm run build:staging       # compilação de pré-validação, sem deploy
-npm run build:production    # gera dist/ para publicação, sem deploy
-npm run preview             # serve dist/ localmente
-```
+## Controles
 
-**Não confundir ambientes com cópias de código:** `src/features/` organiza mecânicas; `.env.development/.env.staging/.env.production` selecionam o modo; `dist/` é criado pelos builds. GitHub Actions só publica Pages após execução manual de workflow na branch `main`, depois de aprovado.
-
-## Controles (testados em Chromium; toque apenas emulado)
-
-| Ação | Desktop | Toque |
+| Ação | Teclado/mouse | Android (navegador) |
 |---|---|---|
-| Acelerar / andar para a frente | W / ↑ | ▲ |
-| Frear (parado: soltar e apertar de novo dá ré lenta) / andar para trás | S / ↓ / Espaço | ▼ |
-| Virar / andar para os lados | A/D ou ←/→ | ◀ / ▶ |
-| Descer (só parado) / montar (perto da moto) | F ou Enter | Botão Descer/Montar |
-| Girar câmera | Q/E ou arrastar na cena | ↶/↷ ou arrastar |
-| Zoom | Z/X, +/−, roda do mouse | ＋/－ ou pinça |
-| Trocar perfil gráfico | G | botão "Gráficos" |
+| Acelerar/frear na moto | W / S | Botões à direita |
+| Virar a moto | A / D | Analógico esquerdo horizontal |
+| Caminhar | WASD | Analógico esquerdo 360° |
+| Montar/descer parado | F / Enter | Botão Montar/Descer |
+| Alternar GTA/isométrica | C | Botão GTA/ISO |
+| Girar câmera | Q / E ou arrastar | Botões e arrastar |
+| Zoom | Z / X, roda do mouse | Botões ou pinça |
+| Perfil gráfico | G | Botão Gráficos |
 
-A pé o movimento é relativo à câmera. `?gfx=mobile` ou `?gfx=desktop` na URL força o perfil gráfico.
+O jogo mantém dois perfis gráficos. Para forçar um perfil, acrescente `?gfx=mobile` ou `?gfx=desktop` à URL.
 
-## Código e organização
+## Escopo e licenças
 
-```text
-src/
-  core/               # matemática e regras puras testáveis
-  config/             # perfis dos ambientes (sem segredos)
-  features/
-    driving/          # modelo da moto (movimento em core/)
-    walking/          # personagem a pé
-    camera/           # câmera isométrica e fade de oclusão
-    controls/         # teclado e toque
-    hud/              # textos e avisos na tela
-  world/              # mundo temporário sem validade cartográfica
-  main.ts             # composição da cena, não lógica de domínio
-  style.css           # HUD e responsividade
-
-tests/                # testes determinísticos sem Babylon/browser
-tests/e2e/            # roteiro de navegador (Playwright do ambiente, fora da CI)
-docs/evidence/        # capturas e log reais do navegador
-scripts/              # validação da integridade do repositório
-docs/                 # requisitos, decisões, estado e handoff
-.github/workflows/    # CI staging; produção manual e protegida
-```
-
-## Limites da versão 0.1
-
-- Cena fictícia de rua em primitivas com texturas procedurais, sombras e névoa; moto e personagem simplificados. A moto usa um modelo cinemático e a colisão é círculo contra retângulos; não é física de corpo rígido.
-- Ainda faltam modelos de arte licenciados, áudio, avaliação humana da dirigibilidade e testes num Android verdadeiro.
-- A meta de 30 FPS em dispositivo intermediário é **alvo**, não número medido.
-- As imagens do Runway são referências artísticas, nunca prova de renderização Babylon. **O JPG de referência não foi versionado neste primeiro commit**; solicitar a imagem original quando precisar de uma comparação visual.
-- Mapa geograficamente fiel, NPCs logísticos, entrega, inventário, scanner, economia e multiplayer são etapas posteriores.
-
-## Estado de validação
-
-Ver `docs/PROJECT_STATE.md` para os testes e a versão publicada. O `package-lock.json` já está versionado, e a CI utiliza `npm ci`. Build aprovado não substitui teste de jogabilidade no aparelho.
-
-## Licenciamento e gastos
-
-Babylon.js e ferramentas abertas não exigem assinatura do motor. Não utilizar assets, marcas oficiais ou dados privados sem licença/consentimento. Não contratar serviços nem publicar sem aprovação. Repositório público **não significa** que todos os arquivos de arte tenham licença aberta; não supor permissões de redistribuição.
-
-## Testar no navegador (modo atual)
-
-O Brejo Alegre Web Lab **não oferece instalação PWA nesta versão de teste**. A instalação e o cache offline anteriores foram desativados por decisão do usuário; a lógica histórica continua preservada no GitHub para eventual reativação explícita.
-
-- Jogue diretamente no Chrome: https://raff1play.github.io/BrejoAlegre-WebLab/
-- Se estiver no celular, gire para horizontal ou toque em **Jogar na horizontal** (o aviso de tela cheia pertence ao Chrome).
-- **Analógico esquerdo:** na moto, deslize lateralmente para esterçar com intensidade proporcional; aceleração e freio continuam nos botões direitos.
-- **A pé:** o mesmo analógico move o personagem em 360°, com velocidade proporcional ao deslocamento do dedo.
-- Soltar o analógico, cancelar o toque, trocar de app ou perder o foco zera imediatamente o controle.
-- Teclado WASD/setas continua funcionando no PC. A câmera permanece por gesto de arrastar, pinça ou botões dedicados.
-- Caso você tenha **instalado** o PWA anteriormente, desinstale o ícone/aplicativo antigo do Android e abra o endereço no Chrome. A página nova também tenta encerrar somente o service worker e o cache específicos deste projeto.
-
-O PWA está **desativado**, não apagado do histórico. Não há nova assinatura, conta ou serviço externo.
+Não há servidor, NPCs logísticos, entregas, economia nem multiplayer neste Web Lab. O mapa real e essas mecânicas pertencem ao plano futuro em `docs/product/ORIGINAL_GODOT_SPEC.md`. Os assets externos instalados têm fonte e licença registradas; não adicionar novos sem comprovação. Sem assinatura adicional para o motor.

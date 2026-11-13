@@ -302,3 +302,15 @@ FPS do headless (5–7) não representa hardware. **Galaxy S24 / Chrome Android:
 - **Testes:** `tests/cameraFollow.test.ts` cobre yaw, wrap angular, colisão de câmera e obstáculos. `tests/e2e/play.cjs` ampliado com alternância desktop e touch (não executado no CI: Playwright externo). O CI da branch verifica `validate:repo`, testes unitários, `typecheck` e `build:staging`; consultar o run mais recente para resultado.
 - **Não testado:** browser real com GPU, Chrome Android Galaxy S24, capturas e FPS. Não alegar qualidade/comportamento validados no telefone.
 - **Publicação:** nenhuma desta branch. Workflow Pages herdado continua limitado à CORE-011, portanto não publica CORE-012 por acidente. Esperar revisão e autorização do usuário para testar no link.
+
+## Reorganização de branches — 12/11/2026
+
+**Decisão explícita do usuário:** parar de criar uma nova branch/PR a cada mudança e utilizar `preview` para desenvolvimento contínuo e `main` para versão estável revisada.
+
+- Branch permanente `preview` criada a partir do commit publicado CORE-012 `bf8881e514e7f6e6a451a299de262197ef1e1271`.
+- A árvore dessa origem foi examinada: 163 entradas; não havia arquivos cujo caminho contivesse `dragon`, `easter` ou `surprise`. Easter egg W010–W012 segue na antiga branch experimental, que não foi mesclada.
+- CI ajustada para executar também em `preview`. Workflow de Preview limitado à branch `preview` e ao arquivo `docs/PREVIEW_DEPLOY_TRIGGER.md`; commits ordinários **não acionam publicação**.
+- `main` continua no commit inicial `2c55f700b7b9e195068a354699607d15381a245d` enquanto ocorre revisão de consolidação. PRs #2–#5 permanecem históricos até a integração ser realmente concluída; não afirmar que estão mesclados/encerrados.
+- Antes da migração: CORE-012 teve sucesso na CI (run `43227259084`) e em publicação (run `43227258786`), mas o comportamento de câmera no Galaxy S24 e FPS real permanecem sem teste documentado.
+- **Pendência manual:** autorizar `preview` em Settings → Environments → `github-pages` uma única vez. Até lá, não disparar um novo preview e não afirmar que o Pages já aponta para `preview`.
+- Ver procedimentos e decisões em `docs/WORKFLOW.md`.

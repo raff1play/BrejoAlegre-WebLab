@@ -1,5 +1,8 @@
 # Próxima tarefa
 
+**FLUXO ATUAL (12/11/2026) — PRIORIDADE:** a branch de desenvolvimento é **`preview`**, derivada da CORE-012, com CI a cada push. O deploy usa exclusivamente o arquivo de autorização `docs/PREVIEW_DEPLOY_TRIGGER.md`, após pedido explícito do usuário e liberação única de `preview` em `github-pages`. Leia `docs/WORKFLOW.md`. Não criar `feat/core-013` nem novos PRs para ajustes comuns. O PR de consolidação para `main` só será mesclado após revisão e aceite; o Easter egg W010–W012 continua isolado. **As instruções históricas de branch abaixo são registro, não ação vigente.**
+
+
 **CORE-012 (12/11/2026):** câmera dupla GTA/ISO implementada na branch `feat/core-012-gta-camera` (base CORE-011). Checar CI, testar alternância e colisão visual no navegador/Android real, avaliar FPS e só publicar após autorização. Não misturar com Easter egg W010–W012.
 
 

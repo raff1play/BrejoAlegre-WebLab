@@ -1,31 +1,19 @@
-# Ambientes — dev, staging e produção sem duplicar o jogo
+# Ambientes — um código, branches permanentes
 
-**Princípio:** não existe uma pasta “features” executada e outra “produção” contendo segunda cópia dos mesmos scripts. O **mesmo `src/`** é compilado com configuração diferente.
+| Ambiente | Origem | Verificação | Publicação |
+|---|---|---|---|
+| development | `preview`, local | `npm run dev` | Somente local |
+| staging | `preview` / PR | `npm run build:staging` pela CI | GitHub Pages **somente após autorização**, pelo workflow de Preview |
+| production | `main` revisada | `npm run build:production` | Workflow `pages.yml` manual, sem gatilho automático |
 
-| Ambiente | Origem do código | Comando | Destino | Publicação |
-|---|---|---|---|---|
-| `development` | Branch de trabalho | `npm run dev` | localhost:5173, HMR | nenhuma |
-| `staging` | Pull request antes da `main` | `npm run build:staging` | `dist/` + artifact de CI para auditoria | **não publicado automaticamente** |
-| `production` | `main` revisada | `npm run build:production` | `dist/` estático | GitHub Pages **somente se workflow manual for autorizado e habilitado** |
+A `main` ainda precisa receber a consolidação formal. Até lá, o site público é a última versão **explicitamente publicada** do Preview, que pode estar atrás do código de `preview`.
 
-**Fluxo:** `feat/...` → PR → CI staging passa → revisão do usuário → merge explícito → produção manual se aprovada. `main` não é uma pasta; é uma branch estável.
+## Publicação controlada
 
-## Arquivos de configuração
+- `.github/workflows/ci.yml`: executa em push para `preview` e `main`, além de PRs selecionados; testa, compila e armazena artefato. Não publica.
+- `.github/workflows/preview.yml`: aceita apenas push na `preview` cujo arquivo alterado seja `docs/PREVIEW_DEPLOY_TRIGGER.md`. Roda testes e build antes de publicar no GitHub Pages.
+- `.github/workflows/pages.yml`: produção manual, exclusivamente da `main`.
+- O ambiente GitHub `github-pages` deve permitir a branch `preview`; essa é uma configuração manual única, não alterada pelos arquivos YAML.
+- O site do GitHub Pages é o mesmo para todas as publicações, não há site paralelo de homologação.
 
-- `.env.development`: `VITE_GAME_ENV=development`
-- `.env.staging`: `VITE_GAME_ENV=staging`
-- `.env.production`: `VITE_GAME_ENV=production`
-- `src/config/environment.ts`: lê o modo e marca o HUD; não contém senhas nem links secretos.
-
-Vite injeta `VITE_*` no JavaScript público. **Nunca inserir tokens, senhas, credenciais de repositório, identificadores privados ou URLs protegidas nesses arquivos.**
-
-## GitHub Actions
-
-- `.github/workflows/ci.yml`: por PR e push, executa documentação + testes + build staging e guarda dist como artefato. Não faz deploy.
-- `.github/workflows/pages.yml`: disparo manual, recusado fora da branch main, usa ambiente `github-pages`. Exige selecionar Actions em Settings > Pages antes de rodar.
-- Aprovação de deploy/branch protection nas configurações do GitHub **não pode ser presumida** por existir arquivo YAML.
-- Inicialmente falta `package-lock.json`, porque o npm registry falhou. CI usa `npm install` temporariamente; depois do primeiro `npm install` real e commit do lock, mudar para `npm ci` em ambos workflows.
-
-## Cuidado com staging
-
-“Build staging passou” NÃO quer dizer “testei no celular” nem “staging hospedado”. Se precisarmos de URL de homologação no futuro, isso será outra decisão com custos/segurança explicitados.
+`VITE_GAME_ENV` seleciona desenvolvimento/staging/produção no bundle (público). Não colocar senhas em variáveis Vite. Detalhes operacionais em `docs/WORKFLOW.md`.

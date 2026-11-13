@@ -87,3 +87,12 @@
 - Distâncias iniciais 5,6 m na moto e 3,6 m a pé, FOV ~60°, zoom e inclinação limitados; bloqueio por volumes estáticos de casas, muros, troncos e postes.
 - Não muda física, esterço da W008, analógico, controles de aceleração/freio, assets CORE-011, multiplayer ou mapa fictício; W010–W012 descartados permanecem fora.
 - Branch `feat/core-012-gta-camera` baseada em `feat/core-011-real-assets`; PR de revisão; **não há autorização para merge ou deploy nesta solicitação**.
+
+## Desenvolvimento contínuo na branch preview — 12/11/2026
+
+- **Pedido explícito do usuário:** simplificar o fluxo para não criar uma nova branch/PR em cada pequena alteração.
+- **Aprovado:** `preview` como branch permanente de trabalho (origem CORE-012 `bf8881e5`), commits pequenos e CI em cada push; `main` recebe apenas PR revisado e autorizado.
+- GitHub Pages publica a `preview` apenas por alteração intencional do arquivo `docs/PREVIEW_DEPLOY_TRIGGER.md`, depois da autorização específica do usuário; a branch `preview` deve ser permitida uma única vez no ambiente `github-pages`.
+- Branches temporárias são exceção para mudanças grandes/arriscadas/paralelas. Não exigir PR para correções de rotina em `preview`.
+- Consolidar PRs #2–#5 somente após revisão e aprovação; não incorporar Easter egg W010–W012 arquivado e não mesclar automaticamente.
+- Nenhuma mudança na definição do futuro jogo Godot, nos assets, nos controles atuais ou no PWA cancelado.
