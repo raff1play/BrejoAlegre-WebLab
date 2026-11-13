@@ -1,0 +1,44 @@
+name: Import Patch licensed model pilot (one-time)
+on:
+  push:
+    branches: [preview]
+    paths: ['.github/workflows/patch-asset-import.yml']
+permissions:
+  contents: write
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: true }
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - name: Import only verified bus and walking NPC GLBs from Patch
+        run: |
+          npm install --global --no-audit --no-fund @patchgg/cli
+          mkdir -p public/assets/models/patch
+          pch assets add --to "$PWD/public/assets/models/patch" polyfork:city-bus-49fd97 anymove:woman
+          test -s public/assets/models/patch/city-bus-49fd97.glb
+          test -s public/assets/models/patch/woman.glb
+          test -s public/assets/models/patch/CREDITS.md
+          python3 - <<'PY'
+          import json,struct,pathlib
+          for name in ['city-bus-49fd97.glb','woman.glb']:
+            path=pathlib.Path('public/assets/models/patch')/name
+            d=path.read_bytes()
+            magic,version,length=struct.unpack_from('<III',d)
+            assert magic==0x46546C67 and version==2 and length==len(d)
+            jlen,jtype=struct.unpack_from('<II',d,12)
+            doc=json.loads(d[20:20+jlen])
+            print('Verified GLB',name,len(d),'bytes','meshes',len(doc.get('meshes',[])),'animations',[a.get('name') for a in doc.get('animations',[])])
+            if name=='woman.glb': assert {'Idle','Walk'}.issubset({a.get('name') for a in doc.get('animations',[])})
+          PY
+      - name: Commit verified binary assets to preview only
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/assets/models/patch/
+          git diff --cached --quiet && exit 0
+          git commit -m "assets(patch): import licensed city bus and animated pedestrian pilot GLBs"
+          git push origin HEAD:preview
