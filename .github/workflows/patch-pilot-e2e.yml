@@ -26,6 +26,9 @@ jobs:
           for i in $(seq 1 40); do if curl -fsS http://127.0.0.1:4173/ >/dev/null; then break; fi; sleep 1; done
           echo 'Rechecking normalized Babylon animation names'
           node tests/e2e/patchPilot.cjs
+          npm run dev -- --host 127.0.0.1 > /tmp/vite-patch-dev.log 2>&1 &
+          for i in $(seq 1 40); do if curl -fsS http://127.0.0.1:5173/ >/dev/null; then break; fi; sleep 1; done
+          node tests/e2e/patchPilotVisual.cjs
       - name: Store real screenshot and test evidence (no Pages deployment)
         if: success()
         run: |
