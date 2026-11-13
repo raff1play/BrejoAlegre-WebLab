@@ -148,7 +148,8 @@ async function desktop(browser) {
   for (const candidate of Object.keys(opposite)) {
     const before = dist(await snap());
     await key.down(candidate);
-    s = await until((v) => dist(v) > before + 1.2 || dist(v) > 3, 4000);
+    // Generous window: under software rendering a few frames per second cover little distance.
+    s = await until((v) => dist(v) > before + 1.2 || dist(v) > 3, 12000);
     await key.up(candidate);
     if (dist(s) > before + 1.0) { awayKey = candidate; break; }
   }
