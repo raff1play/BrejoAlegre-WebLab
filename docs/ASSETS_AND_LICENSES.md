@@ -10,3 +10,14 @@
 ## CORE-014 (13/11/2026)
 
 Nenhum asset externo novo. Veículos NPC, pessoas (funcionários, clientes, transeuntes), interiores das lojas, galpão, placas de número (atlas de dígitos desenhado em canvas) e mobiliário são **procedurais**, gerados no código (`src/features/city/vehicleModels.ts`, `src/features/shared/character.ts`, `src/world/city/cityBuild.ts`). Os assets CC0 da CORE-011 (Poly Haven) continuam como estavam. Fontes externas de modelos (Kenney, Quaternius, ambientCG) não foram consultadas nesta sessão; substituições futuras exigem registro de fonte, autor, licença e tamanho aqui.
+
+## CORE-015 (13/11/2026) — dados geográficos
+
+- **OpenStreetMap**, recorte da sede de Brejo Alegre/SP: `data/osm/brejo-alegre.raw.json` e o derivado `src/world/geo/brejoAlegreData.ts`. Licença **ODbL 1.0**, atribuição "© OpenStreetMap contributors" (https://www.openstreetmap.org/copyright). Extraído em 13/11/2026 pela Overpass API, com procedência em `data/osm/SOURCE.json`.
+- **Obrigações:**
+  - manter a atribuição visível no jogo (tela Pausa/Sobre) e nos arquivos derivados;
+  - distribuir o banco derivado (a rede e as quadras geradas) sob ODbL, ou oferecer o método de reprodução (os scripts em `scripts/geo/` reproduzem tudo a partir do bruto);
+  - não alegar endosso do OSM.
+- As imagens do jogo são uma "Produced Work" e precisam da atribuição.
+- Nenhum dado do Google Maps foi usado.
+- O experimento Patch.gg foi removido; seus GLBs e licenças saíram do repositório. Os assets CC0 Poly Haven (CORE-011) continuam.

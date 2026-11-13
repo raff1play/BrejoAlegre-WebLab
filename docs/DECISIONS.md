@@ -119,3 +119,13 @@
 - Plataformas **fictícias** "ML" e "SHP" (códigos, sem marca). Fluxo dos volumes da loja: NA_LOJA → COLETADO → EM_TRANSPORTE → RECEBIDO_BASE → TRIADO → NA_SACA → EM_ROTA → ENTREGUE; volumes das plataformas chegam de caminhão já EM_TRANSPORTE. Estados só avançam um passo (erro caso contrário).
 - Prova vertical: 2 lojas designadas, 2 volumes por loja + 4 das plataformas = 8 entregas. Generalizável por opção (`Workday({ stores, perStore, marketplace })`).
 - **Assets:** nenhum asset externo novo; todos os modelos novos são procedurais (fontes externas não foram verificadas nesta sessão). Sem dependências novas.
+
+## CORE-015 — Mapa real 1:1 (13/11/2026)
+
+- **Fonte única:** OpenStreetMap (ODbL). O Overpass foi bloqueado pelo proxy da sessão, então os dados vieram de um workflow do GitHub Actions que baixa **só** o recorte da sede (bbox ±0,02°) e faz o commit do arquivo bruto com procedência. Não se usou nenhum arquivo estadual. Os dados do Google Maps **não** foram usados: a captura serviu só de referência visual.
+- **Projeção:** plano tangente equirretangular local na origem da bbox, 1 unidade = 1 m, +x leste, +z norte. Erro medido ≤ 3 cm em 840 m.
+- **Nada inventado na malha:** só vias carroçáveis do OSM (`service`/`track` ficaram de fora). Os únicos pontos sintéticos são os cortes na borda da rede. Semáforos e pontos de ônibus não existem no OSM e por isso não foram simulados; os pedestres atravessam quando a via está livre.
+- **Estimativas declaradas:** como o OSM só tem 7 edificações, os lotes e as casas são gerados nas frentes das quadras reais (cerca de 12 × 20 m). Números de casa são métricos e estimados (`estimated: true`). Lojas, galpão, pessoas e plataformas continuam fictícios.
+- **Galpão:** o layout da CORE-014 foi preservado no próprio quadro local e encaixado sem deformação na quadra real que comporta 64 × 58 m (Estrada Municipal Manoel Leitão). `DEPOT_LOCAL_SPOTS` fica no quadro local e `DEPOT_SPOTS` em coordenadas de mundo.
+- **Desempenho:** casas em setores de 100 m, com LOD distante mesclado por setor. O detalhe é construído perto do jogador, no máximo um setor por quadro, e descartado ao se afastar. A meta de 30 FPS só vale medida em aparelho.
+- **Aviso obrigatório mantido:** o validador exige "ÁREA TEMPORÁRIA DE TESTE — NÃO REPRESENTA BREJO ALEGRE". Com a malha real o texto ficou impreciso, e alterá-lo depende de decisão do usuário (C13-06).

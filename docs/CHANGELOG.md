@@ -120,3 +120,16 @@ Próximas mudanças devem registrar PR/SHA e resultados verificáveis.
 - `5c0e8bb` — cidade com 2,15× a área navegável (novos bairros fictícios), 48 endereços entregáveis, domínio de entregas puro (endereços, volumes, lojas, galpão, jornada) e testes.
 - `a66e79a` — câmera única em terceira pessoa (GTA/ISO removido), HUD mínimo com Pausa/Sobre, lojas ocas com vitrine, porta de enrolar, balcão e estoque, galpão com interior e operação, funcionários e clientes articulados, veículos NPC com silhueta real, placas de número, jornada jogável.
 - commit seguinte — correção de shader (instâncias com cor), câmera em interiores, teste de navegador da jornada completa, auditoria visual e documentação.
+
+## CORE-015 — Brejo Alegre real 1:1 (13/11/2026, branch `preview`)
+
+- Revertido seletivamente o piloto Patch.gg (`1ddbd18`), com histórico preservado e Poly Haven mantido.
+- Recorte OpenStreetMap da sede baixado por workflow isolado (`.github/workflows/osm-fetch.yml`) e versionado com procedência e licença ODbL (`data/osm/`).
+- Importador OSM → `src/world/geo/brejoAlegreData.ts`, com projeção métrica local (1 unidade = 1 m) e fonte única para ruas, quadras, lotes, tráfego, pedestres, minimapa e entregas.
+- Rede viária, quadras e lotes gerados da geometria real.
+- Colisão por polígonos com índice espacial; câmera com caixas orientadas; lotes e fachadas em qualquer ângulo.
+- Casas por setor com LOD.
+- Galpão CORE-014 encaixado rigidamente numa quadra real; lojas em quadras do centro.
+- Tráfego com sentido único e admissão encadeada; sem semáforos nem pontos de ônibus (não mapeados no OSM).
+- Comparação cartográfica verificável (`scripts/geo/compare-map.ts`, `scripts/geo/compare-shots.cjs`, `docs/evidence/core015-mapa/`).
+- Atribuição OSM/ODbL na tela Pausa/Sobre.

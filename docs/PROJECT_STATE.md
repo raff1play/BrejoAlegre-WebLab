@@ -1,4 +1,5 @@
 # Estado factual — Brejo Alegre Web Lab
+> **Estado atual 13/11/2026 (CORE-015, branch `preview`):** malha viária **real** de Brejo Alegre (OpenStreetMap, ODbL) em escala 1:1. Lotes e casas estimados; lojas e galpão fictícios em quadras reais. Todos os sistemas da CORE-014 preservados. Comparação cartográfica em `docs/evidence/core015-mapa/`. Detalhes na seção "CORE-015" ao fim. Nada publicado; sem merge na `main`.
 
 > **Estado atual 13/11/2026 (CORE-014, branch `preview`):** simulador de entregas jogável — câmera única em 3ª pessoa, HUD mínimo com Pausa/Sobre, cidade com 2,15× a área navegável, 48 endereços, 8 lojas com horário/funcionário/clientes, galpão com equipe operando, jornada completa 11h–21h. Detalhes na seção "CORE-014" ao fim. Nada publicado; sem merge na `main`.
 > **Estado atual 13/11/2026 (CORE-013, branch `preview`):** cidade ampliada como releitura fictícia de Brejo Alegre, com tráfego, pedestres, semáforos, minimapa, relógio virtual (1 h = 4 min; jornada 11h–21h) e ciclo dia/noite. Detalhes, testes e pendências na seção "CORE-013" ao fim deste arquivo. Nada publicado; sem merge na `main`.
@@ -368,3 +369,47 @@ FPS do headless (5–7) não representa hardware. **Galaxy S24 / Chrome Android:
 ## Experimento Patch.gg removido (CORE-015, 13/11/2026)
 
 - Por pedido do usuário, o piloto opcional Patch.gg (`?assets=patch`: ônibus GLB Polyfork e pedestre animada anymove, commits `22e33f0`…`0511045`) foi **revertido seletivamente** para o estado da CORE-014 (`8a18fc2`): GLBs, licenças/créditos, `patchPilot.ts`, testes e evidências exclusivos removidos; `cityLife.ts`, `main.ts`, `externalAssets.ts`, `index.html` e documentação restaurados. Histórico preservado (sem reset/force push). Assets Poly Haven da CORE-011 mantidos. `docs/PREVIEW_DEPLOY_TRIGGER.md` não alterado.
+
+## CORE-015 — Brejo Alegre real em escala 1:1 (13/11/2026)
+
+**Situação:** a malha fictícia da CORE-014 foi substituída pela malha viária **real** do OpenStreetMap (1 unidade = 1 m), com todos os sistemas da CORE-014 funcionando sobre ela. Trabalho direto na `preview`; nada publicado (`docs/PREVIEW_DEPLOY_TRIGGER.md` intocado), sem PR e sem merge na `main`.
+
+| Item | Situação | Evidência |
+|---|---|---|
+| Dados OSM do recorte da sede (126 kB, ODbL, procedência) | OBTIDO via GitHub Actions (proxy da sessão bloqueia Overpass/IBGE) | `data/osm/SOURCE.json`, commit `45cdb4c` |
+| Conteúdo validado: 144 vias (126 carroçáveis), 33 nomes, 159 cruzamentos (86 na sede), **7 edificações** | TESTADO | `docs/evidence/core015-mapa/metricas.json` |
+| Malha do jogo = OSM: 100 % dos eixos carroçáveis cobertos e 100 % das vias do jogo sobre o OSM (tol. 1 m), 87/87 cruzamentos, erro de escala ≤ 0,03 m | TESTADO (script independente) | `docs/evidence/core015-mapa/` |
+| Escala 1:1 contra haversine, nomes, conectividade, cruzamentos por nó compartilhado, cobertura, lotes fora das ruas, alcance a pé | TESTADO (unitário) | `tests/geo.test.ts` |
+| 46 quadras, 688 lotes (674 casas **estimadas**), 8 lojas e galpão **fictícios** em quadras reais, 48 endereços em ruas reais | TESTADO | `tests/geo.test.ts`, `tests/delivery.test.ts` |
+| Tráfego na malha real (mão única na pista dupla, admissão encadeada, PARE por prioridade, sem semáforo inventado) | TESTADO (simulação sem colisão nem travamento) | `tests/traffic.test.ts` |
+| Pedestres: calçadas conexas, travessia só com a via livre, lojas e praças reais | TESTADO | `tests/pedestrians.test.ts` |
+| Jornada completa (coleta → galpão → triagem → saca → 8 entregas), câmera, minimapa, toque, pausa | TESTADO no Chromium headless: **70/70** | `docs/evidence/core015-e2e/` |
+| Casas por setor (100 m) com LOD distante e detalhe perto (150 m desktop / 95 m celular) | IMPLEMENTADO; medido em headless | ver medidas abaixo |
+| FPS em Android | **NÃO MEDIDO** | — |
+
+**Medidas em headless (SwiftShader; não representam aparelho):**
+- carga em ~3–5 s em desenvolvimento;
+- 59 setores de casas, com 6–16 detalhados conforme o lugar;
+- no centro: 715 malhas ativas e ~486 mil triângulos no perfil celular, 888 malhas e ~730 mil triângulos no desktop;
+- bundle principal de 1,61 MB (422 kB gzip), antes 1,32 MB.
+
+Unitários: **82/82**. `validate:repo`, `typecheck` e `build:staging` passam.
+
+**Commits:**
+- `1ddbd18`: reversão do Patch;
+- `b80d5c0`, `c62a6dd`, `bc8a15f`: download OSM e workflow;
+- `45cdb4c`: dados;
+- `05ebccb`: importador;
+- `c0c3ccd`: base geométrica;
+- `99d1fca`: cidade real;
+- `15b2369`: testes;
+- `2c21498`: galpão/entregas em coordenadas reais e e2e;
+- o commit seguinte traz a comparação cartográfica e a documentação.
+
+**Pendências:**
+- FPS e termal em Android real;
+- avaliação visual humana;
+- decidir o texto do aviso "NÃO REPRESENTA BREJO ALEGRE" (C13-06);
+- locais não confirmados no OSM (ver `docs/CITY_REFERENCE.md`);
+- relevo;
+- calçadas em vias rurais.

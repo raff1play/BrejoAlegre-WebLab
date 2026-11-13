@@ -52,6 +52,9 @@ export class Minimap {
 
   get isExpanded(): boolean { return this.expanded; }
 
+  /** Static layer as PNG (1.2 px/m, north up, CITY_BOUNDS) — used for the CORE-015 map comparison. */
+  baseImage(): { url: string; pxPerM: number } { return { url: this.base.toDataURL('image/png'), pxPerM: PX_PER_M }; }
+
   setExpanded(on: boolean): void {
     this.expanded = on;
     this.root.classList.toggle('expanded', on);

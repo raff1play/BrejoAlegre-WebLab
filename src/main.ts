@@ -278,6 +278,7 @@ function start(canvas: HTMLCanvasElement): void {
         depot: (x: number, z: number) => depotWorld(x, z),
         depotLocal: (x: number, z: number) => buildProbe().depotLocal(x, z),
         depotYaw: (yaw: number) => depotYaw(yaw),
+        minimapBase: () => minimap.baseImage(),
       },
     });
   }

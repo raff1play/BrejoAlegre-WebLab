@@ -93,3 +93,17 @@ Nova feature → pasta `src/features/<name>/` com controlador e API clara; regra
 - **Plantas:** `storeLayout()` e `depotLayout()` em `cityPlan.ts` geram paredes, balcões, estoque, filas e pontos de interação — usados por colisão, câmera, renderização e NPCs.
 - **Apresentação:** `src/features/delivery/deliveryGame.ts` (funcionários `NpcPerson`, clientes da multidão na fila, marcador de objetivo, ação contextual); `src/features/city/npcPerson.ts` (personagem articulado civil); `vehicleModels.ts` (veículos NPC).
 - **LOD de pessoas:** os mais próximos (até 10/5 por perfil) usam o personagem articulado (um por visual, 12 visuais); os demais, figuras instanciadas com as mesmas cores.
+
+## CORE-015 — Geografia real
+
+- **Dados:** `data/osm/*.json` (bruto) → `scripts/geo/import-osm.mjs` → `src/world/geo/brejoAlegreData.ts` (`GEO`, gerado).
+- **Rede:** `src/world/geo/network.ts` corta as vias carroçáveis em `NET_BOUNDS`, divide nos nós compartilhados e classifica em urbana ou rural (`SEDE`). `PLAY_BOUNDS` é o limite do jogador.
+- **Quadras e lotes:** `src/world/geo/geoCity.ts` monta as faces do grafo planar (quadras), recua meio-fio e divisa, gera lotes orientados nas frentes e muros nas sobras, e define as quadras das lojas e a do galpão.
+- **Plano da cidade:** `src/world/city/cityPlan.ts` adapta a rede (`ROADS`, `NODES`, `BLOCKS`, `CITY_LOTS`, `STORES`, `depotWorld`/`depotYaw`) para tráfego, pedestres, colisão, minimapa e entregas.
+- **Colisão:** polígonos convexos com `SpatialIndex` (`src/core/collision.ts`); a câmera usa caixas orientadas (`Box3D.yaw`).
+- **Streaming:** `src/features/city/houseStreamer.ts` gera LOD por setor de 100 m e detalhe perto do jogador.
+- **Verificação:**
+  - `tests/geo.test.ts`;
+  - `scripts/geo/compare-map.ts` reprojeta o OSM bruto de forma independente, compara e grava as métricas;
+  - `scripts/geo/compare-shots.cjs` gera as imagens;
+  - `src/world/city/testProbe.ts` fornece cruzamento e lote reais para o e2e (só em desenvolvimento).

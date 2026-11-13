@@ -177,6 +177,7 @@ button.active { background: #e8ae3c; color: #142232; }
 .pause-actions button { padding: 12px 18px; border-radius: 12px; font-size: 14px; min-height: 46px; }
 .about-notice { margin: 0; color: #ffe08f; font-weight: 800; font-size: 12px; letter-spacing: .05em; }
 .about-text { margin: 0; font-size: 12px; color: #c9d4e0; line-height: 1.45; }
+.about-text a { color: #f2c230; }
 @media (max-height: 480px) {
   .objective { padding: 6px 10px; max-width: min(300px, 40vw); gap: 2px; }
   .objective strong { font-size: 12px; }

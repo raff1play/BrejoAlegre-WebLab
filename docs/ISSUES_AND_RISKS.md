@@ -103,3 +103,16 @@ Não marcar bloqueio como corrigido sem evidência de execução, timestamp e, q
 | C14-05 | Média | ABERTO | Clientes andam em linha reta dentro da loja (sem colisão com o balcão); fila limitada a 4. |
 | C14-06 | Baixa | ABERTO | Controle de hora de desenvolvimento pode levar a jornada a "ENCERRADA" ao pular para depois das 21h (só em dev). |
 | C14-07 | Baixa | ABERTO | Volumes não aparecem fisicamente no baú/saca da moto; só nas mãos do entregador a pé. |
+
+## CORE-015 — Mapa real 1:1
+
+| ID | Prioridade | Status | Ação / decisão |
+|---|---|---|---|
+| C15-01 | Alta | **NÃO MEDIDO** | FPS/termal em Android. Em headless, no centro, há ~715 malhas ativas e ~486 mil triângulos no perfil celular, com 8 setores de casas detalhados. Se não atingir 30 FPS, reduzir o raio de detalhe (95 m) ou instanciar portões e janelas. |
+| C15-02 | Média | ABERTO | O OSM tem só 7 edificações: as 674 casas são estimadas e não correspondem a imóveis reais. Usar o mapeamento de edificações quando existir no OSM. |
+| C15-03 | Média | ABERTO | Locais pedidos não estão no OSM (Centro Poliesportivo Manoel Rodrigues Leitão, Ferreira Burguers, Casa de Pesca Avenida, igreja, escola, prefeitura). Não foram posicionados; precisam de fonte aberta verificável. |
+| C15-04 | Média | DECISÃO PENDENTE | O aviso "NÃO REPRESENTA BREJO ALEGRE" contradiz a malha real (ver C13-06). |
+| C15-05 | Baixa | ABERTO | Larguras padronizadas e meio-fio a recuo constante: esquinas curvas podem ficar até ~1 m fora do real. Sem relevo. |
+| C15-06 | Baixa | ABERTO | Vias rurais e `unclassified` fora de quadras não têm calçada nem lotes; vias `service`/`track` não entram na malha. |
+| C15-07 | Baixa | ABERTO | "Avendia Dois" (grafia do OSM) foi mantida; corrigir no OSM, não no jogo. |
+| C15-08 | Info | REGISTRADO | O proxy da sessão bloqueia Overpass, Nominatim e IBGE. Atualizar os dados exige rodar o workflow `osm-fetch.yml` de novo (ele altera `data/osm/` na `preview`). |
