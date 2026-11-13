@@ -1,5 +1,7 @@
 # Estado factual — Brejo Alegre Web Lab
 
+> **Estado atual 12/11/2026:** únicas branches no GitHub: `main` e `preview` (CORE-012 integral). PR #6 de consolidação em rascunho; commits unitários e código real preservados, sem Easter egg. As seções antigas abaixo são registros históricos, não instruções vigentes. Seguir `docs/WORKFLOW.md`.
+
 **Atualização:** 11/11/2026, após a implementação da versão 0.1 jogável. Registro datado: confirme sempre a HEAD e a CI atuais no GitHub.
 
 ## Repositório, branch e revisão
@@ -315,3 +317,12 @@ FPS do headless (5–7) não representa hardware. **Galaxy S24 / Chrome Android:
 - **Pendência manual:** autorizar `preview` em Settings → Environments → `github-pages` uma única vez. Até lá, não disparar um novo preview e não afirmar que o Pages já aponta para `preview`.
 - Ver procedimentos e decisões em `docs/WORKFLOW.md`.
 - A CI da `preview` após a documentação inicial foi concluída com **success** (run `43336452746`), com validação, testes e build staging. O PR #6 terá suas próprias verificações antes do merge.
+
+## Exclusão das branches legadas — 12/11/2026
+
+- **Pedido do usuário:** manter só `main` e `preview`, com a última versão CORE-012 na `preview`.
+- Antes da limpeza, a comparação `feat/weblab-core-w009`, `feat/core-010-visual-remaster`, `feat/core-011-real-assets` e `feat/core-012-gta-camera` contra `preview` retornou `behind_by=0`, confirmando todos os commits na ancestralidade da `preview`.
+- A branch experimental `setup/weblab-foundation` divergiu da `preview` (experimento W010–W012); foi eliminada com aprovação do usuário, sem merge. PR #1 permaneceu fechado.
+- Workflow temporário GitHub Actions `43338515888` concluiu com **success** removendo as cinco branches. API GitHub confirmou que restaram apenas `main` e `preview`. O workflow de limpeza foi removido após a execução; nenhuma rotina de exclusão permanece ativa.
+- A última versão jogável CORE-012 é ancestral da `preview`. As alterações desde CORE-012 foram documentais e de CI, sem modificar código de jogo.
+- A `main` permanece sem merge; PR consolidado #6 ainda precisa de aprovação explícita. **Nenhuma nova publicação no Pages foi solicitada nesta limpeza.**

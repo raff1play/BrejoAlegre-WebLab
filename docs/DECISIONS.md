@@ -94,5 +94,5 @@
 - **Aprovado:** `preview` como branch permanente de trabalho (origem CORE-012 `bf8881e5`), commits pequenos e CI em cada push; `main` recebe apenas PR revisado e autorizado.
 - GitHub Pages publica a `preview` apenas por alteração intencional do arquivo `docs/PREVIEW_DEPLOY_TRIGGER.md`, depois da autorização específica do usuário; a branch `preview` deve ser permitida uma única vez no ambiente `github-pages`.
 - Branches temporárias são exceção para mudanças grandes/arriscadas/paralelas. Não exigir PR para correções de rotina em `preview`.
-- Encerrar PRs antigos #2–#5 sem merge após preservar seu conteúdo em `preview`. PR #6 (`preview` → `main`) permanece em rascunho e só pode ser mesclado após revisão e aprovação; o Easter egg W010–W012 continua arquivado.
+- PRs antigos #2–#5 encerrados sem merge; suas branches foram excluídas após validação de ancestralidade. A branch experimental `setup/weblab-foundation` também foi excluída (PR #1 fechado). Somente `main` e `preview` permanecem. PR #6 (`preview` → `main`) continua em rascunho e só pode ser mesclado após revisão e aprovação; o Easter egg W010–W012 não foi incorporado.
 - Nenhuma mudança na definição do futuro jogo Godot, nos assets, nos controles atuais ou no PWA cancelado.
