@@ -3,7 +3,6 @@ import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Texture } from '@babylonjs/core/Materials/Textures/texture';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
 import type { Material } from '@babylonjs/core/Materials/material';
-import type { AssetContainer } from '@babylonjs/core/assetContainer';
 import type { BaseTexture } from '@babylonjs/core/Materials/Textures/baseTexture';
 import type { Nullable } from '@babylonjs/core/types';
 import { Mesh } from '@babylonjs/core/Meshes/mesh';
@@ -215,10 +214,4 @@ export function applyRoofTexture(material: StandardMaterial, withNormalMap: bool
       return true;
     })
     .catch((error: unknown) => { console.warn('CORE-011: textura de telha externa não carregou; mantendo a procedural.', error); return false; });
-}
-
-/** Experimental Patch.gg GLBs: opt-in only; the original materials and actors remain fallback. */
-export async function loadPatchPilotAsset(scene: Scene, file: 'city-bus-49fd97' | 'woman'): Promise<AssetContainer> {
-  if (!loadersRegistered) { registerGltfLoader(); loadersRegistered = true; }
-  return LoadAssetContainerAsync(`${import.meta.env.BASE_URL}assets/models/patch/${file}.glb`, scene);
 }

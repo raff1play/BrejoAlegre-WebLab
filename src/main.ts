@@ -66,10 +66,9 @@ function start(canvas: HTMLCanvasElement): void {
     .catch((error: unknown) => { console.error(error); external = { loaded: [], failed: [], instances: 0, triangles: 0 }; });
 
   // CORE-013: living city (traffic, pedestrians, signals) and the virtual clock driving the light.
-  const params = new URLSearchParams(window.location.search);
-  const patchAssets = params.get('assets') === 'patch';
   const cityLife = buildCityLife(scene, world.materials, profile, environment.shadows, (x, z) => world.guard(x, z, 0.3),
-    params.get('trafego') !== '0', patchAssets);
+    new URLSearchParams(window.location.search).get('trafego') !== '0');
+  const params = new URLSearchParams(window.location.search);
   const devTime = import.meta.env.DEV || params.get('devtime') === '1';
   const clock = new VirtualClock();
   const requestedHour = Number(params.get('hora'));

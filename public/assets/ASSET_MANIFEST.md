@@ -1,6 +1,6 @@
 # Assets do protótipo
 
-**Histórico W009:** o projeto começou sem assets externos. Desde CORE-011 há arquivos Poly Haven, e o teste Patch opcional abaixo.
+**Versão 0.1: nenhum arquivo de asset de terceiros.** Não há modelo 3D, textura, fonte ou áudio baixado.
 
 - Geometria: primitivas e malhas geradas em código (`src/world/`, `src/features/`).
 - Texturas: pintadas em canvas 2D na inicialização por `src/world/textures.ts` (asfalto, concreto, reboco, bloco cerâmico, telha, grama, chapa, porta, janela, grade, folhagem, placas, céu; desde a W009 também pedra canjiquinha, cobogó, ladrilho hidráulico, pedra portuguesa, intertravado, atlas de sombras de contato e panorama de reflexo em `src/world/materials.ts`). Código do próprio repositório, sem licença externa a rastrear.
@@ -22,7 +22,7 @@ Baixados pela API do Poly Haven (`api.polyhaven.com/files/<id>`, arquivos em `dl
 | `models/rollershutter_door.glb` | Poly Haven — "Rollershutter Door", autor MP — https://polyhaven.com/a/rollershutter_door | CC0 1.0 (https://polyhaven.com/license) | 70936 | Original: 1 104 triângulos (duas variantes), 2,34 MB. Variante com pichação removida; 552 triângulos; WebP 512 px. Porta de enrolar fechada da mercearia. |
 | `textures/clay_roof_tiles_03_diff_512.jpg` e `_nor_gl_512.jpg` | Poly Haven — "Clay Roof Tiles 03", autor Amal Kumar — https://polyhaven.com/a/clay_roof_tiles_03 | CC0 1.0 (https://polyhaven.com/license) | 159421 | Mapas 1k (cor e normal OpenGL) reduzidos para 512 px. Telha cerâmica de todos os telhados; mapa normal só no perfil alto; repetição real de 2,6 m. |
 
-Fontes avaliadas e não usadas: Kenney (kenney.nl responde 403 a clientes automatizados, embora o proxy permita); ambientCG (API ok, mas downloads redirecionam para `acg-download.struffelproductions.com`, bloqueado); downloads diretos de arquivos CDN do patch.gg estavam bloqueados no ambiente antigo. No teste posterior os GLBs foram obtidos via CLI oficial `pch assets add` com licenças embutidas; árvores do Poly Haven (≈1,6 milhão de triângulos, inviáveis no celular).
+Fontes avaliadas e não usadas: Kenney (kenney.nl responde 403 a clientes automatizados, embora o proxy permita); ambientCG (API ok, mas downloads redirecionam para `acg-download.struffelproductions.com`, bloqueado); arquivos do patch.gg (`assets.patchusercontent.com`, bloqueado — a busca do patch.gg foi usada só para triagem de licenças e polígonos); árvores do Poly Haven (≈1,6 milhão de triângulos, inviáveis no celular).
 
 Ao adicionar assets, preencher:
 
@@ -38,16 +38,3 @@ Os ícones abaixo foram criados especificamente para este protótipo por código
 | `public/icons/icon-192.png` | Arte geométrica original produzida para o Web Lab | Sem dependências de terceiros; ícone do próprio projeto | 9.500 | PNG indexado de 2 bits, 192×192 |
 | `public/icons/icon-512.png` | Arte geométrica original produzida para o Web Lab | Sem dependências de terceiros; ícone do próprio projeto | 66.145 | PNG indexado de 2 bits, 512×512 |
 
-
-
-## Teste visual Patch.gg — ônibus e pedestre animada (13/11/2026)
-
-**Não é troca definitiva.** Apenas `?assets=patch` carrega os modelos abaixo de forma assíncrona, com fallback para a apresentação CORE-014 se falharem. Sem a flag, nenhuma dessas malhas é requisitada, preservando o jogo e o FPS atuais. Rotas, regras e colisões continuam na simulação original. A experiência Android real não foi aferida.
-
-| Arquivo | Origem / licença | Tamanho | Uso |
-|---|---|---:|---|
-| `models/patch/city-bus-49fd97.glb` | [City Bus — Polyfork](https://polyfork.dev/asset/city-bus-49fd97), via Patch `polyfork:city-bus-49fd97`, **CC BY 4.0** | 230864 B | Substitui somente a malha dos até dois ônibus NPC visíveis no modo de teste; 2008 triângulos, largura 2,18 m, altura 3,2 m, comprimento 11 m. Visual low-poly; qualidade em comparação ainda pendente de aprovação humana. |
-| `models/patch/woman.glb` | [Animated Woman — Patch/anymove](https://patch.gg/create/toolbox/assets/anymove:woman), **CC0 1.0** | 6268508 B | Substitui visualmente **uma** pedestre próxima com Idle/Walk no modo de teste, mantendo toda IA da CORE-014. 1,70 m, 22 ossos, textura original 4K; muito pesado para substituir todos os NPCs. |
-| `models/patch/CREDITS.md`, `models/patch/LICENSES/*` | Arquivos gerados pela CLI do Patch a partir dos registros de origem | — | Preservam a atribuição Polyfork e os textos das licenças. A mesma atribuição está visível no menu Sobre/Pausa. |
-
-Modelos GLB validados por cabeçalho e inspeção de cenas/animações. Importação feita pela CLI oficial do Patch em GitHub Actions, sem credenciais ou assinatura nova. Materiais e malhas não foram modificados. **Próximo passo:** comparar visualmente no aparelho; otimizar a personagem antes de aumentar a densidade.

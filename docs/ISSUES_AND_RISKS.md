@@ -103,7 +103,3 @@ Não marcar bloqueio como corrigido sem evidência de execução, timestamp e, q
 | C14-05 | Média | ABERTO | Clientes andam em linha reta dentro da loja (sem colisão com o balcão); fila limitada a 4. |
 | C14-06 | Baixa | ABERTO | Controle de hora de desenvolvimento pode levar a jornada a "ENCERRADA" ao pular para depois das 21h (só em dev). |
 | C14-07 | Baixa | ABERTO | Volumes não aparecem fisicamente no baú/saca da moto; só nas mãos do entregador a pé. |
-
-- **PATCH-01 — PENDENTE:** comparar estética do GLB City Bus (2008 triângulos, low-poly) com o ônibus procedural CORE-014; pode não elevar o realismo. Piloto permanece opt-in, reversível.
-- **PATCH-02 — PENDENTE:** personagem anymove 6,27 MB/4K não pode ser replicada em dezenas de NPCs sem LOD e redução de textura. Testar animação no Babylon, escala, orientação e impacto no Galaxy S24.
-- **PATCH-03 — PENDENTE:** validar telas e desempenho reais no Chrome Android; registros de CI e checks do GLB não equivalem à renderização móvel.

@@ -16,12 +16,6 @@ O Web Lab é um protótipo **single-player** no navegador com Babylon.js 9.35.0,
 - CI da CORE-012 passou com **56/56 testes unitários** e build staging; os novos cenários E2E de câmera foram adicionados, mas não são executados automaticamente pela CI.
 - FPS, ergonomia e câmera no Galaxy S24 exigem validação no aparelho real. Não inferir isso de um navegador headless.
 
-## Comparação experimental de assets Patch.gg
-
-Na branch `preview` há um teste opcional de um ônibus GLB (Polyfork) e **uma pedestre animada** (Patch anymove). Execute o jogo com `?assets=patch` para experimentar; sem essa flag, os NPCs e ônibus CORE-014 permanecem inalterados. Os modelos são carregados somente no modo experimental, e uma falha de carregamento volta ao procedural. Não altera física, rotas, logística nem a `main`.
-
-O menu Pausa/Sobre mostra a atribuição da Polyfork (CC BY 4.0). Ver `public/assets/ASSET_MANIFEST.md` e `public/assets/models/patch/CREDITS.md`. O modelo de ônibus é low-poly e a pedestre ainda pesa ~6,3 MB; não considerar o visual aprovado antes de avaliar no celular.
-
 ## Fluxo de trabalho
 
 As mudanças normais são commits na `preview` — **não abrimos uma branch/PR para cada ajuste**. A CI valida os commits, mas **não publica automaticamente**. Só quando o usuário autoriza, o arquivo `docs/PREVIEW_DEPLOY_TRIGGER.md` é atualizado e o workflow da `preview` publica no único site GitHub Pages. Para consolidar uma versão estável, fazemos PR de `preview` para `main`, revisamos e só então integramos.
