@@ -26,7 +26,7 @@ export const EXTENT = 63.8;
  * Playable area. CORE-013 expanded it from the W009 core (±46 × ±56) to the whole re-imagined town
  * (see world/city/cityPlan.ts, which re-exports it as CITY_BOUNDS).
  */
-export const WORLD_BOUNDS: Box2D = { minX: -158, maxX: 158, minZ: -166, maxZ: 146 };
+export const WORLD_BOUNDS: Box2D = { minX: -158, maxX: 158, minZ: -166, maxZ: 160 };
 
 export const LOT_WIDTH = 12;
 export const LOT_DEPTH = 20;

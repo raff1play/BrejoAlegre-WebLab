@@ -307,11 +307,28 @@ export function buildCity(scene: Scene, mats: Materials, shared: SharedBatches):
   bodies.push(...buildChurch(scene, mats));
   bodies.push(...buildCivic(scene, mats, 'escola', ['E.E. AGOSTINHO GRIGOLETO', 'Escola estadual · releitura no jogo'], SCHOOL.frame, SCHOOL.width, SCHOOL.depth, '#f4efe2', '#2b5aa8'));
   bodies.push(...buildCivic(scene, mats, 'servicos', ['CENTRO DE SERVIÇOS', 'Prédio fictício do jogo'], SERVICES.frame, SERVICES.width, SERVICES.depth, '#eef0ea', '#3f7a55'));
-  for (const w of frontageWalls()) upright.box(mats.plaster('#e2d8c4'), w.minX, w.maxX, CURB_H, CURB_H + WALL_H, w.minZ, w.maxZ, { fitV: true });
+  // Frontage walls in the W009/CORE-010 manner: plastered wall, stone plinth, coping and pillars.
+  const wallPaint = ['#e2d8c4', '#ece4d2', '#d9cdb5', '#e8dcc6'];
+  frontageWalls().forEach((w, i) => {
+    const along = w.maxX - w.minX > w.maxZ - w.minZ;
+    const paint = mats.plaster(wallPaint[i % wallPaint.length]!);
+    upright.box(paint, w.minX, w.maxX, CURB_H + 0.35, CURB_H + WALL_H, w.minZ, w.maxZ, { fitV: true });
+    upright.box(mats.paint('#9b9184'), w.minX - 0.02, w.maxX + 0.02, CURB_H, CURB_H + 0.35, w.minZ - 0.02, w.maxZ + 0.02);
+    upright.box(mats.paint('#cfc6b4'), w.minX - 0.05, w.maxX + 0.05, CURB_H + WALL_H, CURB_H + WALL_H + 0.07, w.minZ - 0.05, w.maxZ + 0.05);
+    const length = along ? w.maxX - w.minX : w.maxZ - w.minZ;
+    const n = Math.max(1, Math.round(length / 3.2));
+    for (let k = 0; k <= n; k++) {
+      const t = (along ? w.minX : w.minZ) + (length * k) / n;
+      const [x0, x1, z0, z1] = along ? [t - 0.16, t + 0.16, w.minZ - 0.08, w.maxZ + 0.08] : [w.minX - 0.08, w.maxX + 0.08, t - 0.16, t + 0.16];
+      upright.box(paint, x0, x1, CURB_H, CURB_H + WALL_H + 0.18, z0, z1, { fitV: true });
+      upright.box(mats.paint('#cfc6b4'), x0 - 0.04, x1 + 0.04, CURB_H + WALL_H + 0.18, CURB_H + WALL_H + 0.25, z0 - 0.04, z1 + 0.04);
+    }
+  });
   // Periphery fields: ploughed strips and pasture (visual only, walkable).
   const fields: [Box2D, 'dirt' | 'grass'][] = [
-    [{ minX: -150, maxX: -84, minZ: -150, maxZ: -40 }, 'dirt'], [{ minX: 20, maxX: 66, minZ: -158, maxZ: -96 }, 'dirt'],
-    [{ minX: 84, maxX: 150, minZ: 0, maxZ: 120 }, 'grass'], [{ minX: -150, maxX: -84, minZ: 10, maxZ: 130 }, 'grass'],
+    // Outside the playable bounds since CORE-014 (the town now fills the old fields).
+    [{ minX: -232, maxX: -164, minZ: -150, maxZ: -40 }, 'dirt'], [{ minX: -232, maxX: -164, minZ: 4, maxZ: 120 }, 'dirt'],
+    [{ minX: 14, maxX: 120, minZ: 168, maxZ: 226 }, 'dirt'], [{ minX: -120, maxX: -14, minZ: -226, maxZ: -172 }, 'dirt'],
   ];
   for (const [f, kind] of fields) {
     if (kind === 'dirt') for (let z = f.minZ; z < f.maxZ; z += 3) drawBox(flat, mats.dirt, { ...f, minZ: z, maxZ: z + 1.6 }, -0.028, -0.02, flatOnly);

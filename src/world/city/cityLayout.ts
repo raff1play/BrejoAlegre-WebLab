@@ -112,7 +112,13 @@ export function cityTrees(): TreeSpec[] {
     [-130, 2, 'oiti'], [-96, -60, 'oiti'], [-14, -110, 'oiti'], [14, -130, 'ipe-roxo'], [-30, -150, 'oiti'], [40, -120, 'oiti'],
     [90, 20, 'oiti'], [120, 40, 'ipe'], [100, 70, 'oiti'], [150, 10, 'oiti'], [-100, 60, 'ipe'], [-140, 100, 'oiti'],
   ];
-  for (const [x, z, kind] of rural) trees.push({ x, z, kind, scale: 1.3, solid: true });
+  // Keep only trees clear of every street corridor and open space (the town grew over some).
+  const clear = (x: number, z: number) => !ROADS.some((r) => {
+    const s = roadSpan(r);
+    const [along, across] = s.axis === 'x' ? [x, z] : [z, x];
+    return along > s.lo - 8 && along < s.hi + 8 && Math.abs(across - s.c) < ROAD_HALF + SIDEWALK + 1.5;
+  }) && !walkableAreas().some((b) => x > b.minX - 1 && x < b.maxX + 1 && z > b.minZ - 1 && z < b.maxZ + 1);
+  for (const [x, z, kind] of rural) if (clear(x, z)) trees.push({ x, z, kind, scale: 1.3, solid: true });
   return trees;
 }
 

@@ -21,7 +21,11 @@ export type CityRoad = Readonly<{
   heavy: boolean;
 }>;
 
-export const CITY_BOUNDS: Box2D = { minX: -158, maxX: 158, minZ: -166, maxZ: 146 };
+export const CITY_BOUNDS: Box2D = { minX: -158, maxX: 158, minZ: -166, maxZ: 160 };
+/** CORE-014 outer grid lines (west column, south and north rows). */
+export const FAR_X = 146;
+export const FAR_SOUTH_Z = -146;
+export const FAR_NORTH_Z = 146;
 export const GRID_X = 70;
 export const NORTH_Z = 76;
 export const SOUTH_Z = -86;
@@ -48,6 +52,12 @@ export const NODES: readonly CityNode[] = [
   node('portao', 106, SOUTH_Z, 'stop'),
   node('docas', 106, -115, 'free'),
   node('anel', RING_X, CROSS_Z, 'stop'),
+  // CORE-014 expansion: west column, south and north rows, north-east corner.
+  node('oo', -FAR_X, CROSS_Z, 'stop'), node('ono', -FAR_X, NORTH_Z, 'free'), node('oso', -FAR_X, SOUTH_Z, 'stop'),
+  node('sso', -FAR_X, FAR_SOUTH_Z, 'free'), node('ss1', -GRID_X, FAR_SOUTH_Z, 'stop'), node('ssul', 0, FAR_SOUTH_Z, 'stop'),
+  node('sse', GRID_X, FAR_SOUTH_Z, 'free'),
+  node('non', -FAR_X, FAR_NORTH_Z, 'free'), node('nno', -GRID_X, FAR_NORTH_Z, 'stop'), node('nn', 0, FAR_NORTH_Z, 'stop'),
+  node('nne', GRID_X, FAR_NORTH_Z, 'stop'), node('ane', RING_X, NORTH_Z, 'stop'), node('nee', RING_X, FAR_NORTH_Z, 'free'),
   node('saida-norte', 0, EXIT_REACH, 'free', true),
   node('saida-sul', 0, -EXIT_REACH, 'free', true),
   node('saida-oeste', -EXIT_REACH, CROSS_Z, 'free', true),
@@ -60,12 +70,15 @@ const road = (id: string, name: string, a: string, b: string, kind: RoadKind, pr
 export const ROADS: readonly CityRoad[] = [
   road('av-sul', 'Av. Pedro de Paula Castilho', 'sul', 'centro', 'urban', 3, true),
   road('av-centro', 'Av. Pedro de Paula Castilho', 'centro', 'norte', 'urban', 3, true),
-  road('av-saida-sul', 'Estrada de acesso (sul)', 'saida-sul', 'sul', 'rural', 3, true),
-  road('av-saida-norte', 'Estrada de acesso (norte)', 'norte', 'saida-norte', 'rural', 3, true),
+  road('av-saida-sul', 'Estrada de acesso (sul)', 'saida-sul', 'ssul', 'rural', 3, true),
+  road('av-sul2', 'Av. Pedro de Paula Castilho', 'ssul', 'sul', 'urban', 3, true),
+  road('av-norte2', 'Av. Pedro de Paula Castilho', 'norte', 'nn', 'urban', 3, true),
+  road('av-saida-norte', 'Estrada de acesso (norte)', 'nn', 'saida-norte', 'rural', 3, true),
   road('coroados-oeste', 'R. Coroados', 'oeste', 'centro', 'urban', 2, true),
   road('coroados-leste', 'R. Coroados', 'centro', 'leste', 'urban', 2, true),
   road('coroados-anel', 'R. Coroados', 'leste', 'anel', 'urban', 2, true),
-  road('saida-oeste', 'Estrada rural (oeste)', 'saida-oeste', 'oeste', 'rural', 2, false),
+  road('saida-oeste', 'Estrada rural (oeste)', 'saida-oeste', 'oo', 'rural', 2, false),
+  road('coroados-far', 'R. Coroados', 'oo', 'oeste', 'urban', 2, false),
   road('sete-sul', 'R. 7 de Setembro', 'se', 'leste', 'urban', 1, true),
   road('sete-norte', 'R. 7 de Setembro', 'leste', 'ne', 'urban', 1, true),
   road('palmeiras-sul', 'R. das Palmeiras', 'so', 'oeste', 'urban', 1, false),
@@ -78,6 +91,27 @@ export const ROADS: readonly CityRoad[] = [
   road('treze-portao', 'R. 13 de Maio', 'portao', 'base', 'urban', 2, true),
   road('patio', 'Pátio do galpão', 'docas', 'portao', 'yard', 0, true),
   road('anel-base', 'Estrada da Base', 'base', 'anel', 'urban', 2, true),
+  // CORE-014 (names "Rua 1–4" and the bairro are FICTIONAL; continuations keep the real names).
+  road('treze-far', 'R. 13 de Maio', 'oso', 'so', 'urban', 1, false),
+  road('nove-far', 'R. 9 de Julho', 'ono', 'no', 'urban', 1, false),
+  road('rua1-s', 'Rua 1 (Jd. Tietê)', 'sso', 'oso', 'urban', 1, false),
+  road('rua1-c', 'Rua 1 (Jd. Tietê)', 'oso', 'oo', 'urban', 1, false),
+  road('rua1-n', 'Rua 1 (Jd. Tietê)', 'oo', 'ono', 'urban', 1, false),
+  road('rua1-nn', 'Rua 1 (Jd. Tietê)', 'ono', 'non', 'urban', 1, false),
+  road('rua2-o', 'Rua 2 (Jd. Tietê)', 'sso', 'ss1', 'urban', 1, false),
+  road('rua2-c', 'Rua 2 (Jd. Tietê)', 'ss1', 'ssul', 'urban', 1, false),
+  road('rua2-e', 'Rua 2 (Jd. Tietê)', 'ssul', 'sse', 'urban', 1, true),
+  road('palm-sul2', 'R. das Palmeiras', 'ss1', 'so', 'urban', 1, false),
+  road('sete-sul2', 'R. 7 de Setembro', 'sse', 'se', 'urban', 1, true),
+  road('palm-norte2', 'R. das Palmeiras', 'no', 'nno', 'urban', 1, false),
+  road('sete-norte2', 'R. 7 de Setembro', 'ne', 'nne', 'urban', 1, false),
+  road('rua3-o', 'Rua 3 (Jd. Primavera)', 'non', 'nno', 'urban', 1, false),
+  road('rua3-c', 'Rua 3 (Jd. Primavera)', 'nno', 'nn', 'urban', 1, false),
+  road('rua3-e', 'Rua 3 (Jd. Primavera)', 'nn', 'nne', 'urban', 1, false),
+  road('rua3-ee', 'Rua 3 (Jd. Primavera)', 'nne', 'nee', 'urban', 1, false),
+  road('nove-ext', 'R. 9 de Julho', 'ne', 'ane', 'urban', 1, false),
+  road('rua4-s', 'Rua 4 (Vila Nova)', 'anel', 'ane', 'urban', 1, false),
+  road('rua4-n', 'Rua 4 (Vila Nova)', 'ane', 'nee', 'urban', 1, false),
 ];
 
 export const nodeById = (id: string): CityNode => {
@@ -100,6 +134,14 @@ export const BLOCKS: readonly Block[] = [
   { id: 'sudeste', box: { minX: E, maxX: GRID_X - E, minZ: SOUTH_Z + E, maxZ: CROSS_Z - E }, sector: 'comercial' },
   { id: 'sudoeste', box: { minX: -GRID_X + E, maxX: -E, minZ: SOUTH_Z + E, maxZ: CROSS_Z - E }, sector: 'centro' },
   { id: 'leste', box: { minX: GRID_X + E, maxX: RING_X - E, minZ: SOUTH_Z + E, maxZ: CROSS_Z - E }, sector: 'comercial' },
+  // CORE-014: Jd. Tietê (west/south), Jd. Primavera (north), Vila Nova (north-east). Fictional bairros.
+  ...([
+    ['tiete-so', -FAR_X, -GRID_X, FAR_SOUTH_Z, SOUTH_Z], ['tiete-o', -FAR_X, -GRID_X, SOUTH_Z, CROSS_Z],
+    ['tiete-no', -FAR_X, -GRID_X, CROSS_Z, NORTH_Z], ['primavera-o', -FAR_X, -GRID_X, NORTH_Z, FAR_NORTH_Z],
+    ['tiete-s', -GRID_X, 0, FAR_SOUTH_Z, SOUTH_Z], ['tiete-se', 0, GRID_X, FAR_SOUTH_Z, SOUTH_Z],
+    ['primavera-c', -GRID_X, 0, NORTH_Z, FAR_NORTH_Z], ['primavera-e', 0, GRID_X, NORTH_Z, FAR_NORTH_Z],
+    ['vilanova-s', GRID_X, RING_X, CROSS_Z, NORTH_Z], ['vilanova-n', GRID_X, RING_X, NORTH_Z, FAR_NORTH_Z],
+  ] as const).map(([id, x0, x1, z0, z1]): Block => ({ id, box: { minX: x0 + E, maxX: x1 - E, minZ: z0 + E, maxZ: z1 - E }, sector: 'residencial' })),
 ];
 
 /** Logistics hub (south of R. 13 de Maio, east): building, yard, gate, docks. */
@@ -117,6 +159,7 @@ export const DEPOT = Object.freeze({
 /** House lots of the expansion (reusing the W009 house builder and styles). */
 export type CityLot = Readonly<{ id: string; frame: Frame; style: number }>;
 const lot = (id: string, ox: number, oz: number, side: Frame['side'], style: number): CityLot => ({ id, frame: { ox, oz, side }, style });
+const LOT_W = 12;
 export const CITY_LOTS: readonly CityLot[] = [
   // Nordeste: R. 7 de Setembro (west side, facing east) and R. 9 de Julho (south side, facing north).
   lot('c-7set-1', GRID_X - E, 8, -1, 0), lot('c-7set-2', GRID_X - E, 20, -1, 3), lot('c-7set-3', GRID_X - E, 32, -1, 1),
@@ -130,7 +173,30 @@ export const CITY_LOTS: readonly CityLot[] = [
   lot('c-av-1', E, -52, 1, 3), lot('c-av-2', E, -64, 1, 6),
   // Sudoeste: R. 13 de Maio north side.
   lot('c-13mai-3', -62, SOUTH_Z + E, 2, 7), lot('c-13mai-4', -50, SOUTH_Z + E, 2, 8),
+  // CORE-014: 20 more deliverable houses in the new bairros (rows along block edges).
+  ...lotRow('tiete-r1', 'west', -FAR_X + E, NORTH_Z - E, 5, 0),
+  ...lotRow('tiete-palm', 'east', -GRID_X - E, CROSS_Z + E, 5, 3),
+  ...lotRow('prim-9jul', 'south', -GRID_X + E, NORTH_Z + E, 4, 6),
+  ...lotRow('prim-r3', 'north', GRID_X - E, FAR_NORTH_Z - E, 4, 1),
+  ...lotRow('vila-7set', 'west', GRID_X + E, NORTH_Z - E, 2, 8),
 ];
+
+/**
+ * A row of house lots along one block edge, starting 9 m in from the corner the edge begins at.
+ * `edge` is the side of the block the street is on; houses face that street.
+ */
+function lotRow(prefix: string, edge: 'west' | 'east' | 'south' | 'north', ox: number, oz: number, count: number, style0: number): CityLot[] {
+  const out: CityLot[] = [];
+  for (let i = 0; i < count; i++) {
+    const k = 9 + i * LOT_W;
+    const style = (style0 + i * 3) % 10;
+    if (edge === 'west') out.push(lot(`${prefix}-${i + 1}`, ox, oz - k, 1, style));
+    else if (edge === 'east') out.push(lot(`${prefix}-${i + 1}`, ox, oz + k, -1, style));
+    else if (edge === 'south') out.push(lot(`${prefix}-${i + 1}`, ox + k, oz, 2, style));
+    else out.push(lot(`${prefix}-${i + 1}`, ox - k, oz, -2, style));
+  }
+  return out;
+}
 
 /** The eight shops / pickup points (CORE-013 central config). Names are fictional businesses. */
 export type StoreKind = 'mercearia' | 'farmacia' | 'papelaria' | 'supermercado' | 'padaria' | 'variedades' | 'construcao' | 'hortifruti';
@@ -198,6 +264,10 @@ export const SPEED_HUMPS: readonly { x: number; z: number; alongX: boolean }[] =
   { x: 0, z: -62, alongX: true },
 ];
 
+/** CORE-014 open spaces (fictional): dirt football pitch and a neighbourhood square. */
+export const CAMPINHO: Box2D = { minX: -58, maxX: -12, minZ: -134, maxZ: SOUTH_Z - E };
+export const PRACA_PRIMAVERA: Box2D = { minX: -FAR_X + E, maxX: -100, minZ: NORTH_Z + E, maxZ: 122 };
+
 /** Areas inside blocks that stay walkable (the rest of each block is solid behind its frontage). */
 function shopForecourt(): Box2D {
   return SHOP.lot;
@@ -211,6 +281,9 @@ export function walkableAreas(): Box2D[] {
     frameRect({ ox: FRONT, oz: -13.8 + 3 * 12, side: 1 }, 0, 12, 0, 20),
     // Customer car park beside the supermarket (between it and the W009 shop lot).
     frameRect(STORES[3]!.frame, 24, 31.8, 0, 14),
+    // CORE-014: neighbourhood football pitch (campinho) open to R. 13 de Maio, and Praça Primavera.
+    CAMPINHO,
+    PRACA_PRIMAVERA,
   ];
   return open;
 }
@@ -309,3 +382,29 @@ export function pointsOfInterest(): Poi[] {
 
 /** Re-export so other city modules need one import for house styles. */
 export type CityHouse = HouseSpec;
+
+/**
+ * Navigable area in m² (CORE-014 target: at least twice the CORE-013 town): union of carriageways
+ * (rural roads only inside the playable bounds), pavements, walkable areas and the depot yard,
+ * rasterised at `cell` metres so overlaps at junctions count once.
+ */
+export function navigableArea(cell = 1): number {
+  const boxes: Box2D[] = [...walkableAreas(), DEPOT.yard];
+  for (const r of ROADS) {
+    const s = roadSpan(r);
+    const lo = Math.max(s.lo, s.axis === 'x' ? CITY_BOUNDS.minX : CITY_BOUNDS.minZ);
+    const hi = Math.min(s.hi, s.axis === 'x' ? CITY_BOUNDS.maxX : CITY_BOUNDS.maxZ);
+    const half = r.kind === 'urban' ? E : ROAD_HALF;
+    const ext = r.kind === 'yard' ? 0 : ROAD_HALF;
+    boxes.push(s.axis === 'x'
+      ? { minX: lo - ext, maxX: hi + ext, minZ: s.c - half, maxZ: s.c + half }
+      : { minX: s.c - half, maxX: s.c + half, minZ: lo - ext, maxZ: hi + ext });
+  }
+  let count = 0;
+  for (let x = CITY_BOUNDS.minX + cell / 2; x < CITY_BOUNDS.maxX; x += cell) {
+    for (let z = CITY_BOUNDS.minZ + cell / 2; z < CITY_BOUNDS.maxZ; z += cell) {
+      if (boxes.some((b) => x >= b.minX && x <= b.maxX && z >= b.minZ && z <= b.maxZ)) count++;
+    }
+  }
+  return count * cell * cell;
+}

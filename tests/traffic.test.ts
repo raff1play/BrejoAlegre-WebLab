@@ -66,12 +66,12 @@ test('signals never give green to conflicting movements, include yellow, all-red
 
 test('routing: vans reach every store lane and trucks reach the docks on heavy roads only', () => {
   const heavy = (l: { road: { heavy: boolean } }) => l.road.heavy;
-  const start = g.laneById.get('av-saida-sul:saida-sul>sul')!;
+  const start = g.laneById.get('av-saida-sul:saida-sul>ssul')!;
   const dock = g.laneById.get('patio:portao>docas')!;
   const route = routeBetween(g, start.index, dock.index, heavy)!;
   assert.ok(route.length > 0);
   for (const mi of route) assert.ok(g.lanes[g.movements[mi]!.to]!.road.heavy);
-  const back = routeBetween(g, g.laneById.get('patio:docas>portao')!.index, g.laneById.get('av-saida-norte:norte>saida-norte')!.index, heavy);
+  const back = routeBetween(g, g.laneById.get('patio:docas>portao')!.index, g.laneById.get('av-saida-norte:nn>saida-norte')!.index, heavy);
   assert.ok(back && back.length > 0);
   const out = g.laneById.get('patio:docas>portao')!;
   for (const { stop } of STORES) {
