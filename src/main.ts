@@ -19,7 +19,7 @@ import { Pedestrian } from './features/walking/pedestrian';
 import { setupEnvironment } from './world/environment';
 import { CURB_H, yawOf } from './world/layout';
 import { STORES, depotWorld, depotYaw } from './world/city/cityPlan';
-import { buildProbe } from './world/city/testProbe';
+import { buildProbe, parkNear } from './world/city/testProbe';
 import { HouseStreamer } from './features/city/houseStreamer';
 import { buildTemporaryWorld } from './world/temporaryWorld';
 import { cameraObstacles } from './world/cameraObstacles';
@@ -30,7 +30,7 @@ import { VirtualClock } from './core/city/clock';
 import { lightingAt } from './core/city/dayNight';
 import { buildCityLife } from './features/city/cityLife';
 import { Minimap } from './features/hud/minimap';
-import { DeliveryGame } from './features/delivery/deliveryGame';
+import { DeliveryGame, trunkSpot, type BikeSpot } from './features/delivery/deliveryGame';
 
 /** Composition root: wires input → simulation → presentation. Game rules live in core/ and features/. */
 function start(canvas: HTMLCanvasElement): void {
@@ -128,6 +128,7 @@ function start(canvas: HTMLCanvasElement): void {
     document.addEventListener('keydown', (e) => { if (e.code === 'KeyT' && !e.repeat) apply('+1'); });
   }
 
+  const bikeSpot = (): BikeSpot => ({ x: moto.state.x, z: moto.state.z, yaw: moto.state.yaw, moving: !isMotoStopped(moto.state) });
   const toggleMount = (): void => {
     if (mode === 'riding') {
       if (!isMotoStopped(moto.state)) { hud.toast('Pare a moto para descer'); return; }
@@ -142,14 +143,14 @@ function start(canvas: HTMLCanvasElement): void {
       mode = 'walking';
     } else {
       if (!canMount(walker.state, moto.state)) { hud.toast('Chegue mais perto da moto'); return; }
+      // CORE-015.1: nobody rides with parcels in the hands — they go in the top box first.
+      if (delivery.workday.inHands().length) { hud.toast('Guarde os volumes no baú antes de montar'); return; }
       walker.root.setEnabled(false);
       // Which side of the bike the rider gets on from (visual only).
       const m = moto.state;
       const side = (walker.state.x - m.x) * Math.cos(m.yaw) - (walker.state.z - m.z) * Math.sin(m.yaw) < 0 ? -1 : 1;
       moto.setRidden(true, side);
       mode = 'riding';
-      // Riding away with parcels from a shop counter: they are now in transport.
-      delivery.workday.depart(clock.hour);
     }
     // Held keys never carry over from one body to the other.
     input.reset();
@@ -157,8 +158,14 @@ function start(canvas: HTMLCanvasElement): void {
   /** The one contextual button: a job interaction when one is at hand, otherwise mount/dismount. */
   const contextAction = (): void => {
     const here = mode === 'riding' ? { x: moto.state.x, z: moto.state.z, riding: true } : { x: walker.state.x, z: walker.state.z, riding: false };
-    const job = delivery.action(clock.hour, here);
-    if (job?.available && job.run) { const msg = job.run(); if (msg) hud.toast(msg); return; }
+    const job = delivery.action(clock.hour, here, bikeSpot());
+    if (job?.available && job.run) {
+      const msg = job.run();
+      if (msg) hud.toast(msg);
+      // Top box: the lid opens and the rider reaches in; the hands change halfway through.
+      if (job.trunk) { moto.openTrunk(); walker.reachTrunk(); }
+      return;
+    }
     if (job && !job.available && mode === 'walking' && !canMount(walker.state, moto.state)) { hud.toast(job.label); return; }
     toggleMount();
   };
@@ -230,15 +237,17 @@ function start(canvas: HTMLCanvasElement): void {
     const here = mode === 'riding' ? { x: m.x, z: m.z, riding: true } : { x: walker.state.x, z: walker.state.z, riding: false };
     delivery.update(dt, clock.hour, cityLife.crowd, here, ground, () => false);
     for (const msg of delivery.workday.events.splice(0)) hud.toast(msg);
-    const objective = delivery.workday.objective(clock.hour);
+    const objective = delivery.workday.objective(clock.hour, m);
     const progress = delivery.workday.progress();
     const wait = delivery.waiting === null ? delivery.waitOption(clock.hour) : null;
     hud.setObjective(objective.title, objective.detail,
       `Coletados ${progress.collected}/${delivery.workday.parcels.filter((p) => p.platform === 'LOJA').length} · Entregues ${progress.delivered}/${progress.total}`,
       delivery.waiting !== null ? 'Aguardando…' : wait?.label ?? null);
     minimap.setTarget(objective.target);
-    walker.carrying = mode === 'walking' && (delivery.workday.carrying().length > 0 || delivery.workday.phase === 'ENTREGAS');
-    const job = delivery.action(clock.hour, here);
+    walker.setLoad(delivery.workday.inHands().length, delivery.workday.sackInHands);
+    const found = delivery.action(clock.hour, here, bikeSpot());
+    // A blocked job hint never hides "Montar" when the rider can simply get on the bike.
+    const job = found && (found.available || mode === 'riding' || !canMount(walker.state, m) || delivery.workday.inHands().length > 0) ? found : null;
     const label = job ? job.label : mode === 'riding' ? 'Descer' : 'Montar';
     const available = job ? job.available : mode === 'riding' ? isMotoStopped(m) : canMount(walker.state, m);
     hud.update(mode, mode === 'riding' ? Math.abs(m.speed) * 3.6 : 0, engine.getFps(), label, available);
@@ -280,6 +289,9 @@ function start(canvas: HTMLCanvasElement): void {
         depotLocal: (x: number, z: number) => buildProbe().depotLocal(x, z),
         depotYaw: (yaw: number) => depotYaw(yaw),
         minimapBase: () => minimap.baseImage(),
+        /** CORE-015.1: parks the bike at the kerb nearest to a spot (the rider stays where it is). */
+        parkNear: (x: number, z: number) => { const p = parkNear(x, z); Object.assign(moto.state, { ...p, speed: 0, steer: 0 }); return p; },
+        parkAt: (x: number, z: number, yaw: number) => Object.assign(moto.state, { x, z, yaw, speed: 0, steer: 0 }),
       },
     });
   }
@@ -299,15 +311,16 @@ function start(canvas: HTMLCanvasElement): void {
         clock: { label: clock.label, hour: clock.hour, workday: clock.isWorkday, night: lighting.night, devTime, speed: clock.speedFactor },
         delivery: {
           phase: delivery.workday.phase,
-          objective: delivery.workday.objective(clock.hour),
+          objective: delivery.workday.objective(clock.hour, moto.state),
+          cargo: { hands: delivery.workday.inHands().length, trunk: delivery.workday.inTrunk().length, sack: delivery.workday.sackInHands, label: delivery.workday.cargoLabel(), trunkOpen: moto.trunkOpen, trunkSpot: trunkSpot(bikeSpot()) },
           progress: delivery.workday.progress(),
           assigned: [...delivery.workday.assigned],
           route: [...delivery.workday.route],
-          parcels: delivery.workday.parcels.map((p) => ({ id: p.id, state: p.state, holder: p.holder, origin: p.origin, destination: p.destination, platform: p.platform, region: p.region })),
+          parcels: delivery.workday.parcels.map((p) => ({ id: p.id, state: p.state, place: p.place, holder: p.holder, origin: p.origin, destination: p.destination, platform: p.platform, region: p.region })),
           staff: delivery.workday.staff.map((st) => ({ role: st.role, state: st.state })),
           stores: [...delivery.stores].map(([id, st]) => ({ id, employee: st.ops.employee, shutter: st.ops.shutter, queue: st.ops.queue.length, served: st.ops.served, pickup: st.layout.pickup, facing: yawOf(STORES.find((q) => q.id === id)!.frame) })),
           addresses: delivery.workday.addresses.length,
-          action: delivery.action(clock.hour, mode === 'riding' ? { x: moto.state.x, z: moto.state.z, riding: true } : { x: walker.state.x, z: walker.state.z, riding: false })?.label ?? null,
+          action: delivery.action(clock.hour, mode === 'riding' ? { x: moto.state.x, z: moto.state.z, riding: true } : { x: walker.state.x, z: walker.state.z, riding: false }, bikeSpot())?.label ?? null,
           waiting: delivery.waiting,
         },
         paused: hud.paused,

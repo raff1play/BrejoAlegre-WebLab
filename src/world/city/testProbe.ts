@@ -1,5 +1,5 @@
 import { axesOf, framePoint, yawOf } from '../layout.ts';
-import { CITY_LOTS, DEPOT_FRAME, LANE_OFFSET, NODES, ROADS, depotWorld, depotYaw } from './cityPlan.ts';
+import { CITY_LOTS, DEPOT_FRAME, LANE_OFFSET, NODES, ROADS, depotWorld, depotYaw, nearestRoad } from './cityPlan.ts';
 import { cityTrees, streetLightPositions } from './cityLayout.ts';
 import { TOWN_CENTRE } from '../geo/geoCity.ts';
 
@@ -64,4 +64,12 @@ export function buildProbe(): Probe {
   }
   if (!junction || !lot) throw new Error('probe: no junction/lot found');
   return { depot: depotWorld, depotLocal, depotYaw, junction, lot };
+}
+
+/** A kerbside parking spot on the street nearest to (x, z): 2.6 m off the axis, kerb on the right. */
+export function parkNear(x: number, z: number): { x: number; z: number; yaw: number } {
+  const n = nearestRoad(x, z, (r) => r.kind === 'urban') ?? nearestRoad(x, z)!;
+  const L = Math.hypot(x - n.x, z - n.z) || 1;
+  const ux = (x - n.x) / L; const uz = (z - n.z) / L;
+  return { x: n.x + ux * 2.6, z: n.z + uz * 2.6, yaw: Math.atan2(-uz, ux) };
 }

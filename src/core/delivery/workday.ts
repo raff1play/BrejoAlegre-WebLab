@@ -2,7 +2,7 @@ import { DEPOT, STORES, depotWorld, depotYaw, type StoreKind } from '../../world
 import { yawOf } from '../../world/layout.ts';
 import { rng } from '../city/traffic.ts';
 import { buildAddresses, type Address } from './addresses.ts';
-import { advance, createParcel, type Parcel, type ParcelState, type Platform } from './parcels.ts';
+import { advance, createParcel, move, type Parcel, type ParcelState, type Platform } from './parcels.ts';
 
 /**
  * CORE-014 delivery workday (vertical slice) following the approved routine, on the virtual
@@ -15,7 +15,9 @@ export const ROUTINE = Object.freeze({ assign: 11, pickupFrom: 12, returnBy: 14,
 
 export type Phase = 'ANTES' | 'COLETA' | 'RETORNO' | 'CONFERENCIA' | 'TRIAGEM' | 'SACA' | 'ENTREGAS' | 'CONCLUIDA' | 'ENCERRADA';
 /** `yaw`: heading that faces the counter/desk/gate from the target spot (CORE-015: real frontages face any direction). */
-export type Target = Readonly<{ kind: 'loja' | 'galpao' | 'endereco'; id: string; x: number; z: number; label: string; yaw?: number }>;
+export type Target = Readonly<{ kind: 'loja' | 'galpao' | 'endereco' | 'moto'; id: string; x: number; z: number; label: string; yaw?: number }>;
+/** Loose volumes the rider can carry in both hands at once (the mixed sack counts as one load). */
+export const HANDS_MAX = 4;
 export type Objective = Readonly<{ title: string; detail: string; target: Target | null; waitUntil: number | null }>;
 
 /**
@@ -117,54 +119,104 @@ export class Workday {
     this.say(`Jornada iniciada: coletar em ${this.assigned.map((s) => this.storeOf(s).name).join(' e ')}`);
   }
 
-  // ------------------------------------------------------------------ player actions
+  // ------------------------------------------------------------------ physical cargo (CORE-015.1)
 
-  canCollect(kind: StoreKind, hour: number): 'ok' | 'cedo' | 'nada' {
-    if (!this.assigned.includes(kind) || this.readyAt(kind).length === 0) return 'nada';
-    return hour >= ROUTINE.pickupFrom ? 'ok' : 'cedo';
+  /** True while the mixed sack is being carried (one load, whatever it holds). */
+  sackInHands = false;
+  inHands(): Parcel[] { return this.parcels.filter((p) => p.place === 'maos'); }
+  inTrunk(): Parcel[] { return this.parcels.filter((p) => p.place === 'bau'); }
+  /** Trunk parcels still to be handed to the checker / still to be delivered. */
+  trunkForDepot(): Parcel[] { return this.inTrunk().filter((p) => p.state === 'EM_TRANSPORTE'); }
+  trunkForRoute(): Parcel[] { return this.inTrunk().filter((p) => p.state === 'EM_ROTA'); }
+  cargoLabel(): string {
+    const h = this.inHands().length; const t = this.inTrunk().length;
+    const parts: string[] = [];
+    if (h) parts.push(this.sackInHands ? `saca com ${h} volume(s) nas mãos` : `${h} volume(s) nas mãos`);
+    if (t) parts.push(`${t} volume(s) no baú`);
+    return parts.join(' · ');
   }
 
-  /** At the counter: the employee checks the parcels and hands them over. */
+  /** Puts everything in the hands into the trunk. Never while the bike moves. */
+  stow(hour: number, bikeMoving = false): number {
+    if (bikeMoving) return 0;
+    const list = this.inHands();
+    for (const p of list) {
+      if (p.state === 'COLETADO') advance(p, 'EM_TRANSPORTE', 'jogador', hour);
+      move(p, 'bau', 'jogador', hour);
+    }
+    this.sackInHands = false;
+    if (list.length) this.say(`${list.length} volume(s) guardado(s) no baú`);
+    return list.length;
+  }
+
+  /** At the base: takes the collected parcels out of the trunk (up to a hands-full). */
+  unloadForDepot(hour: number, bikeMoving = false): number {
+    if (bikeMoving || this.sackInHands) return 0;
+    const room = HANDS_MAX - this.inHands().length;
+    const list = this.trunkForDepot().slice(0, Math.max(0, room));
+    for (const p of list) move(p, 'maos', 'jogador', hour);
+    if (list.length) this.say(`${list.length} volume(s) retirado(s) do baú`);
+    return list.length;
+  }
+
+  /** At a stop of the route: takes the parcel(s) of ONE address out of the trunk. */
+  takeForAddress(addressId: string, hour: number, bikeMoving = false): number {
+    if (bikeMoving || this.inHands().length) return 0;
+    const list = this.trunkForRoute().filter((p) => p.destination === addressId).slice(0, HANDS_MAX);
+    for (const p of list) move(p, 'maos', 'jogador', hour);
+    if (list.length) this.route = [addressId, ...this.route.filter((id) => id !== addressId)];
+    return list.length;
+  }
+
+  // ------------------------------------------------------------------ player actions
+
+  canCollect(kind: StoreKind, hour: number): 'ok' | 'cedo' | 'nada' | 'cheio' {
+    if (!this.assigned.includes(kind) || this.readyAt(kind).length === 0) return 'nada';
+    if (hour < ROUTINE.pickupFrom) return 'cedo';
+    return this.sackInHands || this.inHands().length + this.readyAt(kind).length > HANDS_MAX ? 'cheio' : 'ok';
+  }
+
+  /** At the counter: the employee checks the parcels and hands them over (into the hands). */
   collect(kind: StoreKind, hour: number): number {
     if (this.canCollect(kind, hour) !== 'ok') return 0;
     const list = this.readyAt(kind);
-    for (const p of list) advance(p, 'COLETADO', 'jogador', hour);
+    for (const p of list) { advance(p, 'COLETADO', 'jogador', hour); move(p, 'maos', 'jogador', hour); }
     this.say(`${list.length} volume(s) conferido(s) e retirado(s) em ${this.storeOf(kind).name}`);
     if (this.assigned.every((s) => this.readyAt(s).length === 0)) this.phase = 'RETORNO';
     return list.length;
   }
 
-  /** Riding away with collected parcels: they are in transport. */
-  depart(hour: number): void {
-    for (const p of this.parcels) if (p.state === 'COLETADO') advance(p, 'EM_TRANSPORTE', 'jogador', hour);
-  }
+  /** Parcels the player still has to bring to the base (in the hands or in the trunk). */
+  carrying(): Parcel[] { return this.parcels.filter((p) => (p.place === 'maos' || p.place === 'bau') && (p.state === 'COLETADO' || p.state === 'EM_TRANSPORTE')); }
 
-  /** Parcels the player carries to the base. */
-  carrying(): Parcel[] { return this.parcels.filter((p) => p.holder === 'jogador' && (p.state === 'COLETADO' || p.state === 'EM_TRANSPORTE')); }
-
-  /** At the receiving desk: the checker counts the player's parcels one by one. */
+  /** At the receiving desk: the checker takes the parcels the player has IN THE HANDS. */
   handOver(hour: number): number {
-    const list = this.carrying();
-    for (const p of list) if (p.state === 'COLETADO') advance(p, 'EM_TRANSPORTE', 'jogador', hour);
-    for (const p of list) if (!this.counting.includes(p.id)) this.counting.push(p.id);
+    const list = this.inHands().filter((p) => p.state === 'COLETADO' || p.state === 'EM_TRANSPORTE');
+    for (const p of list) {
+      if (p.state === 'COLETADO') advance(p, 'EM_TRANSPORTE', 'jogador', hour);
+      move(p, 'galpao', 'conferente', hour);
+      if (!this.counting.includes(p.id)) this.counting.push(p.id);
+    }
     if (list.length) {
       if (hour > ROUTINE.returnBy) this.late = true;
-      this.phase = 'CONFERENCIA';
+      // The conference phase starts when nothing is left on the way (trunk, hands or shops).
+      if (this.carrying().length === 0 && this.assigned.every((s) => this.readyAt(s).length === 0)) this.phase = 'CONFERENCIA';
       this.say(`Conferente recebendo ${list.length} volume(s)`);
     }
     return list.length;
   }
 
-  canTakeSack(hour: number): boolean { return hour >= ROUTINE.sackFrom && this.count('NA_SACA') > 0 && this.count('TRIADO') === 0 && this.count('RECEBIDO_BASE') === 0; }
+  canTakeSack(hour: number): boolean { return hour >= ROUTINE.sackFrom && this.count('NA_SACA') > 0 && this.count('TRIADO') === 0 && this.count('RECEBIDO_BASE') === 0 && this.inHands().length === 0; }
 
-  /** At the dispatch counter: the mixed sack is released to the player. */
+  /** At the dispatch counter: the mixed sack is released to the player (carried in the hands). */
   takeSack(hour: number): number {
     if (!this.canTakeSack(hour)) return 0;
     const list = this.parcels.filter((p) => p.state === 'NA_SACA');
-    for (const p of list) advance(p, 'EM_ROTA', 'jogador', hour);
+    for (const p of list) { advance(p, 'EM_ROTA', 'jogador', hour); move(p, 'maos', 'jogador', hour); }
+    this.sackInHands = true;
     // Route: nearest neighbour from the depot gate.
-    const left = list.map((p) => this.byAddress.get(p.destination)!);
-    let at = { x: (DEPOT.gate.x0 + DEPOT.gate.x1) / 2, z: DEPOT.yard.maxZ };
+    const left = [...new Set(list.map((p) => p.destination))].map((id) => this.byAddress.get(id)!);
+    let at = depotWorld((DEPOT.gate.x0 + DEPOT.gate.x1) / 2, DEPOT.yard.maxZ);
     this.route = [];
     while (left.length) {
       left.sort((a, b) => Math.hypot(a.door.x - at.x, a.door.z - at.z) - Math.hypot(b.door.x - at.x, b.door.z - at.z));
@@ -173,16 +225,17 @@ export class Workday {
       at = next.door;
     }
     this.phase = 'ENTREGAS';
-    this.say(`Saca mista retirada: ${list.length} volume(s) em rota`);
+    this.say(`Saca mista retirada: ${list.length} volume(s) — guarde no baú`);
     return list.length;
   }
 
-  /** At the gate of an address: hands over its parcel(s). */
+  /** At the gate of an address: hands over its parcel(s) — only those IN THE HANDS. */
   deliver(addressId: string, hour: number): number {
-    const list = this.parcels.filter((p) => p.destination === addressId && p.state === 'EM_ROTA');
-    for (const p of list) advance(p, 'ENTREGUE', 'destinatario', hour);
+    const list = this.inHands().filter((p) => p.destination === addressId && p.state === 'EM_ROTA');
+    for (const p of list) { advance(p, 'ENTREGUE', 'destinatario', hour); move(p, 'destinatario', 'destinatario', hour); }
     if (list.length) {
-      this.route = this.route.filter((id) => id !== addressId);
+      if (!this.parcels.some((p) => p.destination === addressId && p.state === 'EM_ROTA')) this.route = this.route.filter((id) => id !== addressId);
+      if (this.inHands().length === 0) this.sackInHands = false;
       this.say(`Entregue: ${this.byAddress.get(addressId)!.label}`);
       if (this.count('EM_ROTA') === 0) { this.phase = 'CONCLUIDA'; this.say('Rota concluída! Jornada encerrada.'); }
     }
@@ -216,6 +269,7 @@ export class Workday {
         const p = this.parcels.find((q) => q.id === this.counting[0])!;
         this.counting.shift();
         advance(p, 'RECEBIDO_BASE', 'conferente', hour);
+        if (p.place === 'caminhao') move(p, 'galpao', 'descarregador', hour);
         continue;
       }
       // Sorters from 14h (RECEBIDO_BASE → TRIADO), then the dispatcher bags them (NA_SACA).
@@ -223,7 +277,7 @@ export class Workday {
         const sort = this.parcels.find((p) => p.state === 'RECEBIDO_BASE');
         const bag = this.parcels.find((p) => p.state === 'TRIADO');
         if (sort) { advance(sort, 'TRIADO', 'separador', hour); this.work -= 0.3; continue; }
-        if (bag) { advance(bag, 'NA_SACA', 'expedidor', hour); this.work -= 0.3; if (this.count('TRIADO') === 0) this.say('Saca mista pronta na expedição'); continue; }
+        if (bag) { advance(bag, 'NA_SACA', 'expedidor', hour); move(bag, 'saca', 'expedidor', hour); this.work -= 0.3; if (this.count('TRIADO') === 0) this.say('Saca mista pronta na expedição'); continue; }
       }
       break;
     }
@@ -254,11 +308,14 @@ export class Workday {
 
   // ------------------------------------------------------------------ guidance
 
-  objective(hour: number): Objective {
+  /** `bike`: where the parked bike is (target of the "store it in the trunk" steps). */
+  objective(hour: number, bike?: { x: number; z: number }): Objective {
+    const toBike = (title: string): Objective => ({ title, detail: `${this.cargoLabel()} · vá até o baú da moto`, target: bike ? { kind: 'moto', id: 'moto', x: bike.x, z: bike.z, label: 'Baú da moto' } : null, waitUntil: null });
     const depot = (label: string): Target => ({ kind: 'galpao', id: 'galpao', ...DEPOT_SPOTS.receiving, label, yaw: depotYaw(-Math.PI / 2) });
     switch (this.phase) {
       case 'ANTES': return { title: 'Aguardando o início da jornada', detail: 'A designação das lojas sai às 11h', target: null, waitUntil: ROUTINE.assign };
       case 'COLETA': {
+        if (this.inHands().length) return toBike('Guardar os volumes no baú');
         const next = this.assigned.find((k) => this.readyAt(k).length > 0)!;
         const store = this.storeOf(next);
         const early = hour < ROUTINE.pickupFrom;
@@ -268,7 +325,13 @@ export class Workday {
           target: { kind: 'loja', id: next, x: store.door.x, z: store.door.z, label: store.name, yaw: yawOf(store.frame) }, waitUntil: early ? ROUTINE.pickupFrom : null,
         };
       }
-      case 'RETORNO': return { title: 'Levar os volumes ao galpão', detail: `${this.carrying().length} volume(s) · entregar ao conferente até 14h`, target: depot('Recebimento'), waitUntil: null };
+      case 'RETORNO': {
+        const hands = this.inHands().length; const trunk = this.trunkForDepot().length;
+        if (hands && hands + trunk < this.carrying().length) return toBike('Guardar os volumes no baú');
+        return hands
+          ? { title: 'Entregar os volumes ao conferente', detail: `${hands} volume(s) nas mãos${trunk ? ` · ${trunk} no baú` : ''} · até 14h`, target: depot('Recebimento'), waitUntil: null }
+          : { title: 'Levar os volumes ao galpão', detail: `${trunk} volume(s) no baú · no galpão, retire do baú e entregue ao conferente até 14h`, target: depot('Recebimento'), waitUntil: null };
+      }
       case 'CONFERENCIA': return { title: 'Conferência no recebimento', detail: `${this.counting.length} volume(s) sendo conferidos`, target: depot('Recebimento'), waitUntil: null };
       case 'TRIAGEM': {
         const waiting = hour < ROUTINE.sortFrom;
@@ -279,8 +342,11 @@ export class Workday {
         return { title: waiting ? 'Saca liberada às 15h' : 'Retirar a saca na expedição', detail: `Saca mista ML/SHP com ${this.count('NA_SACA')} volume(s)`, target: { kind: 'galpao', id: 'galpao', ...DEPOT_SPOTS.dispatch, label: 'Expedição' }, waitUntil: waiting ? ROUTINE.sackFrom : null };
       }
       case 'ENTREGAS': {
-        const a = this.byAddress.get(this.route[0]!)!;
-        return { title: `Entregar em ${a.street}, ${a.number}`, detail: `${a.bairro} · ${this.count('ENTREGUE')}/${this.parcels.length} entregues · até 21h`, target: { kind: 'endereco', id: a.id, x: a.door.x, z: a.door.z, label: a.label, yaw: yawOf(a.frame) }, waitUntil: null };
+        if (this.sackInHands) return toBike('Guardar a saca no baú');
+        const held = this.inHands()[0];
+        const a = this.byAddress.get(held ? held.destination : this.route[0]!)!;
+        const where = held ? 'pacote nas mãos' : 'estacione e retire o pacote no baú';
+        return { title: `Entregar em ${a.street}, ${a.number}`, detail: `${a.bairro} · ${where} · ${this.count('ENTREGUE')}/${this.parcels.length} entregues`, target: { kind: 'endereco', id: a.id, x: a.door.x, z: a.door.z, label: a.label, yaw: yawOf(a.frame) }, waitUntil: null };
       }
       case 'CONCLUIDA': return { title: 'Jornada concluída', detail: `${this.count('ENTREGUE')}/${this.parcels.length} volumes entregues${this.late ? ' (retorno após 14h)' : ''}`, target: null, waitUntil: null };
       default: return { title: 'Jornada encerrada às 21h', detail: `${this.count('ENTREGUE')}/${this.parcels.length} entregues`, target: null, waitUntil: null };

@@ -32,6 +32,13 @@ export class Pedestrian {
   /** CORE-014: parcels in the hands (between the shop counter and the bike, or at a gate). */
   carrying = false;
   private readonly parcel: Mesh;
+  /** CORE-015.1: what is shown in the hands — up to three stacked boxes, or the mixed sack. */
+  private readonly extra: Mesh[] = [];
+  private readonly sack: Mesh;
+  private load = { count: 0, sack: false };
+  private shown = { count: 0, sack: false };
+  /** Reaching into the top box (seconds left); the hands' content switches halfway. */
+  private reach = 0;
 
   constructor(scene: Scene, mats: Materials, helmetColor: string) {
     this.body = new Character(scene, mats, 'pedestre', { ...RIDER_LOOK, helmet: helmetColor });
@@ -42,9 +49,32 @@ export class Pedestrian {
     this.parcel = box.build('pedestre-pacote', scene, this.root)[0]!;
     this.parcel.position.set(0, 1.08, 0.36);
     this.parcel.isVisible = false;
-    this.meshes = [...this.body.meshes, this.parcel];
+    for (const [i, c] of (['#c69a5f', '#d2ab73'] as const).entries()) {
+      const b = new BatchSet();
+      const w = 0.17 - i * 0.02;
+      b.box(mats.paint(c), -w, w, -0.1, 0.1, -0.13, 0.13);
+      b.box(mats.paint('#e9dcc0'), -w - 0.004, w + 0.004, -0.015, 0.015, -0.134, 0.134);
+      const m = b.build(`pedestre-pacote-${i + 2}`, scene, this.root)[0]!;
+      m.position.set(i ? 0.03 : -0.02, 1.08 + 0.14 + 0.1 + i * 0.2, 0.36);
+      m.isVisible = false;
+      this.extra.push(m);
+    }
+    const bag = new BatchSet();
+    bag.box(mats.paint('#b9a57c', 0.02), -0.26, 0.26, -0.2, 0.2, -0.17, 0.17);
+    bag.box(mats.paint('#a8946c', 0.02), -0.2, 0.2, 0.2, 0.3, -0.12, 0.12);
+    bag.box(mats.paint('#1d4f9c', 0.1), -0.262, 0.262, -0.06, 0.06, -0.172, 0.172);
+    this.sack = bag.build('pedestre-saca', scene, this.root)[0]!;
+    this.sack.position.set(0, 1.04, 0.38);
+    this.sack.isVisible = false;
+    this.meshes = [...this.body.meshes, this.parcel, ...this.extra, this.sack];
     this.root.setEnabled(false);
   }
+
+  /** What the rider holds: `count` loose volumes or the mixed sack. */
+  setLoad(count: number, sack: boolean): void { this.load = { count, sack }; }
+  /** Plays the short "reach into the top box" gesture. */
+  reachTrunk(seconds = 0.55): void { this.reach = seconds; }
+  get reaching(): boolean { return this.reach > 0; }
 
   /** Puts the character on the ground at a spot, facing `yaw`; `from` animates stepping off the seat. */
   place(x: number, z: number, yaw: number, groundHeight: number, from?: { x: number; y: number; z: number }): void {
@@ -84,8 +114,22 @@ export class Pedestrian {
       this.state.z + this.from.z * rest,
     );
     this.root.rotation.y = this.state.yaw;
-    const pose = this.carrying ? carryingPose(this.phase, this.amount, this.time) : walkingPose(this.phase, this.amount, this.time);
-    this.parcel.isVisible = this.carrying;
+    // The content of the hands changes in the middle of the reach gesture, not at its start.
+    this.reach = Math.max(0, this.reach - dt);
+    if (this.reach < 0.28) this.shown = this.load;
+    const holding = this.shown.count > 0;
+    this.carrying = holding;
+    const pose = holding || this.reach > 0 ? carryingPose(this.phase, this.amount, this.time) : walkingPose(this.phase, this.amount, this.time);
+    if (this.reach > 0) {
+      // Lean in and lower the hands into the box, then back.
+      const k = Math.sin(Math.min(1, this.reach / 0.55) * Math.PI);
+      pose.pitch += 0.3 * k;
+      for (const hand of pose.hands) { hand.z += 0.2 * k; hand.y += 0.08 * k; }
+    }
+    this.parcel.isVisible = holding && !this.shown.sack;
+    this.extra[0]!.isVisible = holding && !this.shown.sack && this.shown.count >= 2;
+    this.extra[1]!.isVisible = holding && !this.shown.sack && this.shown.count >= 3;
+    this.sack.isVisible = holding && this.shown.sack;
     if (rest > 0) {
       // Landing: knees absorb the step, arms come off the handlebar.
       pose.pelvis.y -= Math.sin(this.transition * Math.PI) * 0.12;

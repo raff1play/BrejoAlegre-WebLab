@@ -280,41 +280,104 @@ async function cityAndJob(browser) {
   await page.evaluate(() => window.__debug.setHour(12.05));
   s = await until((v) => v.clock.speed === 1, 5000);
   check('relógio volta à escala normal após a espera', s.clock.speed === 1 && s.delivery.waiting === null);
-  await shot('11-loja-retirada.jpg');
+  // CORE-015.1 physical cargo: shop → hands → top box → base → sack → top box → gate.
+  const cargo = async () => (await snap()).delivery.cargo;
+  const act = () => page.evaluate(() => window.__debug.act());
+  const walkTo = (x, z, yaw = 0) => page.evaluate(([a, b, c]) => window.__debug.placeWalker(a, b, c), [x, z, yaw]);
+  const toTrunk = async () => { const c = await cargo(); await walkTo(c.trunkSpot.x, c.trunkSpot.z, 0); };
+  const label = async (re, timeout = 8000) => (await until((v) => re.test(v.delivery.action ?? ''), timeout)).delivery.action;
+  let n = 0;
   for (const id of d.assigned) {
     const st = d.stores.find((q) => q.id === id);
-    await page.evaluate(([x, z, y]) => window.__debug.placeWalker(x, z, y), [st.pickup.x, st.pickup.z, st.facing]);
-    await until((v) => /Retirar/.test(v.delivery.action ?? ''), 8000);
-    await page.evaluate(() => window.__debug.act());
+    await page.evaluate(([x, z]) => window.__debug.parkNear(x, z), [st.pickup.x, st.pickup.z]);
+    await walkTo(st.pickup.x, st.pickup.z, st.facing);
+    await label(/Retirar com/);
+    await act();
+    let c = await cargo();
+    if (n === 0) {
+      check('coleta: os volumes vão para as MÃOS (não para o baú)', c.hands === 2 && c.trunk === 0 && /2 volume\(s\) nas mãos/.test(c.label), c.label);
+      s = await snap();
+      check('objetivo manda guardar no baú da moto', /baú/i.test(s.delivery.objective.title) && s.delivery.objective.target.kind === 'moto', s.delivery.objective.title);
+      // Camera behind the rider, facing the counter (the orbit is left where the last test put it).
+      await page.evaluate((y) => window.__debug.camera(Math.atan2(-Math.cos(y), -Math.sin(y)), 1.12, 4.4), st.facing);
+      await page.waitForTimeout(800);
+      await shot('11-loja-retirada.jpg');
+    }
+    await toTrunk();
+    const l = await label(/Guardar no baú/);
+    await act();
+    s = await until((v) => v.delivery.cargo.trunkOpen > 0.3, 8000);
+    c = s.delivery.cargo;
+    n += 2;
+    if (n === 2) {
+      check('baú: "Guardar no baú" atrás da moto; volumes saem das mãos e a tampa abre', /Guardar no baú \(2\)/.test(l) && c.hands === 0 && c.trunk === 2 && c.trunkOpen > 0.3 && s.mode === 'walking', `${l} → ${c.label}, tampa ${fx(c.trunkOpen)}`);
+      await shot('14-bau-guardando.jpg');
+    }
   }
   d = (await snap()).delivery;
-  check('coleta nas duas lojas (COLETADO, responsável: jogador)', d.phase === 'RETORNO' && d.parcels.filter((q) => q.state === 'COLETADO' && q.holder === 'jogador').length === 4);
-  await page.evaluate(() => { const p = window.__debug.depot(95.4, -122.4); window.__debug.placeWalker(p.x, p.z, window.__debug.depotYaw(-Math.PI / 2)); });
-  await until((v) => /conferente/.test(v.delivery.action ?? ''), 8000);
-  await page.evaluate(() => window.__debug.act());
+  check('coleta nas duas lojas: 4 volumes no baú, em transporte', d.phase === 'RETORNO' && d.cargo.trunk === 4 && d.cargo.hands === 0 && d.parcels.filter((q) => q.state === 'EM_TRANSPORTE' && q.place === 'bau' && q.holder === 'jogador').length === 4, d.cargo.label);
+  // Base: park in the yard; the checker takes nothing while the volumes are still in the box.
+  await page.evaluate(() => { const p = window.__debug.depot(84, -111); window.__debug.parkAt(p.x, p.z, window.__debug.depotYaw(0)); });
+  const desk = await page.evaluate(() => ({ p: window.__debug.depot(95.4, -122.4), q: window.__debug.depot(95.4, -131), yaw: window.__debug.depotYaw(-Math.PI / 2) }));
+  await walkTo(desk.p.x, desk.p.z, desk.yaw);
+  const blocked = await label(/baú/i);
+  await act();
+  check('galpão: com os volumes no baú o conferente não recebe nada', /retire na moto/.test(blocked) && (await cargo()).trunk === 4 && (await snap()).delivery.phase === 'RETORNO', blocked);
+  await toTrunk();
+  const out = await label(/Retirar do baú/);
+  await act();
+  let c = await cargo();
+  check('galpão: retirar do baú leva os 4 volumes às mãos', /\(4\)/.test(out) && c.hands === 4 && c.trunk === 0, c.label);
+  await walkTo(desk.p.x, desk.p.z, desk.yaw);
+  await label(/conferente/);
+  await act();
+  c = await cargo();
+  check('galpão: conferente recebe os volumes das mãos', c.hands === 0 && c.trunk === 0 && (await snap()).delivery.parcels.filter((q) => q.place === 'galpao').length >= 4);
   await page.evaluate(() => window.__debug.setHour(13.95));
   s = await until((v) => v.delivery.parcels.every((q) => q.state === 'RECEBIDO_BASE'), 30000);
-  check('galpão: conferente recebe volumes da loja e do caminhão', s.delivery.parcels.every((q) => q.state === 'RECEBIDO_BASE' && q.holder === 'conferente'));
+  check('galpão: conferente recebe volumes da loja e do caminhão', s.delivery.parcels.every((q) => q.state === 'RECEBIDO_BASE' && q.holder === 'conferente' && q.place === 'galpao'));
   await shot('12-galpao-conferencia.jpg');
   await page.evaluate(() => window.__debug.setHour(14.3));
   s = await until((v) => v.delivery.parcels.every((q) => q.state === 'NA_SACA'), 30000);
-  check('triagem pelos separadores e saca pelo expedidor', s.delivery.parcels.every((q) => q.state === 'NA_SACA'), JSON.stringify(s.delivery.staff.map((x) => x.state)));
+  check('triagem pelos separadores e saca pelo expedidor', s.delivery.parcels.every((q) => q.state === 'NA_SACA' && q.place === 'saca'), JSON.stringify(s.delivery.staff.map((x) => x.state)));
   await page.evaluate(() => window.__debug.setHour(15.05));
-  await page.evaluate(() => { const p = window.__debug.depot(95.4, -131); window.__debug.placeWalker(p.x, p.z, window.__debug.depotYaw(-Math.PI / 2)); });
-  await until((v) => /saca/.test(v.delivery.action ?? ''), 8000);
-  await page.evaluate(() => window.__debug.act());
+  await walkTo(desk.q.x, desk.q.z, desk.yaw);
+  await label(/saca/);
+  await act();
   s = await snap();
-  check('saca mista retirada a partir das 15h (EM_ROTA)', s.delivery.phase === 'ENTREGAS' && s.delivery.parcels.every((q) => q.state === 'EM_ROTA'));
+  check('saca mista retirada a partir das 15h: nas mãos, em rota', s.delivery.phase === 'ENTREGAS' && s.delivery.parcels.every((q) => q.state === 'EM_ROTA' && q.place === 'maos') && s.delivery.cargo.sack && s.delivery.objective.target.kind === 'moto', s.delivery.cargo.label);
+  await toTrunk();
+  await label(/Guardar a saca/);
+  await act();
+  c = await cargo();
+  check('saca guardada no baú antes das entregas', c.hands === 0 && c.trunk === 8 && !c.sack, c.label);
   for (let k = 0; k < 10 && (await snap()).delivery.route.length; k++) {
     const t = (await snap()).delivery.objective.target;
-    await page.evaluate(([x, z, y]) => window.__debug.placeWalker(x, z, y), [t.x, t.z, t.yaw ?? 0]);
-    await until((v) => /Entregar/.test(v.delivery.action ?? ''), 8000);
-    if (k === 0) await shot('13-entrega-residencia.jpg');
-    await page.evaluate(() => window.__debug.act());
+    await page.evaluate(([x, z]) => window.__debug.parkNear(x, z), [t.x, t.z]);
+    if (k === 0) {
+      // At the gate with the parcel still in the box: nothing is delivered.
+      await walkTo(t.x, t.z, t.yaw ?? 0);
+      const no = await label(/baú/i);
+      await act();
+      check('entrega recusada com o pacote dentro do baú', /retire na moto/.test(no) && (await cargo()).trunk === 8 && (await snap()).delivery.progress.delivered === 0, no);
+    }
+    await toTrunk();
+    const take = await label(/Retirar pacote/);
+    await act();
+    c = await cargo();
+    if (k === 0) {
+      check('entrega: retirar do baú o pacote do endereço mais próximo', c.hands === 1 && c.trunk === 7, `${take} → ${c.label}`);
+      await shot('15-bau-retirando-pacote.jpg');
+    }
+    await walkTo(t.x, t.z, t.yaw ?? 0);
+    await label(/Entregar/);
+    if (k === 0) { await page.evaluate((y) => window.__debug.camera(Math.atan2(-Math.cos(y), -Math.sin(y)), 1.12, 4.8), t.yaw ?? 0); await page.waitForTimeout(800); await shot('13-entrega-residencia.jpg'); }
+    await act();
   }
   s = await snap();
   check('primeira jornada completa: 8/8 entregues, sem duplicar nem perder volumes',
-    s.delivery.phase === 'CONCLUIDA' && s.delivery.parcels.length === 8 && s.delivery.parcels.every((q) => q.state === 'ENTREGUE' && q.holder === 'destinatario'),
+    s.delivery.phase === 'CONCLUIDA' && s.delivery.parcels.length === 8 && new Set(s.delivery.parcels.map((q) => q.id)).size === 8
+      && s.delivery.parcels.every((q) => q.state === 'ENTREGUE' && q.holder === 'destinatario' && q.place === 'destinatario') && s.delivery.cargo.hands === 0 && s.delivery.cargo.trunk === 0,
     JSON.stringify(s.delivery.progress));
   // CORE-013: living city, clock, day/night and minimap.
   s = await snap();

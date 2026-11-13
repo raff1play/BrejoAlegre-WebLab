@@ -47,6 +47,10 @@ export class Motorcycle {
   private readonly upperSteer: TransformNode;
   private readonly wheels: TransformNode[] = [];
   private readonly stand: TransformNode;
+  /** CORE-015.1: hinged lid of the top box (opens while parcels go in or out). */
+  private readonly lid: TransformNode;
+  private lidOpen = 0;
+  private lidTimer = 0;
   private readonly rider: Character | null;
   private ridden: boolean;
   private groundY = 0;
@@ -76,6 +80,8 @@ export class Motorcycle {
     this.upperSteer = this.child(scene, 'moto-guidao', this.chassis);
     this.upperSteer.position.set(0, 0, AXLE);
     this.stand = this.child(scene, 'moto-descanso', this.leanNode);
+    this.lid = this.child(scene, 'moto-tampa-bau', this.chassis);
+    this.lid.position.set(LID_HINGE[0], LID_HINGE[1], LID_HINGE[2]);
 
     const paint = mats.lacquer(look.paint);
     const parts = {
@@ -105,6 +111,13 @@ export class Motorcycle {
     add(this.upperSteer, this.buildFrontEnd(scene, mats, parts), 'moto-frente');
     add(this.leanNode, this.buildSwingarm(scene, parts), 'moto-balanca');
     add(this.chassis, this.buildChassis(scene, mats, parts), 'moto-chassi');
+    // Top-box lid as its own bone, modelled around the hinge on the rider's side of the box.
+    const lid = new BatchSet();
+    const [lw, ld] = [0.48, 0.46];
+    lid.absorb(parts.box, boxPart(scene, [lw, 0.07, ld], [0, 0.02, -ld / 2 + 0.01]));
+    lid.absorb(mats.paint('#0f1011', 0.2), boxPart(scene, [lw + 0.005, 0.012, ld + 0.005], [0, -0.015, -ld / 2 + 0.01]));
+    lid.absorb(parts.chrome, boxPart(scene, [0.07, 0.04, 0.02], [0, -0.04, -ld + 0.0]));
+    add(this.lid, lid, 'moto-tampa-bau');
 
     const stand = new BatchSet();
     stand.absorb(parts.frame, rodPart(scene, [-0.1, 0.33, -0.1], [-0.28, 0.015, -0.18], 0.028));
@@ -149,6 +162,10 @@ export class Motorcycle {
     }
   }
 
+  /** Opens the top box for `seconds`, then lets it close by itself. */
+  openTrunk(seconds = 1.1): void { this.lidTimer = seconds; }
+  get trunkOpen(): number { return this.lidOpen; }
+
   /** World position of the seat, where a dismounting rider starts from. */
   seatPosition(): { x: number; y: number; z: number } {
     const s = this.state;
@@ -174,6 +191,10 @@ export class Motorcycle {
     this.groundY = dt > 0 ? approach(this.groundY, groundHeight, 14, dt) : groundHeight;
     this.root.position.set(s.x, this.groundY, s.z);
     this.root.rotation.y = s.yaw;
+    // Top-box lid: hinged on the rider's side, the latch end swings up.
+    this.lidTimer = Math.max(0, this.lidTimer - dt);
+    this.lidOpen = approach(this.lidOpen, this.lidTimer > 0 && !this.ridden ? 1 : 0, 9, dt);
+    this.lid.rotation.x = this.lidOpen * 1.15;
 
     if (dt > 0) {
       // Suspension: pitch follows filtered longitudinal acceleration (dive when braking, squat when
@@ -469,15 +490,17 @@ export class Motorcycle {
     for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
       set.absorb(p.box, rodPart(scene, [sx * (hw - 0.04), y0, bz + sz * (hd - 0.04)], [sx * (hw - 0.04), y1, bz + sz * (hd - 0.04)], 0.08, 0.08, 10));
     }
-    set.absorb(p.box, boxPart(scene, [hw * 2 + 0.02, 0.07, hd * 2 + 0.02], [0, y1 + 0.02, bz]));
-    set.absorb(mats.paint('#0f1011', 0.2), boxPart(scene, [hw * 2 + 0.025, 0.012, hd * 2 + 0.025], [0, y1 - 0.015, bz]));
+    // (The lid is a separate hinged piece: see the constructor.) Dark inside, seen when it opens.
+    set.absorb(mats.paint('#141516', 0.05), boxPart(scene, [hw * 2 - 0.06, 0.01, hd * 2 - 0.06], [0, y1 - 0.02, bz]));
     set.absorb(mats.glow('#c9281e'), boxPart(scene, [0.34, 0.035, 0.006], [0, 1.05, bz - hd - 0.003]));
     // Black band around the top box (livery).
     set.absorb(p.white, boxPart(scene, [hw * 2 + 0.012, 0.06, hd * 2 + 0.012], [0, 1.15, bz]));
     for (const sx of [-1, 1]) set.absorb(mats.paint('#e5e7e8', 0.4), boxPart(scene, [0.006, 0.035, 0.3], [sx * (hw + 0.003), 1.05, bz]));
-    set.absorb(p.chrome, boxPart(scene, [0.07, 0.04, 0.02], [0, y1 - 0.04, bz - hd - 0.01]));
     return set;
   }
 }
+
+/** Hinge of the top-box lid in chassis coordinates (top front edge of the box). */
+const LID_HINGE: [number, number, number] = [0, 1.27, -0.58];
 
 type Parts = Record<'paint' | 'frame' | 'plastic' | 'rubber' | 'seat' | 'chrome' | 'alloy' | 'engine' | 'white' | 'box', LabMaterial>;
