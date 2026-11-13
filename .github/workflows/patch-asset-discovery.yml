@@ -33,3 +33,13 @@ jobs:
         run: |
           pch assets search "bus" | head -150
           pch assets search "pedestrian" | head -130
+      - name: Inspect and search citizen models
+        run: |
+          pch assets search --type model "worker" | head -140
+          pch assets search --type model "person" | head -120
+          pch assets search --type model "woman" | head -130
+          pch assets search --type model "man" | head -130
+          pch assets search --type model "character" | head -100
+          pch assets view "polyfork:city-bus-49fd97"
+          pch assets view "anymove:woman"
+          pch assets add --help | head -120
