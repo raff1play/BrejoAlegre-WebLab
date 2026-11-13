@@ -13,7 +13,7 @@ const { chromium } = require('playwright');
   const out=path.join(__dirname,'../../docs/evidence');fs.mkdirSync(out,{recursive:true});
   try {
     await page.goto('http://127.0.0.1:5173/?gfx=desktop&assets=patch&devtime=1&hora=12',{waitUntil:'load',timeout:60000});
-    await page.waitForFunction(()=>window.__weblab?.snapshot()?.city?.patch?.pedestrian==='ready' && window.__weblab?.snapshot()?.city?.patch?.bus==='ready',{timeout:75000});
+    await page.waitForFunction(()=>window.__weblab?.snapshot()?.city?.patch?.pedestrian==='ready' && window.__weblab?.snapshot()?.city?.patch?.bus==='ready',null,{timeout:75000});
     await page.waitForTimeout(1200);
     const get=(name)=>page.evaluate(name=>{const n=window.__scene.getTransformNodeByName(name);return n?{x:n.position.x,y:n.position.y,z:n.position.z,enabled:n.isEnabled()}:null},name);
     const bus=await get('patch-onibus-0');const ped=await get('patch-transeunte-animada');
