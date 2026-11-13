@@ -95,3 +95,13 @@ Em **Build and deployment > Source**, selecionar **GitHub Actions** e salvar. En
 - **Modo de comparação:** `?assets=patch` carrega `city-bus-49fd97.glb` (Polyfork, CC BY 4.0) e `woman.glb` (Patch/anymove, CC0), com fallback e créditos. Um NPC próximo é substituído visualmente; ônibus no trânsito conservam simulação anterior. Funcionários do galpão e das lojas não são substituídos neste teste.
 - **Ressalvas:** ônibus low-poly, rodas ainda sem animação própria; personagem 6,27 MB não otimizada para uso em massa; aparência e FPS real no Android dependem de avaliação. Não declarar como substituição final nem como aprovado visualmente.
 - **Condição de aceite:** etapa `Deploy preview` do workflow GitHub Pages concluída com `success`; confirmar URL divulgada. Não modificar workflow de produção.
+
+
+## Publicação CORE-015 — auditoria de 13/11/2026
+
+- **Autorização:** usuário solicitou auditar as alterações feitas pelo Claude no projeto Brejo Alegre e, se aprovadas, publicar. Publicação autorizada **somente da versão de testes na branch `preview`**, sem merge para `main` e sem workflow de produção.
+- **Commit de código revisado:** `5398151203f051cd1d60b5473241131c07ba377d` (CORE-015, 13/11/2026). Nenhuma alteração no código do jogo é realizada para este disparo.
+- **Verificação independente do GitHub Actions:** CI de push [43465837859](https://github.com/raff1play/BrejoAlegre-WebLab/actions/runs/43465837859) e CI de PR [43465852831](https://github.com/raff1play/BrejoAlegre-WebLab/actions/runs/43465852831), ambas concluídas com `success` na mesma SHA. Etapas: npm ci, validate:repo, testes unitários, TypeScript/build de staging, artefato de staging.
+- **Auditoria de escopo:** dados OSM rastreados em `data/osm/SOURCE.json`; malha viária 1:1 da sede; as casas, lotes, lojas e galpão não são reproduções geográficas exatas. Registro de comparação em `docs/evidence/core015-mapa/`. A remoção experimental dos assets Patch.gg está no commit `1ddbd189` anterior ao candidato.
+- **Limitações explícitas:** E2E 70/70 consta como evidência fornecida pelo implementador, não integra a CI padrão; desempenho, ergonomia, temperatura e câmera no Galaxy S24 real não foram verificados nesta auditoria. Esta publicação é um **preview para teste**, não aceite de produção.
+- **Disparo:** a atualização deste documento ativa exclusivamente `.github/workflows/preview.yml`. Só declarar o site atualizado quando `Deploy preview` concluir com `success` e a URL pública for confirmada. Preservar as branches `preview` e `main`.
