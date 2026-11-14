@@ -60,3 +60,12 @@
 - Atualiza somente o checkout fixado da ART-002 em `/depot-preview/`, preservando a raiz e `/street-preview/`, `/gfx-preview/`, `/art-preview/`.
 - Sem merge para `main`/`preview`; não modifica o código da ART-002 nem publica versão estável.
 - Publicação confirmada apenas se o job do GitHub Pages concluir com sucesso.
+
+## 14/11/2026 — correção da orientação após descarga na base
+
+- Relato do usuário durante a homologação: após depositar os quatro volumes de coleta na bancada às 12h46, o jogo aparenta ficar parado em "Conferência no recebimento".
+- Diagnóstico: a triagem inicia às 14h, o caminhão de suprimento chega às 13h e a fase CONFERENCIA ocultava o bloqueio e não oferecia botão de espera. O processamento real de volumes continua dependente de tarefas, não somente de relógio.
+- Publicar exclusivamente `/depot-preview/` fixado no commit `c66a54cbf5571f35737aaa6e6aee8071ad932c92`. CI [43648300540](https://github.com/raff1play/BrejoAlegre-WebLab/actions/runs/43648300540): sucesso, 114/114 testes, TypeScript e build.
+- Correção: progresso quantitativo do recebimento, mensagem sobre os quatro volumes do caminhão e triagem às 14h, comando "Aguardar até 14:00" quando o jogador já concluiu a descarga; teste novo de regressão.
+- Não altera a logística, os IDs dos pacotes, a versão estável e as outras três prévias. Não faz merge. Teste físico no Android e avaliação da animação permanecem pendentes.
+- Considerar o deploy concluído apenas com resultado success no GitHub Actions.
