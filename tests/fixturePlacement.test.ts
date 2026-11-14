@@ -46,12 +46,15 @@ test('urban equipment: traffic signals use pavement offsets including one-way la
   console.log('signal-placement census', JSON.stringify({ plans: plans.size, inbound: inbound.length,
     veh: veh.length, ped: ped.length, missing }));
   assert.ok(plans.size > 0, 'traffic lights remain active');
-  assert.ok(veh.length > 0, 'at least one signal head is visible');
+  assert.equal(veh.length, inbound.length,
+    'every signal-controlled vehicle approach must have a visible, safe signal head');
   for (const f of fixtures) {
     assert.ok(validFixtureSite(f, f.ped ? 0.17 : 0.20), 'signal pole must be on a walkable pavement');
     assert.ok(roadDistance(f.x, f.z) > ROAD_HALF, 'never install a signal in traffic');
     assert.ok(clearOfFixtures(f, streetLightPositions(), 1.99), 'signal separated from public lighting');
     assert.ok(clearOfFixtures(f, shopFurniture().lamps, 1.99), 'signal separated from shop lighting');
+    assert.ok(clearOfFixtures(f, cityTrees(), 1.99), 'signal separated from street and park trees');
+    assert.ok(clearOfFixtures(f, shopFurniture().planters, 1.99), 'signal separated from planters');
     assert.ok(plans.has(f.node));
   }
 });
