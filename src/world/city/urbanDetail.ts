@@ -1,4 +1,4 @@
-import { NODES, ROADS, type CityNode, type CityRoad } from './cityPlan.ts';
+import { NODES, ROADS, type CityRoad } from './cityPlan.ts';
 import { ROAD_HALF } from '../layout.ts';
 import { crossingDistance } from '../../core/city/pedestrians.ts';
 
