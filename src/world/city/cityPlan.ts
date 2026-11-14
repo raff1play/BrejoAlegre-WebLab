@@ -1,8 +1,8 @@
-import { makePoly, type Box2D, type Poly2D } from '../../core/collision.ts';
+import { createMotionGuard, makePoly, type Box2D, type Poly2D } from '../../core/collision.ts';
 import { CURB_H, SIDEWALK, frameCorners, framePoint, yawOf, type Frame } from '../layout.ts';
 import { NETWORK, PLAY_BOUNDS, degreeOf, nearestOnPolyline, type NetRoad } from '../geo/network.ts';
 import {
-  DEPOT_SITE, GEO_BLOCKS, GEO_LOTS, OPEN_SPACES, SHOP_LOTS, TOWN_CENTRE, geoRaised, geoSolids, type GeoBlock, type GeoLot,
+  DEPOT_SITE, GEO_BLOCKS, GEO_LOTS, OPEN_SPACES, SHOP_LOTS, TOWN_CENTRE, geoRaised, geoSolids, roadDistance, pointInPolygon, type GeoBlock, type GeoLot,
 } from '../geo/geoCity.ts';
 import { GEO } from '../geo/brejoAlegreData.ts';
 import type { XZ } from '../geo/geoTypes.ts';
@@ -45,9 +45,37 @@ export const ROADS: readonly CityRoad[] = NETWORK.roads.map((r) => ({
  * OSM provides the streets, not the physical signals. Select a few roomy urban intersections,
  * far apart, so the existing signal/AI/pedestrian state machines can actually control them.
  */
+// A node with an excellent traffic score is still unsuitable for semaphores if
+// one of its arms has NO safe paved corner. Select only sites with room for each
+// approach; the later renderer performs finer collision and fixture checks.
+const signalGeoFree = createMotionGuard(CITY_BOUNDS, [], geoSolids());
+function armHasSignalPavement(n: (typeof NETWORK.nodes)[number], r: CityRoad): boolean {
+  const pts = r.a === n.id ? r.pts : [...r.pts].reverse();
+  for (const target of [8, 11, 14, 17, 20]) {
+    if (target >= r.length - 2) continue;
+    let travelled = 0;
+    for (let i = 1; i < pts.length; i++) {
+      const a = pts[i - 1]!, p = pts[i]!;
+      const dx = p[0] - a[0], dz = p[1] - a[1], length = Math.hypot(dx, dz);
+      if (length < 0.001) continue;
+      if (travelled + length < target) { travelled += length; continue; }
+      const tx = dx / length, tz = dz / length, at = (target - travelled) / length;
+      const x = a[0] + dx * at, z = a[1] + dz * at;
+      for (const side of [-1, 1]) for (const off of [4.5, 5.0, 5.5]) {
+        const qx = x + tz * off * side, qz = z - tx * off * side;
+        const roadD = roadDistance(qx, qz);
+        if (roadD < 4.35 || roadD > 5.85 || !signalGeoFree(qx, qz, 0.33)) continue;
+        if (GEO_BLOCKS.some((block) => pointInPolygon(block.kerb, qx, qz))) return true;
+      }
+      break;
+    }
+  }
+  return false;
+}
 const SIGNAL_CANDIDATES = NETWORK.nodes.filter((n) => !n.exit).map((n) => {
   const arms = ROADS.filter((r) => r.a === n.id || r.b === n.id);
   if (arms.length < 3 || arms.some((r) => r.kind !== 'urban' || r.length < 32)) return null;
+  if (arms.some((r) => !armHasSignalPavement(n, r))) return null;
   return { n, score: arms.reduce((v, r) => v + r.priority * 3 + (r.heavy ? 6 : 0), 0) + arms.length };
 }).filter((v): v is { n: (typeof NETWORK.nodes)[number]; score: number } => v !== null)
   .sort((a, b) => b.score - a.score || a.n.id.localeCompare(b.n.id));
