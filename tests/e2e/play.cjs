@@ -276,7 +276,7 @@ async function cityAndJob(browser) {
   check('loja: funcionário avisa que os volumes saem às 12h', /12h/.test(s.delivery.action ?? ''), s.delivery.action);
   await page.evaluate(() => window.__debug.wait());
   s = await until((v) => v.clock.speed > 1, 5000);
-  check('aguardar acelera o relógio até 12h (escala 1 h = 4 min mantida)', s.clock.speed === 24 && s.delivery.waiting === 12, `×${s.clock.speed}`);
+  check('aguardar acelera o relógio até 12h (escala 1 h = 2min30s mantida)', s.clock.speed === 24 && s.delivery.waiting === 12, `×${s.clock.speed}`);
   await page.evaluate(() => window.__debug.setHour(12.05));
   s = await until((v) => v.clock.speed === 1, 5000);
   check('relógio volta à escala normal após a espera', s.clock.speed === 1 && s.delivery.waiting === null);
