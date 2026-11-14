@@ -20,6 +20,7 @@ import { rodPart, ballPart, boxPart } from '../../world/modelParts';
 import type { Materials } from '../../world/materials';
 import { CURB_H } from '../../world/layout';
 import { signalFixturePositions } from '../../world/city/signalFixtures';
+import { NODES } from '../../world/city/cityPlan';
 import { streetLightPositions } from '../../world/city/cityLayout';
 
 /**
