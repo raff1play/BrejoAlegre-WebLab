@@ -87,10 +87,20 @@ export class DeliveryGame {
       const L = s.layout; const npc = s.npc;
       const near = Math.hypot(player.x - L.employee.x, player.z - L.employee.z) < 70;
       npc.setEnabled(ops.employee !== 'fora' && near);
-      if (ops.employee === 'buscando') { npc.walkTo(L.stock.x, L.stock.z); npc.activity = 'idle'; }
-      else if (ops.employee === 'abrindo' || ops.employee === 'fechando') { npc.walkTo(L.door.x, L.door.z); npc.activity = 'work'; }
-      else { npc.walkTo(L.employee.x, L.employee.z); npc.activity = ops.employee === 'atendendo' && ops.queue.length === 0 ? 'idle' : 'work'; }
-      if (!npc.moving) npc.lookAt(L.facing + Math.PI);
+      // GFX-001: the employee goes ROUND the counter (never through it), hands parcels over with
+      // both arms and turns to whoever walks in.
+      const staffSide = (npc.x - L.staffPath[0]!.x) * Math.sin(L.facing) + (npc.z - L.staffPath[0]!.z) * Math.cos(L.facing) > -0.6;
+      if (ops.employee === 'buscando') { npc.walkPath(staffSide ? [L.stock] : [L.staffPath[2]!, L.staffPath[1]!, L.staffPath[0]!, L.stock]); npc.activity = 'idle'; }
+      else if (ops.employee === 'abrindo' || ops.employee === 'fechando') { npc.walkPath(staffSide ? [L.staffPath[0]!, L.staffPath[1]!, L.staffPath[2]!, L.door] : [L.door]); npc.activity = 'work'; }
+      else {
+        npc.walkPath(staffSide ? [L.employee] : [L.staffPath[2]!, L.staffPath[1]!, L.staffPath[0]!, L.employee]);
+        npc.activity = ops.employee === 'conferindo' ? 'give' : ops.employee === 'atendendo' && ops.queue.length === 0 ? 'idle' : 'work';
+      }
+      if (!npc.moving) {
+        const dp = Math.hypot(player.x - npc.x, player.z - npc.z);
+        const inShop = !player.riding && dp < 6.5 && pointInPoly(L.interior.pts, player.x, player.z);
+        npc.lookAt(inShop && (ops.queue.length === 0 || ops.pickup) ? Math.atan2(player.x - npc.x, player.z - npc.z) : L.facing + Math.PI);
+      }
       if (near) npc.update(dt, ground(npc.x, npc.z), Math.hypot(player.x - npc.x, player.z - npc.z) < 40);
     }
     this.updateCustomers(dt, hour, crowd);
@@ -171,6 +181,11 @@ export class DeliveryGame {
         }
         case 'separador-1': case 'separador-2': {
           const z = st.role === 'separador-1' ? -127.9 : -131.1;
+          if (st.state === 'triando por bairro' && st.role === 'separador-2') {
+            // GFX-001: carries sorted volumes from the end of the belt to the regional cages.
+            const belt = { x: 113.5, z: -131.25 }; const cage = { x: 120.2, z: -131.4 };
+            go = loop(belt, cage, 6); npc.activity = go === cage ? 'carry' : 'work'; face = 0; break;
+          }
           go = st.state === 'triando por bairro' ? loop({ x: 107, z }, { x: 114, z }, 6) : loop({ x: 108, z: -139.2 }, { x: 116, z: -139.2 }, 9);
           face = st.role === 'separador-1' ? Math.PI : 0; npc.activity = 'work'; break;
         }

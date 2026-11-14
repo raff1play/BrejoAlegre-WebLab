@@ -74,3 +74,22 @@ test('the bike does not fit through a shop door', () => {
     assert.ok(pointInPoly(L.interior.pts, L.pickup.x, L.pickup.z), `${s.id}: counter is inside the shell`);
   }
 });
+
+test('GFX-001: staff route round the counter is clear, and the new fixtures keep the shops walkable', () => {
+  for (const s of STORES) {
+    const L = storeLayout(s);
+    const route = [L.employee, ...L.staffPath, L.door];
+    for (let i = 1; i < route.length; i++) {
+      const a = route[i - 1]!; const b = route[i]!;
+      for (let k = 0; k <= 20; k++) {
+        const x = a.x + (b.x - a.x) * (k / 20); const z = a.z + (b.z - a.z) * (k / 20);
+        assert.ok(guard(x, z, 0.25), `${s.id}: staff route leg ${i} blocked at ${x.toFixed(1)},${z.toFixed(1)}`);
+      }
+    }
+    // Customers: door → every queue spot in a straight line without touching furniture.
+    for (const q of L.queue) for (let k = 0; k <= 20; k++) {
+      const x = L.door.x + (q.x - L.door.x) * (k / 20); const z = L.door.z + (q.z - L.door.z) * (k / 20);
+      assert.ok(guard(x, z, 0.2), `${s.id}: customer line to the queue blocked at ${x.toFixed(1)},${z.toFixed(1)}`);
+    }
+  }
+});

@@ -241,6 +241,9 @@ export type StoreLayout = Readonly<{
   /** Inside the shell (the customer and staff floor). */
   interior: Poly2D;
   door: { x: number; z: number }; pickup: { x: number; z: number }; employee: { x: number; z: number };
+  /** GFX-001: the way round the counter (staff side corner, customer side corner) — staff and
+   *  customers never cut through the counter. */
+  staffPath: { x: number; z: number }[];
   stock: { x: number; z: number }; queue: { x: number; z: number }[]; facing: number;
 }>;
 export const STORE_SETBACK = 1.5;
@@ -265,6 +268,7 @@ export function storeLayout(s: Store): StoreLayout {
     doorway: R(p.door0, p.door1, STORE_SETBACK, STORE_SETBACK + t),
     interior: R(t, W - t, STORE_SETBACK + t, D - t),
     door: P(W / 2, STORE_SETBACK - 0.6), pickup: P(W / 2 + 1.0, cz - 1.0), employee: P(W / 2 - 0.5, cz + 0.9),
+    staffPath: [P(W - 2.1, cz + 0.95), P(W - 2.1, cz - 1.0), P(W / 2 + 0.3, cz - 1.45)],
     stock: P(W / 2 + 1.5, D - 1.6),
     queue: [P(W / 2 - 1.6, cz - 1.0), P(W / 2 - 1.6, cz - 2.0), P(W / 2 - 2.6, cz - 2.6), P(W / 2 - 3.4, cz - 3.2)],
     facing: yawOf(f),

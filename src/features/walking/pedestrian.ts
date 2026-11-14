@@ -5,7 +5,7 @@ import type { MotionGuard } from '../../core/collision';
 import { approach } from '../../core/math';
 import { stepWalker, WALKER, type WalkControls, type WalkerState } from '../../core/walking';
 import type { Materials } from '../../world/materials';
-import { Character, RIDER_LOOK, carryingPose, walkingPose } from '../shared/character';
+import { Character, RIDER_LOOK, carryingPose, mixPose, walkingPose, type Pose } from '../shared/character';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { BatchSet } from '../../world/geometry';
 
@@ -39,6 +39,7 @@ export class Pedestrian {
   private shown = { count: 0, sack: false };
   /** Reaching into the top box (seconds left); the hands' content switches halfway. */
   private reach = 0;
+  private lastPose: Pose | null = null;
 
   constructor(scene: Scene, mats: Materials, helmetColor: string) {
     this.body = new Character(scene, mats, 'pedestre', { ...RIDER_LOOK, helmet: helmetColor });
@@ -119,7 +120,10 @@ export class Pedestrian {
     if (this.reach < 0.28) this.shown = this.load;
     const holding = this.shown.count > 0;
     this.carrying = holding;
-    const pose = holding || this.reach > 0 ? carryingPose(this.phase, this.amount, this.time) : walkingPose(this.phase, this.amount, this.time);
+    const target = holding || this.reach > 0 ? carryingPose(this.phase, this.amount, this.time) : walkingPose(this.phase, this.amount, this.time);
+    // GFX-001C: ease between poses (picking up / putting down a load no longer snaps the arms).
+    const pose = this.lastPose ? mixPose(this.lastPose, target, Math.min(1, dt * 10)) : target;
+    this.lastPose = pose;
     if (this.reach > 0) {
       // Lean in and lower the hands into the box, then back.
       const k = Math.sin(Math.min(1, this.reach / 0.55) * Math.PI);

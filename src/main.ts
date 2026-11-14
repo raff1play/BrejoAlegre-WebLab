@@ -166,6 +166,8 @@ function start(canvas: HTMLCanvasElement): void {
       if (msg) hud.toast(msg);
       // Top box: the lid opens and the rider reaches in; the hands change halfway through.
       if (job.trunk) { moto.openTrunk(); walker.reachTrunk(); }
+      // GFX-001C: every hand-over (counter, checker, customer's gate) plays the reach gesture.
+      else walker.reachTrunk(0.5);
       return;
     }
     if (job && !job.available && mode === 'walking' && !canMount(walker.state, moto.state)) { hud.toast(job.label); return; }
@@ -255,6 +257,8 @@ function start(canvas: HTMLCanvasElement): void {
     const far = objective.target ? Math.hypot(objective.target.x - player.x, objective.target.z - player.z) : 0;
     hud.setDistance(objective.target && far > 12 ? minimap.targetDistance() : null);
     walker.setLoad(delivery.workday.inHands().length, delivery.workday.sackInHands);
+    moto.setLights(mode === 'riding' && input.isDown('brake') && m.speed > 0.2, lighting.night, dt);
+    moto.setTrunkCargo(delivery.workday.inTrunk().length);
     const found = delivery.action(clock.hour, here, bikeSpot());
     // A blocked job hint never hides "Montar" when the rider can simply get on the bike.
     const job = found && (found.available || mode === 'riding' || !canMount(walker.state, m) || delivery.workday.inHands().length > 0) ? found : null;

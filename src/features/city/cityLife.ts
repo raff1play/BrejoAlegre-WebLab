@@ -4,6 +4,7 @@ import { Matrix } from '@babylonjs/core/Maths/math.vector';
 import { CreateDisc } from '@babylonjs/core/Meshes/Builders/discBuilder';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
+import { DynamicTexture } from '@babylonjs/core/Materials/Textures/dynamicTexture';
 import { Constants } from '@babylonjs/core/Engines/constants';
 import type { Scene } from '@babylonjs/core/scene';
 import type { ShadowGenerator } from '@babylonjs/core/Lights/Shadows/shadowGenerator';
@@ -181,7 +182,15 @@ export function buildCityLife(scene: Scene, mats: Materials, profile: GraphicsPr
 
   // Warm light pools under street lamps, additive, only at night.
   const poolMat = new StandardMaterial('poca-de-luz', scene);
-  poolMat.disableLighting = true; poolMat.emissiveColor = new Color3(0.42, 0.33, 0.18); poolMat.alphaMode = Constants.ALPHA_ADD; poolMat.alpha = 1;
+  // GFX-001: soft radial falloff (the pools used to be flat, hard-edged orange discs).
+  const poolTex = new DynamicTexture('tx-poca-luz', { width: 64, height: 64 }, scene, false);
+  {
+    const c2 = poolTex.getContext() as unknown as CanvasRenderingContext2D;
+    const g = c2.createRadialGradient(32, 32, 0, 32, 32, 32);
+    g.addColorStop(0, 'rgb(150,116,62)'); g.addColorStop(0.45, 'rgb(84,64,32)'); g.addColorStop(1, 'rgb(0,0,0)');
+    c2.fillStyle = g; c2.fillRect(0, 0, 64, 64); poolTex.update();
+  }
+  poolMat.disableLighting = true; poolMat.emissiveColor = new Color3(0, 0, 0); poolMat.emissiveTexture = poolTex; poolMat.alphaMode = Constants.ALPHA_ADD; poolMat.alpha = 1;
   const poolSet = new BatchSet();
   const poolLab = { ...mats.glow('#ffffff') };
   for (const p of streetLightPositions()) {
@@ -205,7 +214,7 @@ export function buildCityLife(scene: Scene, mats: Materials, profile: GraphicsPr
   const NEAR_RANGE = light ? 22 : 32;
   const nearCap = light ? 5 : 10;
   const nearPool = LOOKS.map((l, i) => {
-    const npc = new NpcPerson(scene, mats, `transeunte-${i}`, civilianLook(l), light ? undefined : shadows);
+    const npc = new NpcPerson(scene, mats, `transeunte-${i}`, civilianLook(l), light ? undefined : shadows, 0.93 + ((i * 37) % 15) / 100);
     npc.setEnabled(false);
     return npc;
   });
@@ -320,7 +329,7 @@ export function buildCityLife(scene: Scene, mats: Materials, profile: GraphicsPr
       const lit = night > 0.35;
       if (poolsOn !== lit) { poolsOn = lit; for (const m of pools) m.setEnabled(lit); }
       if (Math.abs(night - lastNight) > 0.02) {
-        poolMat.emissiveColor.set(0.42 * night, 0.33 * night, 0.18 * night);
+        poolTex.level = night;
         lastNight = night;
       }
     },

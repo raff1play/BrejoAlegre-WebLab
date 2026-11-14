@@ -1,5 +1,9 @@
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
+import { Color3 } from '@babylonjs/core/Maths/math.color';
+import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
+import { DynamicTexture } from '@babylonjs/core/Materials/Textures/dynamicTexture';
+import { CreateGround } from '@babylonjs/core/Meshes/Builders/groundBuilder';
 import { RigidSkin } from '../shared/rigidSkin';
 import { Mesh } from '@babylonjs/core/Meshes/mesh';
 import type { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
@@ -51,6 +55,14 @@ export class Motorcycle {
   private readonly lid: TransformNode;
   private lidOpen = 0;
   private lidTimer = 0;
+  /** GFX-001C: live lamps (brake light, headlight glow and beam) and the parcels seen in the open box. */
+  private readonly brakeLamp: Mesh | null = null;
+  private readonly brakeMat: StandardMaterial | null = null;
+  private readonly beam: Mesh | null = null;
+  private readonly beamMat: StandardMaterial | null = null;
+  private readonly cargo: Mesh | null = null;
+  private cargoCount = 0;
+  private brake = 0;
   private readonly rider: Character | null;
   private ridden: boolean;
   private groundY = 0;
@@ -132,6 +144,35 @@ export class Motorcycle {
       this.meshes.push(...skin.build({ min: new Vector3(-0.9, -0.2, -1.4), max: new Vector3(0.9, 1.7, 1.2) }));
     }
 
+    if (!options.static) {
+      // Brake light: its own small unlit mesh so it can brighten without touching the skinned bike.
+      this.brakeMat = new StandardMaterial('moto-luz-freio', scene);
+      this.brakeMat.disableLighting = true; this.brakeMat.emissiveColor = new Color3(0.45, 0.04, 0.03);
+      this.brakeLamp = boxPart(scene, [0.15, 0.075, 0.02], [0, 0.76, -1.103]);
+      this.brakeLamp.material = this.brakeMat; this.brakeLamp.parent = this.chassis; this.brakeLamp.isPickable = false;
+      // Headlight: an additive pool of light on the road ahead (soft radial texture), from dusk.
+      this.beamMat = new StandardMaterial('moto-farol-feixe', scene);
+      const glow = new DynamicTexture('tx-farol', { width: 64, height: 64 }, scene, false);
+      const g2 = glow.getContext() as unknown as CanvasRenderingContext2D;
+      const grad = g2.createRadialGradient(32, 32, 0, 32, 32, 32);
+      grad.addColorStop(0, 'rgba(255,255,255,1)'); grad.addColorStop(0.5, 'rgba(255,255,255,0.45)'); grad.addColorStop(1, 'rgba(255,255,255,0)');
+      g2.fillStyle = grad; g2.fillRect(0, 0, 64, 64); glow.update();
+      this.beamMat.disableLighting = true; this.beamMat.emissiveColor = new Color3(1, 0.9, 0.62);
+      this.beamMat.emissiveTexture = glow; this.beamMat.opacityTexture = glow;
+      this.beamMat.alpha = 0; this.beamMat.alphaMode = 1; this.beamMat.fogEnabled = false; this.beamMat.zOffset = -4;
+      this.beam = CreateGround('moto-farol', { width: 3.6, height: 8 }, scene);
+      this.beam.material = this.beamMat; this.beam.parent = this.root; this.beam.position.set(0, 0.04, AXLE + 4.6);
+      this.beam.isPickable = false; this.beam.setEnabled(false);
+      // Parcels inside the top box (visible only while the lid is up).
+      const load = new BatchSet();
+      load.box(mats.paint('#c69a5f'), -0.19, -0.01, 1.0, 1.2, -0.97, -0.64);
+      load.box(mats.paint('#d2ab73'), 0.01, 0.19, 1.0, 1.16, -0.95, -0.7);
+      load.box(mats.paint('#e9dcc0'), -0.2, -0.0, 1.085, 1.105, -0.975, -0.635);
+      load.box(mats.paint('#b88a55'), -0.12, 0.14, 1.2, 1.25, -0.92, -0.68);
+      this.cargo = load.build('moto-bau-carga', scene, this.chassis)[0] ?? null;
+      if (this.cargo) { this.cargo.isPickable = false; this.cargo.setEnabled(false); }
+    }
+
     this.ridden = withRider;
     this.rider = withRider ? new Character(scene, mats, 'piloto', { ...RIDER_LOOK, helmet: look.helmet }) : null;
     if (this.rider) {
@@ -161,6 +202,21 @@ export class Motorcycle {
       this.mount = 1;
     }
   }
+
+  /** Live lamps: `braking` brightens the tail light, `night` (0..1) turns the headlight beam on. */
+  setLights(braking: boolean, night: number, dt: number): void {
+    if (!this.brakeMat || !this.beamMat || !this.beam) return;
+    this.brake = approach(this.brake, braking ? 1 : 0, 18, dt);
+    const k = 0.4 + 0.25 * night + 0.6 * this.brake;
+    this.brakeMat.emissiveColor.set(Math.min(1, k * 1.05), 0.05 + 0.1 * this.brake, 0.03 + 0.06 * this.brake);
+    this.brakeLamp!.scaling.set(1 + 0.25 * this.brake, 1 + 0.35 * this.brake, 1);
+    const on = night > 0.3 && this.ridden;
+    if (this.beam.isEnabled() !== on) this.beam.setEnabled(on);
+    this.beamMat.alpha = 0.55 * Math.min(1, (night - 0.3) * 3);
+  }
+
+  /** How many parcels are in the top box (shown while the lid is open). */
+  setTrunkCargo(count: number): void { this.cargoCount = count; }
 
   /** Opens the top box for `seconds`, then lets it close by itself. */
   openTrunk(seconds = 1.1): void { this.lidTimer = seconds; }
@@ -195,6 +251,7 @@ export class Motorcycle {
     this.lidTimer = Math.max(0, this.lidTimer - dt);
     this.lidOpen = approach(this.lidOpen, this.lidTimer > 0 && !this.ridden ? 1 : 0, 9, dt);
     this.lid.rotation.x = this.lidOpen * 1.15;
+    if (this.cargo) { const show = this.lidOpen > 0.06 && this.cargoCount > 0; if (this.cargo.isEnabled() !== show) this.cargo.setEnabled(show); }
 
     if (dt > 0) {
       // Suspension: pitch follows filtered longitudinal acceleration (dive when braking, squat when

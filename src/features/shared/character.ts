@@ -294,3 +294,33 @@ export function carryingPose(phase: number, amount: number, t: number): Pose {
   pose.pitch = 0.04;
   return pose;
 }
+
+/** Offering / receiving a parcel: both hands out at chest height, slight lean. `k` 0..1 extends. */
+export function givingPose(t: number, k = 1): Pose {
+  const pose = standingPose(t);
+  pose.pitch = 0.05 + 0.12 * k;
+  pose.hands = [v(-0.16, 1.02 + 0.06 * k, 0.24 + 0.26 * k), v(0.16, 1.02 + 0.06 * k, 0.24 + 0.26 * k)];
+  pose.elbowPoles = [v(-0.5, 0.9, -0.2), v(0.5, 0.9, -0.2)];
+  pose.headPitch = 0.12 * k;
+  return pose;
+}
+
+const mixV = (a: Vec3, b: Vec3, t: number): Vec3 => ({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t, z: a.z + (b.z - a.z) * t });
+const mixN = (a: number, b: number, t: number) => a + (b - a) * t;
+
+/**
+ * GFX-001C: blends two poses (t = 0 → a, 1 → b). Characters ease from one activity to the next
+ * (stand → work → carry → walk) instead of snapping between poses.
+ */
+export function mixPose(a: Pose, b: Pose, t: number): Pose {
+  if (t >= 1) return b;
+  return {
+    pelvis: mixV(a.pelvis, b.pelvis, t), pitch: mixN(a.pitch, b.pitch, t), yaw: mixN(a.yaw, b.yaw, t), roll: mixN(a.roll, b.roll, t),
+    headYaw: mixN(a.headYaw, b.headYaw, t), headPitch: mixN(a.headPitch, b.headPitch, t),
+    hands: [mixV(a.hands[0], b.hands[0], t), mixV(a.hands[1], b.hands[1], t)],
+    // Feet follow the target directly: blending a planted foot towards a swinging one makes it slide.
+    feet: b.feet,
+    elbowPoles: [mixV(a.elbowPoles[0], b.elbowPoles[0], t), mixV(a.elbowPoles[1], b.elbowPoles[1], t)],
+    kneePoles: b.kneePoles, footYaw: b.footYaw, footPitch: b.footPitch,
+  };
+}
