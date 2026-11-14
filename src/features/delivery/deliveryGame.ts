@@ -1,3 +1,4 @@
+import { gateLeaves } from '../../world/city/depotPlan';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { CreateCylinder } from '@babylonjs/core/Meshes/Builders/cylinderBuilder';
 import { CreateTorus } from '@babylonjs/core/Meshes/Builders/torusBuilder';
@@ -11,7 +12,7 @@ import { DEPOT_LOCAL_SPOTS, HANDS_MAX, ROUTINE, Workday, type DepotRole } from '
 import type { Address } from '../../core/delivery/addresses';
 import type { GraphicsProfile } from '../../config/graphics';
 import { circleIntersectsPoly, pointInPoly } from '../../core/collision';
-import { STORES, depotWorld, depotYaw, storeLayout, type StoreKind, type StoreLayout } from '../../world/city/cityPlan';
+import { STORES, depotWorld, depotYaw, depotLocal, depotPoly, storeLayout, type StoreKind, type StoreLayout } from '../../world/city/cityPlan';
 import type { Materials } from '../../world/materials';
 import { NpcPerson, civilianLook } from '../city/npcPerson';
 
@@ -46,6 +47,8 @@ export class DeliveryGame {
   private readonly customers = new Map<number, { store: StoreKind; phase: 'in' | 'queue' | 'out'; at: Spot }>();
   private readonly marker: Mesh;
   private readonly ring: Mesh;
+  gateOpen = 0;
+  gateManual: boolean | null = null;
   private time = 0;
   private waitUntil: number | null = null;
 
@@ -76,6 +79,18 @@ export class DeliveryGame {
   /** Every frame. Returns nothing; read `action()` and `objective` afterwards. */
   update(dt: number, hour: number, crowd: Crowd, player: { x: number; z: number; riding: boolean }, ground: (x: number, z: number) => number, playerNear: (x: number, z: number, r: number) => boolean): void {
     this.time += dt;
+    const gp=depotWorld(106,-92.3);
+    const want=this.gateManual ?? Math.hypot(player.x-gp.x,player.z-gp.z)<17;
+    // Stop the leaves closing on a person or bike. Same geometry is used by doorBlocked().
+    const lp=depotLocal(player.x,player.z);
+    const safety=lp.x>98&&lp.x<114&&Math.abs(lp.z+92.3)<3;
+    this.gateOpen=Math.max(0,Math.min(1,this.gateOpen+(want||safety?1:-1)*dt*.65));
+    const origin=depotWorld(0,0);
+    for(const i of [0,1]){
+      const mesh=this.shutters.get(`depot-gate-${i}`);if(!mesh)continue;
+      const shift=depotWorld((i===0?-1:1)*6.15*this.gateOpen,0);
+      mesh.position.set(shift.x-origin.x,0,shift.z-origin.z);
+    }
     this.workday.update(hour, dt);
     // Shops: hours, shutter, employee routine, customers in the queue.
     for (const [kind, s] of this.stores) {
@@ -206,6 +221,7 @@ export class DeliveryGame {
    * while it is down — except from the inside, so nobody is locked in at closing time.
    */
   doorBlocked(x: number, z: number, r: number, riding: boolean, from: { x: number; z: number }): boolean {
+    if(gateLeaves(this.gateOpen).some(b=>circleIntersectsPoly(x,z,r,depotPoly(b))))return true;
     for (const s of this.stores.values()) {
       if (!circleIntersectsPoly(x, z, r, s.layout.doorway)) continue;
       if (riding) return true;
@@ -223,6 +239,8 @@ export class DeliveryGame {
     if (player.riding) return null;
     const w = this.workday;
     const close = (p: Spot, r: number) => Math.hypot(player.x - p.x, player.z - p.z) < r;
+    const control=depotWorld(95,-97.1);
+    if(close(control,1.6))return {label:this.gateManual===false?'Abrir portão de veículos':'Fechar portão de veículos',available:true,run:()=>{this.gateManual=this.gateManual===false;return this.gateManual?'Portão abrindo':'Portão fechando'}};
     const hands = w.inHands();
     const n = (k: number) => `${k} ${k === 1 ? 'volume' : 'volumes'}`;
     // Top box: behind the bike (with the hands full, anywhere within reach of the bike).

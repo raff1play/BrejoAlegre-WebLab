@@ -2,18 +2,16 @@ import { CreateCylinder } from '@babylonjs/core/Meshes/Builders/cylinderBuilder'
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Scene } from '@babylonjs/core/scene';
-import type { Box2D } from '../../core/collision';
 import { placement, type SharedBatches } from '../buildings';
 import { BatchSet, type P3 } from '../geometry';
-import { ballPart } from '../modelParts';
 import type { LabMaterial, Materials } from '../materials';
 import { CURB_H, ROAD_HALF, SIDEWALK, WALL_H } from '../layout';
 import { frontageWalls, streetLightPositions } from './cityLayout';
 import { buildStoreFront } from './storeFacade';
-import { buildDepotDetail } from './depotDetail';
+import { buildDepotArchitecture } from './depotArchitecture';
 import { streetPaint } from './urbanDetail';
 import { buildAddresses } from '../../core/delivery/addresses';
-import { BLOCKS, DEPOT, DEPOT_REGION_CAGES, NODES, ROADS, STORES, STORE_SETBACK, depotLayout, depotWorld, storePlan, type Rect, type Store } from './cityPlan';
+import { BLOCKS, DEPOT, NODES, ROADS, STORES, STORE_SETBACK, depotWorld, storePlan, type Rect, type Store } from './cityPlan';
 import { OPEN_SPACES } from '../geo/geoCity';
 import { GEO } from '../geo/brejoAlegreData';
 
@@ -23,12 +21,7 @@ import { GEO } from '../geo/brejoAlegreData';
  * and the depot placed on real lots, parks/pitch/cemetery from OSM, lamp posts and number plates.
  * Houses are built by the sector streamer (features/city/houseStreamer.ts).
  */
-const flatOnly = { sides: false } as const;
 type XZ = readonly [number, number];
-
-function drawBox(set: BatchSet, m: LabMaterial, b: Box2D, y0: number, y1: number, options?: { sides?: boolean; top?: boolean }): void {
-  set.box(m, b.minX, b.maxX, y0, y1, b.minZ, b.maxZ, options);
-}
 
 /** Triangulates a simple polygon (ear clipping); returns index triples. */
 export function triangulate(pts: readonly XZ[]): [number, number, number][] {
@@ -519,119 +512,6 @@ function buildStore(scene: Scene, mats: Materials, s: Store): { meshes: Mesh[]; 
   return { meshes, shutter };
 }
 
-function buildDepot(scene: Scene, set: BatchSet, flat: BatchSet, mats: Materials): void {
-  const d = DEPOT;
-  const b = d.building;
-  const cladding = mats.ribbed('#d8dde0');
-  // Yard asphalt and markings (lot is at kerb height).
-  drawBox(flat, mats.asphalt, d.yard, CURB_H - 0.02, CURB_H + 0.001, flatOnly);
-  drawBox(flat, mats.asphalt, { minX: d.lot.minX, maxX: d.lot.maxX, minZ: d.lot.minZ, maxZ: d.yard.minZ }, CURB_H - 0.02, CURB_H + 0.001, flatOnly);
-  for (const x of d.docks) {
-    drawBox(flat, mats.lineYellow, { minX: x - 1.6, maxX: x - 1.45, minZ: b.maxZ, maxZ: b.maxZ + 14 }, CURB_H, CURB_H + 0.01, flatOnly);
-    drawBox(flat, mats.lineYellow, { minX: x + 1.45, maxX: x + 1.6, minZ: b.maxZ, maxZ: b.maxZ + 14 }, CURB_H, CURB_H + 0.01, flatOnly);
-  }
-  for (let x = d.motoBays.x0; x <= d.motoBays.x1; x += 1.4) drawBox(flat, mats.lineWhite, { minX: x - 0.05, maxX: x + 0.05, minZ: d.motoBays.z - 1.3, maxZ: d.motoBays.z + 1.3 }, CURB_H, CURB_H + 0.01, flatOnly);
-  // CORE-014 building: hollow steel shed (walls match depotLayout), concrete plinth, high window
-  // band, roof with overhang, dock doors (rolled up), staff door, interior operation.
-  const H = d.height; const y0 = CURB_H; const t = 0.3;
-  const shell = (x0: number, x1: number, z0: number, z1: number) => {
-    set.box(mats.paint('#8a8d90', 0.05), x0, x1, y0, y0 + 1.1, z0, z1);
-    set.box(cladding, x0, x1, y0 + 1.1, y0 + H, z0, z1);
-  };
-  for (const w of depotLayout().walls) shell(w.minX, w.maxX, w.minZ, w.maxZ);
-  set.box(mats.ribbed('#a9adb2'), b.minX - 0.6, b.maxX + 0.6, y0 + H, y0 + H + 0.25, b.minZ - 0.6, b.maxZ + 0.6);
-  set.box(mats.paint('#e7e3da'), b.minX - 0.65, b.maxX + 0.65, y0 + H - 0.05, y0 + H + 0.32, b.minZ - 0.66, b.minZ - 0.6);
-  // Lintels over the dock openings and the staff door.
-  for (const x of d.docks) set.box(cladding, x - 1.6, x + 1.6, y0 + 4.3, y0 + H, b.maxZ - t, b.maxZ);
-  set.box(cladding, b.minX, b.minX + t, y0 + 2.3, y0 + H, -123.4, -121);
-  // High translucent window band on the long walls.
-  for (const z of [b.minZ - 0.02, b.maxZ + 0.02]) {
-    set.box(mats.paint('#9fb4bf', 0.6), b.minX + 1, b.maxX - 1, y0 + 6.4, y0 + 7.4, z - 0.01, z + 0.01);
-  }
-  for (const x of [b.minX + 0.5, b.maxX - 0.5]) set.box(mats.paint('#6f7378', 0.3), x - 0.07, x + 0.07, y0, y0 + H, b.maxZ + 0.02, b.maxZ + 0.12);
-  for (const x of d.docks) {
-    // Opening frame, rolled shutter, platform with bumpers and a dock light.
-    set.box(mats.paint('#f2c230'), x - 1.65, x - 1.5, y0, y0 + 4.3, b.maxZ, b.maxZ + 0.08);
-    set.box(mats.paint('#f2c230'), x + 1.5, x + 1.65, y0, y0 + 4.3, b.maxZ, b.maxZ + 0.08);
-    set.box(mats.ribbed('#9aa1a8'), x - 1.5, x + 1.5, y0 + 3.7, y0 + 4.3, b.maxZ - 0.2, b.maxZ - 0.05);
-    set.box(mats.paint('#55595e'), x - 1.6, x + 1.6, y0, y0 + 1.0, b.maxZ, b.maxZ + 1.8);
-    set.box(mats.paint('#1b1b1b'), x - 1.5, x + 1.5, y0 + 0.2, y0 + 0.9, b.maxZ + 1.8, b.maxZ + 1.95);
-    set.box(mats.glow('#ffe7b0'), x - 0.15, x + 0.15, y0 + 4.5, y0 + 4.65, b.maxZ + 0.05, b.maxZ + 0.2);
-  }
-  // Staff door canopy and sign, gatehouse (portaria) by the yard entrance.
-  set.box(mats.paint('#3a3d40', 0.3), b.minX - 1.2, b.minX, y0 + 2.6, y0 + 2.75, -123.8, -120.6);
-  set.box(mats.paint('#5d6368', 0.3), b.minX - 0.03, b.minX + t + 0.03, y0, y0 + 2.3, -123.45, -123.4);
-  const gh = { x0: 96.5, x1: 99.2, z0: -97.6, z1: -94.6 };
-  set.box(mats.plaster('#ecebe5'), gh.x0, gh.x1, y0, y0 + 0.9, gh.z0, gh.z1, { fitV: true });
-  set.box(mats.paint('#2f4352', 0.6), gh.x0 + 0.05, gh.x1 - 0.05, y0 + 0.9, y0 + 2.2, gh.z0 + 0.05, gh.z1 - 0.05);
-  for (const [x, z] of [[gh.x0, gh.z0], [gh.x1, gh.z0], [gh.x0, gh.z1], [gh.x1, gh.z1]] as const) set.box(mats.plaster('#ecebe5'), x - 0.1, x + 0.1, y0, y0 + 2.4, z - 0.1, z + 0.1);
-  set.box(mats.paint('#1d4f9c', 0.2), gh.x0 - 0.3, gh.x1 + 0.3, y0 + 2.4, y0 + 2.6, gh.z0 - 0.3, gh.z1 + 0.3);
-  buildDepotDetail(scene, set, flat, mats, y0, DEPOT_REGION_CAGES);
-  // Interior: sealed floor with safety lanes, columns, racks with pallets, sorting line, desks.
-  const floor = mats.paint('#9a9a95', 0.1);
-  set.box(floor, b.minX + t, b.maxX - t, y0, y0 + 0.012, b.minZ + t, b.maxZ - t, { sides: false });
-  for (const z of [-126.2, -133.2]) set.box(mats.lineYellow, b.minX + 1, b.maxX - 1, y0 + 0.012, y0 + 0.02, z - 0.06, z + 0.06, { sides: false });
-  const steel = mats.paint('#3f6e9a', 0.25);
-  for (let x = b.minX + 7.3; x < b.maxX - 2; x += 7.3) {
-    for (const z of [b.minZ + 0.45, b.maxZ - 0.45]) set.box(steel, x - 0.15, x + 0.15, y0, y0 + H, z - 0.15, z + 0.15);
-    set.box(steel, x - 0.1, x + 0.1, y0 + H - 0.7, y0 + H - 0.4, b.minZ + 0.3, b.maxZ - 0.3);
-  }
-  for (let x = b.minX + 4; x < b.maxX - 2; x += 8) for (const z of [-124, -134]) set.box(mats.glow('#f4f6ff'), x - 1.2, x + 1.2, y0 + H - 1.2, y0 + H - 1.1, z - 0.15, z + 0.15);
-  // Pallet racks along the back wall with stacked boxes.
-  const rackBlue = mats.paint('#2b5aa8', 0.25); const rackOrange = mats.paint('#e07b39', 0.25);
-  for (let x = 100; x < 134; x += 2.7) {
-    set.box(rackBlue, x, x + 0.1, y0, y0 + 4.5, -141.6, -140.2);
-    for (const y of [1.5, 3.0, 4.5]) set.box(rackOrange, x, x + 2.7, y0 + y - 0.12, y0 + y, -141.6, -140.2);
-    for (const [k, y] of [[0, 0], [1, 1.5], [2, 3.0]] as const) {
-      set.box(mats.paint('#b9935a'), x + 0.2, x + 2.5, y0 + y, y0 + y + 0.14, -141.5, -140.3);
-      if ((x * 3 + k) % 4 < 3) set.box(mats.paint(['#c69a5f', '#b88a55', '#d2ab73'][(k + Math.round(x)) % 3]!), x + 0.3, x + 2.4, y0 + y + 0.14, y0 + y + 1.05, -141.4, -140.4);
-    }
-  }
-  // Sorting line: belt on legs with rollers, parcels on the belt, labelled bairro bays.
-  set.box(mats.paint('#2b2d31', 0.2), 105, 117, y0 + 0.82, y0 + 0.9, -130.2, -128.8);
-  set.box(mats.paint('#55595e', 0.3), 105, 117, y0 + 0.7, y0 + 0.82, -130.4, -128.6);
-  for (let x = 105.4; x < 117; x += 1.6) for (const z of [-130.3, -128.7]) set.box(mats.paint('#55595e', 0.3), x - 0.05, x + 0.05, y0, y0 + 0.7, z - 0.05, z + 0.05);
-  for (const [x, c] of [[106.2, '#c69a5f'], [108.4, '#d2ab73'], [111.5, '#b88a55'], [114.8, '#c69a5f']] as const) set.box(mats.paint(c), x, x + 0.5, y0 + 0.9, y0 + 1.25, -129.8, -129.2);
-  // Receiving desk with a terminal, dispatch counter with sacks, roll cages, pallets, office.
-  set.box(mats.paint('#7a5a3a', 0.2), 93.2, 94.4, y0, y0 + 1.0, -124.4, -120.6);
-  set.box(mats.paint('#202326', 0.3), 93.5, 93.6, y0 + 1.0, y0 + 1.4, -123, -122.4);
-  set.box(mats.paint('#7a5a3a', 0.2), 93.2, 94.4, y0, y0 + 1.0, -133, -129);
-  for (const [z, c] of [[-132.6, '#e9dcc0'], [-131.8, '#d8c9a8']] as const) set.absorb(mats.paint(c), ballPart(scene, [0.55, 0.75, 0.5], [92.65, y0 + 0.36, z], 6));
-  for (const x of [127.2, 128.7]) {
-    set.of(mats.railing).quad([x, y0, -131], [x, y0, -128.6], [x, y0 + 1.7, -128.6], [x, y0 + 1.7, -131], 2.4, 1);
-    set.box(mats.paint('#c69a5f'), x - 0.6, x + 0.6, y0 + 0.1, y0 + 0.9, -130.6, -129);
-  }
-  for (const x of [100, 120]) {
-    set.box(mats.paint('#b9935a'), x, x + 3, y0, y0 + 0.14, -126, -124);
-    set.box(mats.paint('#d2ab73'), x + 0.2, x + 2.8, y0 + 0.14, y0 + 1.3, -125.8, -124.2);
-    set.box(mats.paint('#e9e5dc', 0.3), x + 0.15, x + 2.85, y0 + 1.3, y0 + 1.32, -125.85, -124.15);
-  }
-  set.box(mats.plaster('#ecebe5'), 124, 134, y0, y0 + 1.1, -137, -136.4, { fitV: true });
-  set.box(mats.paint('#2f4352', 0.6), 124, 134, y0 + 1.1, y0 + 2.6, -136.75, -136.65);
-  set.box(mats.plaster('#ecebe5'), 124, 134, y0 + 2.6, y0 + 2.9, -137, -136.4);
-  const ops = mats.sign('placa-galpao-setores', '#1d4f9c', '#f2c230', [
-    { text: 'RECEBIMENTO · TRIAGEM · EXPEDIÇÃO', size: 0.42, color: '#ffffff' },
-  ], 8, 64);
-  set.of(ops).quad([100, y0 + 5.2, -126.3], [116, y0 + 5.2, -126.3], [116, y0 + 6.2, -126.3], [100, y0 + 6.2, -126.3], 1, 1);
-  // Driveway apron over the pavement gap at the yard gate.
-  drawBox(flat, mats.plazaPaving, { minX: d.gate.x0, maxX: d.gate.x1, minZ: d.lot.maxZ, maxZ: -86 - ROAD_HALF }, -0.03, 0.015, flatOnly);
-  const sign = mats.sign('placa-galpao', '#1d4f9c', '#f2c230', [
-    { text: 'GALPÃO LOGÍSTICO', size: 0.42, color: '#ffffff' },
-    { text: 'BREJO ALEGRE · CARGA E DESCARGA', size: 0.2, color: '#f2c230', weight: '700' },
-  ], 9, 128);
-  set.of(sign).quad([b.minX + 8, CURB_H + 5.2, b.maxZ + 0.06], [b.maxX - 8, CURB_H + 5.2, b.maxZ + 0.06], [b.maxX - 8, CURB_H + 8.4, b.maxZ + 0.06], [b.minX + 8, CURB_H + 8.4, b.maxZ + 0.06], 1, 1);
-  // Chain-link fence with the gate opening on R. 13 de Maio.
-  const fence = mats.railing;
-  const fz = d.lot.maxZ - 0.07;
-  for (const [x0, x1] of [[d.lot.minX, d.gate.x0], [d.gate.x1, d.lot.maxX]] as const) {
-    set.of(fence).quad([x0, CURB_H, fz], [x1, CURB_H, fz], [x1, CURB_H + 2.2, fz], [x0, CURB_H + 2.2, fz], x1 - x0, 1);
-  }
-  for (const x of [d.gate.x0, d.gate.x1]) set.box(mats.paint('#3a3d40', 0.3), x - 0.12, x + 0.12, CURB_H, CURB_H + 2.6, fz - 0.12, fz + 0.12);
-  for (const [x, z0, z1] of [[d.lot.minX + 0.07, b.minZ, d.lot.maxZ], [d.lot.maxX - 0.07, b.minZ, d.lot.maxZ]] as const) {
-    set.of(fence).quad([x, CURB_H, z1], [x, CURB_H, z0], [x, CURB_H + 2.2, z0], [x, CURB_H + 2.2, z1], z1 - z0, 1);
-  }
-}
-
 export type CityBuild = { bodies: Mesh[]; shutters: Map<string, Mesh> };
 
 /** Builds the real town into the shared batches; returns the separate meshes (shops, depot shutters). */
@@ -644,7 +524,8 @@ export function buildCity(scene: Scene, mats: Materials, shared: SharedBatches):
   // Depot: the CORE-014 layout, rigidly placed on its real block.
   const toWorld = (p: P3): P3 => { const w = depotWorld(p[0], p[2]); return [w.x, p[1], w.z]; };
   upright.setTransform(toWorld); flat.setTransform(toWorld);
-  buildDepot(scene, upright, flat, mats);
+  const depot = buildDepotArchitecture(scene, upright, flat, mats);
+  bodies.push(...depot.roof,...depot.gates);
   upright.setTransform(null); flat.setTransform(null);
   // Frontage walls (plaster, stone plinth, coping, pillars) along every block edge between lots.
   // GFX-001: painted walls in the pastel range of a small Brazilian town (they were all beige).
@@ -681,6 +562,7 @@ export function buildCity(scene: Scene, mats: Materials, shared: SharedBatches):
   }
   upright.setTransform(null);
   const shutters = new Map<string, Mesh>();
+  depot.gates.forEach((mesh,i)=>shutters.set(`depot-gate-${i}`,mesh));
   for (const s of STORES) {
     const built = buildStore(scene, mats, s);
     bodies.push(...built.meshes, built.shutter);

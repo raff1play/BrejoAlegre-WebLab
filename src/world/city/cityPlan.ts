@@ -1,3 +1,4 @@
+import { depotFixtures, REGIONAL_CAGES } from './depotPlan.ts';
 import { createMotionGuard, makePoly, type Box2D, type Poly2D } from '../../core/collision.ts';
 import { CURB_H, SIDEWALK, frameCorners, framePoint, yawOf, type Frame } from '../layout.ts';
 import { NETWORK, PLAY_BOUNDS, degreeOf, nearestOnPolyline, type NetRoad } from '../geo/network.ts';
@@ -124,7 +125,7 @@ export const DEPOT = Object.freeze({
   gate: { x0: 100, x1: 112 },
   docks: [96, 104, 112, 120, 128] as readonly number[],
   motoBays: { x0: 79, x1: 89, z: -112 },
-  height: 9,
+  height: 7.8,
   name: 'Galpão Logístico (fictício)',
 });
 export const DEPOT_FRAME: Frame = DEPOT_SITE.frame;
@@ -137,27 +138,13 @@ export const depotYaw = (yaw: number) => yaw + yawOf(DEPOT_FRAME) - Math.PI;
 export const depotPoly = (b: Box2D): Poly2D => makePoly([[b.minX, b.minZ], [b.maxX, b.minZ], [b.maxX, b.maxZ], [b.minX, b.maxZ]].map(([x, z]) => { const p = depotWorld(x!, z!); return [p.x, p.z] as [number, number]; }));
 
 /** GFX-001B: two regional dispatch cages at the end of the sorting belt (solid). */
-export const DEPOT_REGION_CAGES: readonly Box2D[] = [
-  { minX: 118.4, maxX: 119.8, minZ: -130.7, maxZ: -129.3 }, { minX: 120.6, maxX: 122, minZ: -130.7, maxZ: -129.3 },
-];
-export function depotLayout(): { walls: Box2D[]; furniture: Box2D[]; floor: Box2D } {
-  const b = DEPOT.building; const t = 0.3;
-  const walls: Box2D[] = [
-    { minX: b.minX, maxX: b.maxX, minZ: b.minZ, maxZ: b.minZ + t },
-    { minX: b.maxX - t, maxX: b.maxX, minZ: b.minZ, maxZ: b.maxZ },
-    { minX: b.minX, maxX: b.minX + t, minZ: b.minZ, maxZ: -123.4 }, { minX: b.minX, maxX: b.minX + t, minZ: -121, maxZ: b.maxZ },
-  ];
-  let x = b.minX;
-  for (const d of DEPOT.docks) { walls.push({ minX: x, maxX: d - 1.6, minZ: b.maxZ - t, maxZ: b.maxZ }); x = d + 1.6; }
-  walls.push({ minX: x, maxX: b.maxX, minZ: b.maxZ - t, maxZ: b.maxZ });
-  const furniture: Box2D[] = [
-    { minX: 93.2, maxX: 94.4, minZ: -124.4, maxZ: -120.6 }, { minX: 93.2, maxX: 94.4, minZ: -133, maxZ: -129 },
-    { minX: 105, maxX: 117, minZ: -130.4, maxZ: -128.6 }, { minX: 100, maxX: 134, minZ: -141.6, maxZ: -140.2 },
-    { minX: 124, maxX: 134, minZ: -137, maxZ: -136.4 }, { minX: 100, maxX: 103, minZ: -126, maxZ: -124 },
-    { minX: 120, maxX: 123, minZ: -126, maxZ: -124 }, { minX: 127, maxX: 129.5, minZ: -131, maxZ: -128.6 },
-  ];
-  furniture.push(...DEPOT_REGION_CAGES);
-  return { walls, furniture, floor: b };
+export const DEPOT_REGION_CAGES: readonly Box2D[] = REGIONAL_CAGES;
+export function depotLocal(x: number, z: number): {x:number;z:number} {
+ const dx=x-DEPOT_FRAME.ox,dz=z-DEPOT_FRAME.oz,yaw=yawOf(DEPOT_FRAME);
+ return {x:139.8-(dx*Math.cos(yaw)-dz*Math.sin(yaw)),z:-92.2-(dx*Math.sin(yaw)+dz*Math.cos(yaw))};
+}
+export function depotLayout(): {walls:Box2D[];furniture:Box2D[];floor:Box2D} {
+ const fs=depotFixtures();return {walls:fs.filter(f=>f.kind==='wall'),furniture:fs.filter(f=>f.kind!=='wall'),floor:DEPOT.building};
 }
 
 // ------------------------------------------------------------------ house lots and shops
@@ -288,13 +275,6 @@ export function cityPolygons(): Poly2D[] {
   for (const s of STORES) { const L = storeLayout(s); out.push(...L.walls, L.counter, ...L.shelves, ...L.displays); }
   const dl = depotLayout();
   out.push(...dl.walls.map(depotPoly), ...dl.furniture.map(depotPoly));
-  // Depot fence on the street with the gate opening, and its side/back fences.
-  const d = DEPOT; const fz = d.lot.maxZ; const f = 0.15;
-  for (const b of [
-    { minX: d.lot.minX, maxX: d.gate.x0, minZ: fz - f, maxZ: fz }, { minX: d.gate.x1, maxX: d.lot.maxX, minZ: fz - f, maxZ: fz },
-    { minX: d.lot.minX, maxX: d.lot.minX + f, minZ: d.lot.minZ, maxZ: fz }, { minX: d.lot.maxX - f, maxX: d.lot.maxX, minZ: d.lot.minZ, maxZ: fz },
-    { minX: d.lot.minX, maxX: d.lot.maxX, minZ: d.lot.minZ, maxZ: d.lot.minZ + f },
-  ]) out.push(depotPoly(b));
   return out;
 }
 /** Kept for the CORE-013 API: axis boxes (none since CORE-015, everything is a polygon). */
