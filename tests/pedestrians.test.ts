@@ -80,3 +80,41 @@ test('pedestrians walk to shops and parks and cross only when the arm is clear',
   }
   assert.ok(offWorld < samples * 0.01, `pedestrians stay out of walls (${offWorld}/${samples})`);
 });
+
+test('GFX-001D: walkers go round a person standing on the pavement, turn smoothly and never freeze the street', () => {
+  const rg = buildRoadGraph();
+  const plans = buildSignalPlans(rg);
+  const traffic = new Traffic(rg, plans, { capacity: 12, seed: 5 });
+  const crowd = new Crowd(60, free, 21);
+  // Stand in the middle of a busy pavement edge near the shops.
+  const wg = crowd.graph;
+  const centre = { x: -46, z: 39 };
+  const edge = wg.edges.filter((e) => !e.cross && e.length > 30).map((e) => ({ a: wg.points[e.a]!, b: wg.points[e.b]! }))
+    .sort((p, q) => Math.hypot((p.a.x + p.b.x) / 2 - centre.x, (p.a.z + p.b.z) / 2 - centre.z) - Math.hypot((q.a.x + q.b.x) / 2 - centre.x, (q.a.z + q.b.z) / 2 - centre.z))[0]!;
+  const player = { x: (edge.a.x + edge.b.x) / 2, z: (edge.a.z + edge.b.z) / 2, radius: 0.45 };
+  let time = 0;
+  const pctx = () => ({ time, hour: 12, people: 1, commerceOpen: true, player, pedAspect: (n: string) => { const p = plans.get(n); return p ? signalState(p, time).ped : null; }, armClear: (n: string, r: string) => traffic.armClear(n, r), busAt: () => false });
+  const tctx = () => ({ time, player, crosswalkBusy: (n: string, r: string) => crowd.crosswalkBusy(n, r), density: 1, logistics: false });
+  traffic.populate(tctx(), true); crowd.populate(pctx(), true);
+  let closest = Infinity; let near = 0; let through = 0; let snaps = 0; let turns = 0; let moving = 0; let samples = 0;
+  const lastYaw = new Map<number, number>();
+  for (let i = 0; i < 30 * 300; i++) {
+    time += 1 / 30;
+    traffic.update(1 / 30, tctx()); crowd.update(1 / 30, pctx());
+    for (const p of crowd.people) {
+      if (!p.active || !p.visible) continue;
+      const d = Math.hypot(p.x - player.x, p.z - player.z);
+      if (d < 12) {
+        samples++; if (p.state === 'walk' && (p.pace ?? 0) > 0.2) moving++;
+        const y0 = lastYaw.get(p.id);
+        if (y0 !== undefined) { let t = Math.abs(p.yaw - y0); if (t > Math.PI) t = Math.PI * 2 - t; turns++; if (t > 0.5) snaps++; }
+        lastYaw.set(p.id, p.yaw);
+      } else lastYaw.delete(p.id);
+      if (d < 3) { near++; closest = Math.min(closest, d); if (d < 0.35) through++; }
+    }
+  }
+  assert.ok(near > 100, `walkers came by (${near} samples within 3 m)`);
+  assert.equal(through, 0, `nobody walks through the player (closest ${closest.toFixed(2)} m)`);
+  assert.ok(snaps <= turns * 0.002, `${snaps}/${turns} abrupt turns`);
+  assert.ok(moving > samples * 0.4, `street keeps moving (${moving}/${samples})`);
+});

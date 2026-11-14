@@ -136,6 +136,8 @@ function walkRoute(g: WalkGraph, from: { edge: number }, to: { edge: number }): 
 
 export type PedState = 'walk' | 'waitCross' | 'cross' | 'inside' | 'idle' | 'waitBus';
 export type Pedestrian = {
+  /** GFX-001D: current (smoothed) walking pace. */
+  pace?: number;
   /** Rendered position = path position (bx, bz) + sideways courtesy offset. */
   id: number; x: number; z: number; bx: number; bz: number; yaw: number; speed: number; phase: number;
   state: PedState; timer: number; visible: boolean; active: boolean;
@@ -169,8 +171,11 @@ export class Crowd {
   private frame = 0;
   readonly capacity: number;
 
+  private readonly free: (x: number, z: number) => boolean;
+
   constructor(capacity: number, free: (x: number, z: number) => boolean, seed = 99) {
     this.capacity = capacity;
+    this.free = free;
     this.graph = buildWalkGraph();
     this.random = rng(seed);
     const dest = (kind: Destination['kind'], x: number, z: number, dwell: number, hide?: P, busStop?: string): Destination => {
@@ -350,18 +355,35 @@ export class Crowd {
       let dx = leg.x - p.bx; let dz = leg.z - p.bz;
       const dist = Math.hypot(dx, dz);
       let speed = p.speed * (p.state === 'cross' ? 1.15 : 1);
-      // Courtesy: stop for the player right ahead; keep right when meeting someone.
+      // GFX-001D courtesy: slow down and step aside for the player ahead (a full stop only when
+      // the player is right in the way); keep right and fall in behind slower walkers.
       const px = ctx.player.x - p.x; const pz = ctx.player.z - p.z;
-      if (dist > 0.01 && p.state !== 'cross' && px * px + pz * pz < 2.6 * 2.6 && (px * dx + pz * dz) / dist > 0.4) speed = 0;
-      p.side *= 0.95;
+      const pd2 = px * px + pz * pz;
+      let aside = 0;
+      if (dist > 0.01 && p.state !== 'cross' && pd2 < 3.2 * 3.2 && (px * dx + pz * dz) / dist > 0.3) {
+        const lateral = Math.abs(px * dz - pz * dx) / dist;
+        if (pd2 < 1.1 * 1.1 && lateral < 0.5) speed = 0;
+        else { speed *= 0.55; aside = 0.6; }
+      }
+      p.side += ((aside || 0) - p.side) * Math.min(1, step * 2.5) * (aside ? 1 : 0.4);
       if (this.frame % 2 === 0 && dist > 0.01) {
         for (const o of this.people) {
           if (o === p || !o.active || !o.visible) continue;
           const ox = o.x - p.x; const oz = o.z - p.z;
-          if (ox * ox + oz * oz > 2.2 || (ox * dx + oz * dz) / dist < 0.2) continue;
-          p.side = Math.min(0.45, p.side + 0.12);
+          const d2 = ox * ox + oz * oz;
+          const ahead = (ox * dx + oz * dz) / dist;
+          if (d2 > 2.6 || ahead < 0.2) continue;
+          p.side = Math.min(0.5, p.side + 0.1);
+          // Same way and slower, close ahead: do not walk through, follow at their pace.
+          if (d2 < 1.0 && Math.abs(Math.sin(o.yaw - p.yaw)) < 0.5 && Math.cos(o.yaw - p.yaw) > 0.5) speed = Math.min(speed, o.speed * 0.9);
         }
       }
+      // Never side-step into a pole, planter or wall: fall back to the centre of the pavement.
+      if (p.side > 0.05 && dist > 0.01 && !this.free(p.bx + (dz / dist) * p.side, p.bz - (dx / dist) * p.side)) p.side = 0;
+      // Walking pace changes gradually (no instant stop/start).
+      const pace = p.pace ?? speed;
+      p.pace = pace + (speed - pace) * Math.min(1, step * 4);
+      speed = p.pace;
       if (dist < 0.05 || speed * step >= dist) {
         p.bx = leg.x; p.bz = leg.z; p.x = leg.x; p.z = leg.z;
         if (p.state === 'cross') { this.release(p); p.state = 'walk'; }
@@ -377,7 +399,14 @@ export class Crowd {
       // Keep right: the offset is to the right of the walking direction, never accumulated.
       const side = p.state === 'cross' ? 0 : p.side;
       p.x = p.bx + dz * side; p.z = p.bz - dx * side;
-      if (speed > 0) { p.yaw = Math.atan2(dx, dz); p.phase += move * 3.2; }
+      if (speed > 0.02) {
+        // Turn the body over a few frames instead of snapping to the new heading at corners.
+        let turn = Math.atan2(dx, dz) - p.yaw;
+        while (turn > Math.PI) turn -= Math.PI * 2;
+        while (turn < -Math.PI) turn += Math.PI * 2;
+        p.yaw += turn * Math.min(1, step * 7);
+        p.phase += move * 3.2;
+      }
     }
     if (this.frame % 40 === 0) {
       for (let i = this.people.length - 1; i >= 0; i--) if (!this.people[i]!.active) this.people.splice(i, 1);

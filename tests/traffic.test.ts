@@ -172,3 +172,35 @@ test('PARE arms force a full stop and pedestrians on a crosswalk hold traffic', 
   assert.equal(rolled, 0, 'minor approaches stop at the PARE line');
   void minor;
 });
+
+// ------------------------------------------------------------------ GFX-001D
+
+test('GFX-001D: drivers differ, slow down for real bends and pedals are progressive', () => {
+  const tempers: number[] = []; const heavy: number[] = [];
+  let bendPasses = 0; let tooFast = 0; let harsh = 0; let samples = 0; let collisions = 0; let frame = 0;
+  const lastA = new Map<number, number>();
+  simulate(240, (t) => {
+    frame++;
+    const bendsOf = (lane: number) => (t as unknown as { bendsOf(l: number): { s: number; v: number }[] }).bendsOf(lane);
+    const act = t.vehicles.filter((v) => v.active);
+    for (const v of act) {
+      if (frame === 60) (v.kind === 'bus' || v.kind === 'truck' ? heavy : tempers).push(v.temper);
+      if (v.seg.kind === 'lane') {
+        for (const b of bendsOf(v.seg.index)) {
+          if (Math.abs(v.s - b.s) < 0.6) { bendPasses++; if (v.v > Math.min(b.v, v.spec.vmax) + 1.6) tooFast++; }
+        }
+      }
+      // Onset of acceleration: never a jump of more than ~1.2 m/s² between frames when pulling away.
+      const prev = lastA.get(v.id);
+      if (prev !== undefined && v.a > 0.3) { samples++; if (v.a - Math.max(prev, 0) > 1.2) harsh++; }
+      lastA.set(v.id, v.a);
+    }
+    if (frame % 10 === 0) for (let a = 0; a < act.length; a++) for (let b = a + 1; b < act.length; b++) if (obbOverlap(act[a]!, act[b]!)) collisions++;
+  });
+  assert.ok(tempers.length >= 8 && Math.max(...tempers) - Math.min(...tempers) > 0.1, `temperaments ${Math.min(...tempers).toFixed(2)}–${Math.max(...tempers).toFixed(2)}`);
+  for (const k of [...tempers, ...heavy]) assert.ok(k >= 0.86 && k <= 1.12);
+  assert.ok(bendPasses > 50, `${bendPasses} passes through real bends`);
+  assert.ok(tooFast <= bendPasses * 0.03, `${tooFast}/${bendPasses} bends taken too fast`);
+  assert.ok(harsh <= samples * 0.01, `${harsh}/${samples} abrupt throttle steps`);
+  assert.equal(collisions, 0, 'still no overlapping vehicles');
+});

@@ -36,6 +36,8 @@ export type Vehicle = {
   active: boolean; skip: boolean;
   /** Last thing that limited the vehicle (debug/tests). */
   reason: string;
+  /** GFX-001D: driver temperament (0.86 calm … 1.12 hurried): cruising speed, headway, pull-away. */
+  temper: number;
 };
 
 export type Obstacle = { x: number; z: number; radius: number };
@@ -124,6 +126,7 @@ export class Traffic {
       id: this.nextId++, kind, spec: VEHICLE_SPECS[kind], colour: Math.floor(this.random() * 8), plan,
       seg: { kind: 'lane', index: lane }, s, v: Math.min(VEHICLE_SPECS[kind].vmax, this.graph.lanes[lane]!.speedLimit) * 0.6, a: 0,
       route: [], admitted: false, preAdmitted: false, stoppedAtLine: false, wait: 0, target: null, dwell: 0, trip: 0,
+      temper: kind === 'bus' || kind === 'truck' ? 0.92 + this.random() * 0.1 : 0.86 + this.random() * 0.26,
       x: 0, z: 0, yaw: 0, braking: false, active: true, skip: false, reason: '',
     };
     this.vehicles.push(v);
@@ -354,7 +357,25 @@ export class Traffic {
 
   private segLimit(v: Vehicle, seg: Seg): number {
     const limit = seg.kind === 'lane' ? this.graph.lanes[seg.index]!.speedLimit : this.graph.movements[seg.index]!.maxSpeed;
-    return Math.min(limit, v.spec.vmax);
+    return Math.min(limit, v.spec.vmax) * v.temper;
+  }
+
+  /** GFX-001D: comfortable speed at each real bend of a lane (sharp bends are taken slowly). */
+  private readonly bends = new Map<number, { s: number; v: number }[]>();
+  private bendsOf(lane: number): { s: number; v: number }[] {
+    let list = this.bends.get(lane);
+    if (!list) {
+      list = [];
+      const p = this.graph.lanes[lane]!.path;
+      for (let i = 1; i < p.points.length - 1; i++) {
+        const a = p.points[i - 1]!; const b = p.points[i]!; const c = p.points[i + 1]!;
+        let t = Math.abs(Math.atan2(c.x - b.x, c.z - b.z) - Math.atan2(b.x - a.x, b.z - a.z));
+        if (t > Math.PI) t = Math.PI * 2 - t;
+        if (t > 0.2) list.push({ s: p.cum[i]!, v: Math.max(3.2, Math.min(11, 12.5 - t * 10)) });
+      }
+      this.bends.set(lane, list);
+    }
+    return list;
   }
 
   private pose(v: Vehicle): void {
@@ -370,7 +391,8 @@ export class Traffic {
     const sp = v.spec;
     const free = 1 - (v.v / Math.max(v0, 0.1)) ** 4;
     if (!Number.isFinite(gap)) return sp.accel * free;
-    const desired = sp.gap + Math.max(0, v.v * sp.headway + (v.v * (v.v - vl)) / (2 * Math.sqrt(sp.accel * sp.decel)));
+    // Calm drivers keep a longer time gap, hurried ones a shorter one (never under 0.88×).
+    const desired = sp.gap + Math.max(0, v.v * sp.headway * (2 - v.temper) + (v.v * (v.v - vl)) / (2 * Math.sqrt(sp.accel * sp.decel)));
     return sp.accel * (free - (desired / Math.max(gap, 0.1)) ** 2);
   }
 
@@ -407,12 +429,17 @@ export class Traffic {
       if (depth > 0) limitAt(offset, this.segLimit(v, seg));
       if (seg.kind === 'lane') {
         if (v.target && v.target.lane === seg.index && offset + v.target.s > -1) consider(offset + v.target.s + v.spec.gap, 0, 'target');
+        // Slow down BEFORE a bend of the real street, not in it.
+        for (const bend of this.bendsOf(seg.index)) { const d = offset + bend.s; if (d > -1 && d < LOOKAHEAD) limitAt(d, Math.min(bend.v, v.spec.vmax)); }
       }
       if (playerNear) {
         const clear = v.spec.width / 2 + ctx.player.radius + 0.5;
         for (let s = Math.max(0, -offset + v.spec.length / 2); s < path.length; s += 1.5) {
           const p = pathPose(path, s);
-          if (Math.hypot(p.x - ctx.player.x, p.z - ctx.player.z) < clear) { consider(offset + s - v.spec.length / 2 - 0.4, 0, 'player'); break; }
+          const dp = Math.hypot(p.x - ctx.player.x, p.z - ctx.player.z);
+          if (dp < clear) { consider(offset + s - v.spec.length / 2 - 0.4, 0, 'player'); break; }
+          // The rider/walker is beside the lane: pass slowly, with room to stop.
+          if (dp < clear + 1.5) { limitAt(Math.max(0, offset + s - v.spec.length / 2 - 2), 3.5); break; }
         }
       }
       if (best) break;
@@ -443,7 +470,12 @@ export class Traffic {
     }
     v.reason = why;
     let a = this.idm(v, v0, gap, vl);
-    a = Math.max(-8, Math.min(v.spec.accel, a));
+    a = Math.max(-8, Math.min(v.spec.accel * (0.9 + (v.temper - 0.86)), a));
+    // Progressive pedals: acceleration builds up and brakes come on smoothly, unless the gap
+    // really requires a hard stop (then the full IDM deceleration applies at once).
+    const urgent = gap < v.spec.gap + 1.5 + v.v * 0.7 || a < -3.2;
+    if (!urgent) a = Math.max(a, v.a - 5 * dt);
+    a = Math.min(a, Math.max(v.a, 0) + 3.5 * dt + (v.v < 0.5 ? 0.6 : 0));
     v.a = a;
     v.braking = a < -0.4 || v.v < 0.2;
     v.v = Math.max(0, v.v + a * dt);
@@ -495,6 +527,9 @@ export class Traffic {
     v.active = false;
   }
 
+  /** Vehicles removed by the jam recovery (telemetry/tests). */
+  recovered = 0;
+
   update(dt: number, ctx: TrafficContext): void {
     if (!(dt > 0)) return;
     this.frame++;
@@ -506,6 +541,9 @@ export class Traffic {
       if (far && (v.id + this.frame) % 2 === 1) continue;
       this.step(v, far ? dt * 2 : dt, ctx);
       if (v.active) this.pose(v);
+      // GFX-001D safe recovery: a vehicle stuck for a long time (a jam nobody can see) is taken
+      // off the map and re-enters from an exit; never while the player is near enough to notice.
+      if (v.active && v.wait > 45 && Math.hypot(v.x - ctx.player.x, v.z - ctx.player.z) > 80 && (v.plan === 'wander' || v.plan === 'bus')) { this.recovered++; this.despawn(v); continue; }
       // Surplus general traffic leaves quietly when far from the player.
       if (v.active && v.plan === 'wander' && far && this.frame % 60 === v.id % 60) {
         const general = this.vehicles.filter((q) => q.active && q.plan === 'wander').length;
