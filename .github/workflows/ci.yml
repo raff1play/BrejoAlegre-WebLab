@@ -1,0 +1,29 @@
+name: CI - validar prototype
+on:
+  push:
+    branches: [main, preview, 'feat/**', 'fix/**', 'setup/**', 'docs/**']
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install (lockfile reproduzível)
+        run: npm ci --no-audit --no-fund
+      - run: npm run validate:repo
+      - run: npm run test:unit
+      - run: npm run build:staging
+      - name: Stage-only build artifact (never deploy from CI)
+        uses: actions/upload-artifact@v4
+        with:
+          name: weblab-staging-${{ github.sha }}
+          path: dist/
+          if-no-files-found: error

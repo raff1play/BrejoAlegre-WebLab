@@ -1,0 +1,1 @@
+Leia `AGENTS.md` e `docs/00_START_HERE.md` antes de escrever código. A especificação Godot é a visão futura; WEBLAB_SCOPE define o protótipo web descartável. Não presuma acesso a ferramentas, resultados ou deploy; registre evidências em docs/PROJECT_STATE.md. PR antes de merge. Sem servidor, marketplace real, assinaturas ou distâncias inventadas.

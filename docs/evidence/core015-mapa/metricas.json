@@ -1,0 +1,128 @@
+{
+  "generatedFor": "CORE-015",
+  "source": {
+    "endpoint": "https://overpass-api.de/api/interpreter",
+    "fetchedAt": "2026-11-13T15:13:01.729Z",
+    "osmBase": "2026-11-13T15:11:03Z",
+    "bbox": {
+      "south": -21.1871191,
+      "west": -50.2070393,
+      "north": -21.1471191,
+      "east": -50.1630393
+    },
+    "license": "ODbL 1.0 — © OpenStreetMap contributors — https://www.openstreetmap.org/copyright"
+  },
+  "projection": {
+    "kind": "local equirectangular tangent plane",
+    "origin": {
+      "lat": -21.1671191,
+      "lon": -50.1850393
+    },
+    "unit": "1 unit = 1 m",
+    "axes": "+x east, +z north"
+  },
+  "rawFile": {
+    "elements": 164,
+    "highwayWays": 144,
+    "highwayByClass": {
+      "residential": 71,
+      "unclassified": 39,
+      "service": 15,
+      "secondary": 13,
+      "track": 3,
+      "secondary_link": 3
+    },
+    "drivableWays": 126,
+    "namedStreets": 33,
+    "drivableJunctionsInBbox": 159,
+    "drivableJunctionsInSeat": 86,
+    "buildings": 7,
+    "landuse": 4,
+    "leisure": 3,
+    "amenityNodes": 1
+  },
+  "seatExtentMetres": {
+    "westEast": 1177.7,
+    "southNorth": 1056.4,
+    "sedeBox": {
+      "minX": -510,
+      "maxX": 700,
+      "minZ": -380,
+      "maxZ": 680
+    },
+    "playBounds": {
+      "minX": -590,
+      "maxX": 780,
+      "minZ": -460,
+      "maxZ": 760
+    }
+  },
+  "game": {
+    "roadSegments": 177,
+    "urbanSegments": 158,
+    "ruralSegments": 19,
+    "streetsByName": 25,
+    "junctions": 90,
+    "junctionsInSeat": 86,
+    "roadLengthKm": 18.74,
+    "blocks": 46,
+    "lots": 695,
+    "houses": 681,
+    "shops": 8,
+    "deliverableAddresses": 48
+  },
+  "comparison": {
+    "toleranceMetres": 1,
+    "osmDrivableCoveredByGame": 100,
+    "gameRoadsOnOsm": 100,
+    "maxOsmOffsetMetres": 0.07,
+    "junctionsInPlayArea": 87,
+    "junctionsMatched": 87,
+    "unmatchedJunctions": [],
+    "scalePairs": [
+      {
+        "a": "n1845393371",
+        "b": "n1845393250",
+        "real": 647.32,
+        "game": 647.29,
+        "err": -0.026
+      },
+      {
+        "a": "n1845393432",
+        "b": "n1845393362",
+        "real": 542.76,
+        "game": 542.78,
+        "err": 0.026
+      },
+      {
+        "a": "n1845393168",
+        "b": "n8077242522",
+        "real": 658.11,
+        "game": 658.11,
+        "err": 0.004
+      },
+      {
+        "a": "n1845393209",
+        "b": "n1845393492",
+        "real": 459.99,
+        "game": 459.96,
+        "err": -0.026
+      },
+      {
+        "a": "n1845393164",
+        "b": "n1845393755",
+        "real": 453.84,
+        "game": 453.82,
+        "err": -0.021
+      },
+      {
+        "a": "n8076830196",
+        "b": "n8076858656",
+        "real": 836.83,
+        "game": 836.86,
+        "err": 0.029
+      }
+    ],
+    "maxScaleErrorMetres": 0.029
+  }
+}

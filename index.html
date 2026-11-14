@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+    <meta name="theme-color" content="#101b27" />
+    <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png" />
+    <meta name="description" content="Laboratório visual 3D de direção — Brejo Alegre Delivery Simulator. Protótipo web fictício e experimental." />
+    <title>Brejo Alegre — Web Lab</title>
+  </head>
+  <body>
+    <canvas id="renderCanvas" aria-label="Mundo 3D de teste"></canvas>
+    <div id="hud" class="hud">
+      <button type="button" data-action="pause" class="pause-button" aria-label="Pausa, ajustes e sobre o jogo">☰</button>
+      <section class="objective" aria-live="polite" aria-label="Objetivo atual">
+        <strong id="objective-title">Preparando a jornada</strong>
+        <span id="objective-detail"></span>
+        <div class="objective-row">
+          <span id="objective-distance" class="chip dist" hidden></span>
+          <span id="cargo-status" class="chip cargo" hidden></span>
+          <span id="parcel-progress" class="chip">Coletados 0/0 · Entregues 0/0</span>
+          <button type="button" data-action="wait" id="wait-button" class="chip-button" hidden>Aguardar</button>
+        </div>
+      </section>
+      <div class="telemetry"><span id="clock" class="clock">☀ 11:00</span><span class="speed"><strong id="speed">0</strong> <span>km/h</span></span></div>
+      <div id="minimap" class="minimap" role="button" tabindex="0" aria-expanded="false" aria-label="Minimapa — toque para ampliar">
+        <canvas id="minimap-canvas" aria-hidden="true"></canvas>
+        <div class="minimap-bar"><span id="clock-tag">Em jornada</span><span class="minimap-hint">toque: mapa</span></div>
+        <ul class="minimap-legend" aria-label="Legenda">
+          <li><i style="background:#ff4d2e;color:#fff">▲</i>Você</li><li><i style="background:#ff5a3c;color:#fff">★</i>Objetivo</li>
+          <li><i class="line"></i>Rota pelas ruas</li><li><i style="background:#ffd84a">M</i>Moto</li>
+          <li><i style="background:#ffd84a">G</i>Galpão</li><li><i style="background:#f2b233">L</i>Lojas</li>
+          <li><i class="sq" style="background:#6fb7ff">⌂</i>Entregas</li><li><i style="background:#7fd06a">P</i>Praça</li>
+          <li><i style="background:#8fc1e3">C</i>Campo</li><li><i style="background:#c9c2b2">✝</i>Cemitério</li>
+          <li class="credit">© OpenStreetMap</li>
+        </ul>
+      </div>
+      <div id="devtime" class="devtime" hidden aria-label="Controle de horário (desenvolvimento)">
+        <span>Hora (dev)</span>
+        <button type="button" data-devtime="7">07h</button><button type="button" data-devtime="12">12h</button>
+        <button type="button" data-devtime="18">18h</button><button type="button" data-devtime="21">21h</button>
+        <button type="button" data-devtime="+1">+1h</button><button type="button" data-devtime="speed">×1</button>
+      </div>
+      <div id="toast" class="toast" role="status" aria-live="polite"></div>
+      <div id="movement-stick" class="joystick-zone" role="group" aria-label="Analógico virtual de movimento e direção">
+        <div class="joystick-ring" aria-hidden="true"></div>
+        <div id="movement-stick-thumb" class="joystick-thumb" aria-hidden="true"></div>
+      </div>
+      <div class="pad pad-right" aria-label="Aceleração e ação">
+        <button type="button" data-action="mount" class="primary wide">Descer</button>
+        <button type="button" data-control="brake" aria-label="Frear ou ré">▼<small>FREIO</small></button>
+        <button type="button" data-control="accelerate" aria-label="Acelerar">▲<small>ACELERAR</small></button>
+      </div>
+    </div>
+    <div id="pause" class="pause" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden>
+      <div class="pause-card">
+        <h2 id="pause-title">Brejo Alegre <small id="version">WEB LAB</small></h2>
+        <div class="pause-actions">
+          <button type="button" data-action="pause" class="primary">Continuar</button>
+          <button type="button" data-action="graphics">Gráficos</button>
+        </div>
+        <p class="about-notice" role="note">ÁREA TEMPORÁRIA DE TESTE — NÃO REPRESENTA BREJO ALEGRE</p>
+        <p class="about-text">Brejo Alegre/SP (IBGE 3507753) em escala 1:1: ruas, cruzamentos e praças vêm do OpenStreetMap. Lotes e casas são estimados; lojas, galpão, números, pessoas e plataformas são fictícios.</p>
+        <p class="about-text osm-credit">Mapa: © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>, dados sob licença ODbL 1.0 (extração de 13/11/2026).</p>
+        <p class="about-text"><strong id="mode">Pilotando</strong> · <span id="tips"></span> · <span id="fps">— FPS</span></p>
+        <p class="about-text keys">Teclado: WASD/setas · F ação/montar · Q/E girar câmera · Z/X zoom · M mapa · P pausa</p>
+      </div>
+    </div>
+    <div id="fatal" class="fatal" role="alert" hidden></div>
+    <div class="portrait-warning" role="group" aria-label="Iniciar jogo na horizontal">
+      <div class="portrait-message">
+        <strong>Jogue na horizontal</strong>
+        <p>Gire o celular ou toque abaixo para tentar iniciar em tela cheia.</p>
+        <button id="landscape-start" type="button" class="landscape-start">Jogar na horizontal</button>
+        <p id="landscape-feedback" class="landscape-feedback" role="status" aria-live="polite">Se não funcionar, ative Rotação automática e vire o celular.</p>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

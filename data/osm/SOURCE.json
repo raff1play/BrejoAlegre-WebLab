@@ -1,0 +1,29 @@
+{
+  "source": "OpenStreetMap via Overpass API",
+  "endpoint": "https://overpass-api.de/api/interpreter",
+  "fetchedAt": "2026-11-13T15:13:01.729Z",
+  "osmBase": "2026-11-13T15:11:03Z",
+  "place": {
+    "type": "relation",
+    "id": 298031,
+    "tags": {
+      "name": "Brejo Alegre",
+      "display_name": "Brejo Alegre, São Paulo, Região Sudeste, Brasil"
+    }
+  },
+  "bbox": {
+    "south": -21.1871191,
+    "west": -50.2070393,
+    "north": -21.1471191,
+    "east": -50.1630393
+  },
+  "license": "ODbL 1.0 — © OpenStreetMap contributors — https://www.openstreetmap.org/copyright",
+  "counts": {
+    "elements": 164,
+    "highways": 144,
+    "namedHighways": 60,
+    "buildings": 7,
+    "pois": 1
+  },
+  "query": "[out:json][timeout:120];\n(\n  way[\"highway\"](-21.1871191,-50.2070393,-21.1471191,-50.1630393);\n  way[\"building\"](-21.1871191,-50.2070393,-21.1471191,-50.1630393);\n  relation[\"building\"](-21.1871191,-50.2070393,-21.1471191,-50.1630393);\n  way[\"landuse\"](-21.1871191,-50.2070393,-21.1471191,-50.1630393);\n  way[\"leisure\"](-21.1871191,-50.2070393,-21.1471191,-50.1630393);\n  way[\"amenity\"](-21.1871191,-50.2070393,-21.1471191,-50.1630393);\n  node[\"amenity\"](-21.1871191,-50.2070393,-21.1471191,-50.1630393);\n  node[\"shop\"](-21.1871191,-50.2070393,-21.1471191,-50.1630393);\n  way[\"shop\"](-21.1871191,-50.2070393,-21.1471191,-50.1630393);\n  node[\"place\"](-21.1871191,-50.2070393,-21.1471191,-50.1630393);\n  node[\"leisure\"](-21.1871191,-50.2070393,-21.1471191,-50.1630393);\n  node[\"tourism\"](-21.1871191,-50.2070393,-21.1471191,-50.1630393);\n  node[\"office\"](-21.1871191,-50.2070393,-21.1471191,-50.1630393);\n  way[\"natural\"=\"water\"](-21.1871191,-50.2070393,-21.1471191,-50.1630393);\n  way[\"waterway\"](-21.1871191,-50.2070393,-21.1471191,-50.1630393);\n  relation[\"boundary\"=\"administrative\"][\"name\"=\"Brejo Alegre\"];\n);\nout body geom;"
+}

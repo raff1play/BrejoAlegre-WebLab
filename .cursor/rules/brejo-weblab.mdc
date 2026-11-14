@@ -1,0 +1,5 @@
+---
+description: Fonte da verdade e regras para implementar Brejo Alegre Web Lab
+alwaysApply: true
+---
+Leia AGENTS.md e docs/00_START_HERE.md. Não presuma histórico de chat, testes, assets reais, mapa geográfico ou integração GitHub com escrita. O projeto é um protótipo web single-player. Faça mudanças em branch e PR, mantendo docs/PROJECT_STATE.md atualizado com evidências. Não faça deploy, merge ou compras automaticamente.
