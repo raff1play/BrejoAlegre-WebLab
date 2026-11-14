@@ -23,7 +23,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 18
     environment:
-      name: github-pages
+      # Separate preview environment: the canonical github-pages environment is
+      # restricted to the approved preview branch. The project site is still shared.
+      name: street-preview
       url: https://raff1play.github.io/BrejoAlegre-WebLab/street-preview/
     steps:
       - name: Checkout CORE-015.1 publicada e imutavel
