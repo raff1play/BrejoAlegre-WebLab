@@ -1,4 +1,5 @@
 import { DepotOperations } from './depotOperations.ts';
+import { REAL_SECONDS_PER_VIRTUAL_HOUR } from '../city/clock.ts';
 import { DEPOT_POINTS, validDepotParking, depotFree, DISPATCH_DOCK, MIXED_LOAD } from '../../world/city/depotPlan.ts';
 import { DEPOT, STORES, depotWorld, depotYaw, depotLocal, type StoreKind } from '../../world/city/cityPlan.ts';
 import { yawOf } from '../../world/layout.ts';
@@ -8,12 +9,12 @@ import { advance, createParcel, move, arriveTruck, type Parcel, type ParcelState
 
 /**
  * CORE-014 delivery workday (vertical slice) following the approved routine, on the virtual
- * clock (1 h = 4 real minutes):
- *   11h stores assigned · 12h–14h pickups · back at the base by 14h · 14h–15h sorting by the staff
- *   · from 15h the mixed sack (ML/SHP, fictional) · ~16h deliveries · until 21h (may end earlier).
+ * clock (1 h = 2 min 30 s reais):
+ *   11h stores assigned · 12h–14h pickups · back at the base by 14h · sorting begins
+ *   as parcels reach the base (without a time gate); from 15h mixed sack pickup · deliveries until 21h.
  * Local fictional data only: no server, no economy.
  */
-export const ROUTINE = Object.freeze({ assign: 11, pickupFrom: 12, returnBy: 14, sortFrom: 14, sackFrom: 15, deliveriesFrom: 16, end: 21 });
+export const ROUTINE = Object.freeze({ assign: 11, pickupFrom: 12, returnBy: 14, sackFrom: 15, deliveriesFrom: 16, end: 21 });
 
 export type Phase = 'ANTES' | 'COLETA' | 'RETORNO' | 'CONFERENCIA' | 'TRIAGEM' | 'SACA' | 'ENTREGAS' | 'CONCLUIDA' | 'ENCERRADA';
 /** `yaw`: heading that faces the counter/desk/gate from the target spot (CORE-015: real frontages face any direction). */
@@ -74,8 +75,8 @@ export class Workday {
     this.staff = [
       st('porteiro', S.gatehouse, [6, 22]), st('conferente', S.receiving, [10, 21]),
       st('descarregador-1', depotWorld(104, -121), [10, 21]), st('descarregador-2', depotWorld(120, -121), [10, 21]),
-      st('separador-1', depotWorld(108, -128), [12, 21]), st('separador-2', depotWorld(113, -131), [12, 21]),
-      st('expedidor', S.dispatch, [13, 21.5]), st('supervisor', S.office, [9, 21]),
+      st('separador-1', depotWorld(108, -128), [11, 21]), st('separador-2', depotWorld(113, -131), [11, 21]),
+      st('expedidor', S.dispatch, [11, 21.5]), st('supervisor', S.office, [9, 21]),
     ];
   }
 
@@ -258,7 +259,7 @@ export class Workday {
     }
     const dh=this.lastHour===null?0:Math.max(0,hour-this.lastHour);this.lastHour=hour;
     // Clock acceleration speeds work up, but even a clock jump cannot consume a whole job in one frame.
-    const factor=dt>0?Math.max(1,Math.min(8,dh*240/dt)):1;
+    const factor=dt>0?Math.max(1,Math.min(8,dh*REAL_SECONDS_PER_VIRTUAL_HOUR/dt)):1;
     for(let left=Math.min(4,dt*factor);left>1e-6;left-=.05)this.depot.update(this.parcels,hour,Math.min(.05,left));
     if(this.phase==='CONFERENCIA'&&this.parcels.every(p=>PARCEL_DONE_IN(p.state)))this.phase='TRIAGEM';
     if((this.phase==='TRIAGEM'||this.phase==='CONFERENCIA')&&this.parcels.every(p=>p.state==='NA_SACA'&&p.place==='saca'))this.phase='SACA';
@@ -305,21 +306,23 @@ export class Workday {
       }
       case 'CONFERENCIA': {
         const checked = this.parcels.filter(p => ['RECEBIDO_BASE', 'TRIADO', 'NA_SACA', 'EM_ROTA', 'ENTREGUE'].includes(p.state)).length;
+        const sorted = this.parcels.filter(p => ['TRIADO', 'NA_SACA', 'EM_ROTA', 'ENTREGUE'].includes(p.state)).length;
         const inbound = this.parcels.filter(p => p.place === 'caminhao').length;
         const atDesk = this.parcels.filter(p => p.place === 'recebimento' || p.place === 'conferencia').length;
-        const waiting = hour < ROUTINE.sortFrom;
-        const inboundStatus = inbound ? ` · ${inbound} volume(s) do caminhão ${hour < 13 ? 'previstos às 13h' : 'em descarga'}` : '';
+        const inboundStatus = inbound ? ` · ${inbound} do caminhão ${hour < 13 ? '(chegada às 13h)' : '(em descarga)'}` : '';
         return {
-          title: waiting ? 'Conferência na base · triagem às 14h' : 'Finalizando a conferência',
-          detail: `${checked}/${this.parcels.length} conferidos · ${atDesk} na bancada${inboundStatus}${waiting ? ' · aguarde ou acelere até 14h' : ' · equipe processando os volumes'}`,
+          title: 'Recebimento e triagem em andamento',
+          detail: `${checked}/${this.parcels.length} conferidos · ${sorted} triados · ${atDesk} na bancada${inboundStatus} · equipe trabalhando`,
           target: depot('Recebimento'),
-          waitUntil: waiting ? ROUTINE.sortFrom : null,
+          waitUntil: hour < ROUTINE.sackFrom ? ROUTINE.sackFrom : null,
         };
       }
-      case 'TRIAGEM': {
-        const waiting = hour < ROUTINE.sortFrom;
-        return { title: waiting ? 'Aguardar a triagem (14h)' : 'Triagem em andamento', detail: `${this.count('TRIADO') + this.count('NA_SACA')}/${this.parcels.length} volumes triados`, target: { kind: 'galpao', id: 'galpao', ...DEPOT_SPOTS.dispatch, label: 'Expedição' }, waitUntil: waiting ? ROUTINE.sortFrom : null };
-      }
+      case 'TRIAGEM':
+        return { title: 'Separação e expedição em andamento',
+          detail: `${this.count('TRIADO') + this.count('NA_SACA')}/${this.parcels.length} volumes triados · processamento automático`,
+          target: { kind: 'galpao', id: 'galpao', ...DEPOT_SPOTS.dispatch, label: 'Expedição' },
+          waitUntil: hour < ROUTINE.sackFrom ? ROUTINE.sackFrom : null,
+        };
       case 'SACA': {
         const waiting = hour < ROUTINE.sackFrom;
         return { title: waiting ? 'Saca liberada às 15h' : 'Retirar a saca na doca 02', detail: `Saca mista ML/SHP com ${this.count('NA_SACA')} volume(s)`, target: { kind: 'galpao', id: 'galpao', ...DEPOT_SPOTS.dispatch, label: 'Expedição' }, waitUntil: waiting ? ROUTINE.sackFrom : null };
