@@ -1,0 +1,178 @@
+{
+ "desktop:rua": {
+  "activeMeshes": 786,
+  "meshes": 2746,
+  "triangles": 693583,
+  "materials": 65,
+  "textures": 75,
+  "perf": {
+   "drawCalls": 2404,
+   "frameMs": 43.3,
+   "renderMs": 8.2,
+   "triangles": 693583,
+   "memoryMb": 169
+  },
+  "houses": {
+   "sectors": 60,
+   "detailed": 16,
+   "lots": 681
+  },
+  "vehicles": 26,
+  "pedestrians": 42
+ },
+ "desktop:loja": {
+  "activeMeshes": 798,
+  "meshes": 3224,
+  "triangles": 730991,
+  "materials": 65,
+  "textures": 77,
+  "perf": {
+   "drawCalls": 2881,
+   "frameMs": 37.4,
+   "renderMs": 6.6,
+   "triangles": 730991,
+   "memoryMb": 169
+  },
+  "houses": {
+   "sectors": 60,
+   "detailed": 19,
+   "lots": 681
+  },
+  "vehicles": 26,
+  "pedestrians": 43
+ },
+ "desktop:galpao": {
+  "activeMeshes": 557,
+  "meshes": 1682,
+  "triangles": 566873,
+  "materials": 65,
+  "textures": 79,
+  "perf": {
+   "drawCalls": 1148,
+   "frameMs": 15.1,
+   "renderMs": 3.3,
+   "triangles": 566873,
+   "memoryMb": 169
+  },
+  "houses": {
+   "sectors": 60,
+   "detailed": 10,
+   "lots": 681
+  },
+  "vehicles": 22,
+  "pedestrians": 43
+ },
+ "desktop:centro": {
+  "activeMeshes": 1142,
+  "meshes": 2941,
+  "triangles": 770671,
+  "materials": 65,
+  "textures": 79,
+  "perf": {
+   "drawCalls": 2892,
+   "frameMs": 26.8,
+   "renderMs": 9.3,
+   "triangles": 770671,
+   "memoryMb": 169
+  },
+  "houses": {
+   "sectors": 60,
+   "detailed": 16,
+   "lots": 681
+  },
+  "vehicles": 24,
+  "pedestrians": 43
+ },
+ "desktop:load": {
+  "ms": 5618,
+  "errors": []
+ },
+ "mobile:rua": {
+  "activeMeshes": 708,
+  "meshes": 2072,
+  "triangles": 496131,
+  "materials": 65,
+  "textures": 68,
+  "perf": {
+   "drawCalls": 666,
+   "frameMs": 16.6,
+   "renderMs": 6,
+   "triangles": 496131,
+   "memoryMb": 150
+  },
+  "houses": {
+   "sectors": 60,
+   "detailed": 8,
+   "lots": 681
+  },
+  "vehicles": 17,
+  "pedestrians": 23
+ },
+ "mobile:loja": {
+  "activeMeshes": 685,
+  "meshes": 2187,
+  "triangles": 483045,
+  "materials": 65,
+  "textures": 70,
+  "perf": {
+   "drawCalls": 623,
+   "frameMs": 24,
+   "renderMs": 8.4,
+   "triangles": 483045,
+   "memoryMb": 150
+  },
+  "houses": {
+   "sectors": 60,
+   "detailed": 9,
+   "lots": 681
+  },
+  "vehicles": 17,
+  "pedestrians": 23
+ },
+ "mobile:galpao": {
+  "activeMeshes": 337,
+  "meshes": 1397,
+  "triangles": 450615,
+  "materials": 65,
+  "textures": 78,
+  "perf": {
+   "drawCalls": 351,
+   "frameMs": 12,
+   "renderMs": 2.9,
+   "triangles": 450615,
+   "memoryMb": 150
+  },
+  "houses": {
+   "sectors": 60,
+   "detailed": 6,
+   "lots": 681
+  },
+  "vehicles": 16,
+  "pedestrians": 23
+ },
+ "mobile:centro": {
+  "activeMeshes": 924,
+  "meshes": 2068,
+  "triangles": 539773,
+  "materials": 65,
+  "textures": 78,
+  "perf": {
+   "drawCalls": 832,
+   "frameMs": 13.9,
+   "renderMs": 6.3,
+   "triangles": 539773,
+   "memoryMb": 150
+  },
+  "houses": {
+   "sectors": 60,
+   "detailed": 8,
+   "lots": 681
+  },
+  "vehicles": 17,
+  "pedestrians": 23
+ },
+ "mobile:load": {
+  "ms": 2899,
+  "errors": []
+ }
+}

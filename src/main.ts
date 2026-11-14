@@ -2,6 +2,7 @@ import './style.css';
 import { Engine } from '@babylonjs/core/Engines/engine';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import { Scene } from '@babylonjs/core/scene';
+import { SceneInstrumentation } from '@babylonjs/core/Instrumentation/sceneInstrumentation';
 import { currentEnvironment } from './config/environment';
 import { resolveGraphicsProfile, switchGraphicsProfile } from './config/graphics';
 import type { MotionGuard } from './core/collision';
@@ -305,6 +306,10 @@ function start(canvas: HTMLCanvasElement): void {
     });
   }
 
+  // GFX-001 scene metrics (draw calls, frame/render time): only in development or with ?perf=1.
+  const instrumentation = import.meta.env.DEV || new URLSearchParams(window.location.search).get('perf') === '1' ? new SceneInstrumentation(scene) : null;
+  if (instrumentation) { instrumentation.captureFrameTime = true; instrumentation.captureRenderTime = true; }
+
   // Read-only probe used by the browser smoke test (tests/e2e) and for manual debugging.
   Object.defineProperty(window, '__weblab', {
     value: Object.freeze({
@@ -338,6 +343,13 @@ function start(canvas: HTMLCanvasElement): void {
         minimap: { expanded: minimap.isExpanded, arrow: minimap.arrowAt(), ...minimap.state(), distance: minimap.targetDistance() },
         externalAssets: external,
         fps: engine.getFps(),
+        perf: instrumentation ? {
+          drawCalls: instrumentation.drawCallsCounter.current,
+          frameMs: Math.round(instrumentation.frameTimeCounter.lastSecAverage * 10) / 10,
+          renderMs: Math.round(instrumentation.renderTimeCounter.lastSecAverage * 10) / 10,
+          triangles: Math.round(scene.getActiveIndices() / 3),
+          memoryMb: (performance as unknown as { memory?: { usedJSHeapSize: number } }).memory ? Math.round((performance as unknown as { memory: { usedJSHeapSize: number } }).memory.usedJSHeapSize / 1048576) : null,
+        } : null,
         drawCalls: scene.getEngine()._drawCalls?.current ?? null,
         activeMeshes: scene.getActiveMeshes().length,
         renderSize: [engine.getRenderWidth(), engine.getRenderHeight()],
