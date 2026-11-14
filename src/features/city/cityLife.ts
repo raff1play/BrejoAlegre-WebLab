@@ -156,13 +156,13 @@ export function buildCityLife(scene: Scene, mats: Materials, profile: GraphicsPr
     const n = nodeById(plan.node);
     for (const laneIndex of plan.approaches) {
       const lane = graph.lanes[laneIndex]!;
-      const end = lane.path.points[1]!;
-      const r = { x: lane.dir.z, z: -lane.dir.x };
+      const end = lane.path.points[lane.path.points.length - 1]!;
+      const r = { x: lane.endDir.z, z: -lane.endDir.x };
       const k = ROAD_HALF + 0.55 - LANE_OFFSET;
       const px = end.x + r.x * k; const pz = end.z + r.z * k;
-      const yaw = Math.atan2(-lane.dir.x, -lane.dir.z); // lamps face the approaching traffic
+      const yaw = Math.atan2(-lane.endDir.x, -lane.endDir.z); // lamps face the approaching traffic
       poles.box(grey, px - 0.06, px + 0.06, CURB_H, CURB_H + 3.6, pz - 0.06, pz + 0.06);
-      const fx = -lane.dir.x; const fz = -lane.dir.z;
+      const fx = -lane.endDir.x; const fz = -lane.endDir.z;
       poles.box(housing, px - 0.17 + fx * 0.1, px + 0.17 + fx * 0.1, CURB_H + 2.35, CURB_H + 3.45, pz - 0.17 + fz * 0.1, pz + 0.17 + fz * 0.1);
       heads.push({ plan, lane: laneIndex, ped: false, base: lampMatrices.length / 16 });
       for (const y of [3.2, 2.9, 2.6]) pushLamp(px + fx * 0.28, CURB_H + y, pz + fz * 0.28, yaw);
