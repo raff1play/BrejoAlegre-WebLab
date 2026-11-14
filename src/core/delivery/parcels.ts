@@ -13,21 +13,30 @@ export const PLATFORM_LABEL: Record<Platform, string> = { ML: 'Plataforma ML (fi
  * CORE-015.1: WHERE a parcel physically is, separate from its operational state. A parcel is in
  * exactly one place; it only moves along PLACE_MOVES (no teleporting from the trunk to a customer).
  */
-export type ParcelPlace = 'loja' | 'caminhao' | 'maos' | 'bau' | 'galpao' | 'saca' | 'destinatario';
+export type ParcelPlace = 'loja' | 'caminhao' | 'maos' | 'bau' | 'galpao' | 'saca' | 'destinatario' | 'recebimento' | 'conferencia' | 'transferencia' | 'triagem' | 'gaiola' | 'doca';
 export const PLACE_MOVES: Readonly<Record<ParcelPlace, readonly ParcelPlace[]>> = {
   loja: ['maos'],
-  caminhao: ['galpao'],
-  maos: ['bau', 'galpao', 'destinatario'],
+  caminhao: ['galpao', 'transferencia'],
+  maos: ['bau', 'galpao', 'recebimento', 'destinatario'],
   bau: ['maos'],
   galpao: ['saca'],
   saca: ['maos'],
+  recebimento: ['conferencia'],
+  conferencia: ['transferencia'],
+  transferencia: ['recebimento','triagem','gaiola','doca'],
+  triagem: ['transferencia'],
+  gaiola: ['transferencia'],
+  doca: ['saca'],
   destinatario: [],
 };
 export const PLACE_LABEL: Record<ParcelPlace, string> = {
+  recebimento:'no recebimento',conferencia:'em conferência',transferencia:'em transferência',triagem:'na triagem',gaiola:'na gaiola regional',doca:'na doca',
   loja: 'na loja', caminhao: 'no caminhão', maos: 'nas mãos', bau: 'no baú', galpao: 'no galpão', saca: 'na saca', destinatario: 'com o destinatário',
 };
 
-export type ParcelEvent = Readonly<{ state: ParcelState; place: ParcelPlace; hour: number; by: string }>;
+export type ParcelPosition = { x:number; y:number; z:number };
+export type ParcelEvent = Readonly<{ state: ParcelState; place: ParcelPlace; hour: number; by: string; holder:string; position:ParcelPosition|null; dock:string|null; load:string|null; operation:string }>;
+const event=(p:Parcel,hour:number,operation:string):ParcelEvent=>({state:p.state,place:p.place,hour,by:p.holder,holder:p.holder,position:p.position?{...p.position}:null,dock:p.dock,load:p.load,operation});
 export type Parcel = {
   readonly id: string;
   readonly origin: string;
@@ -37,11 +46,16 @@ export type Parcel = {
   state: ParcelState;
   place: ParcelPlace;
   holder: string;
+  /** Continuous depot-local position; null while represented by the player/trunk/store. */
+  position: ParcelPosition | null;
+  dock: string | null;
+  load: string | null;
   readonly history: ParcelEvent[];
 };
 
 export function createParcel(id: string, origin: string, destination: string, platform: Platform, region: string, state: ParcelState, holder: string, hour: number, place: ParcelPlace = state === 'NA_LOJA' ? 'loja' : 'caminhao'): Parcel {
-  return { id, origin, destination, platform, region, state, place, holder, history: [{ state, place, hour, by: holder }] };
+  const p:Parcel = {id,origin,destination,platform,region,state,place,holder,position:null,dock:null,load:null,history:[]};
+  p.history.push(event(p,hour,'criado'));return p;
 }
 
 export class ParcelError extends Error {}
@@ -53,12 +67,13 @@ export function advance(p: Parcel, to: ParcelState, holder: string, hour: number
   if (next !== from + 1) throw new ParcelError(`${p.id}: ${p.state} → ${to} não é permitido`);
   p.state = to;
   p.holder = holder;
-  p.history.push({ state: to, place: p.place, hour, by: holder });
+  p.history.push(event(p,hour,`estado:${to}`));
 }
 
 /** Physically moves a parcel to an adjacent place; anything else is a logic error. */
-export function move(p: Parcel, to: ParcelPlace, by: string, hour: number): void {
+export function move(p: Parcel, to: ParcelPlace, by: string, hour: number, position:ParcelPosition|null = null): void {
   if (!PLACE_MOVES[p.place].includes(to)) throw new ParcelError(`${p.id}: ${p.place} → ${to} não é permitido`);
-  p.place = to;
-  p.history.push({ state: p.state, place: to, hour, by });
+  if (['recebimento','conferencia','transferencia','triagem','gaiola','doca'].includes(to) && (!position || !Object.values(position).every(Number.isFinite))) throw new ParcelError(`${p.id}: posição física obrigatória em ${to}`);
+  p.place = to; p.holder=by; p.position=position?{...position}:null;
+  p.history.push(event(p,hour,`transferência:${to}`));
 }
