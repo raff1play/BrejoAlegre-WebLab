@@ -18,8 +18,8 @@ import { buildVehicleModel } from './vehicleModels';
 import { NpcPerson, civilianLook } from './npcPerson';
 import { rodPart, ballPart, boxPart } from '../../world/modelParts';
 import type { Materials } from '../../world/materials';
-import { CURB_H, ROAD_HALF } from '../../world/layout';
-import { LANE_OFFSET, NODES, nodeById } from '../../world/city/cityPlan';
+import { CURB_H } from '../../world/layout';
+import { signalFixturePositions } from '../../world/city/signalFixtures';
 import { streetLightPositions } from '../../world/city/cityLayout';
 
 /**
@@ -152,33 +152,20 @@ export function buildCityLife(scene: Scene, mats: Materials, profile: GraphicsPr
     tmp.setTranslationFromFloats(x, y, z);
     lampMatrices.push(...tmp.asArray());
   };
-  for (const plan of plans.values()) {
-    const n = nodeById(plan.node);
-    for (const laneIndex of plan.approaches) {
-      const lane = graph.lanes[laneIndex]!;
-      const end = lane.path.points[lane.path.points.length - 1]!;
-      const r = { x: lane.endDir.z, z: -lane.endDir.x };
-      const k = ROAD_HALF + 0.55 - LANE_OFFSET;
-      const px = end.x + r.x * k; const pz = end.z + r.z * k;
-      const yaw = Math.atan2(-lane.endDir.x, -lane.endDir.z); // lamps face the approaching traffic
-      poles.box(grey, px - 0.06, px + 0.06, CURB_H, CURB_H + 3.6, pz - 0.06, pz + 0.06);
-      const fx = -lane.endDir.x; const fz = -lane.endDir.z;
-      poles.box(housing, px - 0.17 + fx * 0.1, px + 0.17 + fx * 0.1, CURB_H + 2.35, CURB_H + 3.45, pz - 0.17 + fz * 0.1, pz + 0.17 + fz * 0.1);
-      heads.push({ plan, lane: laneIndex, ped: false, base: lampMatrices.length / 16 });
-      for (const y of [3.2, 2.9, 2.6]) pushLamp(px + fx * 0.28, CURB_H + y, pz + fz * 0.28, yaw);
-    }
-    // One pedestrian lamp on each corner, facing the opposite kerb.
-    for (const e of crowd.graph.edges) {
-      if (!e.cross || e.cross.node !== n.id) continue;
-      for (const [a, b] of [[e.a, e.b], [e.b, e.a]] as const) {
-        const pa = crowd.graph.points[a]!; const pb = crowd.graph.points[b]!;
-        const dx = pb.x - pa.x; const dz = pb.z - pa.z; const L = Math.hypot(dx, dz);
-        const ox = pa.x - (dx / L) * 0.4 + (dz / L) * 0.9; const oz = pa.z - (dz / L) * 0.4 - (dx / L) * 0.9;
-        poles.box(grey, ox - 0.05, ox + 0.05, CURB_H, CURB_H + 2.5, oz - 0.05, oz + 0.05);
-        poles.box(housing, ox - 0.15, ox + 0.15, CURB_H + 2.0, CURB_H + 2.5, oz - 0.15, oz + 0.15);
-        heads.push({ plan, lane: -1, ped: true, base: lampMatrices.length / 16 });
-        pushLamp(ox + (dx / L) * 0.16, CURB_H + 2.25, oz + (dz / L) * 0.16, Math.atan2(dx, dz));
-      }
+  const fixtureSites = signalFixturePositions(graph, plans, crowd.graph);
+  for (const f of fixtureSites) {
+    const plan = plans.get(f.node)!;
+    if (f.ped) {
+      poles.box(grey, f.x - 0.05, f.x + 0.05, CURB_H, CURB_H + 2.5, f.z - 0.05, f.z + 0.05);
+      poles.box(housing, f.x - 0.15, f.x + 0.15, CURB_H + 2.0, CURB_H + 2.5, f.z - 0.15, f.z + 0.15);
+      heads.push({ plan, lane: -1, ped: true, base: lampMatrices.length / 16 });
+      pushLamp(f.x + f.faceX * 0.16, CURB_H + 2.25, f.z + f.faceZ * 0.16, f.yaw);
+    } else {
+      poles.box(grey, f.x - 0.06, f.x + 0.06, CURB_H, CURB_H + 3.6, f.z - 0.06, f.z + 0.06);
+      poles.box(housing, f.x - 0.17 + f.faceX * 0.1, f.x + 0.17 + f.faceX * 0.1,
+        CURB_H + 2.35, CURB_H + 3.45, f.z - 0.17 + f.faceZ * 0.1, f.z + 0.17 + f.faceZ * 0.1);
+      heads.push({ plan, lane: f.lane, ped: false, base: lampMatrices.length / 16 });
+      for (const y of [3.2, 2.9, 2.6]) pushLamp(f.x + f.faceX * 0.28, CURB_H + y, f.z + f.faceZ * 0.28, f.yaw);
     }
   }
   const poleMeshes = poles.build('semaforos', scene);
