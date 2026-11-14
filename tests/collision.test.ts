@@ -59,7 +59,7 @@ test('CORE-015.1: street furniture is solid and matches where it is drawn', asyn
   // accepted footprint, rather than requiring the former unsafe raw counts.
   assert.ok(lights.length >= 200 && f.lamps.length >= 4 && f.lamps.length <= 16 && f.planters.length === 8,
     `lights=${lights.length}, storefront lamps=${f.lamps.length}`);
-  assert.equal(furniturePolygons().length, lights.length + 24);
+  assert.equal(furniturePolygons().length, lights.length + f.lamps.length + f.planters.length);
   for (const l of [...lights, ...f.lamps, ...f.planters]) assert.equal(guard(l.x, l.z, 0.05), false, `solid at ${l.x.toFixed(1)},${l.z.toFixed(1)}`);
   // …and never blocks a shop door or the way to the counter.
   for (const s of STORES) {
