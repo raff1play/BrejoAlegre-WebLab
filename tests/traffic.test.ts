@@ -44,10 +44,17 @@ test('conflicts at real junctions: crossing and merging movements conflict, the 
   for (const m of g.movements) assert.ok(m.maxSpeed >= 2.2);
 });
 
-test('no traffic lights are invented: none is mapped in OSM, junctions use PARE / priority to the right', () => {
-  assert.equal(buildSignalPlans(g).size, 0);
-  assert.ok(NODES.some((n) => n.control === 'stop'), 'minor arms meeting the main roads stop');
-  void signalState; void laneAspect; void SIGNAL_TIMING;
+test('urban-preview signals control selected junctions while unsignalled PARE still works', () => {
+  const plans = buildSignalPlans(g);
+  assert.ok(plans.size >= 1 && plans.size <= 5, `fictional signal sites: ${plans.size}`);
+  assert.ok(NODES.some((n) => n.control === 'stop'), 'minor arms still obey PARE');
+  for (const plan of plans.values()) for (let i = 0; i < 240; i++) {
+    const t = i * 0.5;
+    const state = signalState(plan, t);
+    assert.ok(plan.approaches.filter((l) => laneAspect(plan, l, t) === 'green').length <= 1, 'at most one green');
+    if (state.ped === 'walk') assert.equal(state.approach, null, 'pedestrian WALK excludes green vehicles');
+  }
+  assert.ok(SIGNAL_TIMING.green > 0 && SIGNAL_TIMING.walk > 0);
 });
 
 test('routing on the real network: every shop is reachable and trucks reach the depot on heavy roads', () => {
