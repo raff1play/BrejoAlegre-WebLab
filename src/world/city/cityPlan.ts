@@ -40,11 +40,32 @@ export const ROADS: readonly CityRoad[] = NETWORK.roads.map((r) => ({
   id: r.id, name: roadName(r), a: r.a, b: r.b, kind: r.kind, priority: r.priority, heavy: r.heavy, pts: r.pts, length: r.length, osmWay: r.osmWay, highway: r.highway, oneway: r.oneway,
 }));
 
-/** No traffic lights are mapped in OSM here: junctions are PARE for minor arms or "preferência à direita". */
+/**
+ * Experimental street-furniture preview: traffic lights are FICTIONAL game infrastructure.
+ * OSM provides the streets, not the physical signals. Select a few roomy urban intersections,
+ * far apart, so the existing signal/AI/pedestrian state machines can actually control them.
+ */
+const SIGNAL_CANDIDATES = NETWORK.nodes.filter((n) => !n.exit).map((n) => {
+  const arms = ROADS.filter((r) => r.a === n.id || r.b === n.id);
+  if (arms.length < 3 || arms.some((r) => r.kind !== 'urban' || r.length < 20)) return null;
+  return { n, score: arms.reduce((v, r) => v + r.priority * 3 + (r.heavy ? 6 : 0), 0) + arms.length };
+}).filter((v): v is { n: (typeof NETWORK.nodes)[number]; score: number } => v !== null)
+  .sort((a, b) => b.score - a.score || a.n.id.localeCompare(b.n.id));
+
+export const GAME_SIGNAL_IDS: ReadonlySet<string> = (() => {
+  const picked: typeof SIGNAL_CANDIDATES = [];
+  for (const c of SIGNAL_CANDIDATES) {
+    if (picked.every((p) => Math.hypot(c.n.x - p.n.x, c.n.z - p.n.z) >= 95)) picked.push(c);
+    if (picked.length === 5) break;
+  }
+  return new Set(picked.map((v) => v.n.id));
+})();
+
 export const NODES: readonly CityNode[] = NETWORK.nodes.map((n) => {
   const arms = ROADS.filter((r) => r.a === n.id || r.b === n.id);
   const prio = arms.map((r) => r.priority);
-  const control: NodeControl = arms.length >= 3 && Math.max(...prio) > Math.min(...prio) ? 'stop' : 'free';
+  const control: NodeControl = GAME_SIGNAL_IDS.has(n.id) ? 'signal'
+    : arms.length >= 3 && Math.max(...prio) > Math.min(...prio) ? 'stop' : 'free';
   return { id: n.id, x: n.x, z: n.z, control, exit: n.exit };
 });
 const nodeIndex = new Map(NODES.map((n) => [n.id, n]));
