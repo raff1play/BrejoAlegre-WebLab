@@ -44,11 +44,11 @@ Jogo de simulação profissional de coletas e entregas com motos e carros em uma
 
 ## 3. Jornada operacional futura — NÃO implementar na v0.1
 
-**Relógio único:** 1 hora virtual = 4 minutos reais; jornada 11:00–21:00 = até 40 minutos reais (quando não terminar antes).
+**Relógio único (decisão atualizada em 14/11/2026):** 1 hora virtual = **2 minutos e 30 segundos reais**; jornada 11:00–21:00 = até **25 minutos reais** em velocidade normal (quando não terminar antes). A referência histórica de 4 minutos por hora foi substituída.
 
 1. **11h:** saída da residência/base de preparação e atribuições de coletas. O setor principal pode ser planejado previamente; consolidação regional conforme triagem (detalhe pendente).
 2. **12h–14h:** coletas em até oito lojas fictícias, usando o aplicativo virtual TRACKen para volumes de ambas as plataformas. Cada volume precisa ser realmente transportado até a base.
-3. **14h–15h:** NPCs recebem fisicamente, individualizam, verificam e agrupam por geografia. Divergências são registradas; nunca se apaga ou cria pacote magicamente.
+3. **Desde a chegada de cada pacote ao galpão, independentemente do horário:** NPCs iniciam recebimento, conferência e triagem em sequência física, sem aguardar 14h. A faixa 14h–15h continua como janela operacional, não como bloqueio para começar o trabalho. Divergências são registradas; nunca se apaga ou cria pacote magicamente.
 4. **15h–16h:** NPCs preparam uma **saca principal lógica, mista ML + Shopee, por entregador**. O jogador confere pelo app virtual da plataforma correspondente e distribui a carga entre os compartimentos físicos do veículo. **PENDENTE:** horário exato em que pode sair antecipadamente, quando tudo estiver pronto.
 5. **16h–21h:** entregas (saída antecipada quando autorizada). Meta flexível 8–12 endereços/paradas por humano, podendo variar conforme geografia real, tempo e carga. NPCs executam excedentes. Jogador pode encerrar antes, ir para casa ou auxiliar outro humano.
 6. **21h:** fechamento da atividade humana, com recuperação administrativa audível/auditável dos volumes remanescentes, sem inventar entregas. Sala termina mais cedo se todos os deveres humanos já tiverem sido resolvidos.
