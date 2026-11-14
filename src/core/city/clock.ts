@@ -1,9 +1,9 @@
 /**
- * CORE-013 virtual clock. Rules preserved from the master spec (section 3): 1 virtual hour = 4 real
- * minutes, working day 11:00–21:00. The clock runs a full 24 h day (so night and morning exist) and
+ * Virtual clock: one game hour = 150 real seconds (user-approved 14/11/2026),
+ * working day 11:00–21:00. The clock runs a full 24 h day (so night and morning exist) and
  * starts at 11:00; a development control may jump to any hour without changing the scale.
  */
-export const REAL_SECONDS_PER_VIRTUAL_HOUR = 240;
+export const REAL_SECONDS_PER_VIRTUAL_HOUR = 150;
 export const WORKDAY_START = 11;
 export const WORKDAY_END = 21;
 
