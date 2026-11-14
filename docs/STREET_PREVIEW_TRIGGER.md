@@ -35,3 +35,11 @@
 - Este gatilho instrui o workflow a montar um unico site Pages com: CORE-015.1 fixada na raiz, CORE-015.2 em `/street-preview/` e GFX-001 em `/gfx-preview/`.
 - Nao altera os codigos de `main`, `preview`, da CORE-015.2 ou da propria branch GFX-001; nao ha merge. As builds sao independentes.
 - Publicacao somente concluida apos o workflow de deploy terminar com sucesso; teste de acesso pelo navegador ainda necessario.
+
+## 14/11/2026 — Publicacao ART-001 isolada para avaliacao visual
+
+- Pedido explicito do usuario: publicar a versao ART-001 da primeira coleta e da moto, para abrir e avaliar no celular antes de aprovar o visual.
+- Commit ART-001 fixado: `3931aa2acfe2fd1b59ff7c8bb37f55e9fb4c243e` na branch `feat/art-001-primeira-loja-moto` (CI 43618429126 success).
+- O workflow agora empacota CORE-015.1 na raiz, CORE-015.2 em /street-preview/, GFX-001 em /gfx-preview/ e ART-001 em /art-preview/ no MESMO GitHub Pages.
+- ART-001 somente para avaliacao, sem alterar `main`, `preview`, a branch GFX, nem a branch ART; sem merge.
+- Considerar publicada somente apos GitHub Actions confirmar sucesso no job de deploy; desempenho Android fisico nao foi medido.
