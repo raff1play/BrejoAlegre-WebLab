@@ -148,3 +148,12 @@
 - Planta única continua valendo: fachada/ilha/item de calçada novos entram em `storePlan()` e as gaiolas em `depotLayout()`; nada sólido é desenhado fora dos colisores.
 - Animações e NPCs de galpão são apenas visuais; nenhum estado de volume é alterado por elas.
 - IA dos NPCs por grafos, máquinas de estado e regras locais; nenhum modelo de linguagem ou API externa.
+
+## ART-002 — Ritmo e processamento imediato dos pacotes (14/11/2026)
+
+- **Decisão expressa do usuário:** assim que um pacote é descarregado no recebimento da base, o conferente e os separadores iniciam o processamento automaticamente, **sem esperar 14h**. O trabalho continua pelas mesmas posições físicas, responsáveis e IDs, sem saltar etapas.
+- **O caminhão permanece previsto para 13h**; isso não impede a conferência e a triagem dos pacotes que o jogador já descarregou. Os volumes do caminhão entram no mesmo fluxo quando chegarem.
+- **Retirada da saca:** continua permitida a partir das 15h e somente após o processamento de todos os volumes da carga; o usuário não alterou essa regra.
+- **Nova escala do relógio:** uma hora virtual = **150 segundos reais (2min30s)**, em vez de 240 segundos (4min). A jornada normal 11h–21h dura até 25 minutos reais, sem contar pausas/aceleração e sem exigir permanecer até 21h.
+- O fluxo logístico preserva sua vazão **por hora virtual** na escala mais rápida; acelerar o relógio não pode entregar volumes sem a execução das tarefas.
+- Esta decisão **substitui** a escala e o bloqueio de início de triagem descritos nas seções históricas CORE-013/014. A mudança foi implementada na branch experimental `feat/art-001-primeira-loja-moto`; não se considera integrada à `preview` ou `main` antes de revisão.
