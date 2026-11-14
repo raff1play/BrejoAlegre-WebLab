@@ -1,5 +1,6 @@
 import { DepotOperations } from './depotOperations.ts';
-import { REAL_SECONDS_PER_VIRTUAL_HOUR } from '../city/clock.ts';
+/** Keep depot throughput per virtual hour after shortening the real-time clock. */
+const DEPOT_OPERATION_SECONDS_PER_VIRTUAL_HOUR = 240;
 import { DEPOT_POINTS, validDepotParking, depotFree, DISPATCH_DOCK, MIXED_LOAD } from '../../world/city/depotPlan.ts';
 import { DEPOT, STORES, depotWorld, depotYaw, depotLocal, type StoreKind } from '../../world/city/cityPlan.ts';
 import { yawOf } from '../../world/layout.ts';
@@ -259,7 +260,7 @@ export class Workday {
     }
     const dh=this.lastHour===null?0:Math.max(0,hour-this.lastHour);this.lastHour=hour;
     // Clock acceleration speeds work up, but even a clock jump cannot consume a whole job in one frame.
-    const factor=dt>0?Math.max(1,Math.min(8,dh*REAL_SECONDS_PER_VIRTUAL_HOUR/dt)):1;
+    const factor=dt>0?Math.max(1,Math.min(8,dh*DEPOT_OPERATION_SECONDS_PER_VIRTUAL_HOUR/dt)):1;
     for(let left=Math.min(4,dt*factor);left>1e-6;left-=.05)this.depot.update(this.parcels,hour,Math.min(.05,left));
     if(this.phase==='CONFERENCIA'&&this.parcels.every(p=>PARCEL_DONE_IN(p.state)))this.phase='TRIAGEM';
     if((this.phase==='TRIAGEM'||this.phase==='CONFERENCIA')&&this.parcels.every(p=>p.state==='NA_SACA'&&p.place==='saca'))this.phase='SACA';
