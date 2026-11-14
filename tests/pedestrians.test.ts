@@ -9,9 +9,9 @@ import { buildSignalPlans, signalState } from '../src/core/city/signals.ts';
 import { Traffic } from '../src/core/city/traffic.ts';
 
 /**
- * CORE-015: pedestrians on the REAL street network. OSM maps no traffic signals, bus stops,
- * church or school in the seat, so pedestrians cross at the kerb when the arm is clear and
- * walk to the (fictional) shops, the real parks and along the pavements.
+ * CORE-015.2 experiment: OSM has no mapped signals, but this branch adds fictional traffic
+ * signals to selected junctions. Crossing requires WALK there, otherwise the arm must be clear.
+ * Shops and the mapped streets remain unchanged.
  */
 const guard = createMotionGuard(CITY_BOUNDS, [], solidPolygons());
 const free = (x: number, z: number) => guard(x, z, 0.3);
@@ -64,7 +64,8 @@ test('pedestrians walk to shops and parks and cross only when the arm is clear',
       states.add(p.state + (p.goal ? ':' + p.goal.kind : ''));
       if (prev.get(p.id) !== 'cross' && p.state === 'cross') {
         const c = p.legs[0]!.cross!;
-        if (!traffic.armClear(c.node, c.road)) badCross++;
+        const plan = plans.get(c.node);
+        if (plan ? signalState(plan, time).ped !== 'walk' : !traffic.armClear(c.node, c.road)) badCross++;
       }
       prev.set(p.id, p.state);
       const entering = p.goal?.kind === 'shop' && p.legs.length <= 2;
@@ -72,8 +73,8 @@ test('pedestrians walk to shops and parks and cross only when the arm is clear',
       if (p.visible && p.state !== 'cross' && !entering && !guard(p.x, p.z, 0.05)) offWorld++;
     }
   }
-  assert.equal(plans.size, 0, 'no traffic signals mapped in OSM → none simulated');
-  assert.ok(badCross <= 1, `crossings start with the arm clear (${badCross})`);
+  assert.ok(plans.size > 0, 'experimental game signals control selected real intersections');
+  assert.ok(badCross <= 1, `crossing starts only with pedestrian WALK or clear arm (${badCross})`);
   for (const s of ['walk', 'cross', 'inside:shop', 'idle:square']) {
     assert.ok([...states].some((k) => k.startsWith(s)), `${s} reached (${[...states].join(',')})`);
   }
