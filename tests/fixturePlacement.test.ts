@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ROAD_HALF } from '../src/world/layout.ts';
-import { roadDistance } from '../src/world/geo/geoCity.ts';
+import { roadDistance, OPEN_SPACES, pointInPolygon } from '../src/world/geo/geoCity.ts';
 import { NODES } from '../src/world/city/cityPlan.ts';
 import { clearOfFixtures, validFixtureSite } from '../src/world/city/fixturePlacement.ts';
 import { cityTrees, shopFurniture, streetLightPositions } from '../src/world/city/cityLayout.ts';
@@ -24,10 +24,10 @@ test('urban equipment: every lamp sits on actual raised sidewalk, not in a lane 
     assert.ok(clearOfFixtures(p, deco.lamps, 3.39), 'common pole vs colonial shop lamp');
     assert.ok(clearOfFixtures(p, NODES.filter((n) => n.control === 'signal'), 14.99), 'common pole vs signal junction');
   }
+  const parks = OPEN_SPACES.filter((a) => a.kind === 'leisure:park');
   for (const t of trees) {
-    if (roadDistance(t.x, t.z) >= ROAD_HALF && roadDistance(t.x, t.z) <= ROAD_HALF + 3) {
-      assert.ok(validFixtureSite(t, 0.27), 'pavement tree is correctly located');
-    }
+    if (parks.some((a) => pointInPolygon(a.pts, t.x, t.z))) continue;
+    assert.ok(validFixtureSite(t, 0.27), 'street tree must stand on a raised pavement');
   }
 });
 
