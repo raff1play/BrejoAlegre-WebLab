@@ -105,3 +105,13 @@ Em **Build and deployment > Source**, selecionar **GitHub Actions** e salvar. En
 - **Auditoria de escopo:** dados OSM rastreados em `data/osm/SOURCE.json`; malha viária 1:1 da sede; as casas, lotes, lojas e galpão não são reproduções geográficas exatas. Registro de comparação em `docs/evidence/core015-mapa/`. A remoção experimental dos assets Patch.gg está no commit `1ddbd189` anterior ao candidato.
 - **Limitações explícitas:** E2E 70/70 consta como evidência fornecida pelo implementador, não integra a CI padrão; desempenho, ergonomia, temperatura e câmera no Galaxy S24 real não foram verificados nesta auditoria. Esta publicação é um **preview para teste**, não aceite de produção.
 - **Disparo:** a atualização deste documento ativa exclusivamente `.github/workflows/preview.yml`. Só declarar o site atualizado quando `Deploy preview` concluir com `success` e a URL pública for confirmada. Preservar as branches `preview` e `main`.
+
+
+## CORE-015.1 — publicação experimental autorizada (13/11/2026)
+
+- **Autorização:** usuário solicitou análise do que o Fable fez e publicação caso não houvesse erros bloqueantes. Auditoria aprovou **somente a atualização do GitHub Pages de testes da branch `preview`**, sem merge de `main`, sem uso do workflow de produção.
+- **SHA do código auditado:** `f144da4d3c5bda05c16b97d5180a53c594f7ed00` (CORE-015.1: geometria e colisões, interiores das oito lojas, baú/mãos/saca, HUD/minimapa e dirigibilidade).
+- **CI independente no GitHub:** [43543239571](https://github.com/raff1play/BrejoAlegre-WebLab/actions/runs/43543239571) e [43543246224](https://github.com/raff1play/BrejoAlegre-WebLab/actions/runs/43543246224), ambas `success`; log conferido com **94 testes unitários, 94 aprovados, zero falhas**, TypeScript e build staging concluídos.
+- **Browser/E2E:** o roteiro `tests/e2e/play.cjs` e capturas `docs/evidence/core015-1/` foram inspecionados. **84/84** consta na documentação do implementador, porém o log `docs/evidence/core015-1/e2e/e2e-core015-1.log` mencionado ali **não consta no GitHub** e esse E2E não integra a CI. Não declarar confirmação independente desse número.
+- **Pendências não bloqueantes do preview:** pequeno trecho de calçada sobreposta próximo de (−410, 9), NPCs de clientes atravessam expositor e possível câmera externa durante abertura da porta de loja. Baú abre, mas não mostra os pacotes dentro. Dirigibilidade, FPS e temperatura no Galaxy S24 físico não foram validados. A versão permanece experimental.
+- **Escopo:** nenhum código da CORE-016, PWA ou piloto Patch.gg reintegrado. Publicação ocorre no Pages único; `main` permanece no commit inicial. A edição **deste arquivo** é o gatilho autorizado; a publicação só está concluída depois de `Deploy preview` marcar `success`.
