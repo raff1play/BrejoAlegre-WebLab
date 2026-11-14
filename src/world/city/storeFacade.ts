@@ -1,6 +1,7 @@
+import { firstPickupArt } from './firstPickupArt';
 import type { Scene } from '@babylonjs/core/scene';
 import type { BatchSet } from '../geometry';
-import type { LabMaterial, Materials } from '../materials';
+import type { Materials } from '../materials';
 import { ballPart, boxPart, rodPart } from '../modelParts';
 import { STORE_SETBACK, storePlan, type Store } from './cityPlan';
 
@@ -59,11 +60,6 @@ function crate(c: Ctx, x0: number, x1: number, z0: number, z1: number, y: number
     const px = x0 + 0.1 + ((seed * 7 + k * 13) % 10) / 10 * (x1 - x0 - 0.2); const pz = z0 + 0.08 + ((seed * 3 + k * 5) % 10) / 10 * (z1 - z0 - 0.16);
     set.absorb(mats.paint(colors[(seed + k) % colors.length]!, 0.2), ballPart(c.scene, [0.13, 0.11, 0.13], [px, y + 0.31, pz], 5));
   }
-}
-
-function stack(c: Ctx, x0: number, x1: number, z0: number, z1: number, layers: number, mat: (k: number) => LabMaterial, h = 0.15): void {
-  c.set.box(c.mats.paint('#8a6a42', 0.05), x0, x1, 0, 0.12, z0, z1);
-  for (let k = 0; k < layers; k++) { const i = k % 2 ? 0.07 : 0.03; c.set.box(mat(k), x0 + i, x1 - i, 0.12 + k * (h + 0.01), 0.12 + k * (h + 0.01) + h, z0 + i, z1 - i); }
 }
 
 export function buildStoreFront(scene: Scene, set: BatchSet, mats: Materials, s: Store): void {
@@ -194,17 +190,7 @@ export function buildStoreFront(scene: Scene, set: BatchSet, mats: Materials, s:
       break;
     }
     case 'construcao': {
-      // Builders' yard front: corrugated orange fascia, steel canopy, cement pallet and wheelbarrow.
-      set.box(mats.ribbed(s.band), -0.04, W + 0.04, 3.32, H + 0.14, L - 0.08, L);
-      board(c, `placa-${s.id}`, 0.8, W - 0.8, 3.6, H - 0.05, L - 0.085, '#f4f1e8', '#1d1d1d', [{ text: title, size: 0.5 }, { text: s.subtitle.toUpperCase(), size: 0.2, weight: '800' }]);
-      for (let x = 0.2; x < W; x += 0.5) set.box(mats.paint(Math.round(x * 2) % 2 ? '#f2c230' : '#1d1d1d', 0.2), x, Math.min(W - 0.2, x + 0.5), 3.34, 3.5, L - 0.09, L - 0.08);
-      marquee(c, '#6b6f73', 1.7, 3.0);
-      stack(c, f.x0, f.x0 + 1.0, f.z0, f.z1, 5, (k) => mats.paint(k % 2 ? '#a9a59b' : '#b9b5aa', 0.05));
-      // Wheelbarrow: tray, wheel and handles.
-      const wx = f.x1 - 0.4; const wz = (f.z0 + f.z1) / 2;
-      set.box(mats.paint('#2f7d4f', 0.3), wx - 0.3, wx + 0.3, 0.32, 0.52, wz - 0.28, wz + 0.25);
-      set.absorb(mats.paint('#1d1d1d', 0.1), rodPart(scene, [wx - 0.04, 0.17, wz - 0.36], [wx + 0.04, 0.17, wz - 0.36], 0.34, 0.34, 12));
-      for (const dx of [-0.24, 0.24]) set.absorb(mats.paint('#3a3d40', 0.3), rodPart(scene, [wx + dx, 0.36, wz - 0.3], [wx + dx, 0.5, wz + 0.62], 0.03));
+      firstPickupArt(scene, set, mats, s);
       break;
     }
     default: {

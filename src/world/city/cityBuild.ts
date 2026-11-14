@@ -462,8 +462,8 @@ function buildStore(scene: Scene, mats: Materials, s: Store): { meshes: Mesh[]; 
   set.setTransform(placement(s.frame));
   const W = s.width; const D = s.depth; const H = s.height; const t = 0.25;
   const L = STORE_SETBACK;
-  const wall = mats.plaster(s.wall);
-  const band = mats.plaster(s.band);
+  const wall = mats.plaster(s.id === 'construcao' ? '#dec99b' : s.wall);
+  const band = mats.plaster(s.id === 'construcao' ? '#285751' : s.band);
   const trim = mats.paint('#e9e4d8');
   const door0 = W / 2 - 1.3; const door1 = W / 2 + 1.3;
   // Shell: side and back walls, front pillars, kerb wall under the windows, lintel, parapet.
