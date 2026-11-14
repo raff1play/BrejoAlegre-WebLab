@@ -53,7 +53,7 @@ jobs:
       - name: Checkout ART-002 aprovada pela CI (commit fixo)
         uses: actions/checkout@v4
         with:
-          ref: 190b7a09d1607273026617a83b89233dd6dff9e7
+          ref: 731fbccbb29f2e05a5be5a7936c4312bc6c3beb8
           path: depot
       - uses: actions/setup-node@v4
         with:
