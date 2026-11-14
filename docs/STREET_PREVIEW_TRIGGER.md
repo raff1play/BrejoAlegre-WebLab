@@ -27,3 +27,11 @@
 - Verificação geométrica: cinco cruzamentos, 19 aproximações, **19 cabeçotes veiculares válidos**, 29 pedonais, nenhum acesso sem sinal; testes cruzam IDs com a lógica de tráfego e verificam afastamentos físicos.
 - Não há evidência de medição de FPS/temperatura em aparelho Android ou nova revisão visual interativa em navegador desta revisão. A publicação é **somente para avaliação experimental**. Preservar versão estável fixada `d6eabc4909551001c3203aa4314d8c1c852ac304` na raiz do Pages.
 - O commit de documentação é o gatilho de deploy; confirmar `Street Lab` `success` antes de declarar publicação.
+
+## 14/11/2026 — GFX-001 publicada para avaliacao, isolada das demais
+
+- Pedido explicito do usuario: publicar a ultima atualizacao do Fable para inspecao visual antes de seguir com novos assets.
+- Codigo GFX-001 fixado no commit `e15c8d216a0b321bc620deff8b368420cd6a399e` (CI 43609997984: sucesso, 104 testes unitarios).
+- Este gatilho instrui o workflow a montar um unico site Pages com: CORE-015.1 fixada na raiz, CORE-015.2 em `/street-preview/` e GFX-001 em `/gfx-preview/`.
+- Nao altera os codigos de `main`, `preview`, da CORE-015.2 ou da propria branch GFX-001; nao ha merge. As builds sao independentes.
+- Publicacao somente concluida apos o workflow de deploy terminar com sucesso; teste de acesso pelo navegador ainda necessario.
