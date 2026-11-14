@@ -1,0 +1,24 @@
+✔ base has one main surface everywhere, no double slabs, same physical height (5.415814ms)
+✔ terrain clipping conserves exterior and removes a rotated depot hole in either winding (1.053224ms)
+✖ convex clipping handles contained, disjoint and crossing triangles without losing outside ground (0.561925ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 2
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 372.480187
+
+✖ failing tests:
+
+test at tests/depotFloor.test.ts:27:1
+✖ convex clipping handles contained, disjoint and crossing triangles without losing outside ground (0.561925ms)
+  ReferenceError [Error]: depotWorld is not defined
+      at TestContext.<anonymous> (file:///workspace/BrejoAlegre-WebLab/tests/depotFloor.test.ts:33:11)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)

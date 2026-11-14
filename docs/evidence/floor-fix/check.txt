@@ -1,0 +1,301 @@
+
+> brejo-alegre-web-lab@0.1.0 check
+> npm run validate:repo && npm run test:unit && npm run build:staging
+
+
+> brejo-alegre-web-lab@0.1.0 validate:repo
+> node scripts/validate-repository.mjs
+
+Repository integrity checks passed (28 required text files).
+
+> brejo-alegre-web-lab@0.1.0 test:unit
+> node --experimental-strip-types --test tests/*.test.ts
+
+✔ center and small finger jitter do not move player or motorcycle (1.192928ms)
+✔ horizontal thumb displacement steers proportionally, including both directions (0.197411ms)
+✔ vertical thumb movement is forward when up, backward when down (0.100479ms)
+✔ diagonal stick preserves 360-degree direction and caps magnitude at one (0.181718ms)
+✔ out-of-range, non-finite and invalid radius input cannot produce NaN (0.187486ms)
+✔ analog and keyboard inputs combine without exceeding physical ranges (0.270228ms)
+✔ motorcycle steering is meaningfully lighter at partial deflection (0.327974ms)
+✔ motorcycle steering remains safe for bad readings without changing walker axes (0.260344ms)
+✔ chase alpha stays behind vehicle heading at cardinal directions (1.064599ms)
+✔ following a yaw across the angular wrap uses the shortest arc (0.258701ms)
+✔ segment/AABB entry handles hits, misses and vertical clearance (0.293643ms)
+✔ camera stays before an obstacle and recovers full radius in clear view (0.321444ms)
+✔ world camera obstacles include buildings and street furniture (77.977249ms)
+✔ CORE-015: chase camera knows the real town (rotated houses, depot roof, shop ceilings) (33.171972ms)
+✔ clock keeps the approved scale: 4 real minutes per virtual hour, starting at 11:00 (1.209573ms)
+✔ development hour control jumps without changing the scale (0.307433ms)
+✔ day/night lighting: bright noon, golden late afternoon, dark night, smooth transitions (4.488365ms)
+✔ activity: busier by day, quiet at night, logistics during the working day (0.336376ms)
+✔ circle hits house wall (1.531467ms)
+✔ circle away from house does not hit (0.197501ms)
+✔ circle exactly touching wall counts as collision (0.158574ms)
+✔ movement inside bounds is allowed (0.417335ms)
+✔ house and world edge block movement (0.211612ms)
+✔ invalid position does not enter simulation (0.172665ms)
+✔ CORE-015.1: bodies slide along walls at any angle instead of sticking (real streets are not axis-aligned) (8.099168ms)
+✔ CORE-015.1: street furniture is solid and matches where it is drawn (369.287179ms)
+✔ 48 deliverable addresses on REAL streets, reachable from the pavement and the street (83.689088ms)
+✔ parcels only move one stage forward (0.796073ms)
+✔ stores: own hours, shutter, unique employee, queue served at the counter (0.517082ms)
+✔ first workday with PHYSICAL parcels: shop → hands → top box → base → sack → top box → gate, none lost or duplicated (579.690595ms)
+✔ physical places: a parcel cannot jump (box → customer, shop → box) and hands hold at most 4 loose volumes (50.022513ms)
+✔ house numbers do not depend on where the gate spot slides (plates match the job) (92.78188ms)
+✔ ART002B shared fixture collision blocks walkers and motorcycles at every relevant solid (1.164817ms)
+✔ ART002B entry sliding leaves block exactly where rendered, open gap has no ghost collider (0.290147ms)
+✔ ART002B usable parking dimensions, dismount and protected receiving/dispatch routes (306.125786ms)
+✔ ART002F grid connection clears the parked player motorcycle and never snaps through it (17.419975ms)
+✔ base has one main surface everywhere, no double slabs, same physical height (5.667493ms)
+✔ terrain clipping conserves exterior and removes a rotated depot hole in either winding (1.044118ms)
+✔ convex clipping handles contained, disjoint and crossing triangles without losing outside ground (0.316356ms)
+✔ ART002D full ID custody, partial unloading, time jumps, truck, regional cages and same mixed sack at D02 (563.096843ms)
+✔ CORE-011 external models are shipped as small binary glTF files (1.062576ms)
+✔ CORE-011 every external model is registered with source and licence in the manifest (0.451705ms)
+✔ CORE-011 lamp and planter slots sit on solid kerb-side colliders; the shop door is on the façade (3.85346ms)
+urban-placement census {"regular":253,"decorative":6,"trees":321}
+signal-placement census {"plans":5,"inbound":19,"veh":19,"ped":29,"missing":[]}
+✔ urban equipment: every lamp sits on actual raised sidewalk, not in a lane or a house (77.694964ms)
+✔ urban equipment: traffic signals use pavement offsets including one-way lanes (977.267965ms)
+✔ provenance: OSM extract with licence, date and bounding box (0.936621ms)
+✔ scale 1:1: game distances equal the geodesic distances of the OSM coordinates (< 0.05 %) (0.583199ms)
+✔ real streets and junctions imported (names from OSM, no invented street) (0.702205ms)
+✔ main intersections sit on the shared OSM node of both streets (0.344207ms)
+✔ coverage: every drivable OSM way of the urban seat is in the game network (0.422774ms)
+✔ blocks are real faces of the street graph; lots never stand on a street or on each other (93.47335ms)
+✔ everything needed for the job is reachable on foot from the depot; house interiors are not (2639.83204ms)
+✔ CORE-015.1: kerbs follow the real carriageway (no pavement on the asphalt, also on curves and dead ends) (48.97773ms)
+✔ CORE-015.1: frontage walls and house walls stay inside their lots, off every street (112.429665ms)
+✔ CORE-015.1: the depot site is clear of every road, including dead-end streets inside its block (6.450002ms)
+✔ two-bone IK keeps bone lengths and reaches a reachable target (0.835021ms)
+✔ two-bone IK stretches towards an unreachable target without breaking lengths (0.209038ms)
+✔ two-bone IK is finite when the pole lies on the limb or the target is at the root (0.240765ms)
+✔ a user gesture requests fullscreen before locking landscape (1.260158ms)
+✔ already fullscreen: lock landscape without requesting fullscreen again (0.229739ms)
+✔ unsupported fullscreen: use manual rotation fallback (0.151213ms)
+✔ rejected fullscreen: use manual rotation fallback (0.246543ms)
+✔ unsupported orientation lock: keep fullscreen with manual rotation fallback (0.120818ms)
+✔ rejected orientation lock: keep fullscreen with manual rotation fallback (0.13514ms)
+✔ scene plan has the elements required for 0.1 (0.874258ms)
+✔ frames map local lot coordinates to both sides of the street (0.663247ms)
+✔ both roadways and pavements are free of obstacles end to end (5.365629ms)
+✔ spawn bay is free, raised and allows dismounting (0.426769ms)
+✔ the playable area is sealed: nothing reachable lies outside streets, forecourt, square and open yards (577.130577ms)
+✔ riding flat out from the spawn into the houses across the street ends stopped outside them (6.680256ms)
+✔ CORE-010 street furniture stays at the kerb, clear of trees, poles and the walking strip (0.956049ms)
+✔ ART002C atomic receipt preserves identity, position and custody; rejects duplicate/positionless receipt (1.175081ms)
+✔ sidewalk graph is connected, stays on walkable ground and has crosswalks (27.7221ms)
+✔ pedestrians walk to shops and parks and cross only when the arm is clear (497.724956ms)
+✔ GFX-001D: walkers go round a person standing on the pavement, turn smoothly and never freeze the street (273.374734ms)
+✔ browser build no longer advertises the installable PWA (1.415626ms)
+✔ retirement service worker unregisters and does not intercept fetch (0.278431ms)
+✔ old PWA cleanup matches only this project registration scope (0.267905ms)
+✔ game boot retires the PWA instead of installing it (0.291439ms)
+✔ moto accelerates progressively and never exceeds top speed (8.564022ms)
+✔ moto brakes to a full stop and coasts down without input (2.565812ms)
+✔ pressing brake again at rest backs up slowly; throttle recovers forward motion (0.584722ms)
+✔ steering turns right for positive input, only while moving, and leans into the curve (0.609048ms)
+✔ simulation result is nearly independent of frame rate (0.833718ms)
+✔ moto cannot cross a wall or leave the bounds, even at top speed and low frame rate (12.163478ms)
+✔ moto hitting a wall at an angle slides along it and can back away (1.495684ms)
+✔ slideMove blocks head-on and reports it (0.125485ms)
+✔ pedestrian walks relative to the camera heading and is stopped by walls (3.355455ms)
+✔ dismount picks a free side and mounting needs proximity (0.342765ms)
+✔ terrain height is the kerb height on raised areas only (0.154287ms)
+✔ input state never leaves a control stuck (0.218752ms)
+✔ math helpers (0.215658ms)
+✔ light-handling tune gives fast response and retains upright parking (0.116071ms)
+✔ CORE-015.1: steering is proportional at speed and still tight at walking pace (0.19696ms)
+✔ CORE-015.1: throttle and brake ramp in (a tap is a small push), full performance is kept (0.487248ms)
+✔ the eight shops: door → counter → out, with room to spare, and the staff side is reachable (714.451935ms)
+✔ shop furniture sits inside the shell, off the door line and off every interaction spot (0.69844ms)
+✔ the bike does not fit through a shop door (1.572478ms)
+✔ GFX-001: staff route round the counter is clear, and the new fixtures keep the shops walkable (1.352423ms)
+✔ minimap route: along real road axes, continuous, never across blocks, one-way respected (88.518421ms)
+✔ shop base cladding stays on side/back walls and leaves the entrance and windows open (0.971462ms)
+✔ planter long axis follows the window and its collider encloses the shipped GLB (4.014968ms)
+✔ road graph on the real OSM network: two lanes per road, right-hand offset, every lane can continue (1.961852ms)
+✔ conflicts at real junctions: crossing and merging movements conflict, the matrix is symmetric (0.77984ms)
+✔ urban-preview signals control selected junctions while unsignalled PARE still works (2.002171ms)
+✔ routing on the real network: every shop is reachable and trucks reach the depot on heavy roads (5.093026ms)
+✔ vehicles: no collisions, no gridlock, buses/vans/trucks serve their stops (5 virtual-free minutes) (629.82034ms)
+✔ vehicles brake for the player standing on the lane and keep a safety gap (75.977358ms)
+✔ PARE arms force a full stop and pedestrians on a crosswalk hold traffic (115.429391ms)
+✔ GFX-001D: drivers differ, slow down for real bends and pedals are progressive (333.988013ms)
+✔ street preview: new paint follows the actual OSM streets with no stripes through lots (28.273983ms)
+✔ street preview: fictional traffic signals placed at separate, safe urban junctions (13.518004ms)
+✔ armPose uses the local tangent after a bend and reverses it from the opposite end (0.740261ms)
+ℹ tests 113
+ℹ suites 0
+ℹ pass 113
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6004.847505
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.2
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.2
+npm notice To update run: npm install -g npm@12.2.2
+npm notice
+
+> brejo-alegre-web-lab@0.1.0 build:staging
+> npm run typecheck && vite build --mode staging
+
+
+> brejo-alegre-web-lab@0.1.0 typecheck
+> tsc --noEmit
+
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.2
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.2
+npm notice To update run: npm install -g npm@12.2.2
+npm notice
+vite v7.3.0 building client environment for staging...
+transforming...
+✓ 829 modules transformed.
+rendering chunks...
+[plugin vite:reporter] 
+(!) /workspace/BrejoAlegre-WebLab/node_modules/@babylonjs/core/Meshes/instancedMesh.pure.js is dynamically imported by /workspace/BrejoAlegre-WebLab/src/world/externalAssets.ts but also statically imported by /workspace/BrejoAlegre-WebLab/node_modules/@babylonjs/core/Meshes/instancedMesh.js, /workspace/BrejoAlegre-WebLab/node_modules/@babylonjs/core/Meshes/linesMesh.pure.js, /workspace/BrejoAlegre-WebLab/node_modules/@babylonjs/core/assetContainer.js, dynamic import will not move module into another chunk.
+
+computing gzip size...
+dist/index.html                                                     5.99 kB │ gzip:   2.28 kB
+dist/assets/index-Dwf7ZEnF.css                                     13.33 kB │ gzip:   3.75 kB
+dist/assets/kernelBlurVaryingDeclaration-ayaC7UVU.js                0.21 kB │ gzip:   0.18 kB
+dist/assets/kernelBlurVaryingDeclaration-CK-Piwj0.js                0.22 kB │ gzip:   0.19 kB
+dist/assets/meshUboDeclaration-CyESBuh5.js                          0.28 kB │ gzip:   0.24 kB
+dist/assets/pass.fragment-DTzoaCPX.js                               0.32 kB │ gzip:   0.25 kB
+dist/assets/sceneVertexDeclaration-BaLlcuSS.js                      0.33 kB │ gzip:   0.23 kB
+dist/assets/meshUboDeclaration-R6qO25vt.js                          0.35 kB │ gzip:   0.26 kB
+dist/assets/sceneUboDeclaration-DuK7RdId.js                         0.36 kB │ gzip:   0.26 kB
+dist/assets/bumpVertexDeclaration-nuAsOfkg.js                       0.36 kB │ gzip:   0.26 kB
+dist/assets/shadowMapFragmentSoftTransparentShadow-EAD-pCsf.js      0.37 kB │ gzip:   0.27 kB
+dist/assets/shadowMapFragmentSoftTransparentShadow-N8oejsnd.js      0.41 kB │ gzip:   0.29 kB
+dist/assets/bumpVertexDeclaration-140S1jkF.js                       0.42 kB │ gzip:   0.28 kB
+dist/assets/logDepthDeclaration-9aHwQ9l8.js                         0.45 kB │ gzip:   0.29 kB
+dist/assets/postprocess.vertex-CrjYIsJL.js                          0.46 kB │ gzip:   0.31 kB
+dist/assets/logDepthDeclaration-BjtNzOEQ.js                         0.46 kB │ gzip:   0.30 kB
+dist/assets/procedural.vertex-ClHltKV_.js                           0.47 kB │ gzip:   0.30 kB
+dist/assets/sceneUboDeclaration-DLbhNSAr.js                         0.50 kB │ gzip:   0.30 kB
+dist/assets/rgbdEncode.fragment-ai1ZhNQG.js                         0.52 kB │ gzip:   0.34 kB
+dist/assets/packingFunctions-D_ei3w1n.js                            0.53 kB │ gzip:   0.29 kB
+dist/assets/rgbdDecode.fragment-CPlF2cJ_.js                         0.53 kB │ gzip:   0.35 kB
+dist/assets/depthBoxBlur.fragment-D9N65fRC.js                       0.53 kB │ gzip:   0.36 kB
+dist/assets/bumpVertex-z2dOWCsn.js                                  0.55 kB │ gzip:   0.33 kB
+dist/assets/packingFunctions-CdNYvxVs.js                            0.56 kB │ gzip:   0.31 kB
+dist/assets/postprocess.vertex-D_Pqds-x.js                          0.58 kB │ gzip:   0.36 kB
+dist/assets/EXT_texture_webp.pure-CQa1Pjts.js                       0.60 kB │ gzip:   0.37 kB
+dist/assets/procedural.vertex-C5eGtiDz.js                           0.61 kB │ gzip:   0.35 kB
+dist/assets/rgbdEncode.fragment-BJmMcAaQ.js                         0.66 kB │ gzip:   0.39 kB
+dist/assets/rgbdDecode.fragment-DFP0r0Io.js                         0.67 kB │ gzip:   0.39 kB
+dist/assets/depthBoxBlur.fragment-Cy22Q5U2.js                       0.71 kB │ gzip:   0.42 kB
+dist/assets/bumpVertex-Xp0MRyMi.js                                  0.72 kB │ gzip:   0.39 kB
+dist/assets/vertexColorMixing-DaK6Ne9W.js                           0.76 kB │ gzip:   0.39 kB
+dist/assets/kernelBlur.vertex-Cl_6Vnoo.js                           0.90 kB │ gzip:   0.47 kB
+dist/assets/instancesDeclaration-DtKRakVL.js                        0.93 kB │ gzip:   0.35 kB
+dist/assets/color.fragment-DbPRKxYU.js                              0.93 kB │ gzip:   0.44 kB
+dist/assets/mesh.vertexData.functions-ayNlGC5K.js                   0.96 kB │ gzip:   0.49 kB
+dist/assets/vertexColorMixing-actSSLDv.js                           1.01 kB │ gzip:   0.45 kB
+dist/assets/instancesDeclaration-D0TkUNtj.js                        1.04 kB │ gzip:   0.36 kB
+dist/assets/color.fragment-D61lWn5_.js                              1.04 kB │ gzip:   0.48 kB
+dist/assets/kernelBlur.vertex-CPXh87gE.js                           1.07 kB │ gzip:   0.51 kB
+dist/assets/fogFragment-DSW2nin0.js                                 1.09 kB │ gzip:   0.49 kB
+dist/assets/harmonicsFunctions-aOi2VBJa.js                          1.13 kB │ gzip:   0.50 kB
+dist/assets/clipPlaneFragment-CFdflh_h.js                           1.18 kB │ gzip:   0.36 kB
+dist/assets/fogFragment-C3Oek6oE.js                                 1.22 kB │ gzip:   0.54 kB
+dist/assets/defaultUboDeclaration-Q01w_tyj.js                       1.26 kB │ gzip:   0.55 kB
+dist/assets/clipPlaneFragment-Dm5hin5A.js                           1.28 kB │ gzip:   0.37 kB
+dist/assets/ddsTextureLoader-Cz7rJB4P.js                            1.32 kB │ gzip:   0.64 kB
+dist/assets/harmonicsFunctions-D23q6SBz.js                          1.42 kB │ gzip:   0.53 kB
+dist/assets/color.vertex-ColxzyCD.js                                1.44 kB │ gzip:   0.64 kB
+dist/assets/color.vertex-BB2X8eeJ.js                                1.51 kB │ gzip:   0.65 kB
+dist/assets/defaultUboDeclaration-8nJRq4ia.js                       1.63 kB │ gzip:   0.54 kB
+dist/assets/glTFLoaderAnimation.pure-9Y23c15e.js                    1.80 kB │ gzip:   0.82 kB
+dist/assets/pbrUboDeclaration-W8oKrXsx.js                           1.85 kB │ gzip:   0.69 kB
+dist/assets/kernelBlur.fragment-CyKai8Sk.js                         2.31 kB │ gzip:   0.78 kB
+dist/assets/hdrTextureLoader-BGQvgh0h.js                            2.39 kB │ gzip:   1.14 kB
+dist/assets/pbrUboDeclaration-B6dUexob.js                           2.47 kB │ gzip:   0.68 kB
+dist/assets/iesTextureLoader-C7y-KL69.js                            2.49 kB │ gzip:   1.10 kB
+dist/assets/kernelBlur.fragment-UFSowzVm.js                         2.85 kB │ gzip:   0.85 kB
+dist/assets/shadowMap.fragment-ClzcSY2z.js                          3.31 kB │ gzip:   1.16 kB
+dist/assets/dumpTools.pure-C7HZt7zY.js                              3.53 kB │ gzip:   1.71 kB
+dist/assets/tgaTextureLoader-D4V7KQ9g.js                            3.53 kB │ gzip:   1.38 kB
+dist/assets/cubemapToSphericalPolynomial-BN7dFYHq.js                3.67 kB │ gzip:   1.64 kB
+dist/assets/openpbrUboDeclaration-DwJEeauj.js                       3.88 kB │ gzip:   1.03 kB
+dist/assets/shadowMap.fragment-KKq4asBe.js                          3.88 kB │ gzip:   1.26 kB
+dist/assets/morphTargetsVertex-B008g13e.js                          4.39 kB │ gzip:   0.99 kB
+dist/assets/shadowMap.vertex-j6n45_Ey.js                            4.74 kB │ gzip:   1.59 kB
+dist/assets/pbrIBLFunctions-Bk3WB9Ge.js                             4.76 kB │ gzip:   1.45 kB
+dist/assets/shadowMap.vertex-xRC47uQT.js                            4.77 kB │ gzip:   1.54 kB
+dist/assets/pbrIBLFunctions-oyeb5mlD.js                             4.93 kB │ gzip:   1.50 kB
+dist/assets/textureProcessor.fragment-DIT8d8UF.js                   5.01 kB │ gzip:   1.48 kB
+dist/assets/reflectionFunction-CYRIz9sC.js                          5.10 kB │ gzip:   1.30 kB
+dist/assets/openpbrUboDeclaration-D-_8rsOT.js                       5.22 kB │ gzip:   1.05 kB
+dist/assets/reflectionFunction-D7dTSzhK.js                          5.64 kB │ gzip:   1.36 kB
+dist/assets/textureProcessor.fragment-BI_nWnKv.js                   6.03 kB │ gzip:   1.67 kB
+dist/assets/morphTargetsVertex-DE4SFBzs.js                          6.41 kB │ gzip:   1.17 kB
+dist/assets/helperFunctions-D424mIii.js                             6.58 kB │ gzip:   2.19 kB
+dist/assets/bumpFragment-E0u0XHuf.js                                6.89 kB │ gzip:   2.40 kB
+dist/assets/helperFunctions-jAPgiR-a.js                             6.93 kB │ gzip:   2.32 kB
+dist/assets/dds.pure-Cahc4kXr.js                                    7.06 kB │ gzip:   2.48 kB
+dist/assets/logDepthVertex-Cfci5ROe.js                              7.12 kB │ gzip:   1.77 kB
+dist/assets/envTextureLoader-CJpdZ6FB.js                            7.82 kB │ gzip:   3.13 kB
+dist/assets/geometry.vertex-BuGp7yzS.js                             7.87 kB │ gzip:   1.94 kB
+dist/assets/basisTextureLoader-lOzWjRju.js                          7.96 kB │ gzip:   3.17 kB
+dist/assets/bumpFragment-CjQ5YcXa.js                                8.10 kB │ gzip:   2.51 kB
+dist/assets/default.vertex-sGhzhczm.js                              8.13 kB │ gzip:   2.28 kB
+dist/assets/clipPlaneVertex-BMDRedvy.js                             8.84 kB │ gzip:   1.81 kB
+dist/assets/geometry.vertex-SrB2ydAN.js                             9.06 kB │ gzip:   2.02 kB
+dist/assets/default.vertex-CO5d_wEq.js                              9.44 kB │ gzip:   2.43 kB
+dist/assets/clipPlaneVertex-Duhacgn2.js                             9.81 kB │ gzip:   1.80 kB
+dist/assets/geometry.fragment-DwQEavQf.js                          11.28 kB │ gzip:   3.12 kB
+dist/assets/geometry.fragment-CR2JFKa4.js                          11.78 kB │ gzip:   3.01 kB
+dist/assets/pbrBRDFFunctions-BAW1gpLF.js                           11.93 kB │ gzip:   4.12 kB
+dist/assets/pbrBRDFFunctions-B2ml8F1V.js                           12.76 kB │ gzip:   4.30 kB
+dist/assets/exrTextureLoader-Ct1OIyXl.js                           14.19 kB │ gzip:   5.21 kB
+dist/assets/pbr.vertex-CrNylOJx.js                                 14.66 kB │ gzip:   3.11 kB
+dist/assets/pbrMaterialLoadingAdapter-BC6_-Ngd.js                  16.51 kB │ gzip:   3.22 kB
+dist/assets/ktxTextureLoader-CYnd4an7.js                           16.67 kB │ gzip:   4.86 kB
+dist/assets/pbr.vertex-rU8uTmF8.js                                 17.30 kB │ gzip:   3.63 kB
+dist/assets/openpbrTransmissionLayerData-CACFuQQb.js               17.37 kB │ gzip:   4.01 kB
+dist/assets/openpbr.vertex-B5u-xhxW.js                             17.62 kB │ gzip:   3.38 kB
+dist/assets/openpbrTransmissionLayerData-DZe3XISc.js               18.47 kB │ gzip:   4.15 kB
+dist/assets/openpbrMaterialLoadingAdapter-wjsN683g.js              19.14 kB │ gzip:   3.53 kB
+dist/assets/textureProcessor-D_73mZ1U.js                           20.57 kB │ gzip:   6.35 kB
+dist/assets/lightFragment-C_Q-3E0W.js                              20.58 kB │ gzip:   3.36 kB
+dist/assets/openpbr.vertex-BjPhigfK.js                             20.99 kB │ gzip:   4.00 kB
+dist/assets/logDepthVertex-C6jzfOVy.js                             22.66 kB │ gzip:   3.65 kB
+dist/assets/default.fragment-C6IVuQzd.js                           25.41 kB │ gzip:   5.97 kB
+dist/assets/lightFragment-BPK7QdKk.js                              25.62 kB │ gzip:   3.49 kB
+dist/assets/default.fragment-Di3GlWO5.js                           26.38 kB │ gzip:   5.88 kB
+dist/assets/pbrDebug-DZpBCps5.js                                   38.25 kB │ gzip:   8.55 kB
+dist/assets/animationGroup.pure-BXGYIyW7.js                        42.58 kB │ gzip:  10.50 kB
+dist/assets/pbrDebug-VZ6AuPd3.js                                   45.49 kB │ gzip:  10.10 kB
+dist/assets/oitFragment-B-9LXXDn.js                                53.44 kB │ gzip:  10.95 kB
+dist/assets/oitFragment-Cl802RAn.js                                53.83 kB │ gzip:  11.03 kB
+dist/assets/brdfTextureTools-CEUGbu_W.js                           61.30 kB │ gzip:  44.73 kB
+dist/assets/openpbr.fragment-EXk7vQRh.js                           88.78 kB │ gzip:  17.55 kB
+dist/assets/openpbr.fragment-DH7U6D4H.js                           90.51 kB │ gzip:  17.57 kB
+dist/assets/pbr.fragment-BTLqR3om.js                               95.25 kB │ gzip:  17.05 kB
+dist/assets/pbr.fragment-DNWfRO74.js                               98.96 kB │ gzip:  18.44 kB
+dist/assets/pbrMaterial.pure-DiLHGQNa.js                          137.74 kB │ gzip:  26.31 kB
+dist/assets/openpbrMaterial.pure-a8f2PnM8.js                      141.26 kB │ gzip:  31.97 kB
+dist/assets/glTFLoader.pure-zVaQUqZG.js                           157.59 kB │ gzip:  37.41 kB
+dist/assets/index-Cu2c0KYN.js                                   1,703.14 kB │ gzip: 454.06 kB
+
+(!) Some chunks are larger than 1500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 16.71s
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.2
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.2
+npm notice To update run: npm install -g npm@12.2.2
+npm notice
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.2
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.2
+npm notice To update run: npm install -g npm@12.2.2
+npm notice

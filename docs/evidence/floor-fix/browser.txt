@@ -1,0 +1,6 @@
+PASS desktop entire depot footprint: grass removed, single main floor area, isolated paint bias {"grassArea":9.072209650184959e-10,"mainArea":3676.0800236914447,"expectedArea":3676.0800000000017,"paints":[{"name":"base-decal-tinta-fosca:4","bias":-8,"units":-8},{"name":"base-decal-tinta-fosca:3","bias":-6,"units":-6},{"name":"base-decal-tinta-de-solo:4","bias":-8,"units":-8},{"name":"base-decal-tinta-fosca:2","bias":-4,"units":-4},{"name":"base-decal-tinta-fosca:1","bias":-2,"units":-2}],"floors":10}
+PASS desktop camera orbit/zoom rendered 24 frames without browser errors
+PASS desktop bike accelerates/brakes on unchanged physical ground height 0.15m
+PASS mobile entire depot footprint: grass removed, single main floor area, isolated paint bias {"grassArea":9.072209650184959e-10,"mainArea":3676.0800236914447,"expectedArea":3676.0800000000017,"paints":[{"name":"base-decal-tinta-fosca:4","bias":-8,"units":-8},{"name":"base-decal-tinta-fosca:3","bias":-6,"units":-6},{"name":"base-decal-tinta-de-solo:4","bias":-8,"units":-8},{"name":"base-decal-tinta-fosca:2","bias":-4,"units":-4},{"name":"base-decal-tinta-fosca:1","bias":-2,"units":-2}],"floors":10}
+PASS mobile camera orbit/zoom rendered 24 frames without browser errors
+PASS mobile bike accelerates/brakes on unchanged physical ground height 0.15m

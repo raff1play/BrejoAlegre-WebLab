@@ -1,0 +1,76 @@
+{
+  "desktop": {
+    "audit": {
+      "grassArea": 9.072209650184959e-10,
+      "mainArea": 3676.0800236914447,
+      "expectedArea": 3676.0800000000017,
+      "paints": [
+        {
+          "name": "base-decal-tinta-fosca:4",
+          "bias": -8,
+          "units": -8
+        },
+        {
+          "name": "base-decal-tinta-fosca:3",
+          "bias": -6,
+          "units": -6
+        },
+        {
+          "name": "base-decal-tinta-de-solo:4",
+          "bias": -8,
+          "units": -8
+        },
+        {
+          "name": "base-decal-tinta-fosca:2",
+          "bias": -4,
+          "units": -4
+        },
+        {
+          "name": "base-decal-tinta-fosca:1",
+          "bias": -2,
+          "units": -2
+        }
+      ],
+      "floors": 10
+    },
+    "frames": 24,
+    "errors": []
+  },
+  "mobile": {
+    "audit": {
+      "grassArea": 9.072209650184959e-10,
+      "mainArea": 3676.0800236914447,
+      "expectedArea": 3676.0800000000017,
+      "paints": [
+        {
+          "name": "base-decal-tinta-fosca:4",
+          "bias": -8,
+          "units": -8
+        },
+        {
+          "name": "base-decal-tinta-fosca:3",
+          "bias": -6,
+          "units": -6
+        },
+        {
+          "name": "base-decal-tinta-de-solo:4",
+          "bias": -8,
+          "units": -8
+        },
+        {
+          "name": "base-decal-tinta-fosca:2",
+          "bias": -4,
+          "units": -4
+        },
+        {
+          "name": "base-decal-tinta-fosca:1",
+          "bias": -2,
+          "units": -2
+        }
+      ],
+      "floors": 10
+    },
+    "frames": 24,
+    "errors": []
+  }
+}

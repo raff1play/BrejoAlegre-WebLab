@@ -1,3 +1,5 @@
+import { subtractSurface } from '../surfaceCut';
+import { depotTerrainHole } from './depotFloor';
 import { CreateCylinder } from '@babylonjs/core/Meshes/Builders/cylinderBuilder';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
@@ -12,7 +14,7 @@ import { buildDepotArchitecture } from './depotArchitecture';
 import { streetPaint } from './urbanDetail';
 import { buildAddresses } from '../../core/delivery/addresses';
 import { BLOCKS, DEPOT, NODES, ROADS, STORES, STORE_SETBACK, depotWorld, storePlan, type Rect, type Store } from './cityPlan';
-import { OPEN_SPACES } from '../geo/geoCity';
+import { DEPOT_SITE, OPEN_SPACES } from '../geo/geoCity';
 import { GEO } from '../geo/brejoAlegreData';
 
 /**
@@ -48,12 +50,12 @@ export function triangulate(pts: readonly XZ[]): [number, number, number][] {
 }
 
 /** Horizontal filled polygon at height y (top face up), UVs in metres. */
-function fillPolygon(set: BatchSet, m: LabMaterial, pts: readonly XZ[], y: number): void {
+function fillPolygon(set: BatchSet, m: LabMaterial, pts: readonly XZ[], y: number, cut?:readonly XZ[]): void {
   const b = set.of(m);
   for (const [i, j, k] of triangulate(pts)) {
-    const t = [pts[i]!, pts[j]!, pts[k]!];
-    // Counter-clockwise in (x, z) faces up (same convention as Batch.box top faces).
-    b.poly([[t[0]![0], y, t[0]![1]], [t[1]![0], y, t[1]![1]], [t[2]![0], y, t[2]![1]]], [[t[0]![0] / 2, t[0]![1] / 2], [t[1]![0] / 2, t[1]![1] / 2], [t[2]![0] / 2, t[2]![1] / 2]]);
+    const triangle = [pts[i]!, pts[j]!, pts[k]!];
+    const pieces = cut ? subtractSurface(triangle,cut) : [triangle];
+    for(const t of pieces)b.poly(t.map(([x,z])=>[x,y,z] as const),t.map(([x,z])=>[x/2,z/2] as const));
   }
 }
 
@@ -147,8 +149,8 @@ export function buildRoads(flat: BatchSet, upright: BatchSet, mats: Materials): 
       ribbon(flat, mats.gutter, [a, c], 0.16, 0.018);
     }
     // Pavement as a ring between kerb and lot line (both are insets of the same block face, so
-    // their vertices correspond); the lot grass sits just below, so floors and yards drawn at
-    // kerb height (depot, shops) are never covered by it and nothing overlaps (no z-fighting).
+    // their vertices correspond). The depot cuts its footprint out of the lot grass;
+    // a tiny height gap alone cannot reliably separate terrain and paving on mobile.
     const l = b.lot;
     if (l.length === k.length) {
       for (let i = 0; i < k.length; i++) {
@@ -156,8 +158,8 @@ export function buildRoads(flat: BatchSet, upright: BatchSet, mats: Materials): 
         pavementQuad(flat, mats.pavement, k[i]!, k[j]!, l[j]!, l[i]!);
         sidewalkJoints(flat, mats, k[i]!, k[j]!, l[j]!, l[i]!);
       }
-    } else fillPolygon(flat, mats.pavement, k, CURB_H);
-    fillPolygon(flat, mats.grass, l, CURB_H - 0.012);
+    } else fillPolygon(flat, mats.pavement, k, CURB_H, b.id===DEPOT_SITE.block?depotTerrainHole():undefined);
+    fillPolygon(flat, mats.grass, l, CURB_H - 0.012, b.id===DEPOT_SITE.block?depotTerrainHole():undefined);
   }
   void SIDEWALK; void upright;
 }

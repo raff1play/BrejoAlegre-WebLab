@@ -1,3 +1,4 @@
+import { DEPOT_FLOOR_Y, depotFloorSurfaces, FLOOR_PAINT_LAYERS } from './depotFloor';
 import type { Scene } from '@babylonjs/core/scene';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { BatchSet, type P3 } from '../geometry';
@@ -8,7 +9,7 @@ import { CAR_PARKING, MOTO_PARKING, depotFixtures, gateLeaves, type DepotFixture
 
 /** ART-002 original geometry. Every ground-level solid is in depotFixtures(). No fake parcels. */
 export function buildDepotArchitecture(scene:Scene,set:BatchSet,flat:BatchSet,mats:Materials):{roof:Mesh[];gates:Mesh[]} {
- const Y=.15;
+ const Y=DEPOT_FLOOR_Y;
  const ink=mats.paint('#284e4b'),steel=mats.paint('#465954',.3),yellow=mats.paint('#dbb34a'),concrete=mats.plaster('#c6bd9f');
  const box=(m:LabMaterial,x0:number,x1:number,y0:number,y1:number,z0:number,z1:number)=>set.box(m,x0,x1,Y+y0,Y+y1,z0,z1);
  const sign=(id:string,text:string,x0:number,x1:number,z:number,y:number,h=.65,bg='#284e4b')=>{
@@ -17,10 +18,19 @@ export function buildDepotArchitecture(scene:Scene,set:BatchSet,flat:BatchSet,ma
   set.of(m).quad([x1,Y+y,z],[x0,Y+y,z],[x0,Y+y+h,z],[x1,Y+y+h,z],1,1);
  };
  const line=(a:P3,c:P3,d=.035,m=steel)=>set.absorb(m,rodPart(scene,[a[0],Y+a[1],a[2]],[c[0],Y+c[1],c[2]],d));
- const floor=(m:LabMaterial,x0:number,x1:number,z0:number,z1:number)=>flat.box(m,x0,x1,Y+.012,Y+.018,z0,z1,{sides:false});
- floor(mats.pavement,76.2,139.8,-150,-92.2);
- floor(mats.asphalt,96,139.5,-117.8,-92.5);
- floor(mats.paint('#a3a18e'),92.3,135.7,-141.7,-118.3);
+ // Main floors form a partition: no concrete slab continues under asphalt or the interior.
+ for(const f of depotFloorSurfaces()){
+  const m=f.kind==='asphalt'?mats.asphalt:f.kind==='interior'?mats.paint('#a3a18e'):mats.pavement;
+  flat.box(m,f.minX,f.maxX,Y-.01,Y,f.minZ,f.maxZ,{sides:false});
+ }
+ // Local paint materials keep depth bias off shared city/building materials.
+ const paintMaterials=new Map<string,LabMaterial>();
+ const floor=(m:LabMaterial,x0:number,x1:number,z0:number,z1:number,layer:number=FLOOR_PAINT_LAYERS.marking)=>{
+  const key=`${m.material.name}:${layer}`;let local=paintMaterials.get(key);
+  if(!local){const material=m.material.clone(`base-decal-${key}`)!;material.zOffset=-2*layer;material.zOffsetUnits=-2*layer;local={...m,material};paintMaterials.set(key,local);}
+  // Tint belongs to the requested paint colour, not to the first colour sharing that material.
+  flat.box({...local,tint:m.tint},x0,x1,Y,Y,z0,z1,{sides:false});
+ };
  const rail=(r:DepotFixture,h:number)=>{
   box(steel,r.minX,r.maxX,.02,.14,r.minZ,r.maxZ);
   const xLong=r.maxX-r.minX>r.maxZ-r.minZ;
@@ -81,10 +91,10 @@ export function buildDepotArchitecture(scene:Scene,set:BatchSet,flat:BatchSet,ma
  line([99.8,2.8,-92.3],[99.8,4.3,-92.3],.1);line([112.2,2.8,-92.3],[112.2,4.3,-92.3],.1);
  sign('main','BREJO ALEGRE • CENTRO DE DISTRIBUIÇÃO',98,132,-117.85,5.4,1.45);
  // Floor layout: future cars 3×5.4 m, motorcycles 1.8×3.2 m, protected 1.8 m footway.
- floor(mats.paint('#466653'),92.55,94.3,-120.2,-92.6);
+ floor(mats.paint('#466653'),92.55,94.3,-120.2,-92.6,FLOOR_PAINT_LAYERS.lane);
  for(let z=-114;z<-99;z+=1.2)floor(mats.lineWhite,94.4,99,z,z+.35);
  for(const r of [...CAR_PARKING,...MOTO_PARKING]){
-  floor(mats.lineWhite,r.minX,r.minX+.07,r.minZ,r.maxZ);floor(mats.lineWhite,r.maxX-.07,r.maxX,r.minZ,r.maxZ);floor(mats.lineWhite,r.minX,r.maxX,r.minZ,r.minZ+.07);
+  floor(mats.lineWhite,r.minX,r.minX+.07,r.minZ,r.maxZ);floor(mats.lineWhite,r.maxX-.07,r.maxX,r.minZ,r.maxZ);floor(mats.lineWhite,r.minX+.07,r.maxX-.07,r.minZ,r.minZ+.07);
  }
  sign('motos','DESCARGA • MOTOS',78,91,-113.3,1.8,.6);
  // Paint-only label stands at ground edge have no physical posts in the circulation lane.
@@ -95,9 +105,9 @@ export function buildDepotArchitecture(scene:Scene,set:BatchSet,flat:BatchSet,ma
  for(const x of [100,112,130])for(const z of [-124,-138]){line([x,7.6,z],[x,6.6,z],.015);box(mats.glow('#f5dfab'),x-.55,x+.55,6.45,6.55,z-.18,z+.18);}
  for(const x of [99.4,134]){box(mats.paint('#b34e31'),x,x+.2,.5,1.2,-118.55,-118.4);}
  // Localized concrete patches and expansion joints, never loose cargo disguised as decoration.
- for(let x=94;x<136;x+=4)floor(mats.paint('#858b7f'),x,x+.018,-141.5,-118.5);
- for(let z=-140;z<-118;z+=4)floor(mats.paint('#858b7f'),92.5,135.5,z,z+.018);
- for(const [x,z]of [[100,-124],[128,-121],[104,-120]])floor(mats.paint('#92917c'),x-1,x+1,z-.7,z+.7);
+ for(let x=94;x<136;x+=4)floor(mats.paint('#858b7f'),x,x+.018,-141.5,-118.5,FLOOR_PAINT_LAYERS.joint);
+ for(let z=-140;z<-118;z+=4)floor(mats.paint('#858b7f'),92.5,135.5,z,z+.018,FLOOR_PAINT_LAYERS.joint);
+ for(const [x,z]of [[100,-124],[128,-121],[104,-120]])floor(mats.paint('#92917c'),x-1,x+1,z-.7,z+.7,FLOOR_PAINT_LAYERS.repair);
  const gates:Mesh[]=[];
  for(const [i,r]of gateLeaves(0).entries()){
   const leaf=new BatchSet();leaf.setTransform(tr);

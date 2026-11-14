@@ -169,3 +169,8 @@ Próximas mudanças devem registrar PR/SHA e resultados verificáveis.
 - Logística física por ID: recebimento, conferência, transferência com funcionário, esteira, gaiola regional e expedição na doca 02. Caminhão da doca 05 entra no mesmo fluxo; eliminadas caixas e rotas decorativas.
 - Descarga exige vaga válida, parada, jogador a pé e viagens conforme a capacidade das mãos. A saca única contém os mesmos volumes, sem substituição de IDs.
 - Atlas de etiquetas, instâncias de volumes, sincronização de custódia e apresentação; loja e moto ART-001 sem alterações. Evidências, planta e limites em `docs/evidence/art-002/README.md`.
+
+## Correção do piso da base — 14/11/2026
+
+- Removidos pisos coplanares e recortado o terreno sob o galpão/pátio; demarcações em camadas de pintura independentes, sem modificar materiais compartilhados da cidade.
+- Altura física e colisões preservadas. Capturas desktop/móvel emulado, auditoria e testes em `docs/evidence/floor-fix/`.
