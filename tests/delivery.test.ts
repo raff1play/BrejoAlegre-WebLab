@@ -3,13 +3,14 @@ import assert from 'node:assert/strict';
 import { createMotionGuard } from '../src/core/collision.ts';
 import { ROAD_HALF } from '../src/world/layout.ts';
 import { treePolygons } from '../src/world/city/cityLayout.ts';
-import { CITY_BOUNDS, STORES, cityPolygons, nearestRoad } from '../src/world/city/cityPlan.ts';
+import { CITY_BOUNDS, STORES, depotWorld, depotYaw, cityPolygons, nearestRoad } from '../src/world/city/cityPlan.ts';
 import { buildAddresses, DELIVERABLE_COUNT } from '../src/core/delivery/addresses.ts';
 import { PARCEL_FLOW, PLACE_MOVES, advance, createParcel, move, ParcelError } from '../src/core/delivery/parcels.ts';
 import { Workday, ROUTINE, DEPOT_SPOTS, HANDS_MAX } from '../src/core/delivery/workday.ts';
 import { createStoreOps, stepStore, joinQueue, isOpen, STORE_STAFF, STORE_HOURS } from '../src/core/delivery/stores.ts';
 import { buildWalkGraph, nearestWalkPoint } from '../src/core/city/pedestrians.ts';
 
+const visit=(at:'receiving'|'dispatch'|'parking'='receiving')=>({player:{...(at==='parking'?depotWorld(84,-112.25):DEPOT_SPOTS[at]),riding:false},bike:{...depotWorld(84,-111),yaw:depotYaw(0),moving:false}});
 const guard = createMotionGuard(CITY_BOUNDS, [], [...cityPolygons(), ...treePolygons()]);
 
 test('48 deliverable addresses on REAL streets, reachable from the pavement and the street', () => {
@@ -31,9 +32,9 @@ test('48 deliverable addresses on REAL streets, reachable from the pavement and 
 test('parcels only move one stage forward', () => {
   const p = createParcel('X-1', 'farmacia', 'end-a', 'LOJA', 'Centro', 'NA_LOJA', 'farmacia', 11);
   assert.throws(() => advance(p, 'EM_TRANSPORTE', 'jogador', 12), ParcelError);
-  for (const s of PARCEL_FLOW.slice(1)) advance(p, s, 'x', 12);
-  assert.equal(p.state, 'ENTREGUE');
-  assert.equal(p.history.length, PARCEL_FLOW.length);
+  advance(p,'COLETADO','jogador',12);
+  assert.equal(p.state,'COLETADO');
+  assert.equal(p.history.length,2);
   assert.throws(() => advance(p, 'NA_LOJA', 'x', 13), ParcelError);
 });
 
@@ -69,7 +70,7 @@ test('first workday with PHYSICAL parcels: shop → hands → top box → base �
     for (const p of day.parcels) {
       places.set(p.place, (places.get(p.place) ?? 0) + 1);
       const ok: Record<string, string[]> = {
-        NA_LOJA: ['loja'], COLETADO: ['maos'], EM_TRANSPORTE: ['caminhao', 'bau', 'maos', 'galpao'], RECEBIDO_BASE: ['galpao'], TRIADO: ['galpao'],
+        NA_LOJA: ['loja'], COLETADO: ['maos'], EM_TRANSPORTE: ['caminhao','bau','maos','recebimento','conferencia','transferencia'], RECEBIDO_BASE: ['conferencia','transferencia','triagem'], TRIADO:['triagem','transferencia','gaiola','doca'],
         NA_SACA: ['saca'], EM_ROTA: ['maos', 'bau'], ENTREGUE: ['destinatario'],
       };
       assert.ok(ok[p.state]!.includes(p.place), `${where}: ${p.id} ${p.state} cannot be ${p.place}`);
@@ -107,26 +108,28 @@ test('first workday with PHYSICAL parcels: shop → hands → top box → base �
   audit('shop 2');
   tick(13.3);
   // Base: nothing can be handed over from the box; unload, then hand over.
-  assert.equal(day.handOver(hour), 0, 'parcels in the box are not handed over');
-  assert.equal(day.unloadForDepot(hour, true), 0, 'no unloading while moving');
-  assert.equal(day.unloadForDepot(hour), 4);
-  assert.equal(day.unloadForDepot(hour), 0);
-  assert.equal(day.handOver(hour), 4);
+  assert.equal(day.handOver(hour,visit('receiving')), 0, 'parcels in the box are not handed over');
+  assert.equal(day.unloadForDepot(hour, true, visit('parking')), 0, 'no unloading while moving');
+  assert.equal(day.unloadForDepot(hour, false, visit('parking')), 4);
+  assert.equal(day.unloadForDepot(hour, false, visit('parking')), 0);
+  assert.equal(day.handOver(hour,visit('receiving')), 4);
   assert.equal(day.inHands().length + day.inTrunk().length, 0);
   assert.equal(day.phase, 'CONFERENCIA');
   audit('hand over');
   tick(13.95);
   assert.equal(day.count('RECEBIDO_BASE'), 8, 'checker counted player + truck parcels');
-  assert.ok(day.parcels.every((p) => p.place === 'galpao'));
-  tick(14.6);
+  assert.ok(day.parcels.every((p) => p.place === 'conferencia'));
+  tick(14.99);
+  assert.equal(day.takeSack(hour,visit('dispatch')),0,'never before 15h');
+  tick(15.9);
   assert.equal(day.count('NA_SACA'), 8);
   assert.ok(day.parcels.every((p) => p.place === 'saca'));
-  assert.equal(day.takeSack(hour), 0, 'sack only from 15h');
+
   tick(15.05);
-  assert.equal(day.takeSack(hour), 8);
+  assert.equal(day.takeSack(hour,visit('dispatch')), 8);
   assert.ok(day.sackInHands && day.inHands().length === 8);
   assert.equal(day.objective(hour, { x: 0, z: 0 }).target?.kind, 'moto', 'the sack goes in the box first');
-  assert.equal(day.takeSack(hour), 0, 'no second sack');
+  assert.equal(day.takeSack(hour,visit('dispatch')), 0, 'no second sack');
   assert.equal(day.stow(hour), 8);
   assert.ok(!day.sackInHands && day.inTrunk().length === 8);
   assert.equal(day.route.length, new Set(day.parcels.map((p) => p.destination)).size);
@@ -160,8 +163,8 @@ test('first workday with PHYSICAL parcels: shop → hands → top box → base �
     assert.deepEqual(states, PARCEL_FLOW.slice(PARCEL_FLOW.indexOf(p.history[0]!.state)));
     const places = p.history.map((h) => h.place).filter((pl, i, all) => i === 0 || pl !== all[i - 1]);
     assert.deepEqual(places, p.platform === 'LOJA'
-      ? ['loja', 'maos', 'bau', 'maos', 'galpao', 'saca', 'maos', 'bau', 'maos', 'destinatario']
-      : ['caminhao', 'galpao', 'saca', 'maos', 'bau', 'maos', 'destinatario']);
+      ? ['loja','maos','bau','maos','recebimento','conferencia','transferencia','triagem','transferencia','gaiola','transferencia','doca','saca','maos','bau','maos','destinatario']
+      : ['caminhao','transferencia','recebimento','conferencia','transferencia','triagem','transferencia','gaiola','transferencia','doca','saca','maos','bau','maos','destinatario']);
   }
   const states = day.staff.map((s) => s.role);
   for (const r of ['porteiro', 'conferente', 'descarregador-1', 'separador-1', 'expedidor', 'supervisor']) assert.ok(states.includes(r as never));
@@ -188,9 +191,9 @@ test('physical places: a parcel cannot jump (box → customer, shop → box) and
   assert.equal(HANDS_MAX, 4);
   // Six in the box: the base takes them in two hands-full trips.
   assert.equal(day.stow(12.3), 2);
-  assert.equal(day.unloadForDepot(13), 4); assert.equal(day.handOver(13), 4);
+  assert.equal(day.unloadForDepot(13, false, visit('parking')), 4); assert.equal(day.handOver(13,visit('receiving')), 4);
   assert.equal(day.phase, 'RETORNO', 'still two volumes in the box');
-  assert.equal(day.unloadForDepot(13), 2); assert.equal(day.handOver(13), 2);
+  assert.equal(day.unloadForDepot(13, false, visit('parking')), 2); assert.equal(day.handOver(13,visit('receiving')), 2);
   assert.equal(day.phase, 'CONFERENCIA');
 });
 

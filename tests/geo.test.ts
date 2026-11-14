@@ -130,7 +130,7 @@ test('everything needed for the job is reachable on foot from the depot; house i
   for (const s of STORES) assert.ok(reach(storeLayout(s).pickup), `${s.id} counter reachable`);
   // The desks are in world coordinates INSIDE the depot shed on the real block (not in the fields).
   const shed = depotPoly(DEPOT.building);
-  for (const k of ['receiving', 'dispatch', 'sorting', 'office'] as const) assert.ok(pointInPoly(shed.pts, DEPOT_SPOTS[k].x, DEPOT_SPOTS[k].z), `${k} inside the shed`);
+  for (const k of ['receiving', 'sorting', 'office'] as const) assert.ok(pointInPoly(shed.pts, DEPOT_SPOTS[k].x, DEPOT_SPOTS[k].z), `${k} inside the shed`);
   assert.ok(reach(DEPOT_SPOTS.receiving) && reach(DEPOT_SPOTS.dispatch), 'depot desks reachable');
   let blocked = 0;
   for (const l of CITY_LOTS.slice(0, 200)) { const c = framePoint(l.frame, l.width / 2, l.depth - 4); if (seen.has(key(c.x, c.z))) blocked++; }

@@ -65,6 +65,8 @@ export function advance(p: Parcel, to: ParcelState, holder: string, hour: number
   const from = PARCEL_FLOW.indexOf(p.state);
   const next = PARCEL_FLOW.indexOf(to);
   if (next !== from + 1) throw new ParcelError(`${p.id}: ${p.state} → ${to} não é permitido`);
+  const allowed:Partial<Record<ParcelState,readonly ParcelPlace[]>>={COLETADO:['loja'],EM_TRANSPORTE:['maos'],RECEBIDO_BASE:['conferencia'],TRIADO:['triagem'],NA_SACA:['doca'],EM_ROTA:['saca'],ENTREGUE:['maos']};
+  if(allowed[to]&&!allowed[to]!.includes(p.place))throw new ParcelError(`${p.id}: ${to} incompatível com ${p.place}`);
   p.state = to;
   p.holder = holder;
   p.history.push(event(p,hour,`estado:${to}`));
@@ -74,6 +76,15 @@ export function advance(p: Parcel, to: ParcelState, holder: string, hour: number
 export function move(p: Parcel, to: ParcelPlace, by: string, hour: number, position:ParcelPosition|null = null): void {
   if (!PLACE_MOVES[p.place].includes(to)) throw new ParcelError(`${p.id}: ${p.place} → ${to} não é permitido`);
   if (['recebimento','conferencia','transferencia','triagem','gaiola','doca'].includes(to) && (!position || !Object.values(position).every(Number.isFinite))) throw new ParcelError(`${p.id}: posição física obrigatória em ${to}`);
+  const required:Partial<Record<ParcelPlace,ParcelState>>={recebimento:'EM_TRANSPORTE',conferencia:'EM_TRANSPORTE',triagem:'RECEBIDO_BASE',gaiola:'TRIADO',doca:'TRIADO',saca:'NA_SACA',destinatario:'ENTREGUE'};
+  if(required[to]&&p.state!==required[to])throw new ParcelError(`${p.id}: ${to} incompatível com ${p.state}`);
+  if(to==='saca'&&(!p.dock||!p.load||!position))throw new ParcelError(`${p.id}: saca sem doca/carga física`);
   p.place = to; p.holder=by; p.position=position?{...position}:null;
   p.history.push(event(p,hour,`transferência:${to}`));
+}
+
+/** Arrival in the same vehicle, before any unloading task; retains the original ID. */
+export function arriveTruck(p:Parcel,hour:number,position:ParcelPosition):void {
+ if(p.place!=='caminhao'||p.position)throw new ParcelError(`${p.id}: chegada duplicada/inválida`);
+ p.position={...position};p.history.push(event(p,hour,'caminhão:doca05'));
 }
