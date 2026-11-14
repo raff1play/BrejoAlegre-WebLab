@@ -141,3 +141,10 @@ Próximas mudanças devem registrar PR/SHA e resultados verificáveis.
 - Lojas: interiores por categoria, balcão, placa e marcação de retirada.
 - Encomendas físicas com o baú da moto (mãos, baú, galpão, saca, destinatário).
 - HUD e minimapa novos; rota pelas ruas; ajustes pequenos de esterço, acelerador e freio.
+
+## 14/11/2026 — Street Preview isolada
+
+- Faixas zebrada na tangente/normal local; testes de orientação e curva.
+- Removida face indevida do barrado que atravessava a entrada das lojas; acabamentos e encontros de muros contidos nos limites disponíveis.
+- Jardineira identificada e alinhada à fachada/colisor; quaternion herdado não bloqueia mais a rotação das instâncias GLB.
+- Evidências reais antes/depois em `docs/evidence/street-fixes/`; somente branch experimental, sem integração à CORE-015.1.

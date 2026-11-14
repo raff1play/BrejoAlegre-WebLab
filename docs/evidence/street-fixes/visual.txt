@@ -1,0 +1,1 @@
+PASS: shop opens, objective/HUD rendered, diagonal OSM crossing captured; no page errors

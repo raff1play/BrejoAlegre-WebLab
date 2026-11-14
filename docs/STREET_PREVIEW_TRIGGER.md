@@ -9,3 +9,10 @@
 - Publicação não deve ser declarada concluída até `deploy-street-preview` obter `success`.
 
 - Segunda tentativa: utilizar ambiente `street-preview` porque o ambiente principal `github-pages` rejeitou a branch antes da execução do job (nenhum código da base alterado).
+
+## 14/11/2026 — republicação das correções visuais autorizadas
+
+- Pedido explícito nesta tarefa: publicar somente `/street-preview/` após os testes, preservando a CORE-015.1 na raiz.
+- Código candidato: `c9f5c0a9e2504f53f587ffc3da703a9f11572cd0`; CI 43553014170 Success.
+- 99 testes unitários, TypeScript, build staging e comparações visuais aprovados. Roteiro amplo 83/84 com redução de resolução (falha artificial de tamanho); repetição desktop sem redução 33/33, resolvendo essa verificação. Jornada completa e toque emulado aprovados. Evidências: `docs/evidence/street-fixes/README.md`.
+- Base da raiz permanece fixada em `d6eabc4909551001c3203aa4314d8c1c852ac304`; nenhum merge nem push em main/preview.

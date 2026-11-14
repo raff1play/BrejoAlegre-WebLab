@@ -1,0 +1,3 @@
+const pw=require('playwright'); const launch=pw.chromium.launch.bind(pw.chromium);
+pw.chromium.launch=async opts=>{const b=await launch({...opts,executablePath:'/usr/bin/chromium'});const nc=b.newContext.bind(b);b.newContext=async o=>{const c=await nc(o);const np=c.newPage.bind(c);c.newPage=async()=>{const p=await np();const go=p.goto.bind(p);p.goto=async(...a)=>{const r=await go(...a);await p.waitForFunction(()=>window.__scene,null,{timeout:120000});await p.evaluate(()=>{const e=window.__scene.getEngine();const set=e.setHardwareScalingLevel.bind(e);e.setHardwareScalingLevel=v=>set(Math.max(4,v));e.setHardwareScalingLevel(4);});return r;};return p;};return c;};return b;};
+require('../../../tests/e2e/play.cjs');

@@ -444,3 +444,13 @@ Números atuais do mapa: 46 quadras, 695 lotes, 681 casas estimadas, 48 endereç
 - A câmera pode ficar do lado de fora da loja enquanto a porta de enrolar sobe.
 - O galpão foi deslocado ~45 m na mesma via, para não cobrir uma rua sem saída.
 - O aviso "NÃO REPRESENTA BREJO ALEGRE" continua pendente de decisão (C13-06).
+
+## 14/11/2026 — correções isoladas da Street Preview
+
+- Pedido explícito: corrigir faixas, sobreposições e objetos diante das lojas exclusivamente em `feat/core-015-2-urban-roads-preview`; publicação condicionada aos testes, somente em `/street-preview/`.
+- Código e comparação visual: commit `c9f5c0a`; diagnóstico detalhado e capturas reais em [evidence/street-fixes/README.md](evidence/street-fixes/README.md).
+- `npm run check`: validação do repositório, **99/99 testes unitários**, TypeScript e build staging aprovados. CI [43553014170](https://github.com/raff1play/BrejoAlegre-WebLab/actions/runs/43553014170) **Success**, SHA `c9f5c0a9e2504f53f587ffc3da703a9f11572cd0`.
+- Teste visual `tests/e2e/street.cjs`: loja abre e cruzamento inclinado é capturado, sem erros de página, antes/depois. Indicadores amarelos e postes coloniais preservados.
+- Malha OSM, escala 1:1 e CORE-015.1 preservadas. `main` permanece em `2c55f70`; `preview` em `d6eabc4`.
+- Chrome Android físico, FPS/temperatura: não testados. Resultado final do roteiro amplo e eventual publicação serão registrados abaixo; push não significa deploy.
+- Navegador final: roteiro amplo **83/84** em resolução interna reduzida (única falha: expectativa de tamanho do render, afetada pelo adaptador); repetição desktop sem redução **33/33**, incluindo redimensionamento 900×420. Jornada 8/8 entregas e toque emulado aprovados. Logs completos e condições em `docs/evidence/street-fixes/`.

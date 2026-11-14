@@ -28,3 +28,12 @@ A captura aguarda a abertura efetiva da loja; não força nem remove a porta.
 ## Limites
 
 Capturas e testes de navegador são de Chromium em Linux com GPU por software, não Chrome Android físico. Nenhum resultado de FPS/temperatura no Galaxy S24 é alegado. Não houve incorporação à CORE-015.1.
+
+## Resultados finais
+
+- `npm run check`: **99/99** testes unitários, TypeScript, validação e build staging aprovados; [log](check.txt).
+- Teste visual real antes/depois: aprovado; [log](visual.txt).
+- Roteiro amplo (desktop, jornada, toque) com resolução interna reduzida para SwiftShader: **83/84**; [log integral](e2e-low-resolution.txt). A única falha foi o teste que esperava render 900×420 e recebeu 225×105 por causa da redução explícita. O [adaptador](runner-low-resolution.cjs) registra exatamente essa condição, sem alterar física ou relógio.
+- Repetição integral do bloco desktop **sem redução**: **33/33**, incluindo render 900×420; [log](e2e-desktop-original.txt). Assim, todas as verificações funcionais passaram nas condições apropriadas; a rodada reduzida não é apresentada como 84/84.
+- Jornada: 8/8 entregues, coleta/baú/galpão/saca, HUD, minimapa, tráfego e cinco sinais fictícios aprovados. Toque emulado: multitoque, cancelamento, câmera, montar/descer e pausa aprovados. Sem erros de console.
+- Rodadas iniciais com edição ao vivo foram interrompidas por recarga do Vite; uma rodada de alta resolução concorrente teve timeout na pilotagem. A repetição final sem alterações ao vivo passou. Não são resultados de aparelho físico.

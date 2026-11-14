@@ -1,0 +1,36 @@
+PASS  abre sem erro e inicia pilotando na vaga
+PASS  aviso de área temporária visível na tela
+PASS  moto acelera  (v=3.01 m/s)
+PASS  moto freia até parar
+PASS  rua real: moto posicionada na faixa da via OSM  (Rua das Nações (-39.65, 80.66) y=0.04)
+PASS  guidão não gira a moto parada
+PASS  moto percorre a rua real até o cruzamento  (8.91 m do cruzamento, v=3.54)
+PASS  moto vira à direita em movimento  (yaw 2.2 → 3.44)
+PASS  inclinação visual moderada na curva  (lean=0.36 rad)
+PASS  moto desacelera sozinha sem acelerador  (8.55 → 8.49)
+PASS  não desce com a moto em movimento
+PASS  câmera gira (teclado)  (Δalpha=0.41)
+PASS  câmera aproxima  (raio 5.6 → 2.2)
+PASS  câmera afasta (roda do mouse)  (raio 2.2 → 8.91)
+PASS  câmera gira arrastando na cena
+PASS  câmera acompanha a moto
+PASS  desce com a moto parada
+PASS  personagem caminha  (2.84 m com KeyW)
+PASS  moto não se move enquanto a pé
+PASS  não monta longe da moto  (3.29 m)
+PASS  personagem não atravessa a moto estacionada  (distância 1.53 m)
+PASS  monta novamente perto da moto  (distância 1.53 m)
+PASS  moto chega ao muro do lote e não atravessa muros nem casas  (profundidade máxima -0.92 m além da divisa (lote q16-l306; divisa em 0))
+PASS  moto sobe na calçada (meio-fio)  (y=0.15)
+PASS  ré lenta ao frear parado  (v=-0.5)
+PASS  perda de foco solta as teclas
+PASS  redimensiona o canvas com a janela  (900x420)
+PASS  câmera única em terceira pessoa, enquadramento próximo  (raio 5.6)
+PASS  tecla C não alterna mais a câmera
+PASS  sem botão GTA/ISO no HUD
+PASS  pausa abre com aviso de releitura fictícia
+PASS  pausa congela o relógio
+PASS  sem erros de console no desktop
+   desktop headless: 2.32 FPS (GPU por software, não representa aparelho real)
+
+33/33 verificações passaram.
