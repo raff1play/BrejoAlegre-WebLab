@@ -33,19 +33,25 @@ export function signalFixturePositions(
       // streets but only 0.4 m in one-way streets. The former hard-coded
       // compensation displaced one-way signals into the carriageway.
       const laneShift = lane.road.oneway ? 0.4 : 1.9;
-      const sidewalkOffset = ROAD_HALF + 0.55 - laneShift;
       const rx = d.z, rz = -d.x;
       let found: SignalFixture | null = null;
-      for (const back of [0, 1.5, 3, 5, 7, 9]) {
-        for (const outward of [0, 0.35, 0.75, -0.15]) {
-          const p = {
-            x: end.x - d.x * back + rx * (sidewalkOffset + outward),
-            z: end.z - d.z * back + rz * (sidewalkOffset + outward),
-          };
-          if (!fits(p, 0.20)) continue;
-          found = { ...p, yaw: Math.atan2(-d.x, -d.z), faceX: -d.x, faceZ: -d.z,
-            node: plan.node, lane: laneIndex, ped: false };
-          break;
+      // Prefer the right kerb. Some irregular OSM junctions have no valid
+      // pavement there, so a signal head may instead face traffic from the
+      // opposite sidewalk rather than be drawn in the carriageway.
+      for (const side of [1, -1]) {
+        for (const back of [0, 1.5, 3, 5, 7, 9, 11]) {
+          for (const outward of [0, 0.35, 0.75, -0.15]) {
+            const cross = side * (ROAD_HALF + 0.55 + outward) - laneShift;
+            const p = {
+              x: end.x - d.x * back + rx * cross,
+              z: end.z - d.z * back + rz * cross,
+            };
+            if (!fits(p, 0.20)) continue;
+            found = { ...p, yaw: Math.atan2(-d.x, -d.z), faceX: -d.x, faceZ: -d.z,
+              node: plan.node, lane: laneIndex, ped: false };
+            break;
+          }
+          if (found) break;
         }
         if (found) break;
       }
