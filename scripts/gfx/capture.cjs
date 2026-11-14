@@ -34,7 +34,9 @@ fs.mkdirSync(OUT, { recursive: true });
     await wait(2500);
     const P = await ev(() => window.__debug.probe());
     const snap = () => ev(() => window.__weblab.snapshot());
+    const skipStreet = process.env.GFX_QUICK === 'lojas' || process.env.GFX_QUICK === 'galpao';
     // 1. Riding on a real street towards a four-way junction, noon and late afternoon.
+    if (!skipStreet) {
     await ev(([x, z, y]) => window.__debug.teleport(x, z, y), [P.junction.startX, P.junction.startZ, P.junction.yaw]);
     await ev(([a]) => window.__debug.camera(a, 1.22, 5.6), [behind(P.junction.yaw)]);
     await wait(7000); await shot('rua-12h'); await measure('rua');
@@ -45,10 +47,11 @@ fs.mkdirSync(OUT, { recursive: true });
     await ev(([a]) => window.__debug.camera(a + 0.9, 1.25, 3.2), [behind(P.junction.yaw)]); await wait(2500); await shot('moto-perto');
     await ev(([x, z, y]) => window.__debug.placeWalker(x + 2.2, z + 1.0, y), [P.junction.startX, P.junction.startZ, P.junction.yaw + 2.4]);
     await ev(([a]) => window.__debug.camera(a, 1.2, 3.0), [behind(P.junction.yaw + 2.4) + Math.PI]); await wait(2500); await shot('entregador-perto');
+    }
     if (process.env.GFX_QUICK === 'rua') { await page.close(); continue; }
     // 3. The eight shops: facade from the street and interior at the counter.
     const stores = (await snap()).delivery.stores;
-    for (const st of stores) {
+    for (const st of process.env.GFX_QUICK === 'galpao' ? [] : stores) {
       const out = { x: st.pickup.x - Math.sin(st.facing) * 17, z: st.pickup.z - Math.cos(st.facing) * 17 };
       await ev(([x, z, y]) => window.__debug.placeWalker(x, z, y), [out.x, out.z, st.facing]);
       await ev(([a]) => window.__debug.camera(a, 1.32, 7.5), [behind(st.facing)]); await wait(6500); await shot(`loja-${st.id}-fachada`);
@@ -57,15 +60,16 @@ fs.mkdirSync(OUT, { recursive: true });
       await ev(([a]) => window.__debug.camera(a, 1.12, 4.4), [behind(st.facing)]); await wait(5000); await shot(`loja-${st.id}-interior`);
       if (st.id === stores[0].id) await measure('loja');
     }
+    if (process.env.GFX_QUICK === 'lojas') { await page.close(); continue; }
     // 4. Depot: yard, receiving desk and the sorting floor.
-    const D = await ev(() => ({ yard: window.__debug.depot(100, -104), desk: window.__debug.depot(96.4, -122.4), floor: window.__debug.depot(112, -124), yaw: window.__debug.depotYaw(Math.PI) }));
+    const D = await ev(() => ({ yard: window.__debug.depot(100, -104), desk: window.__debug.depot(96.4, -122.4), floor: window.__debug.depot(112, -125.4), yaw: window.__debug.depotYaw(Math.PI) }));
     await ev(() => window.__debug.setHour(14.2));
     await ev(([x, z, y]) => window.__debug.placeWalker(x, z, y), [D.yard.x, D.yard.z, D.yaw]);
     await ev(([a]) => window.__debug.camera(a, 1.3, 9), [behind(D.yaw)]); await wait(7000); await shot('galpao-patio'); await measure('galpao');
-    await ev(([x, z, y]) => window.__debug.placeWalker(x, z, y), [D.desk.x, D.desk.z, D.yaw - Math.PI / 2]);
-    await ev(([a]) => window.__debug.camera(a, 1.15, 5), [behind(D.yaw - Math.PI / 2)]); await wait(5000); await shot('galpao-recebimento');
+    await ev(([x, z, y]) => window.__debug.placeWalker(x, z, y), [D.desk.x, D.desk.z, D.yaw + Math.PI / 2]);
+    await ev(([a]) => window.__debug.camera(a, 1.15, 5), [behind(D.yaw + Math.PI / 2)]); await wait(5000); await shot('galpao-recebimento');
     await ev(([x, z, y]) => window.__debug.placeWalker(x, z, y), [D.floor.x, D.floor.z, D.yaw]);
-    await ev(([a]) => window.__debug.camera(a, 1.05, 8), [behind(D.yaw)]); await wait(5000); await shot('galpao-triagem');
+    await ev(([a]) => window.__debug.camera(a, 1.02, 5.2), [behind(D.yaw)]); await wait(5000); await shot('galpao-triagem');
     await ev(() => window.__debug.setHour(12.5));
     // 5. Aerial view of the centre (debug camera).
     await ev(([x, z]) => window.__debug.placeWalker(x, z, 0), [P.junction.x, P.junction.z]); await wait(6000);

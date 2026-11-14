@@ -9,9 +9,11 @@ import { ballPart } from '../modelParts';
 import type { LabMaterial, Materials } from '../materials';
 import { CURB_H, ROAD_HALF, SIDEWALK, WALL_H } from '../layout';
 import { frontageWalls, streetLightPositions } from './cityLayout';
+import { buildStoreFront } from './storeFacade';
+import { buildDepotDetail } from './depotDetail';
 import { streetPaint } from './urbanDetail';
 import { buildAddresses } from '../../core/delivery/addresses';
-import { BLOCKS, DEPOT, NODES, ROADS, STORES, STORE_SETBACK, depotLayout, depotWorld, storePlan, type Rect, type Store } from './cityPlan';
+import { BLOCKS, DEPOT, DEPOT_REGION_CAGES, NODES, ROADS, STORES, STORE_SETBACK, depotLayout, depotWorld, storePlan, type Rect, type Store } from './cityPlan';
 import { OPEN_SPACES } from '../geo/geoCity';
 import { GEO } from '../geo/brejoAlegreData';
 
@@ -295,6 +297,12 @@ function furnishStore(set: BatchSet, mats: Materials, s: Store): void {
   display(look.left, p.displayLeft, true);
   display(look.right, p.displayRight, true);
   display(look.window, p.windowDisplay, false);
+  // GFX-001B goods island (double-sided gondola or crates) in the wider shops.
+  if (p.island) {
+    const mid = (p.island.x0 + p.island.x1) / 2;
+    if (look.left === 'crates') crates(p.island, true);
+    else { shelf({ ...p.island, x1: mid - 0.02 }, 3, true); shelf({ ...p.island, x0: mid + 0.02 }, 3, true); set.box(rack, mid - 0.02, mid + 0.02, 0, 1.75, p.island.z0, p.island.z1); }
+  }
 
   // Signature fixture behind the right-hand window.
   const f = p.feature; const fx = (f.x0 + f.x1) / 2;
@@ -368,6 +376,75 @@ function furnishStore(set: BatchSet, mats: Materials, s: Store): void {
   set.box(mark, px - 0.5, px + 0.5, 0.015, 0.02, m0, m0 + 0.06, { sides: false }); set.box(mark, px - 0.5, px + 0.5, 0.015, 0.02, m1 - 0.06, m1, { sides: false });
   set.box(mark, px - 0.5, px - 0.44, 0.015, 0.02, m0, m1, { sides: false }); set.box(mark, px + 0.44, px + 0.5, 0.015, 0.02, m0, m1, { sides: false });
 
+  // GFX-001B: what makes each shop its own place — a department sign on the back wall, a colour
+  // band, and fixtures that sit on the counter, the walls or hang from the ceiling (nothing new on
+  // the walkable floor, so the colliders of storePlan stay exact).
+  const dept: Record<Store['id'], string> = {
+    mercearia: 'SECOS E MOLHADOS', farmacia: 'MEDICAMENTOS · PERFUMARIA', papelaria: 'ESCOLAR · ESCRITÓRIO', supermercado: 'AÇOUGUE · FRIOS · PADARIA',
+    padaria: 'PÃES · DOCES · SALGADOS', variedades: 'UTILIDADES · BRINQUEDOS', construcao: 'TINTAS · HIDRÁULICA · ELÉTRICA', hortifruti: 'FRUTAS · VERDURAS · LEGUMES',
+  };
+  const zb = D - t - 0.03;
+  set.box(mats.paint(s.band, 0.12), t, W - t, 2.28, 2.4, zb - 0.01, zb + 0.01);
+  const deptSign = mats.sign(`setor-${s.id}`, s.sign[0] === '#ffffff' ? s.band : s.sign[0], s.sign[1], [{ text: dept[s.id], size: 0.56, color: s.sign[1], weight: '800' }], 9, 64);
+  set.of(deptSign).quad([W / 2 - 2.7, 2.48, zb], [W / 2 + 2.7, 2.48, zb], [W / 2 + 2.7, 3.08, zb], [W / 2 - 2.7, 3.08, zb], 1, 1);
+  const cTop = 1.0; const cx0 = c.x0 + 0.2;
+  const hang = (x: number, z: number, len: number, m: LabMaterial, w = 0.12, h = 0.3) => {
+    set.box(mats.paint('#3a3d40', 0.2), x - 0.006, x + 0.006, H - 0.4 - len, H - 0.4, z - 0.006, z + 0.006);
+    set.box(m, x - w / 2, x + w / 2, H - 0.4 - len - h, H - 0.4 - len, z - w / 2, z + w / 2);
+  };
+  switch (s.id) {
+    case 'mercearia': // strings of garlic and sausages over the counter, an old dial scale, sacks
+      for (let i = 0; i < 6; i++) hang(c.x0 + 0.6 + i * 0.55, cz + 0.1, 0.9 + (i % 2) * 0.15, goods[i % 2 === 0 ? 3 : 0]!, 0.1, 0.42);
+      set.box(mats.paint('#b9bcc0', 0.4), c.x1 - 0.75, c.x1 - 0.3, cTop, cTop + 0.08, cz - 0.2, cz + 0.2);
+      set.box(mats.paint('#f4f1ea', 0.3), c.x1 - 0.62, c.x1 - 0.43, cTop + 0.08, cTop + 0.5, cz + 0.05, cz + 0.12);
+      break;
+    case 'farmacia': { // lit cross on the wall, prescription shelf with drawers, blood-pressure station
+      const g = mats.glow('#3ddc84');
+      set.box(g, W - t - 0.04, W - t - 0.01, 2.0, 2.9, cz + 2.4, cz + 2.7); set.box(g, W - t - 0.04, W - t - 0.01, 2.3, 2.6, cz + 2.1, cz + 3.0);
+      for (let k = 0; k < 4; k++) for (let x = cx0; x < c.x1 - 0.6; x += 0.5) set.box(mats.paint(k % 2 ? '#f1f3f2' : '#e3e8e5', 0.2), x, x + 0.46, 0.12 + k * 0.2, 0.3 + k * 0.2, c.z1 - 0.012, c.z1 + 0.012);
+      set.box(mats.paint('#e9ecef', 0.3), c.x1 - 0.8, c.x1 - 0.35, cTop, cTop + 0.22, cz - 0.16, cz + 0.16);
+      set.box(mats.paint('#1f8a5b', 0.3), c.x1 - 0.75, c.x1 - 0.4, cTop + 0.22, cTop + 0.26, cz - 0.1, cz + 0.1);
+      break;
+    }
+    case 'papelaria': { // posters on the side wall, pen cups and a globe on the counter
+      const posters = ['#e23d3d', '#f2c230', '#34a26b', '#3d6fd0'];
+      posters.forEach((col, i) => { const z0 = L + t + 1.6 + i * 1.05; set.box(mats.paint('#f4f1ea', 0.1), t + 0.76, t + 0.78, 1.9, 2.75, z0, z0 + 0.8); set.box(mats.paint(col, 0.15), t + 0.778, t + 0.79, 1.98, 2.67, z0 + 0.07, z0 + 0.73); });
+      for (let i = 0; i < 4; i++) { const x = cx0 + 1.9 + i * 0.28; set.box(mats.paint(posters[i]!, 0.2), x, x + 0.1, cTop, cTop + 0.16, cz - 0.05, cz + 0.05); set.box(mats.paint('#2b2d31', 0.2), x + 0.03, x + 0.07, cTop + 0.16, cTop + 0.3, cz - 0.02, cz + 0.02); }
+      set.box(mats.paint('#3d6fd0', 0.3), c.x1 - 0.7, c.x1 - 0.4, cTop + 0.1, cTop + 0.4, cz - 0.15, cz + 0.15); set.box(mats.paint('#6b4a2c', 0.1), c.x1 - 0.62, c.x1 - 0.48, cTop, cTop + 0.1, cz - 0.07, cz + 0.07);
+      break;
+    }
+    case 'supermercado': { // checkout: belt, divider and screen; numbered aisle signs from the ceiling
+      set.box(mats.paint('#1d1f22', 0.15), cx0 + 1.9, c.x1 - 0.9, cTop, cTop + 0.012, cz - 0.24, cz + 0.2);
+      set.box(mats.paint('#c9302c', 0.3), c.x1 - 0.9, c.x1 - 0.86, cTop, cTop + 0.16, cz - 0.24, cz + 0.2);
+      set.box(mats.paint('#2b2d31', 0.3), c.x1 - 0.6, c.x1 - 0.2, cTop + 0.2, cTop + 0.5, cz + 0.1, cz + 0.14);
+      for (let i = 0; i < 3; i++) hang(1.6 + i * ((W - 3.2) / 2), L + t + 2.6, 0.5, mats.paint(['#c9302c', '#2b5aa8', '#1f8a5b'][i]!, 0.2), 0.7, 0.3);
+      break;
+    }
+    case 'padaria': { // oven with a glowing door on the staff side, coffee machine, cake stand
+      set.box(mats.paint('#3a3d40', 0.3), t + 0.75, t + 1.75, 0, 1.9, D - 1.05, D - 0.3);
+      set.box(mats.glow('#ff9a3c'), t + 0.9, t + 1.6, 0.9, 1.5, D - 1.07, D - 1.05);
+      set.box(mats.paint('#8c9196', 0.5), t + 0.85, t + 1.65, 1.55, 1.6, D - 1.09, D - 1.05);
+      set.box(mats.paint('#2b2d31', 0.35), c.x1 - 0.85, c.x1 - 0.35, cTop, cTop + 0.42, cz - 0.05, cz + 0.22);
+      set.box(mats.paint('#c9302c', 0.35), c.x1 - 0.8, c.x1 - 0.4, cTop + 0.42, cTop + 0.5, cz - 0.02, cz + 0.2);
+      for (let i = 0; i < 3; i++) { const x = cx0 + 2.0 + i * 0.5; set.box(mats.paint('#f1dfb8', 0.2), x, x + 0.34, cTop + 0.12, cTop + 0.14, cz - 0.17, cz + 0.17); set.box(goods[i % goods.length]!, x + 0.05, x + 0.29, cTop + 0.14, cTop + 0.28, cz - 0.12, cz + 0.12); set.box(mats.paint('#8c9196', 0.4), x + 0.15, x + 0.19, cTop, cTop + 0.12, cz - 0.02, cz + 0.02); }
+      break;
+    }
+    case 'variedades': // kites, lanterns and toys hanging over the shop floor
+      for (let i = 0; i < 8; i++) hang(1.3 + (i % 4) * ((W - 2.6) / 3), L + t + 1.8 + Math.floor(i / 4) * 2.0, 0.35 + (i % 3) * 0.2, goods[i % goods.length]!, 0.26 + (i % 2) * 0.1, 0.26);
+      break;
+    case 'construcao': { // PVC pipes on wall brackets, a paint colour chart, hard hats on the counter
+      for (let k = 0; k < 5; k++) set.box(mats.paint(k % 2 ? '#f1f3f2' : '#7a4a26', 0.25), t + 0.78, t + 0.9, 2.1 + k * 0.13, 2.2 + k * 0.13, L + t + 1.6, cz - 1.8);
+      const chart = ['#e23d3d', '#f08a3c', '#f2c230', '#34a26b', '#2bb3a3', '#3d6fd0', '#8a4fb0', '#f4f1ea'];
+      chart.forEach((col, i) => set.box(mats.paint(col, 0.2), W - t - 0.78, W - t - 0.76, 1.9 + Math.floor(i / 4) * 0.4, 2.25 + Math.floor(i / 4) * 0.4, L + t + 1.7 + (i % 4) * 0.42, L + t + 2.07 + (i % 4) * 0.42));
+      for (let i = 0; i < 3; i++) set.box(mats.paint(['#f2c230', '#f4f1ea', '#d0761f'][i]!, 0.3), cx0 + 2.0 + i * 0.4, cx0 + 2.28 + i * 0.4, cTop, cTop + 0.16, cz - 0.13, cz + 0.13);
+      break;
+    }
+    default: // hortifruti: banana bunches over the counter, hanging scale, price cards on the wall
+      for (let i = 0; i < 5; i++) hang(c.x0 + 0.7 + i * 0.6, cz - 0.05, 0.75, mats.paint('#f2d13a', 0.2), 0.3, 0.34);
+      hang(c.x1 - 0.5, cz, 1.1, mats.paint('#b9bcc0', 0.5), 0.34, 0.1);
+      for (let i = 0; i < 5; i++) set.box(mats.paint(i % 2 ? '#fff7d6' : '#f2c230', 0.1), W - t - 0.78, W - t - 0.76, 1.9, 2.2, L + t + 1.7 + i * 0.5, L + t + 2.1 + i * 0.5);
+  }
+
   // Stock shelves behind the counter, stock-room door, ceiling light panels.
   shelf(p.backShelf, 4, false);
   shelf(p.sideShelf, 4, true);
@@ -418,15 +495,8 @@ function buildStore(scene: Scene, mats: Materials, s: Store): { meshes: Mesh[]; 
   // Shutter housing above the opening.
   set.box(mats.paint('#6d7379', 0.2), 0.3, W - 0.3, 3.0, 3.32, L - 0.28, L);
   furnishStore(set, mats, s);
-  // Awning and sign board.
-  const awning = mats.stripes(`toldo-${s.id}`, s.band, '#f4f1e8', 8, false, 3.2);
-  set.of(awning).quad([0.4, 2.95, L - 1.5], [W - 0.4, 2.95, L - 1.5], [W - 0.4, 3.35, L - 0.28], [0.4, 3.35, L - 0.28], (W - 0.8) / 3.2, 1);
-  const aspect = (W - 1) / 1.0;
-  const sign = mats.sign(`placa-${s.id}`, s.sign[0], s.sign[1], [
-    { text: s.name.toUpperCase(), size: 0.46, color: s.sign[1] },
-    { text: s.subtitle, size: 0.2, color: s.sign[1], weight: '700' },
-  ], aspect, 128);
-  set.of(sign).quad([0.5, 3.4, L - 0.04], [W - 0.5, 3.4, L - 0.04], [W - 0.5, H - 0.05, L - 0.04], [0.5, H - 0.05, L - 0.04], 1, 1);
+  // GFX-001B: each shop has its own front (parapet, fascia, awning/marquee, sign, forecourt item).
+  buildStoreFront(scene, set, mats, s);
   // Forecourt paving.
   set.box(mats.plazaPaving, 0, W, 0, 0.012, 0, L + t, { sides: false });
   // The rest of the real lot beside the shop is closed by a plastered wall (same line as the front).
@@ -496,6 +566,7 @@ function buildDepot(scene: Scene, set: BatchSet, flat: BatchSet, mats: Materials
   set.box(mats.paint('#2f4352', 0.6), gh.x0 + 0.05, gh.x1 - 0.05, y0 + 0.9, y0 + 2.2, gh.z0 + 0.05, gh.z1 - 0.05);
   for (const [x, z] of [[gh.x0, gh.z0], [gh.x1, gh.z0], [gh.x0, gh.z1], [gh.x1, gh.z1]] as const) set.box(mats.plaster('#ecebe5'), x - 0.1, x + 0.1, y0, y0 + 2.4, z - 0.1, z + 0.1);
   set.box(mats.paint('#1d4f9c', 0.2), gh.x0 - 0.3, gh.x1 + 0.3, y0 + 2.4, y0 + 2.6, gh.z0 - 0.3, gh.z1 + 0.3);
+  buildDepotDetail(scene, set, flat, mats, y0, DEPOT_REGION_CAGES);
   // Interior: sealed floor with safety lanes, columns, racks with pallets, sorting line, desks.
   const floor = mats.paint('#9a9a95', 0.1);
   set.box(floor, b.minX + t, b.maxX - t, y0, y0 + 0.012, b.minZ + t, b.maxZ - t, { sides: false });

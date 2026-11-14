@@ -136,6 +136,10 @@ export function depotWorld(x: number, z: number): { x: number; z: number } {
 export const depotYaw = (yaw: number) => yaw + yawOf(DEPOT_FRAME) - Math.PI;
 export const depotPoly = (b: Box2D): Poly2D => makePoly([[b.minX, b.minZ], [b.maxX, b.minZ], [b.maxX, b.maxZ], [b.minX, b.maxZ]].map(([x, z]) => { const p = depotWorld(x!, z!); return [p.x, p.z] as [number, number]; }));
 
+/** GFX-001B: two regional dispatch cages at the end of the sorting belt (solid). */
+export const DEPOT_REGION_CAGES: readonly Box2D[] = [
+  { minX: 118.4, maxX: 119.8, minZ: -130.7, maxZ: -129.3 }, { minX: 120.6, maxX: 122, minZ: -130.7, maxZ: -129.3 },
+];
 export function depotLayout(): { walls: Box2D[]; furniture: Box2D[]; floor: Box2D } {
   const b = DEPOT.building; const t = 0.3;
   const walls: Box2D[] = [
@@ -152,6 +156,7 @@ export function depotLayout(): { walls: Box2D[]; furniture: Box2D[]; floor: Box2
     { minX: 124, maxX: 134, minZ: -137, maxZ: -136.4 }, { minX: 100, maxX: 103, minZ: -126, maxZ: -124 },
     { minX: 120, maxX: 123, minZ: -126, maxZ: -124 }, { minX: 127, maxX: 129.5, minZ: -131, maxZ: -128.6 },
   ];
+  furniture.push(...DEPOT_REGION_CAGES);
   return { walls, furniture, floor: b };
 }
 
@@ -200,6 +205,9 @@ export type Rect = Readonly<{ x0: number; x1: number; z0: number; z1: number }>;
 export function storePlan(s: Pick<Store, 'width' | 'depth' | 'lotWidth'>): {
   cz: number; door0: number; door1: number; counter: Rect; backShelf: Rect; sideShelf: Rect;
   displayLeft: Rect; displayRight: Rect; windowDisplay: Rect; feature: Rect; sideWall: Rect | null; baseWalls: Rect[];
+  /** GFX-001: goods island on the shop floor (only where the shop is wide enough) and the
+   *  typical item each shop keeps on its forecourt, both solid. */
+  island: Rect | null; forecourt: Rect;
 } {
   const W = s.width; const D = s.depth; const t = 0.25; const L = STORE_SETBACK;
   const cz = D * 0.52; const door0 = W / 2 - 1.3; const door1 = W / 2 + 1.3;
@@ -217,6 +225,9 @@ export function storePlan(s: Pick<Store, 'width' | 'depth' | 'lotWidth'>): {
     displayRight: { x0: W - t - 0.75, x1: W - t, z0: L + t + 1.5, z1: cz - 1.9 },
     windowDisplay: { x0: 1.0, x1: Math.min(2.8, door0 - 0.6), z0: L + t + 0.2, z1: L + t + 1.0 },
     feature: { x0: Math.max(door1 + 0.4, W - 3.3), x1: W - 1.5, z0: L + t + 0.2, z1: L + t + 1.1 },
+    // Right of the aisle, 1.3 m clear of the wall display and of the pickup spot.
+    island: W / 2 - 4.7 >= 1.0 ? { x0: W / 2 + 2.4, x1: W - 2.3, z0: L + t + 2.3, z1: cz - 2.3 } : null,
+    forecourt: { x0: W - 2.5, x1: W - 0.7, z0: 0.5, z1: 1.2 },
     sideWall: s.lotWidth - W > 0.3 ? { x0: W, x1: s.lotWidth, z0: L, z1: L + 0.2 } : null,
   };
 }
@@ -250,7 +261,7 @@ export function storeLayout(s: Store): StoreLayout {
     walls,
     counter: Q(p.counter),
     shelves: [Q(p.backShelf), Q(p.sideShelf)],
-    displays: [Q(p.displayLeft), Q(p.displayRight), Q(p.windowDisplay), Q(p.feature)],
+    displays: [Q(p.displayLeft), Q(p.displayRight), Q(p.windowDisplay), Q(p.feature), Q(p.forecourt), ...(p.island ? [Q(p.island)] : [])],
     doorway: R(p.door0, p.door1, STORE_SETBACK, STORE_SETBACK + t),
     interior: R(t, W - t, STORE_SETBACK + t, D - t),
     door: P(W / 2, STORE_SETBACK - 0.6), pickup: P(W / 2 + 1.0, cz - 1.0), employee: P(W / 2 - 0.5, cz + 0.9),
