@@ -133,3 +133,11 @@ Próximas mudanças devem registrar PR/SHA e resultados verificáveis.
 - Tráfego com sentido único e admissão encadeada; sem semáforos nem pontos de ônibus (não mapeados no OSM).
 - Comparação cartográfica verificável (`scripts/geo/compare-map.ts`, `scripts/geo/compare-shots.cjs`, `docs/evidence/core015-mapa/`).
 - Atribuição OSM/ODbL na tela Pausa/Sobre.
+
+## CORE-015.1 — Correções e baú (14/11/2026, branch `preview`)
+
+- Geometria: quadras por Douglas–Peucker com tampa nas ruas sem saída; casas na medida do lote; muros recortados perto de vias; asfalto com UV de mundo; calçada alinhada à rua.
+- Colisões: deslize em qualquer ângulo; mobiliário urbano sólido; planta única das lojas; portas das lojas.
+- Lojas: interiores por categoria, balcão, placa e marcação de retirada.
+- Encomendas físicas com o baú da moto (mãos, baú, galpão, saca, destinatário).
+- HUD e minimapa novos; rota pelas ruas; ajustes pequenos de esterço, acelerador e freio.

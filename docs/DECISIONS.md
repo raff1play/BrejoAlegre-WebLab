@@ -129,3 +129,14 @@
 - **Galpão:** o layout da CORE-014 foi preservado no próprio quadro local e encaixado sem deformação na quadra real que comporta 64 × 58 m (Estrada Municipal Manoel Leitão). `DEPOT_LOCAL_SPOTS` fica no quadro local e `DEPOT_SPOTS` em coordenadas de mundo.
 - **Desempenho:** casas em setores de 100 m, com LOD distante mesclado por setor. O detalhe é construído perto do jogador, no máximo um setor por quadro, e descartado ao se afastar. A meta de 30 FPS só vale medida em aparelho.
 - **Aviso obrigatório mantido:** o validador exige "ÁREA TEMPORÁRIA DE TESTE — NÃO REPRESENTA BREJO ALEGRE". Com a malha real o texto ficou impreciso, e alterá-lo depende de decisão do usuário (C13-06).
+
+## CORE-015.1 — Correções, baú, HUD (14/11/2026)
+
+- **Estado × lugar do volume:** o estado operacional (`PARCEL_FLOW`) não mudou; o lugar físico é um campo separado (`place`) com transições vizinhas (`PLACE_MOVES`). "No baú" equivale a `EM_TRANSPORTE`, o que substitui o antigo `depart()` ao montar.
+- **Mãos:** até 4 volumes soltos; a saca é uma carga só. Não se monta com volumes nas mãos.
+- **Baú:** a ação aparece atrás da moto parada (ou em qualquer ponto ao alcance da moto, com as mãos cheias). Ações em lote; a tampa abre e fecha sozinha.
+- **Entrega:** só do que está nas mãos; no baú, retira-se o pacote da parada mais próxima da moto (até 60 m).
+- **Lojas:** `storePlan()` é a única fonte do que é desenhado e do que é sólido.
+- **Rota do minimapa:** pelo grafo real de ruas, respeitando mão única; abaixo de 60 m mostra só a distância em linha reta.
+- **Dirigibilidade:** a curva do analógico aprovada antes (25 % → 45 %) foi mantida. Mudou só o batente do esterço com a velocidade (`steerSpeedRef`) e as rampas de acelerador/freio; são constantes em `MOTO`, reversíveis.
+- **Galpão:** o lote desliza na testada até ficar livre de qualquer via; ficou na mesma estrada.

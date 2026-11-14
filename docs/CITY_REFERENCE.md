@@ -29,8 +29,8 @@
 | 177 trechos de rua (158 urbanos, 19 rurais), 18,7 km, 90 cruzamentos (87 na área jogável), sentidos únicos da pista dupla | **Real (OSM)**: geometria, nomes, classes, conexões. O único ponto sintético é o corte de uma via real na borda da rede (saída de tráfego) |
 | Praças/parques, campo, cemitério | **Real (OSM)**: polígonos. Nomes não existem no OSM e não foram inventados |
 | Nó "Brejo Alegre" no minimapa | **Real (OSM)** |
-| 46 quadras | **Derivadas** das faces do grafo real de ruas: meio-fio 4 m e divisa 6,2 m do eixo. As bordas são simplificadas (dobras ≤ 4° juntadas) |
-| 688 lotes (674 casas) de 10–17,6 × 12–20 m | **ESTIMADOS**. O OSM tem 7 edificações e nenhuma divisa de lote; as casas preenchem as frentes das quadras reais e não representam imóveis reais |
+| 46 quadras | **Derivadas** das faces do grafo real de ruas: meio-fio 4 m e divisa 6,2 m do eixo. As bordas seguem o eixo real com tolerância de 0,3 m (Douglas–Peucker, CORE-015.1) e contornam as ruas sem saída |
+| 695 lotes (681 casas) de 10–17,6 × 12–20 m (CORE-015.1) | **ESTIMADOS**. O OSM tem 7 edificações e nenhuma divisa de lote; as casas preenchem as frentes das quadras reais e não representam imóveis reais |
 | 48 endereços entregáveis | **Ruas reais** (só logradouros nomeados, sem "Estrada"); **números estimados** pela distância métrica a partir da ponta mais próxima do centro (par à direita) |
 | 8 lojas, galpão logístico, funcionários, plataformas ML/SHP | **Fictícios**, postos em quadras reais (lojas junto ao centro; galpão na quadra da Estrada Municipal Manoel Leitão). O galpão mantém o layout da CORE-014, encaixado sem deformação |
 | Postes, árvores de calçada | **Genéricos**, a cada 32 m e 26 m; suas posições reais não estão no OSM |

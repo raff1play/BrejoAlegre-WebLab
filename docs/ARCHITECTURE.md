@@ -107,3 +107,11 @@ Nova feature → pasta `src/features/<name>/` com controlador e API clara; regra
   - `scripts/geo/compare-map.ts` reprojeta o OSM bruto de forma independente, compara e grava as métricas;
   - `scripts/geo/compare-shots.cjs` gera as imagens;
   - `src/world/city/testProbe.ts` fornece cruzamento e lote reais para o e2e (só em desenvolvimento).
+
+## CORE-015.1
+
+- **Carga física:** `src/core/delivery/parcels.ts` (`place`, `PLACE_MOVES`, `move`) e `workday.ts` (`stow`, `unloadForDepot`, `takeForAddress`, `inHands`, `inTrunk`). Apresentação em `deliveryGame.ts` (`action(hour, player, bike)`, `trunkSpot`), tampa em `motorcycle.ts` (`openTrunk`) e mãos em `pedestrian.ts` (`setLoad`, `reachTrunk`).
+- **Lojas:** `storePlan()` (planta em coordenadas do lote) → `storeLayout()` (colisores) e `furnishStore()` em `cityBuild.ts` (modelos).
+- **Sólidos:** `solidPolygons()` em `cityLayout.ts` reúne cidade, árvores e mobiliário; é o que o jogo e os testes usam.
+- **Rota:** `src/core/city/streetRoute.ts`; o minimapa (`features/hud/minimap.ts`) a recalcula a cada 15 m.
+- **Quadras:** `simplify()` em `geoCity.ts` (Douglas–Peucker + tampa nas pontas sem saída).

@@ -116,3 +116,14 @@ Não marcar bloqueio como corrigido sem evidência de execução, timestamp e, q
 | C15-06 | Baixa | ABERTO | Vias rurais e `unclassified` fora de quadras não têm calçada nem lotes; vias `service`/`track` não entram na malha. |
 | C15-07 | Baixa | ABERTO | "Avendia Dois" (grafia do OSM) foi mantida; corrigir no OSM, não no jogo. |
 | C15-08 | Info | REGISTRADO | O proxy da sessão bloqueia Overpass, Nominatim e IBGE. Atualizar os dados exige rodar o workflow `osm-fetch.yml` de novo (ele altera `data/osm/` na `preview`). |
+
+## CORE-015.1
+
+| ID | Prioridade | Status | Ação / decisão |
+|---|---|---|---|
+| C151-01 | Alta | **NÃO MEDIDO** | FPS/termal e ergonomia no Galaxy S24 após a CORE-015.1 (mobiliário das lojas e edificações no minimapa acrescentam geometria; não medido). |
+| C151-02 | Média | AVALIAÇÃO HUMANA | Sensação do esterço sensível à velocidade e das rampas de acelerador/freio. Reverter: `steerSpeedRef: Infinity`, `throttleRise`/`brakeRise` altos. |
+| C151-03 | Baixa | ABERTO | Placas de calçada sobrepostas no triângulo de cruzamentos perto de (−410, 9). |
+| C151-04 | Baixa | ABERTO | Clientes NPC atravessam expositores (andam em linha reta, sem colisão). |
+| C151-05 | Baixa | ABERTO | Câmera fora da loja enquanto a porta de enrolar sobe; sem teste automático de cintilação de superfícies. |
+| C151-06 | Baixa | ABERTO | Volumes não aparecem dentro do baú aberto (só a tampa abre); a saca nas mãos é um volume único estilizado. |

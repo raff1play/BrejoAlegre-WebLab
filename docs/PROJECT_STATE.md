@@ -413,3 +413,34 @@ Unitários: **82/82**. `validate:repo`, `typecheck` e `build:staging` passam.
 - locais não confirmados no OSM (ver `docs/CITY_REFERENCE.md`);
 - relevo;
 - calçadas em vias rurais.
+
+## CORE-015.1 — Correções visuais, colisões, baú, HUD e controles (14/11/2026)
+
+**Situação:** correções sobre a CORE-015 publicada, direto na `preview`, em cinco commits. **Não publicado**: `docs/PREVIEW_DEPLOY_TRIGGER.md` intocado; sem PR; `main` intocada.
+
+| Item | Situação | Evidência |
+|---|---|---|
+| Meio-fio e muros fora do asfalto (curvas, ruas sem saída, triângulos de cruzamento) | TESTADO: 1 de 16 402 amostras de meio-fio a menos de 3,7 m do eixo (antes 357); 0 muros a menos de 6 m de um eixo (antes 24) | `tests/geo.test.ts`, `comparacao-muro-rua-sem-saida.jpg` |
+| Casas com a planta do tamanho do lote real (antes 12 × 20 m fixos em lotes de 10–17,6 × 12–20 m) | TESTADO | `tests/geo.test.ts`, `comparacao-casas-q24.jpg` |
+| Asfalto sem cintilação em sobreposições; calçada alinhada à rua; sem segunda camada de grama | IMPLEMENTADO; conferido nas capturas (não há teste automático de cintilação) | `comparacao-esquina.jpg` |
+| Deslize ao longo de paredes em qualquer ângulo; postes, luminárias e floreiras sólidos | TESTADO | `tests/collision.test.ts` |
+| Oito lojas: entrar, balcão, sair; planta única para modelo e colisor; moto não entra; porta fechada é sólida | TESTADO | `tests/storeLayout.test.ts`, `comparacao-loja-*.jpg` |
+| Encomendas físicas: loja → mãos → baú → galpão → saca → baú → mãos → destinatário | TESTADO (unitário auditado a cada passo + navegador) | `tests/delivery.test.ts`, `e2e/14-…`, `e2e/15-…` |
+| HUD (carga, distância, relógio, botão contextual) em 780 × 360 e desktop | TESTADO em viewport emulado | `depois-hud-celular-*.jpg` |
+| Minimapa: contraste, edificações, rota pelas ruas, paradas, moto, mapa ampliado com nomes e escala | TESTADO | `tests/streetRoute.test.ts`, `e2e/16-…` |
+| Esterço sensível à velocidade, rampa de acelerador e freio | TESTADO (unitário); **sensação no aparelho não avaliada** | `tests/simulation.test.ts` |
+| FPS em Android | **NÃO MEDIDO** | — |
+
+Unitários: **94/94**. Navegador: **84/84**. `validate:repo`, `typecheck`, `build:staging` passam. Bundle principal: 1,63 MB (431 kB gzip), antes 1,61 MB.
+
+Números atuais do mapa: 46 quadras, 695 lotes, 681 casas estimadas, 48 endereços; cobertura OSM inalterada (100 %/100 %, 87/87 cruzamentos).
+
+**Commits:** `9a319bc` (calçadas, muros, colisões externas), `e970d67` (lojas), `accb962` (baú), `85db0ea` (HUD, minimapa, controles) e o commit de documentação seguinte.
+
+**Problemas que continuam:**
+- FPS, temperatura e ergonomia em Android real não medidos; a sensação do novo esterço precisa de teste humano.
+- No triângulo de cruzamentos perto de (−410, 9) as placas da calçada ainda se sobrepõem um pouco.
+- Clientes das lojas andam em linha reta e podem atravessar um expositor.
+- A câmera pode ficar do lado de fora da loja enquanto a porta de enrolar sobe.
+- O galpão foi deslocado ~45 m na mesma via, para não cobrir uma rua sem saída.
+- O aviso "NÃO REPRESENTA BREJO ALEGRE" continua pendente de decisão (C13-06).
