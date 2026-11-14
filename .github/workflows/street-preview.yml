@@ -1,0 +1,70 @@
+name: Street Lab - preview isolada (publicacao autorizada)
+
+# Nao altera o codigo de preview/main: remonta a CORE-015.1 intacta na raiz
+# e o experimento no subcaminho /street-preview/. Apenas a autorizacao dispara.
+on:
+  push:
+    branches:
+      - feat/core-015-2-urban-roads-preview
+    paths:
+      - docs/STREET_PREVIEW_TRIGGER.md
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages-weblab-preview
+  cancel-in-progress: false
+
+jobs:
+  deploy-street-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    environment:
+      name: github-pages
+      url: https://raff1play.github.io/BrejoAlegre-WebLab/street-preview/
+    steps:
+      - name: Checkout CORE-015.1 publicada e imutavel
+        uses: actions/checkout@v4
+        with:
+          ref: d6eabc4909551001c3203aa4314d8c1c852ac304
+          path: stable
+      - name: Checkout experimento isolado
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          path: experiment
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validar e compilar CORE-015.1 base, sem nenhuma alteracao
+        working-directory: stable
+        run: |
+          npm ci --no-audit --no-fund
+          npm run validate:repo
+          npm run test:unit
+          npm run build:staging
+      - name: Validar e compilar experimento de ruas
+        working-directory: experiment
+        run: |
+          npm ci --no-audit --no-fund
+          npm run validate:repo
+          npm run test:unit
+          npm run build:staging
+      - name: Montar dois caminhos independentes no MESMO Pages
+        run: |
+          mkdir -p public-site/street-preview
+          cp -a stable/dist/. public-site/
+          cp -a experiment/dist/. public-site/street-preview/
+          touch public-site/.nojekyll
+          test -f public-site/index.html
+          test -f public-site/street-preview/index.html
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./public-site
+      - name: Publicar preview isolada sem integrar CORE-015.1
+        id: deploy
+        uses: actions/deploy-pages@v4
