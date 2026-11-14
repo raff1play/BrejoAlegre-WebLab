@@ -16,6 +16,9 @@ export type MotoState = {
   lean: number;
   /** Reversing needs the brake to be released once at rest, so braking to a stop never rolls back. */
   reverseArmed: boolean;
+  /** CORE-015.1: smoothed throttle and brake (0..1), so taps give small, controllable pushes. */
+  drive?: number;
+  braking?: number;
 };
 export type MotoControls = { throttle: number; brake: number; steer: number };
 
@@ -36,6 +39,12 @@ export const MOTO = Object.freeze({
   bodyRadius: 0.42,
   bodyOffset: 0.55,        // front/rear collision circles along the bike
   stopSpeed: 0.3,          // below this the bike counts as stopped
+  // CORE-015.1 handling refinements (small, reversible: set steerSpeedRef to Infinity and the
+  // rise rates to a large number to get the CORE-015 behaviour back).
+  steerSpeedRef: 7.5,      // m/s: steering lock shrinks as 1 / (1 + (v / ref)²) → precise at speed
+  throttleRise: 7,         // 1/s: full throttle 0.14 s after the press (was instantaneous)
+  throttleFall: 14,
+  brakeRise: 12,           // 1/s: full braking 0.08 s after the press
 });
 
 export function createMotoState(x: number, z: number, yaw: number): MotoState {
@@ -50,8 +59,12 @@ export function motoFits(guard: MotionGuard, x: number, z: number, yaw: number):
 }
 
 function nextSpeed(state: MotoState, controls: MotoControls, dt: number): number {
-  const throttle = clamp(controls.throttle, 0, 1);
-  const brake = clamp(controls.brake, 0, 1);
+  const wantThrottle = clamp(controls.throttle, 0, 1);
+  const wantBrake = clamp(controls.brake, 0, 1);
+  state.drive = moveTowards(state.drive ?? 0, wantThrottle, (wantThrottle > (state.drive ?? 0) ? MOTO.throttleRise : MOTO.throttleFall) * dt);
+  state.braking = wantBrake > 0 ? moveTowards(state.braking ?? 0, wantBrake, MOTO.brakeRise * dt) : 0;
+  const throttle = state.drive;
+  const brake = state.braking;
   let speed = state.speed;
   if (brake > 0) {
     if (speed > 0) return Math.max(0, speed - MOTO.brakeDeceleration * brake * dt);
@@ -81,7 +94,8 @@ export function stepMotorcycle(state: MotoState, controls: MotoControls, dt: num
 
   // Bicycle model, limited so lateral acceleration never exceeds the grip budget.
   const speed = state.speed;
-  let yawRate = (speed / MOTO.wheelbase) * Math.tan(state.steer * MOTO.maxSteerAngle);
+  const lock = MOTO.maxSteerAngle / (1 + (speed / MOTO.steerSpeedRef) ** 2);
+  let yawRate = (speed / MOTO.wheelbase) * Math.tan(state.steer * lock);
   const gripLimit = MOTO.maxLateralAccel / Math.max(Math.abs(speed), 0.1);
   yawRate = clamp(yawRate, -gripLimit, gripLimit);
 

@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { createMotionGuard, pointInPoly } from '../src/core/collision.ts';
 import { GEO } from '../src/world/geo/brejoAlegreData.ts';
 import { NETWORK, SEDE, degreeOf } from '../src/world/geo/network.ts';
-import { GEO_BLOCKS, GEO_LOTS, GEO_WALLS, pointInPolygon, roadDistance } from '../src/world/geo/geoCity.ts';
+import { DEPOT_SITE, GEO_BLOCKS, GEO_LOTS, GEO_WALLS, pointInPolygon, roadDistance } from '../src/world/geo/geoCity.ts';
 import { CITY_BOUNDS, CITY_LOTS, DEPOT, ROADS, STORES, cityPolygons, depotPoly, depotWorld, nearestRoad, storeLayout } from '../src/world/city/cityPlan.ts';
 import { solidPolygons } from '../src/world/city/cityLayout.ts';
 import { HOUSE_DEPTH, HOUSE_STYLES, HOUSE_WIDTH, ROAD_HALF, SIDEWALK, frameCorners, framePoint, houseSpan } from '../src/world/layout.ts';
@@ -175,4 +175,11 @@ test('CORE-015.1: frontage walls and house walls stay inside their lots, off eve
     assert.ok(setback + HOUSE_DEPTH <= l.depth - 0.2, `${l.id}: house body inside the lot depth ${l.depth}`);
     for (const c of frameCorners(l.frame, 0, l.width, 0, l.depth)) assert.ok(roadDistance(c[0], c[1]) >= E - 0.35, `${l.id}: lot corner off the street`);
   }
+});
+
+test('CORE-015.1: the depot site is clear of every road, including dead-end streets inside its block', () => {
+  let min = Infinity;
+  for (let x = 0; x <= DEPOT_SITE.width; x += 2) for (let z = 0; z <= DEPOT_SITE.depth; z += 2) { const p = framePoint(DEPOT_SITE.frame, x, z); min = Math.min(min, roadDistance(p.x, p.z)); }
+  assert.ok(min >= ROAD_HALF + SIDEWALK - 0.1, `closest road axis ${min.toFixed(2)} m from the depot site`);
+  assert.equal(nearestRoad(DEPOT_SITE.frame.ox, DEPOT_SITE.frame.oz)!.road.name, 'Estrada Municipal Manoel Leitão', 'same real street as in CORE-015');
 });

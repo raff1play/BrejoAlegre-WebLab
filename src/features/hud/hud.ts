@@ -26,6 +26,7 @@ export class Hud {
       action: pick('[data-action="mount"]'), graphics: pick('[data-action="graphics"]'), version: pick('#version'),
       title: pick('#objective-title'), detail: pick('#objective-detail'), progress: pick('#parcel-progress'),
       wait: pick('#wait-button'), clock: pick('#clock'), clockTag: pick('#clock-tag'), pause: pick('#pause'),
+      cargo: pick('#cargo-status'), distance: pick('#objective-distance'),
     };
   }
 
@@ -60,6 +61,21 @@ export class Hud {
     const w = this.els.wait!;
     if (wait) this.write(w, wait);
     if (w.hidden === !!wait) w.hidden = !wait;
+  }
+
+  /** CORE-015.1: where the parcels are ("2 volumes nas mãos · 4 no baú"); amber while the hands are full. */
+  setCargo(label: string, handsFull: boolean): void {
+    const el = this.els.cargo!;
+    if (label) this.write(el, label);
+    if (el.hidden === !!label) el.hidden = !label;
+    el.classList.toggle('hands', handsFull);
+  }
+
+  /** Distance to the objective along the streets (null hides the chip). */
+  setDistance(metres: number | null): void {
+    const el = this.els.distance!;
+    if (metres !== null) this.write(el, metres >= 1000 ? `➤ ${(metres / 1000).toFixed(1)} km` : `➤ ${Math.max(10, Math.round(metres / 10) * 10)} m`);
+    if (el.hidden === (metres !== null)) el.hidden = metres === null;
   }
 
   /** Virtual clock (1 h = 4 real minutes) and whether the 11h–21h working day is on. */

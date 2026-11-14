@@ -16,18 +16,23 @@
         <strong id="objective-title">Preparando a jornada</strong>
         <span id="objective-detail"></span>
         <div class="objective-row">
+          <span id="objective-distance" class="chip dist" hidden></span>
+          <span id="cargo-status" class="chip cargo" hidden></span>
           <span id="parcel-progress" class="chip">Coletados 0/0 · Entregues 0/0</span>
           <button type="button" data-action="wait" id="wait-button" class="chip-button" hidden>Aguardar</button>
         </div>
       </section>
-      <div class="telemetry"><strong id="speed">0</strong> <span>km/h</span></div>
+      <div class="telemetry"><span id="clock" class="clock">☀ 11:00</span><span class="speed"><strong id="speed">0</strong> <span>km/h</span></span></div>
       <div id="minimap" class="minimap" role="button" tabindex="0" aria-expanded="false" aria-label="Minimapa — toque para ampliar">
         <canvas id="minimap-canvas" aria-hidden="true"></canvas>
-        <div class="minimap-bar"><strong id="clock">11:00</strong><span id="clock-tag">Em jornada</span></div>
+        <div class="minimap-bar"><span id="clock-tag">Em jornada</span><span class="minimap-hint">toque: mapa</span></div>
         <ul class="minimap-legend" aria-label="Legenda">
-          <li><i style="background:#ff5a3c">★</i>Objetivo</li><li><i style="background:#f2c230">G</i>Galpão</li>
-          <li><i style="background:#e8b348">L</i>Lojas</li><li><i style="background:#58c27d">B</i>Ônibus</li>
-          <li><i style="background:#f4f1ea">✝</i>Igreja</li><li><i style="background:#8fc1e3">E</i>Escola</li><li><i style="background:#7fc46a">P</i>Praça</li>
+          <li><i style="background:#ff4d2e;color:#fff">▲</i>Você</li><li><i style="background:#ff5a3c;color:#fff">★</i>Objetivo</li>
+          <li><i class="line"></i>Rota pelas ruas</li><li><i style="background:#ffd84a">M</i>Moto</li>
+          <li><i style="background:#ffd84a">G</i>Galpão</li><li><i style="background:#f2b233">L</i>Lojas</li>
+          <li><i class="sq" style="background:#6fb7ff">⌂</i>Entregas</li><li><i style="background:#7fd06a">P</i>Praça</li>
+          <li><i style="background:#8fc1e3">C</i>Campo</li><li><i style="background:#c9c2b2">✝</i>Cemitério</li>
+          <li class="credit">© OpenStreetMap</li>
         </ul>
       </div>
       <div id="devtime" class="devtime" hidden aria-label="Controle de horário (desenvolvimento)">

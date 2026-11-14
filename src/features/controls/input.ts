@@ -73,10 +73,27 @@ export class GameInput {
       button.addEventListener('lostpointercapture', release);
     }
     for (const button of root.querySelectorAll<HTMLElement>('[data-action]')) {
+      // CORE-015.1: on touch the action fires on finger-up, even if the finger slid a little
+      // (a `click` is dropped by the browser when the touch moves); the click that may follow is
+      // ignored, and mouse/keyboard activation keeps working through `click`.
+      let handledAt = -1e9;
+      const fire = () => { this.onAction(button.dataset.action as Action); button.blur(); };
+      button.addEventListener('pointerdown', (event) => { if (event.pointerType !== 'mouse') button.classList.add('pressed'); });
+      button.addEventListener('pointerup', (event) => {
+        button.classList.remove('pressed');
+        if (event.pointerType === 'mouse') return;
+        const r = button.getBoundingClientRect();
+        const slack = 14;
+        if (event.clientX < r.left - slack || event.clientX > r.right + slack || event.clientY < r.top - slack || event.clientY > r.bottom + slack) return;
+        event.preventDefault();
+        handledAt = performance.now();
+        fire();
+      });
+      button.addEventListener('pointercancel', () => button.classList.remove('pressed'));
       button.addEventListener('click', (event) => {
         event.preventDefault();
-        this.onAction(button.dataset.action as Action);
-        button.blur();
+        if (performance.now() - handledAt < 700) return;
+        fire();
       });
     }
   }

@@ -171,3 +171,42 @@ test('light-handling tune gives fast response and retains upright parking', () =
   assert.ok(state.steer < 0.01, 'steering recentres within a tenth of a second');
   assert.equal(state.lean, 0);
 });
+
+// ------------------------------------------------------------------ CORE-015.1 handling
+
+test('CORE-015.1: steering is proportional at speed and still tight at walking pace', () => {
+  const free: MotionGuard = () => true;
+  const yawRateAt = (speed: number, steer: number) => {
+    const s = createMotoState(0, 0, 0);
+    s.speed = speed; s.steer = steer; s.drive = 1;
+    const before = s.yaw;
+    // One short step with the throttle held (speed barely changes) and the steering already set.
+    stepMotorcycle(s, { throttle: 1, brake: 0, steer }, 0.01, free);
+    return (s.yaw - before) / 0.01;
+  };
+  // Neighbourhood U-turn: at ~7 km/h, full lock turns inside a 2.4 m radius (an 8 m street fits).
+  const slow = yawRateAt(2, 1);
+  assert.ok(2 / slow < 2.4, `turn radius at 2 m/s = ${(2 / slow).toFixed(2)} m`);
+  // At 43 km/h the stick is not saturated in its first third: more stick = more turn.
+  const grip = MOTO.maxLateralAccel / 12;
+  const a = yawRateAt(12, 0.15); const b = yawRateAt(12, 0.3); const c = yawRateAt(12, 0.6);
+  assert.ok(a < b && b < c * 1.0001, `yaw rates ${a.toFixed(2)} < ${b.toFixed(2)} ≤ ${c.toFixed(2)}`);
+  assert.ok(b < grip * 0.9, `30 % stick stays under the grip limit (${b.toFixed(2)} < ${grip.toFixed(2)})`);
+  assert.ok(c <= grip + 1e-6, 'never beyond the grip limit');
+});
+
+test('CORE-015.1: throttle and brake ramp in (a tap is a small push), full performance is kept', () => {
+  const free: MotionGuard = () => true;
+  const tap = createMotoState(0, 0, 0);
+  for (let i = 0; i < 6; i++) stepMotorcycle(tap, { throttle: 1, brake: 0, steer: 0 }, 1 / 60, free);
+  assert.ok(tap.speed > 0.05 && tap.speed < 0.3, `0.1 s tap → ${tap.speed.toFixed(2)} m/s (instant throttle gave 0.52)`);
+  const run = createMotoState(0, 0, 0);
+  for (let i = 0; i < 180; i++) stepMotorcycle(run, { throttle: 1, brake: 0, steer: 0 }, 1 / 60, free);
+  // Ideal (instant throttle) after 3 s: vmax·(1 − e^(−a·t/vmax)).
+  const ideal = MOTO.maxSpeed * (1 - Math.exp((-MOTO.acceleration * 3) / MOTO.maxSpeed));
+  assert.ok(run.speed > ideal * 0.96 && run.speed <= ideal + 0.05, `3 s: ${run.speed.toFixed(2)} vs ${ideal.toFixed(2)} m/s`);
+  // Braking from that speed still stops in a short distance.
+  let d = 0;
+  for (let i = 0; i < 600 && run.speed > 0; i++) { const z0 = run.z; stepMotorcycle(run, { throttle: 0, brake: 1, steer: 0 }, 1 / 60, free); d += run.z - z0; }
+  assert.ok(run.speed === 0 && d < (ideal * ideal) / (2 * MOTO.brakeDeceleration) + 1.2, `stops in ${d.toFixed(1)} m`);
+});

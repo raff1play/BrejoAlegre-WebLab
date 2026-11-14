@@ -92,7 +92,7 @@ test('first workday with PHYSICAL parcels: shop → hands → top box → base �
   assert.equal(day.collect(s1!, hour), 0, 'cannot collect twice');
   assert.equal(day.inHands().length, 2);
   assert.equal(day.objective(hour, { x: 0, z: 0 }).target?.kind, 'moto', 'next step: the top box');
-  assert.equal(day.cargoLabel(), '2 volume(s) nas mãos');
+  assert.equal(day.cargoLabel(), '2 volumes nas mãos');
   assert.equal(day.stow(hour, true), 0, 'no stowing while the bike moves');
   assert.equal(day.stow(hour), 2);
   assert.equal(day.inHands().length, 0); assert.equal(day.inTrunk().length, 2);
@@ -102,7 +102,7 @@ test('first workday with PHYSICAL parcels: shop → hands → top box → base �
   assert.equal(day.collect(s2!, hour), 2);
   assert.equal(day.phase, 'RETORNO');
   assert.equal(day.stow(hour), 2);
-  assert.equal(day.cargoLabel(), '4 volume(s) no baú');
+  assert.equal(day.cargoLabel(), '4 volumes no baú');
   assert.equal(day.objective(hour).target?.kind, 'galpao');
   audit('shop 2');
   tick(13.3);

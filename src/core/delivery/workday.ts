@@ -131,8 +131,9 @@ export class Workday {
   cargoLabel(): string {
     const h = this.inHands().length; const t = this.inTrunk().length;
     const parts: string[] = [];
-    if (h) parts.push(this.sackInHands ? `saca com ${h} volume(s) nas mãos` : `${h} volume(s) nas mãos`);
-    if (t) parts.push(`${t} volume(s) no baú`);
+    const n = (k: number) => `${k} ${k === 1 ? 'volume' : 'volumes'}`;
+    if (h) parts.push(this.sackInHands ? `saca com ${n(h)} nas mãos` : `${n(h)} nas mãos`);
+    if (t) parts.push(`${n(t)} no baú`);
     return parts.join(' · ');
   }
 
@@ -145,7 +146,7 @@ export class Workday {
       move(p, 'bau', 'jogador', hour);
     }
     this.sackInHands = false;
-    if (list.length) this.say(`${list.length} volume(s) guardado(s) no baú`);
+    if (list.length) this.say(list.length === 1 ? '1 volume guardado no baú' : `${list.length} volumes guardados no baú`);
     return list.length;
   }
 
@@ -155,7 +156,7 @@ export class Workday {
     const room = HANDS_MAX - this.inHands().length;
     const list = this.trunkForDepot().slice(0, Math.max(0, room));
     for (const p of list) move(p, 'maos', 'jogador', hour);
-    if (list.length) this.say(`${list.length} volume(s) retirado(s) do baú`);
+    if (list.length) this.say(list.length === 1 ? '1 volume retirado do baú' : `${list.length} volumes retirados do baú`);
     return list.length;
   }
 
@@ -181,7 +182,7 @@ export class Workday {
     if (this.canCollect(kind, hour) !== 'ok') return 0;
     const list = this.readyAt(kind);
     for (const p of list) { advance(p, 'COLETADO', 'jogador', hour); move(p, 'maos', 'jogador', hour); }
-    this.say(`${list.length} volume(s) conferido(s) e retirado(s) em ${this.storeOf(kind).name}`);
+    this.say(`${list.length === 1 ? '1 volume conferido e retirado' : `${list.length} volumes conferidos e retirados`} em ${this.storeOf(kind).name}`);
     if (this.assigned.every((s) => this.readyAt(s).length === 0)) this.phase = 'RETORNO';
     return list.length;
   }
@@ -201,7 +202,7 @@ export class Workday {
       if (hour > ROUTINE.returnBy) this.late = true;
       // The conference phase starts when nothing is left on the way (trunk, hands or shops).
       if (this.carrying().length === 0 && this.assigned.every((s) => this.readyAt(s).length === 0)) this.phase = 'CONFERENCIA';
-      this.say(`Conferente recebendo ${list.length} volume(s)`);
+      this.say(`Conferente recebendo ${list.length === 1 ? '1 volume' : `${list.length} volumes`}`);
     }
     return list.length;
   }
@@ -225,7 +226,7 @@ export class Workday {
       at = next.door;
     }
     this.phase = 'ENTREGAS';
-    this.say(`Saca mista retirada: ${list.length} volume(s) — guarde no baú`);
+    this.say(`Saca mista retirada: ${list.length} volumes — guarde no baú`);
     return list.length;
   }
 

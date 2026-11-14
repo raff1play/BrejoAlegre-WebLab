@@ -128,6 +128,7 @@ function start(canvas: HTMLCanvasElement): void {
     document.addEventListener('keydown', (e) => { if (e.code === 'KeyT' && !e.repeat) apply('+1'); });
   }
 
+  let stopsKey = '';
   const bikeSpot = (): BikeSpot => ({ x: moto.state.x, z: moto.state.z, yaw: moto.state.yaw, moving: !isMotoStopped(moto.state) });
   const toggleMount = (): void => {
     if (mode === 'riding') {
@@ -244,6 +245,14 @@ function start(canvas: HTMLCanvasElement): void {
       `Coletados ${progress.collected}/${delivery.workday.parcels.filter((p) => p.platform === 'LOJA').length} · Entregues ${progress.delivered}/${progress.total}`,
       delivery.waiting !== null ? 'Aguardando…' : wait?.label ?? null);
     minimap.setTarget(objective.target);
+    minimap.setBike(mode === 'walking' ? m : null);
+    const wd = delivery.workday;
+    if (wd.phase === 'ENTREGAS') {
+      if (stopsKey !== wd.route.join('|')) { stopsKey = wd.route.join('|'); minimap.setStops(wd.route.map((id, i) => ({ ...wd.byAddress.get(id)!.door, next: i === 0 }))); }
+    } else if (stopsKey !== '') { stopsKey = ''; minimap.setStops([]); }
+    hud.setCargo(wd.cargoLabel(), wd.inHands().length > 0);
+    const far = objective.target ? Math.hypot(objective.target.x - player.x, objective.target.z - player.z) : 0;
+    hud.setDistance(objective.target && far > 12 ? minimap.targetDistance() : null);
     walker.setLoad(delivery.workday.inHands().length, delivery.workday.sackInHands);
     const found = delivery.action(clock.hour, here, bikeSpot());
     // A blocked job hint never hides "Montar" when the rider can simply get on the bike.
@@ -326,7 +335,7 @@ function start(canvas: HTMLCanvasElement): void {
         paused: hud.paused,
         city: cityLife.stats(),
         houses: houses.stats(),
-        minimap: { expanded: minimap.isExpanded, arrow: minimap.arrowAt() },
+        minimap: { expanded: minimap.isExpanded, arrow: minimap.arrowAt(), ...minimap.state(), distance: minimap.targetDistance() },
         externalAssets: external,
         fps: engine.getFps(),
         drawCalls: scene.getEngine()._drawCalls?.current ?? null,

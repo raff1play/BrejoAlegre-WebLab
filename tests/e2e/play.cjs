@@ -295,12 +295,17 @@ async function cityAndJob(browser) {
     await act();
     let c = await cargo();
     if (n === 0) {
-      check('coleta: os volumes vão para as MÃOS (não para o baú)', c.hands === 2 && c.trunk === 0 && /2 volume\(s\) nas mãos/.test(c.label), c.label);
+      check('coleta: os volumes vão para as MÃOS (não para o baú)', c.hands === 2 && c.trunk === 0 && /2 volumes nas mãos/.test(c.label), c.label);
       s = await snap();
       check('objetivo manda guardar no baú da moto', /baú/i.test(s.delivery.objective.title) && s.delivery.objective.target.kind === 'moto', s.delivery.objective.title);
       // Camera behind the rider, facing the counter (the orbit is left where the last test put it).
       await page.evaluate((y) => window.__debug.camera(Math.atan2(-Math.cos(y), -Math.sin(y)), 1.12, 4.4), st.facing);
       await page.waitForTimeout(800);
+      const chip = await page.textContent('#cargo-status');
+      const hands = await page.isVisible('#cargo-status.hands'); const dist = await page.isVisible('#objective-distance');
+      // The distance chip only shows beyond 12 m (the bike is parked right outside here).
+      check('HUD: "2 volumes nas mãos" em destaque', /2 volumes nas mãos/.test(chip) && hands, `${chip} · destaque=${hands} · chip de distância visível=${dist}`);
+      check('minimapa: moto marcada e rota até ela pelas ruas', s.minimap.bike && (s.minimap.route === 0 || s.minimap.routeLength >= s.minimap.distance - 0.01), `rota ${s.minimap.route} pontos`);
       await shot('11-loja-retirada.jpg');
     }
     await toTrunk();
@@ -351,6 +356,11 @@ async function cityAndJob(browser) {
   await act();
   c = await cargo();
   check('saca guardada no baú antes das entregas', c.hands === 0 && c.trunk === 8 && !c.sack, c.label);
+  s = await until((v) => v.minimap.stops > 0 && v.minimap.route > 2, 8000);
+  const straight = Math.hypot(s.delivery.objective.target.x - s.walker.x, s.delivery.objective.target.z - s.walker.z);
+  check('minimapa: paradas de entrega e rota pelas ruas (mais longa que a linha reta)', s.minimap.stops === s.delivery.route.length && s.minimap.route > 2 && s.minimap.routeLength >= straight,
+    `${s.minimap.stops} paradas, rota ${Math.round(s.minimap.routeLength)} m × reta ${Math.round(straight)} m`);
+  check('HUD: "8 volumes no baú" e distância pela rota', /8 volumes no baú/.test(await page.textContent('#cargo-status')) && /(m|km)$/.test((await page.textContent('#objective-distance')).trim()), await page.textContent('#objective-distance'));
   for (let k = 0; k < 10 && (await snap()).delivery.route.length; k++) {
     const t = (await snap()).delivery.objective.target;
     await page.evaluate(([x, z]) => window.__debug.parkNear(x, z), [t.x, t.z]);
@@ -427,6 +437,7 @@ async function phone(browser) {
   const layout = await page.evaluate(() => {
     const rect = (el) => { const r = el.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height, id: el.dataset.control || el.dataset.action }; };
     const buttons = [...document.querySelectorAll('.pad button, .pause-button')].map(rect);
+    for (const [sel, id] of [['.objective', 'objetivo'], ['.telemetry', 'relogio-velocidade']]) { const r = rect(document.querySelector(sel)); r.id = id; buttons.push(r); }
     const stick = rect(document.querySelector('#movement-stick'));
     stick.id = 'stick';
     buttons.push(stick);
@@ -442,10 +453,24 @@ async function phone(browser) {
     const panels = [...document.querySelectorAll('.objective, .telemetry, .minimap, .pad, .joystick-zone')].map(rect);
     return { buttons, collisions, inside, centreFree: !panels.some((p) => overlap(p, centre)), portrait: getComputedStyle(document.querySelector('.portrait-warning')).display };
   });
-  const smallest = Math.min(...layout.buttons.filter((b) => b.id !== 'minimap').map((b) => Math.min(b.w, b.h)));
+  const smallest = Math.min(...layout.buttons.filter((b) => !['minimap', 'objetivo', 'relogio-velocidade'].includes(b.id)).map((b) => Math.min(b.w, b.h)));
   check('[toque] botões com tamanho para dedos (≥ 44 px)', smallest >= 44, `menor lado ${fx(smallest)} px`);
   check('[toque] botões dentro da tela e sem sobreposição', layout.inside && layout.collisions.length === 0, layout.collisions.join(','));
-  check('[toque] HUD deixa o centro da tela livre', layout.centreFree && layout.portrait === 'none');
+  check('[toque] HUD deixa o centro da tela livre', layout.centreFree && layout.portrait === 'none', JSON.stringify(layout.buttons.filter((b) => b.id === 'objetivo')));
+  // Expanded map on the phone: legend readable, map at least 60 % of the screen height.
+  const mm = centreOfEl => page.$eval(centreOfEl, (el) => { const r = el.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2, w: r.width, h: r.height }; });
+  const small = await mm('#minimap');
+  await page.touchscreen.tap(small.x, small.y);
+  await until((v) => v.minimap.expanded, 5000);
+  const big = await mm('#minimap-canvas');
+  const legend = await page.$$eval('.minimap-legend li', (els) => els.filter((e) => e.getBoundingClientRect().height > 0).map((e) => e.textContent.trim()));
+  const fits = await page.$eval('#minimap', (el) => { const r = el.getBoundingClientRect(); return r.left >= 0 && r.top >= 0 && r.right <= innerWidth && r.bottom <= innerHeight; });
+  check('[toque] mapa ampliado: cabe na tela, mapa grande e legenda com moto/galpão/lojas/entregas', fits && big.h >= 360 * 0.6 && ['Você', 'Objetivo', 'Rota pelas ruas', 'Moto', 'Galpão', 'Lojas', 'Entregas'].every((t) => legend.some((l) => l.includes(t))) && (await snap()).minimap.names >= 10,
+    `mapa ${Math.round(big.w)}×${Math.round(big.h)} px, ${legend.length} itens, ${(await snap()).minimap.names} nomes de rua, cabe=${fits}`);
+  await shot('16-mapa-ampliado-celular.jpg');
+  const bigBox = await mm('#minimap');
+  await page.touchscreen.tap(bigBox.x, bigBox.y);
+  await until((v) => !v.minimap.expanded, 5000);
 
   // Real multi-touch through the DevTools protocol: one finger per button.
   const cdp = await g.context.newCDPSession(page);
@@ -554,9 +579,11 @@ async function phone(browser) {
   fs.mkdirSync(OUT, { recursive: true });
   const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
   try {
-    await desktop(browser);
-    await cityAndJob(browser);
-    await phone(browser);
+    // WEBLAB_ONLY=desktop,city,phone runs a subset while iterating (default: everything).
+    const only = (process.env.WEBLAB_ONLY || 'desktop,city,phone').split(',');
+    if (only.includes('desktop')) await desktop(browser);
+    if (only.includes('city')) await cityAndJob(browser);
+    if (only.includes('phone')) await phone(browser);
   } finally {
     await browser.close();
   }

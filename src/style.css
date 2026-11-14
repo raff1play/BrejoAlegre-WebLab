@@ -183,3 +183,54 @@ button.active { background: #e8ae3c; color: #142232; }
   .objective strong { font-size: 12px; }
   #objective-detail { display: none; }
 }
+
+/* CORE-015.1 HUD refresh: clearer hierarchy and contrast, cargo/distance chips, larger contextual
+ * button, legible expanded map. Everything stays out of the centre of the screen. */
+:root { --panel: rgba(10, 18, 28, .78); --amber: #f2b233; }
+.objective { gap: 4px; padding: 9px 12px 9px; border-left: 3px solid var(--amber); max-width: min(360px, 40vw); }
+.objective strong { font-size: 14.5px; letter-spacing: .01em; }
+.objective span { font-size: 11.5px; }
+.objective-row { gap: 5px; margin-top: 3px; }
+.chip { display: inline-flex; align-items: center; gap: 4px; font-size: 10.5px !important; padding: 3px 8px; white-space: nowrap; }
+.chip[hidden] { display: none; }
+.chip.dist { background: rgba(56, 200, 255, .2); color: #d8f4ff !important; border: 1px solid rgba(56, 200, 255, .45); font-variant-numeric: tabular-nums; }
+.chip.cargo { background: rgba(242, 178, 51, .22); color: #ffe7b0 !important; border: 1px solid rgba(242, 178, 51, .55); }
+.chip.cargo.hands { background: var(--amber); color: #172231 !important; border-color: #ffd98a; }
+.chip-button { font-size: 11px; padding: 6px 11px; min-height: 28px; }
+.telemetry { display: flex; align-items: center; gap: 10px; padding: 3px 12px 4px; min-width: 0; }
+.telemetry .clock { font-size: 13px; font-weight: 800; color: #ffe08f; font-variant-numeric: tabular-nums; padding-right: 10px; border-right: 1px solid rgba(255, 255, 255, .2); }
+.telemetry .speed { display: inline-flex; align-items: baseline; gap: 4px; }
+.telemetry .speed strong { min-width: 1.6ch; text-align: right; }
+.minimap { border: 1px solid rgba(255, 255, 255, .28); border-radius: 14px; width: clamp(104px, 27vh, 160px); }
+.minimap-bar { justify-content: space-between; padding: 3px 8px 4px; font-size: 10px; }
+.minimap-hint { color: #8fa3b8 !important; }
+.minimap.expanded { width: min(calc(90vh + 132px), 96vw, 780px); background: #0d1620; border-color: rgba(255, 255, 255, .35); box-shadow: 0 0 0 100vmax rgba(5, 9, 14, .55), 0 10px 30px rgba(0, 0, 0, .5); }
+.minimap.expanded .minimap-legend { gap: clamp(2px, 1vh, 7px); padding: 10px 12px 0 8px; font-size: clamp(10px, 3vh, 12.5px); color: #e8eef5; width: 132px; }
+.minimap.expanded .minimap-legend li { display: flex; align-items: center; }
+.minimap.expanded .minimap-legend i { width: 18px; height: 18px; flex: none; }
+.minimap.expanded .minimap-legend i.sq { border-radius: 3px; }
+.minimap.expanded .minimap-legend i.line { height: 4px; border-radius: 2px; background: #38c8ff; box-shadow: 0 0 0 1.5px #07354a; }
+.minimap.expanded .minimap-legend .credit { font-size: 9.5px; color: #8fa3b8; margin-top: 4px; }
+.minimap.expanded .minimap-hint { display: none; }
+.toast { top: 20%; max-width: min(70vw, 520px); text-align: center; border-color: rgba(242, 178, 51, .45); }
+.pad button.wide { height: auto; min-height: clamp(50px, 14vh, 60px); padding: 6px 8px; font-size: 14.5px; line-height: 1.15; border-radius: 16px; white-space: normal; }
+button.primary.unavailable { background: rgba(60, 66, 74, .82); color: #cfd6de; border: 1px dashed rgba(255, 255, 255, .4); font-weight: 700; }
+button.pressed { transform: scale(.97); filter: brightness(1.12); }
+@media (max-height: 480px) {
+  .objective { max-width: min(330px, 42vw); padding: 6px 10px; }
+  .objective strong { font-size: 12.5px; }
+  /* One line of detail on phones (it used to be hidden): where the parcels are matters. */
+  #objective-detail { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; font-size: 10.5px; }
+  .telemetry .clock { font-size: 12px; }
+  .minimap { top: calc(var(--edge-t) + 46px); }
+  .minimap-bar { display: none; }
+  .pad button.wide { font-size: 13px; }
+}
+.minimap.expanded .minimap-bar { display: none; }
+.devtime { top: auto; bottom: var(--edge-b); opacity: .85; }
+@media (max-height: 480px) {
+  .objective { max-width: min(318px, 41vw); gap: 2px; padding: 5px 9px 6px; }
+  .objective-row { flex-wrap: nowrap; overflow: hidden; margin-top: 1px; }
+  .chip { font-size: 9.5px !important; padding: 2px 6px; }
+  .chip-button { padding: 4px 8px; min-height: 24px; font-size: 10px; white-space: nowrap; }
+}

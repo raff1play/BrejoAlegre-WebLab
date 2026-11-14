@@ -349,10 +349,20 @@ export const DEPOT_SITE: { frame: Frame; width: number; depth: number; block: st
       if (L < 70) continue;
       const tx = (c[0] - a[0]) / L; const tz = (c[1] - a[1]) / L;
       const yaw = Math.atan2(-tz, tx);
-      const s0 = (L - 64) / 2;
-      const frame: Frame = { ox: a[0] + tx * s0, oz: a[1] + tz * s0, side: 1, yaw };
-      const rect = frameCorners(frame, 0, 64, 0, 58);
-      if (!rect.every((q) => pointInPolygon(p, q[0], q[1]))) continue;
+      // Slide the 64 × 58 m site along the side (from its middle outwards) until it fits the block
+      // and stays clear of every road — also of dead-end streets inside the block (CORE-015.1).
+      let frame: Frame | null = null;
+      const middle = (L - 64) / 2;
+      for (let k = 0; k <= Math.floor(middle / 4) && !frame; k++) {
+        for (const s0 of k === 0 ? [middle] : [middle - k * 4, middle + k * 4]) {
+          if (s0 < 3 || s0 + 64 > L - 3) continue;
+          const f: Frame = { ox: a[0] + tx * s0, oz: a[1] + tz * s0, side: 1, yaw };
+          const rect = frameCorners(f, 0, 64, 0, 58);
+          if (!rect.every((q) => pointInPolygon(p, q[0], q[1])) || rectNearRoad(rect)) continue;
+          frame = f; break;
+        }
+      }
+      if (!frame) continue;
       const mid = framePoint(frame, 32, -6);
       const dist = Math.hypot(mid.x - CENTRE[0], mid.z - CENTRE[1]);
       const score = dist; // farthest suitable side from the centre keeps trucks out of the core
