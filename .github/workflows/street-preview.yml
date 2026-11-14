@@ -1,7 +1,8 @@
 name: Street Lab - preview isolada (publicacao autorizada)
 
-# Nao altera o codigo de preview/main: remonta a CORE-015.1 intacta na raiz
-# e o experimento no subcaminho /street-preview/. Apenas a autorizacao dispara.
+# Publica tres versoes independentes em UM unico Pages:
+# CORE-015.1 na raiz, CORE-015.2 em /street-preview/ e GFX-001 em /gfx-preview/.
+# Preserva main/preview e nunca faz merge. Apenas o gatilho autorizado publica.
 on:
   push:
     branches:
@@ -38,6 +39,11 @@ jobs:
         with:
           ref: ${{ github.sha }}
           path: experiment
+      - name: Checkout GFX-001 aprovada pela CI (commit fixo)
+        uses: actions/checkout@v4
+        with:
+          ref: e15c8d216a0b321bc620deff8b368420cd6a399e
+          path: gfx
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -55,14 +61,23 @@ jobs:
           npm run validate:repo
           npm run test:unit
           npm run build:staging
-      - name: Montar dois caminhos independentes no MESMO Pages
+      - name: Validar e compilar GFX-001 sem integrar as outras versoes
+        working-directory: gfx
         run: |
-          mkdir -p public-site/street-preview
+          npm ci --no-audit --no-fund
+          npm run validate:repo
+          npm run test:unit
+          npm run build:staging
+      - name: Montar tres caminhos independentes no MESMO Pages
+        run: |
+          mkdir -p public-site/street-preview public-site/gfx-preview
           cp -a stable/dist/. public-site/
           cp -a experiment/dist/. public-site/street-preview/
+          cp -a gfx/dist/. public-site/gfx-preview/
           touch public-site/.nojekyll
           test -f public-site/index.html
           test -f public-site/street-preview/index.html
+          test -f public-site/gfx-preview/index.html
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
