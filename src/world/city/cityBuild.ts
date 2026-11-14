@@ -9,6 +9,7 @@ import { ballPart } from '../modelParts';
 import type { LabMaterial, Materials } from '../materials';
 import { CURB_H, ROAD_HALF, SIDEWALK, WALL_H } from '../layout';
 import { frontageWalls, streetLightPositions } from './cityLayout';
+import { streetPaint } from './urbanDetail';
 import { buildAddresses } from '../../core/delivery/addresses';
 import { BLOCKS, DEPOT, NODES, ROADS, STORES, STORE_SETBACK, depotLayout, depotWorld, storePlan, type Rect, type Store } from './cityPlan';
 import { OPEN_SPACES } from '../geo/geoCity';
@@ -91,6 +92,18 @@ function pavementQuad(set: BatchSet, m: LabMaterial, a: XZ, b: XZ, c: XZ, d: XZ)
   }
 }
 
+/** Subtle expansion joints across the sidewalk slabs, including curved lots. */
+function sidewalkJoints(set: BatchSet, mats: Materials, a: XZ, b: XZ, c: XZ, d: XZ): void {
+  const L = Math.hypot(b[0] - a[0], b[1] - a[1]);
+  if (L < 3.7) return;
+  for (let at = 2.6; at < L - 0.65; at += 2.6) {
+    const t = at / L;
+    const edge: XZ = [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+    const lot: XZ = [d[0] + (c[0] - d[0]) * t, d[1] + (c[1] - d[1]) * t];
+    ribbon(set, mats.paint('#a3a19a'), [edge, lot], 0.036, CURB_H + 0.006);
+  }
+}
+
 function disc(set: BatchSet, m: LabMaterial, x: number, z: number, r: number, y: number): void {
   const n = 14; const pts: XZ[] = [];
   for (let i = 0; i < n; i++) { const a = (i / n) * Math.PI * 2; pts.push([x + Math.cos(a) * r, z + Math.sin(a) * r]); }
@@ -123,6 +136,11 @@ export function buildRoads(flat: BatchSet, upright: BatchSet, mats: Materials): 
     }
   }
   for (const n of NODES) disc(flat, mats.asphalt, n.x, n.z, ROAD_HALF + 0.4, 0);
+  // Street-paint geometry is batched by colour and floats above asphalt. All markings
+  // are derived from real roads; the new crosswalks and signals are fictional.
+  for (const mark of streetPaint()) ribbon(flat,
+    mark.kind === 'centre' ? mats.lineWhite : mats.lineWhite,
+    [mark.start, mark.end], mark.width, 0.014);
   // Blocks: kerb face, gutter, pavement and the lot area behind it.
   for (const b of BLOCKS) {
     const k = b.kerb;
@@ -130,6 +148,7 @@ export function buildRoads(flat: BatchSet, upright: BatchSet, mats: Materials): 
       const a = k[i]!; const c = k[(i + 1) % k.length]!;
       // Kerb face (looks outwards, towards the road): CCW polygon → outward = right of a→c.
       upright.of(mats.curb).poly([[a[0], 0, a[1]], [c[0], 0, c[1]], [c[0], CURB_H + 0.012, c[1]], [a[0], CURB_H + 0.012, a[1]]], [[0, 0], [1, 0], [1, 0.2], [0, 0.2]]);
+      ribbon(flat, mats.gutter, [a, c], 0.16, 0.018);
     }
     // Pavement as a ring between kerb and lot line (both are insets of the same block face, so
     // their vertices correspond); the lot grass sits just below, so floors and yards drawn at
@@ -139,6 +158,7 @@ export function buildRoads(flat: BatchSet, upright: BatchSet, mats: Materials): 
       for (let i = 0; i < k.length; i++) {
         const j = (i + 1) % k.length;
         pavementQuad(flat, mats.pavement, k[i]!, k[j]!, l[j]!, l[i]!);
+        sidewalkJoints(flat, mats, k[i]!, k[j]!, l[j]!, l[i]!);
       }
     } else fillPolygon(flat, mats.pavement, k, CURB_H);
     fillPolygon(flat, mats.grass, l, CURB_H - 0.012);
@@ -152,9 +172,13 @@ function buildStreetLights(set: BatchSet, mats: Materials, scene: Scene): void {
     const shaft = CreateCylinder('poste-luz', { diameterTop: 0.14, diameterBottom: 0.24, height: 7.5, tessellation: 7 }, scene);
     shaft.position.set(p.x, CURB_H + 3.75, p.z);
     set.absorb(pole, shaft);
+    // Painted socket, metal base and cantilever: small grouped primitives, no heavy GLBs.
+    set.box(mats.paint('#5e6366'), p.x - 0.17, p.x + 0.17, CURB_H, CURB_H + 0.42, p.z - 0.17, p.z + 0.17);
+    set.box(mats.paint('#777b7b', 0.18), p.x - 0.09, p.x + 0.09, CURB_H + 6.9, CURB_H + 7.15, p.z - 0.09, p.z + 0.09);
     const ax = Math.sin(p.yaw) * 1.6; const az = Math.cos(p.yaw) * 1.6;
     set.box(mats.paint('#5d6368', 0.25), Math.min(p.x, p.x + ax) - 0.04, Math.max(p.x, p.x + ax) + 0.04, CURB_H + 7.3, CURB_H + 7.38, Math.min(p.z, p.z + az) - 0.04, Math.max(p.z, p.z + az) + 0.04);
-    set.box(mats.glow('#fff1cf'), p.x + ax - 0.22, p.x + ax + 0.22, CURB_H + 7.14, CURB_H + 7.3, p.z + az - 0.22, p.z + az + 0.22);
+    set.box(mats.paint('#484d50', 0.2), p.x + ax - 0.28, p.x + ax + 0.28, CURB_H + 7.12, CURB_H + 7.26, p.z + az - 0.28, p.z + az + 0.28);
+    set.box(mats.glow('#fff1cf'), p.x + ax - 0.23, p.x + ax + 0.23, CURB_H + 7.09, CURB_H + 7.12, p.z + az - 0.23, p.z + az + 0.23);
   }
 }
 
