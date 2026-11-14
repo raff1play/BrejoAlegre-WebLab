@@ -43,3 +43,11 @@
 - O workflow agora empacota CORE-015.1 na raiz, CORE-015.2 em /street-preview/, GFX-001 em /gfx-preview/ e ART-001 em /art-preview/ no MESMO GitHub Pages.
 - ART-001 somente para avaliacao, sem alterar `main`, `preview`, a branch GFX, nem a branch ART; sem merge.
 - Considerar publicada somente apos GitHub Actions confirmar sucesso no job de deploy; desempenho Android fisico nao foi medido.
+
+## 14/11/2026 — ART-002 — homologacao separada de galpao e fluxo fisico
+
+- Autorizacao explicita do usuario: publicar a ART-002 para avaliacao em celular, **sem promover para a versao estavel**.
+- Commit da ART-002 fixado: `190b7a09d1607273026617a83b89233dd6dff9e7`, branch `feat/art-001-primeira-loja-moto`; CI [43635815604](https://github.com/raff1play/BrejoAlegre-WebLab/actions/runs/43635815604) `success`, 110 testes unitarios, validacao e build.
+- Criar a rota de homologacao `/depot-preview/` sem substituir CORE-015.1 na raiz, CORE-015.2 `/street-preview/`, GFX-001 `/gfx-preview/` ou ART-001 `/art-preview/`. Todos os cinco builds fazem parte do mesmo artefato de Pages.
+- Nenhum merge para `main`/`preview`, nenhuma alteracao da branch da ART-002, nenhum lancamento estavel.
+- Considerar o deploy concluido somente depois de `deploy-street-preview` obter `success`. Teste fisico no Android permanece pendente.
