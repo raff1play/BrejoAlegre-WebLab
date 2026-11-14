@@ -47,7 +47,7 @@ export const ROADS: readonly CityRoad[] = NETWORK.roads.map((r) => ({
  */
 const SIGNAL_CANDIDATES = NETWORK.nodes.filter((n) => !n.exit).map((n) => {
   const arms = ROADS.filter((r) => r.a === n.id || r.b === n.id);
-  if (arms.length < 3 || arms.some((r) => r.kind !== 'urban' || r.length < 20)) return null;
+  if (arms.length < 3 || arms.some((r) => r.kind !== 'urban' || r.length < 32)) return null;
   return { n, score: arms.reduce((v, r) => v + r.priority * 3 + (r.heavy ? 6 : 0), 0) + arms.length };
 }).filter((v): v is { n: (typeof NETWORK.nodes)[number]; score: number } => v !== null)
   .sort((a, b) => b.score - a.score || a.n.id.localeCompare(b.n.id));
