@@ -138,9 +138,9 @@ export function buildRoads(flat: BatchSet, upright: BatchSet, mats: Materials): 
   for (const n of NODES) disc(flat, mats.asphalt, n.x, n.z, ROAD_HALF + 0.4, 0);
   // Street-paint geometry is batched by colour and floats above asphalt. All markings
   // are derived from real roads; the new crosswalks and signals are fictional.
-  for (const mark of streetPaint()) ribbon(flat,
-    mark.kind === 'centre' ? mats.lineWhite : mats.lineWhite,
-    [mark.start, mark.end], mark.width, 0.014);
+  for (const mark of streetPaint()) {
+    ribbon(flat, mats.lineWhite, [mark.start, mark.end], mark.width, 0.014);
+  }
   // Blocks: kerb face, gutter, pavement and the lot area behind it.
   for (const b of BLOCKS) {
     const k = b.kerb;
