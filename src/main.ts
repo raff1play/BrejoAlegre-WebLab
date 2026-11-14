@@ -1,3 +1,5 @@
+import { DEPOT_SPOTS } from './core/delivery/workday';
+import { depotPath, DEPOT_POINTS, depotFixtures, MOTO_PARKING } from './world/city/depotPlan';
 import './style.css';
 import { Engine } from '@babylonjs/core/Engines/engine';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
@@ -91,7 +93,7 @@ function start(canvas: HTMLCanvasElement): void {
   let devSpeed = 1;
   /** Development only: a fixed overview camera for map comparisons (see __debug.view). */
   let freeView = false;
-  const delivery = new DeliveryGame(scene, world.materials, profile, environment.shadows, world.shutters, (x, z) => world.guard(x, z, 0.45));
+  const delivery = new DeliveryGame(scene, world.materials, profile, environment.shadows, world.shutters, (x, z) => world.guard(x, z, 0.45), undefined, import.meta.env.DEV && params.get('depotTest')==='partial'?3:2);
   let simTime = 0;
   // NPC vehicles are solid for the player; if one already overlaps (e.g. it was spawned there),
   // only the static world blocks so the player can always move away.
@@ -239,7 +241,7 @@ function start(canvas: HTMLCanvasElement): void {
     minimap.update(player.x, player.z, mode === 'riding' ? m.yaw : walker.state.yaw, performance.now());
     // Delivery job: shops, depot staff, customers, objective marker and contextual action.
     const here = mode === 'riding' ? { x: m.x, z: m.z, riding: true } : { x: walker.state.x, z: walker.state.z, riding: false };
-    delivery.update(dt, clock.hour, cityLife.crowd, here, ground, () => false);
+    delivery.update(dt, clock.hour, cityLife.crowd, here, ground, () => false, bikeSpot());
     for (const msg of delivery.workday.events.splice(0)) hud.toast(msg);
     const objective = delivery.workday.objective(clock.hour, m);
     const progress = delivery.workday.progress();
@@ -302,6 +304,12 @@ function start(canvas: HTMLCanvasElement): void {
         depot: (x: number, z: number) => depotWorld(x, z),
         depotLocal: (x: number, z: number) => buildProbe().depotLocal(x, z),
         depotYaw: (yaw: number) => depotYaw(yaw),
+        depotPlan:()=>({spots:DEPOT_SPOTS,local:DEPOT_POINTS,fixtures:depotFixtures(),parking:MOTO_PARKING}),
+        depotPath:(from:{x:number;z:number},to:{x:number;z:number})=>depotPath(from,to),
+        depotGate:(open:boolean|null)=>{delivery.gateManual=open},
+        canStand:(x:number,z:number,r=.35,riding=false)=>world.guard(x,z,r)&&!delivery.doorBlocked(x,z,r,riding,{x,z}),
+        /** Deterministic test clock: executes real work in bounded steps, never edits parcels. */
+        processDepot:(seconds:number)=>{for(let t=0;t<Math.min(seconds,1);t+=.05)delivery.workday.update(clock.hour,.05)},
         minimapBase: () => minimap.baseImage(),
         /** CORE-015.1: parks the bike at the kerb nearest to a spot (the rider stays where it is). */
         parkNear: (x: number, z: number) => { const p = parkNear(x, z); Object.assign(moto.state, { ...p, speed: 0, steer: 0 }); return p; },
@@ -328,13 +336,14 @@ function start(canvas: HTMLCanvasElement): void {
         fadedBuildings: fader.fadedCount,
         clock: { label: clock.label, hour: clock.hour, workday: clock.isWorkday, night: lighting.night, devTime, speed: clock.speedFactor },
         delivery: {
+          depot:{gateOpen:delivery.gateOpen,gateManual:delivery.gateManual,visibleIds:[...delivery.parcelViews.visibleIds],workers:delivery.workday.depot.workers.map(w=>({...w,task:w.task?{id:w.task.id,kind:w.task.kind,stage:w.task.stage}:null})),errors:[...delivery.workday.depot.errors]},
           phase: delivery.workday.phase,
           objective: delivery.workday.objective(clock.hour, moto.state),
           cargo: { hands: delivery.workday.inHands().length, trunk: delivery.workday.inTrunk().length, sack: delivery.workday.sackInHands, label: delivery.workday.cargoLabel(), trunkOpen: moto.trunkOpen, trunkSpot: trunkSpot(bikeSpot()) },
           progress: delivery.workday.progress(),
           assigned: [...delivery.workday.assigned],
           route: [...delivery.workday.route],
-          parcels: delivery.workday.parcels.map((p) => ({ id: p.id, state: p.state, place: p.place, holder: p.holder, origin: p.origin, destination: p.destination, platform: p.platform, region: p.region })),
+          parcels: delivery.workday.parcels.map((p) => ({ id: p.id, state: p.state, place: p.place, holder: p.holder, origin: p.origin, destination: p.destination, platform: p.platform, region: p.region, position:p.position?{...p.position}:null,dock:p.dock,load:p.load,history:p.history.map(e=>({...e})) })),
           staff: delivery.workday.staff.map((st) => ({ role: st.role, state: st.state })),
           stores: [...delivery.stores].map(([id, st]) => ({ id, employee: st.ops.employee, shutter: st.ops.shutter, queue: st.ops.queue.length, served: st.ops.served, pickup: st.layout.pickup, facing: yawOf(STORES.find((q) => q.id === id)!.frame) })),
           addresses: delivery.workday.addresses.length,

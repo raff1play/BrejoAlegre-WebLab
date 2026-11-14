@@ -1,4 +1,7 @@
-import { gateLeaves } from '../../world/city/depotPlan';
+import { BatchSet } from '../../world/geometry';
+import { rodPart } from '../../world/modelParts';
+import { DepotParcels } from './depotParcels';
+import { gateLeaves, INBOUND_TRUCK } from '../../world/city/depotPlan';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { CreateCylinder } from '@babylonjs/core/Meshes/Builders/cylinderBuilder';
 import { CreateTorus } from '@babylonjs/core/Meshes/Builders/torusBuilder';
@@ -8,7 +11,7 @@ import type { Scene } from '@babylonjs/core/scene';
 import type { ShadowGenerator } from '@babylonjs/core/Lights/Shadows/shadowGenerator';
 import type { Crowd, Pedestrian as CrowdPed } from '../../core/city/pedestrians';
 import { STORE_HOURS, STORE_STAFF, createStoreOps, isOpen, joinQueue, stepStore, type StoreOps } from '../../core/delivery/stores';
-import { DEPOT_LOCAL_SPOTS, HANDS_MAX, ROUTINE, Workday, type DepotRole } from '../../core/delivery/workday';
+import { DEPOT_SPOTS, depotVisitAllowed, HANDS_MAX, ROUTINE, Workday, type DepotRole } from '../../core/delivery/workday';
 import type { Address } from '../../core/delivery/addresses';
 import type { GraphicsProfile } from '../../config/graphics';
 import { circleIntersectsPoly, pointInPoly } from '../../core/collision';
@@ -47,13 +50,26 @@ export class DeliveryGame {
   private readonly customers = new Map<number, { store: StoreKind; phase: 'in' | 'queue' | 'out'; at: Spot }>();
   private readonly marker: Mesh;
   private readonly ring: Mesh;
+  readonly parcelViews: DepotParcels;
+  private readonly inboundTruck: Mesh[];
   gateOpen = 0;
   gateManual: boolean | null = null;
   private time = 0;
   private waitUntil: number | null = null;
 
-  constructor(scene: Scene, mats: Materials, profile: GraphicsProfile, shadows: ShadowGenerator, private readonly shutters: Map<string, Mesh>, free: (x: number, z: number) => boolean, seed?: number) {
-    this.workday = new Workday({ seed, stores: 2, perStore: 2, marketplace: 4, free });
+  constructor(scene: Scene, mats: Materials, profile: GraphicsProfile, shadows: ShadowGenerator, private readonly shutters: Map<string, Mesh>, free: (x: number, z: number) => boolean, seed?: number, perStore=2) {
+    this.workday = new Workday({ seed, stores: 2, perStore, marketplace: 4, free });
+    this.parcelViews = new DepotParcels(scene,mats);
+    const truck=new BatchSet();truck.setTransform(p=>{const q=depotWorld(p[0],p[2]);return[q.x,p[1]+.15,q.z]});
+    const t=INBOUND_TRUCK;
+    truck.box(mats.paint('#45584e'),t.minX,t.maxX,.7,1.03,t.minZ,t.maxZ);
+    truck.box(mats.paint('#b9bba9'),t.minX,t.maxX,1.03,1.15,t.minZ,t.maxZ-2);
+    for(const x of [t.minX,t.maxX-.05])truck.box(mats.paint('#536a60'),x,x+.05,1.15,1.6,t.minZ,t.maxZ-2);
+    truck.box(mats.paint('#e3dcc4'),t.minX,t.maxX,1.03,3,t.maxZ-2,t.maxZ);
+    truck.box(mats.paint('#29463e',.3),t.minX+.1,t.maxX-.1,1.8,2.7,t.maxZ-.08,t.maxZ+.01);
+    for(const x of [t.minX-.04,t.maxX+.04])for(const z of [-116.3,-111.4])truck.absorb(mats.paint('#202822'),rodPart(scene,[x-.12,.5,z],[x+.12,.5,z],.9,.9,12));
+    truck.box(mats.paint('#777f73'),127.2,128.8,.1,.17,-118.45,-117.8);
+    this.inboundTruck=truck.build('art002-inbound-truck',scene);this.inboundTruck.forEach(m=>m.setEnabled(false));
     const cast = profile.name === 'desktop' ? shadows : undefined;
     for (const s of STORES) {
       const look = STORE_STAFF[s.id];
@@ -64,6 +80,7 @@ export class DeliveryGame {
     }
     for (const st of this.workday.staff) {
       const npc = new NpcPerson(scene, mats, `galpao-${st.role}`, civilianLook(DEPOT_LOOKS[st.role]), cast);
+      npc.showCargo=false;
       npc.place(st.station.x, st.station.z, depotYaw(Math.PI / 2));
       this.depotStaff.set(st.role, npc);
     }
@@ -77,14 +94,15 @@ export class DeliveryGame {
   }
 
   /** Every frame. Returns nothing; read `action()` and `objective` afterwards. */
-  update(dt: number, hour: number, crowd: Crowd, player: { x: number; z: number; riding: boolean }, ground: (x: number, z: number) => number, playerNear: (x: number, z: number, r: number) => boolean): void {
+  update(dt: number, hour: number, crowd: Crowd, player: { x: number; z: number; riding: boolean }, ground: (x: number, z: number) => number, playerNear: (x: number, z: number, r: number) => boolean, bike?:BikeSpot): void {
     this.time += dt;
     const gp=depotWorld(106,-92.3);
     const want=this.gateManual ?? Math.hypot(player.x-gp.x,player.z-gp.z)<17;
     // Stop the leaves closing on a person or bike. Same geometry is used by doorBlocked().
     const lp=depotLocal(player.x,player.z);
-    const safety=lp.x>98&&lp.x<114&&Math.abs(lp.z+92.3)<3;
-    this.gateOpen=Math.max(0,Math.min(1,this.gateOpen+(want||safety?1:-1)*dt*.65));
+    const bp=bike?depotLocal(bike.x,bike.z):lp;
+    const safety=[lp,bp].some(p=>p.x>98&&p.x<114&&Math.abs(p.z+92.3)<3);
+    this.gateOpen=Math.max(0,Math.min(1,this.gateOpen+(want?1:safety?0:-1)*dt*.65));
     const origin=depotWorld(0,0);
     for(const i of [0,1]){
       const mesh=this.shutters.get(`depot-gate-${i}`);if(!mesh)continue;
@@ -120,6 +138,9 @@ export class DeliveryGame {
     }
     this.updateCustomers(dt, hour, crowd);
     this.updateDepot(dt, hour, player, ground);
+    const centre=depotWorld(112,-125),near=Math.hypot(player.x-centre.x,player.z-centre.z)<140;
+    this.parcelViews.update(this.workday.parcels,near);
+    this.inboundTruck.forEach(m=>m.setEnabled(this.workday.depot.truckAvailable&&near));
     // Marker over the target.
     const o = this.workday.objective(hour);
     const t = o.target;
@@ -174,44 +195,12 @@ export class DeliveryGame {
   }
 
   private updateDepot(dt: number, hour: number, player: { x: number; z: number }, ground: (x: number, z: number) => number): void {
-    const S = DEPOT_LOCAL_SPOTS;
-    const centre = depotWorld(112, -125);
-    const near = Math.hypot(player.x - centre.x, player.z - centre.z) < 90;
-    const loop = (a: Spot, b: Spot, period: number) => (Math.floor(this.time / period) % 2 === 0 ? a : b);
-    for (const st of this.workday.staff) {
-      const npc = this.depotStaff.get(st.role)!;
-      const on = st.state !== 'fora do turno' && near;
-      npc.setEnabled(on);
-      if (!on) continue;
-      let go: Spot | null = null; let face = Math.PI / 2;
-      npc.activity = 'work';
-      switch (st.role) {
-        case 'porteiro': go = { x: 97.8, z: -96.2 }; face = 0; break;
-        case 'conferente': go = { x: 92.75, z: S.receiving.z }; face = Math.PI / 2; break;
-        case 'descarregador-1': case 'descarregador-2': {
-          const dock = st.role === 'descarregador-1' ? { x: 104, z: -120 } : { x: 120, z: -120 };
-          const pallet = st.role === 'descarregador-1' ? { x: 101.5, z: -126.8 } : { x: 121.5, z: -126.8 };
-          go = loop(dock, pallet, st.state === 'descarregando caminhão' ? 7 : 11);
-          npc.activity = go === dock ? 'idle' : 'carry'; face = go === dock ? 0 : Math.PI; break;
-        }
-        case 'separador-1': case 'separador-2': {
-          const z = st.role === 'separador-1' ? -127.9 : -131.1;
-          if (st.state === 'triando por bairro' && st.role === 'separador-2') {
-            // GFX-001: carries sorted volumes from the end of the belt to the regional cages.
-            const belt = { x: 113.5, z: -131.25 }; const cage = { x: 120.2, z: -131.4 };
-            go = loop(belt, cage, 6); npc.activity = go === cage ? 'carry' : 'work'; face = 0; break;
-          }
-          go = st.state === 'triando por bairro' ? loop({ x: 107, z }, { x: 114, z }, 6) : loop({ x: 108, z: -139.2 }, { x: 116, z: -139.2 }, 9);
-          face = st.role === 'separador-1' ? Math.PI : 0; npc.activity = 'work'; break;
-        }
-        case 'expedidor': go = { x: 92.75, z: -129.9 }; face = Math.PI / 2; break;
-        case 'supervisor': go = st.state === 'na sala de controle' ? S.office : loop({ x: 110, z: -133.8 }, { x: 99, z: -127 }, 10); face = Math.PI; npc.activity = st.state === 'na sala de controle' ? 'work' : 'idle'; break;
-      }
-      // Spots and headings are in the CORE-014 depot frame → world.
-      const at = go ? depotWorld(go.x, go.z) : st.station;
-      npc.walkTo(at.x, at.z);
-      if (!npc.moving) npc.lookAt(depotYaw(face));
-      npc.update(dt, ground(npc.x, npc.z), Math.hypot(player.x - npc.x, player.z - npc.z) < 45);
+    const centre=depotWorld(112,-125),near=Math.hypot(player.x-centre.x,player.z-centre.z)<100;
+    for(const st of this.workday.staff){
+      const npc=this.depotStaff.get(st.role)!;npc.setEnabled(near&&st.state!=='fora do turno');
+      const worker=this.workday.depot.workers.find(w=>w.role===st.role);
+      if(worker&&near){const p=depotWorld(worker.x,worker.z);npc.activity=worker.activity;npc.follow(p.x,p.z,depotYaw(worker.yaw),dt,ground(p.x,p.z));}
+      else {npc.activity=st.role==='supervisor'&&this.workday.depot.workers.some(w=>w.task)?'work':'idle';if(near)npc.update(dt,ground(npc.x,npc.z));}
     }
     void hour;
   }
@@ -221,6 +210,7 @@ export class DeliveryGame {
    * while it is down — except from the inside, so nobody is locked in at closing time.
    */
   doorBlocked(x: number, z: number, r: number, riding: boolean, from: { x: number; z: number }): boolean {
+    if(this.workday.depot.truckAvailable&&circleIntersectsPoly(x,z,r,depotPoly(INBOUND_TRUCK)))return true;
     if(gateLeaves(this.gateOpen).some(b=>circleIntersectsPoly(x,z,r,depotPoly(b))))return true;
     for (const s of this.stores.values()) {
       if (!circleIntersectsPoly(x, z, r, s.layout.doorway)) continue;
@@ -238,6 +228,7 @@ export class DeliveryGame {
   action(hour: number, player: { x: number; z: number; riding: boolean }, bike?: BikeSpot): ContextAction | null {
     if (player.riding) return null;
     const w = this.workday;
+    const visit=bike?{player,bike}:undefined;
     const close = (p: Spot, r: number) => Math.hypot(player.x - p.x, player.z - p.z) < r;
     const control=depotWorld(95,-97.1);
     if(close(control,1.6))return {label:this.gateManual===false?'Abrir portão de veículos':'Fechar portão de veículos',available:true,run:()=>{this.gateManual=this.gateManual===false;return this.gateManual?'Portão abrindo':'Portão fechando'}};
@@ -251,9 +242,9 @@ export class DeliveryGame {
         return { label: w.sackInHands ? 'Guardar a saca no baú' : `Guardar no baú (${hands.length})`, available: true, trunk: true, run: () => `${n(w.stow(hour))} no baú` };
       }
       if (atTrunk && !hands.length) {
-        const receiving = depotWorld(95.4, DEPOT_LOCAL_SPOTS.receiving.z);
-        if (w.trunkForDepot().length && Math.hypot(bike.x - receiving.x, bike.z - receiving.z) < 70) {
-          return { label: `Retirar do baú (${Math.min(w.trunkForDepot().length, HANDS_MAX)})`, available: true, trunk: true, run: () => `${n(w.unloadForDepot(hour))} nas mãos — leve ao conferente` };
+        if(w.trunkForDepot().length){
+          if(!depotVisitAllowed(visit,'parking'))return {label:'Estacione nas vagas de descarga e pare a moto',available:false,run:null};
+          return {label:`Retirar do baú (${Math.min(w.trunkForDepot().length,HANDS_MAX)})`,available:true,trunk:true,run:()=>`${n(w.unloadForDepot(hour,false,visit))} nas mãos — leve ao recebimento`};
         }
         if (w.trunkForRoute().length) {
           const stop = this.nearestStop(bike);
@@ -276,15 +267,15 @@ export class DeliveryGame {
       if (can === 'cheio') return { label: 'Mãos cheias: guarde no baú', available: false, run: null };
       return { label: `Retirar com ${name}`, available: true, run: () => `${name} conferiu e entregou ${n(w.collect(kind, hour))} — guarde no baú` };
     }
-    if (close(depotWorld(95.4, DEPOT_LOCAL_SPOTS.receiving.z), 2.2) && w.carrying().length) {
+    if (close(DEPOT_SPOTS.receiving, 1.45) && w.carrying().length) {
       const mine = hands.filter((p) => p.state === 'COLETADO' || p.state === 'EM_TRANSPORTE').length;
       if (!mine) return { label: 'Volumes no baú: retire na moto', available: false, run: null };
-      return { label: `Entregar ao conferente (${mine})`, available: true, run: () => `Conferente recebendo ${n(w.handOver(hour))}` };
+      return { label: `Entregar ao conferente (${mine})`, available: true, run: () => `Conferente recebendo ${n(w.handOver(hour,visit))}` };
     }
-    if (close(depotWorld(95.4, DEPOT_LOCAL_SPOTS.dispatch.z), 2.2) && (w.phase === 'SACA' || w.phase === 'TRIAGEM')) {
+    if (close(DEPOT_SPOTS.dispatch, 1.45) && (w.phase === 'SACA' || w.phase === 'TRIAGEM')) {
       if (hands.length) return { label: 'Mãos cheias', available: false, run: null };
       if (!w.canTakeSack(hour)) return { label: hour < ROUTINE.sackFrom ? 'Saca às 15h' : 'Triagem em curso', available: false, run: null };
-      return { label: 'Retirar a saca', available: true, run: () => `Saca com ${n(w.takeSack(hour))} — guarde no baú da moto` };
+      return { label: 'Retirar a saca', available: true, run: () => `Saca com ${n(w.takeSack(hour,visit))} — guarde no baú da moto` };
     }
     if (w.phase === 'ENTREGAS') {
       for (const id of w.route) {

@@ -9,6 +9,7 @@ export const DEPOT_POINTS = {
   entry:{x:106,z:-91}, parking:{x:84,z:-111}, truck:{x:128,z:-119.4},
 } as const;
 export const REGIONAL_CAGES = [rect(119,122,-137,-135.5),rect(124,127,-137,-135.5)];
+export const INBOUND_TRUCK=rect(126.75,129.25,-117.8,-109.6);
 export const DISPATCH_DOCK = 'D02';
 export const MIXED_LOAD = 'ROTA-01';
 export const MOTO_PARKING = [81,84,87,90].map(x=>({...rect(x-.9,x+.9,-112.6,-109.4),x,z:-111}));

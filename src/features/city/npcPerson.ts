@@ -27,6 +27,7 @@ export class NpcPerson {
   x = 0; z = 0; yaw = 0;
   activity: NpcActivity = 'idle';
   speed = 1.25;
+  showCargo = true;
   private target: { x: number; z: number } | null = null;
   private route: { x: number; z: number }[] = [];
   private goal: { x: number; z: number } | null = null;
@@ -119,7 +120,7 @@ export class NpcPerson {
     this.amount = approach(this.amount, dt > 0 ? Math.min(1, moved / dt / 1.4) : 0, 8, dt);
     this.root.position.set(this.x, groundY, this.z);
     this.root.rotation.y = this.yaw;
-    this.box.isVisible = this.activity === 'carry';
+    this.box.isVisible = this.showCargo && this.activity === 'carry';
     if (!near) return;
     const target = this.activity === 'carry' ? carryingPose(this.phase, this.amount, this.time)
       : this.activity === 'give' && this.amount < 0.2 ? givingPose(this.time)
