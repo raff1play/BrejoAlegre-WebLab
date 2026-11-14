@@ -7,3 +7,5 @@
 - CI dos commits de implementação passou com 96 testes; novo workflow também valida e compila ambas as versões antes do deploy.
 - Autorização NÃO inclui merge, promoção para produção, nem alterações na CORE-015.1. A prévia é provisória para avaliação.
 - Publicação não deve ser declarada concluída até `deploy-street-preview` obter `success`.
+
+- Segunda tentativa: utilizar ambiente `street-preview` porque o ambiente principal `github-pages` rejeitou a branch antes da execução do job (nenhum código da base alterado).
