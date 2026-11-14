@@ -36,7 +36,15 @@ test('urban equipment: traffic signals use pavement offsets including one-way la
   const plans = buildSignalPlans(graph);
   const fixtures = signalFixturePositions(graph, plans, buildWalkGraph());
   const veh = fixtures.filter((f) => !f.ped), ped = fixtures.filter((f) => f.ped);
-  console.log('signal-placement census', JSON.stringify({ plans: plans.size, inbound: [...plans.values()].reduce((t,p)=>t+p.approaches.length,0), veh: veh.length, ped: ped.length, oneWay: veh.filter((f) => graph.lanes[f.lane]?.road.oneway).length }));
+  const inbound = [...plans.values()].flatMap((p) => p.approaches);
+  const missing = inbound.filter((i) => !veh.some((f) => f.lane === i)).map((i) => {
+    const l = graph.lanes[i]!, end = l.path.points[l.path.points.length - 1]!;
+    return { id: l.id, node: l.to, road: l.road.name, oneway: l.road.oneway,
+      x: Number(end.x.toFixed(1)), z: Number(end.z.toFixed(1)),
+      distance: Number(roadDistance(end.x, end.z).toFixed(1)) };
+  });
+  console.log('signal-placement census', JSON.stringify({ plans: plans.size, inbound: inbound.length,
+    veh: veh.length, ped: ped.length, missing }));
   assert.ok(plans.size > 0, 'traffic lights remain active');
   assert.ok(veh.length > 0, 'at least one signal head is visible');
   for (const f of fixtures) {
