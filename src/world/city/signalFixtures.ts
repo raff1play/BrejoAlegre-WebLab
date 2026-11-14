@@ -3,7 +3,7 @@ import type { SignalPlan } from '../../core/city/signals.ts';
 import type { WalkGraph } from '../../core/city/pedestrians.ts';
 import { ROAD_HALF } from '../layout.ts';
 import { clearOfFixtures, validFixtureSite, type FixturePoint } from './fixturePlacement.ts';
-import { shopFurniture, streetLightPositions } from './cityLayout.ts';
+import { cityTrees, shopFurniture, streetLightPositions } from './cityLayout.ts';
 
 /** Drawable equipment belongs to the SAME geometric rules as the generated pavements. */
 export type SignalFixture = Readonly<{
@@ -16,9 +16,12 @@ export function signalFixturePositions(
   graph: RoadGraph, plans: Map<string, SignalPlan>, walk: WalkGraph,
 ): SignalFixture[] {
   const positions: SignalFixture[] = [];
+  const shop = shopFurniture();
   const occupied: FixturePoint[] = [
-    ...shopFurniture().lamps,
+    ...shop.lamps,
+    ...shop.planters,
     ...streetLightPositions(),
+    ...cityTrees(),
   ];
   const fits = (p: FixturePoint, radius: number): boolean =>
     validFixtureSite(p, radius) && clearOfFixtures(p, occupied, 2.0);
