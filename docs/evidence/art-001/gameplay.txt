@@ -1,0 +1,88 @@
+PASS  abre sem erro e inicia pilotando na vaga
+PASS  aviso de área temporária visível na tela
+PASS  moto acelera  (v=3.01 m/s)
+PASS  moto freia até parar
+PASS  rua real: moto posicionada na faixa da via OSM  (Rua das Nações (-39.65, 80.66) y=0.04)
+PASS  guidão não gira a moto parada
+PASS  moto percorre a rua real até o cruzamento  (8.91 m do cruzamento, v=3.55)
+PASS  moto vira à direita em movimento  (yaw 2.2 → 3.47)
+PASS  inclinação visual moderada na curva  (lean=0.36 rad)
+PASS  moto desacelera sozinha sem acelerador  (8.04 → 7.99)
+PASS  não desce com a moto em movimento
+PASS  câmera gira (teclado)  (Δalpha=0.41)
+PASS  câmera aproxima  (raio 5.6 → 2.2)
+PASS  câmera afasta (roda do mouse)  (raio 2.2 → 8.91)
+PASS  câmera gira arrastando na cena
+PASS  câmera acompanha a moto
+PASS  desce com a moto parada
+PASS  personagem caminha  (2.74 m com KeyW)
+PASS  moto não se move enquanto a pé
+PASS  não monta longe da moto  (3.35 m)
+PASS  personagem não atravessa a moto estacionada  (distância 1.59 m)
+PASS  monta novamente perto da moto  (distância 1.59 m)
+PASS  moto chega ao muro do lote e não atravessa muros nem casas  (profundidade máxima -0.92 m além da divisa (lote q16-l306; divisa em 0))
+PASS  moto sobe na calçada (meio-fio)  (y=0.15)
+PASS  ré lenta ao frear parado  (v=-1.69)
+PASS  perda de foco solta as teclas
+FAIL  redimensiona o canvas com a janela  (225x105)
+PASS  câmera única em terceira pessoa, enquadramento próximo  (raio 5.6)
+PASS  tecla C não alterna mais a câmera
+PASS  sem botão GTA/ISO no HUD
+PASS  pausa abre com aviso de releitura fictícia
+PASS  pausa congela o relógio
+PASS  sem erros de console no desktop
+   desktop headless: 4.25 FPS (GPU por software, não representa aparelho real)
+PASS  jornada: 11h designa lojas e cria volumes rastreáveis  (construcao, farmacia · 48 endereços)
+PASS  loja: funcionário avisa que os volumes saem às 12h  (Volumes às 12h)
+PASS  aguardar acelera o relógio até 12h (escala 1 h = 4 min mantida)  (×24)
+PASS  relógio volta à escala normal após a espera
+PASS  coleta: os volumes vão para as MÃOS (não para o baú)  (2 volumes nas mãos)
+PASS  objetivo manda guardar no baú da moto  (Guardar os volumes no baú)
+PASS  HUD: "2 volumes nas mãos" em destaque  (2 volumes nas mãos · destaque=true · chip de distância visível=false)
+PASS  minimapa: moto marcada e rota até ela pelas ruas  (rota 0 pontos)
+PASS  baú: "Guardar no baú" atrás da moto; volumes saem das mãos e a tampa abre  (Guardar no baú (2) → 2 volumes no baú, tampa 0.51)
+PASS  coleta nas duas lojas: 4 volumes no baú, em transporte  (4 volumes no baú)
+PASS  galpão: com os volumes no baú o conferente não recebe nada  (Volumes no baú: retire na moto)
+PASS  galpão: retirar do baú leva os 4 volumes às mãos  (4 volumes nas mãos)
+PASS  galpão: conferente recebe os volumes das mãos
+PASS  galpão: conferente recebe volumes da loja e do caminhão
+PASS  triagem pelos separadores e saca pelo expedidor  (["na portaria","aguardando recebimento","organizando pallets","organizando pallets","arrumando prateleiras","arrumando prateleiras","saca pronta, aguardando entregador","na sala de controle"])
+PASS  saca mista retirada a partir das 15h: nas mãos, em rota  (saca com 8 volumes nas mãos)
+PASS  saca guardada no baú antes das entregas  (8 volumes no baú)
+PASS  minimapa: paradas de entrega e rota pelas ruas (mais longa que a linha reta)  (8 paradas, rota 377 m × reta 151 m)
+PASS  HUD: "8 volumes no baú" e distância pela rota  (➤ 380 m)
+PASS  entrega recusada com o pacote dentro do baú  (Pacote no baú: retire na moto)
+PASS  entrega: retirar do baú o pacote do endereço mais próximo  (Retirar pacote · nº 111 → 1 volume nas mãos · 7 volumes no baú)
+PASS  primeira jornada completa: 8/8 entregues, sem duplicar nem perder volumes  ({"collected":4,"delivered":8,"total":8})
+PASS  cidade viva: veículos e pedestres ativos  (19 veículos {"bus":2,"van":3,"car":10,"bike":1,"moto":3}, 47 pedestres)
+PASS  cidade viva: tráfego e pedestres se movem  (18 veículos em movimento)
+PASS  preview: cinco semáforos fictícios ativos (não são dados OSM)  ({"n1845393157":"r17:green/stop","n1845393100":"r75:yellow/stop","n1845393239":"r72:green/stop","n1845393180":"r82:green/stop","n1845393776":"r131:yellow/stop"})
+PASS  relógio virtual no formato HH:MM e jornada 11h–21h ativa  (15:04)
+PASS  minimapa ampliado acompanha o jogador  (x 0.47 → 0.4 (fração da largura))
+PASS  controle de hora (dev): 7h dia  (07:00 noite=0)
+PASS  controle de hora (dev): 12h dia  (12:00 noite=0)
+PASS  controle de hora (dev): 18.4h dia  (18:24 noite=0)
+PASS  controle de hora (dev): 21.5h noite  (21:30 noite=1)
+PASS  sem erros de console na cidade/jornada
+PASS  [toque] perfil gráfico móvel escolhido automaticamente  (render 195x90)
+PASS  [toque] botões com tamanho para dedos (≥ 44 px)  (menor lado 44 px)
+PASS  [toque] botões dentro da tela e sem sobreposição
+PASS  [toque] HUD deixa o centro da tela livre  ([{"x":64,"y":10,"w":318,"h":70.640625,"id":"objetivo"}])
+PASS  [toque] mapa ampliado: cabe na tela, mapa grande e legenda com moto/galpão/lojas/entregas  (mapa 322×322 px, 11 itens, 23 nomes de rua, cabe=true)
+PASS  [toque] botão acelerar move a moto  (v=2.64)
+PASS  [toque] botão mostra estado pressionado
+PASS  [toque] dois dedos: acelerar + virar ao mesmo tempo  (Δyaw=0.39)
+PASS  [toque] soltar os dedos não deixa comando preso  (v 5.27 → 4.57)
+PASS  [toque] botão frear para a moto
+PASS  [toque] toque cancelado solta o comando
+PASS  [toque] arrastar na cena gira a câmera  (Δalpha=-0.96)
+PASS  [toque] pinça afasta a câmera  (raio 5.6 → 8.73)
+PASS  [toque] botão Descer funciona parado
+PASS  [toque] personagem anda pelo analógico
+PASS  [toque] botão Montar funciona perto da moto
+PASS  [toque] botão de pausa abre a tela de pausa
+PASS  [toque] Continuar fecha a pausa
+PASS  [toque] sem erros de console
+   celular emulado headless: 9.61 FPS em 195x90 (GPU por software; NÃO é medição em Android)
+
+83/84 verificações passaram.

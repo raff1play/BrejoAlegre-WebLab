@@ -485,3 +485,12 @@ Números atuais do mapa: 46 quadras, 695 lotes, 681 casas estimadas, 48 endereç
 - Árvores e vegetação não foram refeitas.
 - Não existe sistema de pagamentos nesta base; nada foi criado nem alterado nesse sentido.
 - Draw calls do perfil alto continuam altos (≈ 2400–2900 por quadro com o passe de sombra); não foi otimizado.
+
+## ART-001 — 14/11/2026, protótipo artístico concentrado
+
+- Pedido atual do usuário prevalece sobre o fluxo histórico: branch isolada `feat/art-001-primeira-loja-moto`, base GFX-001 `e15c8d2` (SHA fixado pelo workflow de publicação isolada). Não alterar `main`/`preview`, não publicar e não fazer merge.
+- Primeira coleta padrão confirmada no jogo: `construcao` (Depósito de Construção), `assigned = [construcao, farmacia]`, seed 2026. Reformulada somente essa fachada e sua calçada imediata, com interior ajustado. Moto do jogador com nova apresentação, baú e rodas, mantendo simulação e interação.
+- Código: `src/world/city/firstPickupArt.ts`, integração em `storeFacade.ts`/`cityBuild.ts`, apresentação em `src/features/driving/motorcycle.ts`. Nenhuma modificação em física, IA, planta de colisão, galpão ou nas demais lojas.
+- Capturas reais comparáveis, método, limitações e custo renderizado: [ART-001](evidence/art-001/README.md), [comparação](evidence/art-001/comparison.html), [performance](evidence/art-001/performance.md). Não confundir screenshots de inspeção sem névoa com a câmera padrão de gameplay.
+- Qualidade: evolução visível de identidade e silhueta, ainda abaixo da referência textual. Materiais simplificados e interior modesto. Sem avaliação humana presumida, sem teste Android físico ou FPS em GPU física.
+- Verificação ART: `npm run check` passou (104 testes, validação, TypeScript e build). E2E reduzido: 83/84; falha de resize provocada pela escala 4 do adaptador, reprodução separada nativa 900×420 passou. Logs íntegros e capturas em `docs/evidence/art-001/`. Não declarar 84/84 na execução reduzida.

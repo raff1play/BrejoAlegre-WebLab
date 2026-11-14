@@ -1,0 +1,912 @@
+{
+  "browser": "156.0.8078.79",
+  "viewport": [
+    1280,
+    720
+  ],
+  "renderer": "SwiftShader software; not device FPS",
+  "traffic": false,
+  "errors": [],
+  "poses": {
+    "shop": {
+      "x": -95.93460790331471,
+      "z": 73.25298675859918,
+      "y": 2.5,
+      "r": 19,
+      "b": 1.32,
+      "a": 2.7341767322864428
+    },
+    "street": {
+      "x": -96.76698348719566,
+      "z": 73.80719871025562,
+      "y": 1.8,
+      "r": 29,
+      "b": 1.12,
+      "a": 2.9541767322864425
+    },
+    "bike": {
+      "x": -101.20702503882495,
+      "z": 77.96484600407523,
+      "y": 0.75,
+      "r": 3.1,
+      "b": 1.35,
+      "a": 2.9541767322864425
+    },
+    "interior": {
+      "x": -90.69548579115971,
+      "z": 68.56329599118938,
+      "y": 1.3,
+      "r": 5.5,
+      "b": 1.35,
+      "a": 2.5541767322864426
+    }
+  },
+  "shop": {
+    "samples": [
+      {
+        "drawCalls": 935,
+        "frameMs": 514.1,
+        "renderMs": 472.4,
+        "triangles": 576061,
+        "memoryMb": 172
+      },
+      {
+        "drawCalls": 1051,
+        "frameMs": 48.1,
+        "renderMs": 5.4,
+        "triangles": 587093,
+        "memoryMb": 173
+      },
+      {
+        "drawCalls": 1247,
+        "frameMs": 48.1,
+        "renderMs": 5.4,
+        "triangles": 605925,
+        "memoryMb": 177
+      },
+      {
+        "drawCalls": 1354,
+        "frameMs": 46.5,
+        "renderMs": 6.7,
+        "triangles": 615897,
+        "memoryMb": 177
+      },
+      {
+        "drawCalls": 1580,
+        "frameMs": 46.5,
+        "renderMs": 6.7,
+        "triangles": 636195,
+        "memoryMb": 201
+      },
+      {
+        "drawCalls": 1696,
+        "frameMs": 54.1,
+        "renderMs": 11.8,
+        "triangles": 646515,
+        "memoryMb": 203
+      },
+      {
+        "drawCalls": 1911,
+        "frameMs": 54.1,
+        "renderMs": 11.8,
+        "triangles": 667813,
+        "memoryMb": 210
+      },
+      {
+        "drawCalls": 1987,
+        "frameMs": 58.1,
+        "renderMs": 7.9,
+        "triangles": 674635,
+        "memoryMb": 205
+      },
+      {
+        "drawCalls": 2073,
+        "frameMs": 58.1,
+        "renderMs": 7.9,
+        "triangles": 682345,
+        "memoryMb": 221
+      },
+      {
+        "drawCalls": 2215,
+        "frameMs": 57.5,
+        "renderMs": 10.9,
+        "triangles": 695415,
+        "memoryMb": 229
+      },
+      {
+        "drawCalls": 2455,
+        "frameMs": 57.5,
+        "renderMs": 10.9,
+        "triangles": 716771,
+        "memoryMb": 235
+      },
+      {
+        "drawCalls": 2455,
+        "frameMs": 54.4,
+        "renderMs": 10.5,
+        "triangles": 716771,
+        "memoryMb": 219
+      },
+      {
+        "drawCalls": 2455,
+        "frameMs": 54.4,
+        "renderMs": 10.5,
+        "triangles": 716771,
+        "memoryMb": 221
+      },
+      {
+        "drawCalls": 2455,
+        "frameMs": 36.7,
+        "renderMs": 13.1,
+        "triangles": 716771,
+        "memoryMb": 223
+      },
+      {
+        "drawCalls": 2455,
+        "frameMs": 36.7,
+        "renderMs": 13.1,
+        "triangles": 716771,
+        "memoryMb": 225
+      },
+      {
+        "drawCalls": 2455,
+        "frameMs": 36.7,
+        "renderMs": 13.1,
+        "triangles": 716771,
+        "memoryMb": 225
+      },
+      {
+        "drawCalls": 2455,
+        "frameMs": 30.9,
+        "renderMs": 6.9,
+        "triangles": 716771,
+        "memoryMb": 229
+      },
+      {
+        "drawCalls": 2455,
+        "frameMs": 30.9,
+        "renderMs": 6.9,
+        "triangles": 716771,
+        "memoryMb": 231
+      },
+      {
+        "drawCalls": 2455,
+        "frameMs": 25.3,
+        "renderMs": 6.1,
+        "triangles": 716771,
+        "memoryMb": 233
+      },
+      {
+        "drawCalls": 2455,
+        "frameMs": 25.3,
+        "renderMs": 6.1,
+        "triangles": 716771,
+        "memoryMb": 235
+      },
+      {
+        "drawCalls": 2455,
+        "frameMs": 41.4,
+        "renderMs": 16.8,
+        "triangles": 716771,
+        "memoryMb": 237
+      },
+      {
+        "drawCalls": 2455,
+        "frameMs": 41.4,
+        "renderMs": 16.8,
+        "triangles": 716771,
+        "memoryMb": 179
+      },
+      {
+        "drawCalls": 2455,
+        "frameMs": 25.9,
+        "renderMs": 7.6,
+        "triangles": 716771,
+        "memoryMb": 181
+      },
+      {
+        "drawCalls": 2455,
+        "frameMs": 25.9,
+        "renderMs": 7.6,
+        "triangles": 716771,
+        "memoryMb": 183
+      },
+      {
+        "drawCalls": 2455,
+        "frameMs": 42.3,
+        "renderMs": 7.8,
+        "triangles": 716771,
+        "memoryMb": 185
+      },
+      {
+        "drawCalls": 2455,
+        "frameMs": 42.3,
+        "renderMs": 7.8,
+        "triangles": 716771,
+        "memoryMb": 187
+      },
+      {
+        "drawCalls": 2455,
+        "frameMs": 37.6,
+        "renderMs": 8.3,
+        "triangles": 716771,
+        "memoryMb": 189
+      },
+      {
+        "drawCalls": 2455,
+        "frameMs": 37.6,
+        "renderMs": 8.3,
+        "triangles": 716771,
+        "memoryMb": 191
+      },
+      {
+        "drawCalls": 2455,
+        "frameMs": 29.9,
+        "renderMs": 7.8,
+        "triangles": 716771,
+        "memoryMb": 193
+      },
+      {
+        "drawCalls": 2455,
+        "frameMs": 29.9,
+        "renderMs": 7.8,
+        "triangles": 716771,
+        "memoryMb": 195
+      }
+    ],
+    "meshes": 2738,
+    "triangles": 716771,
+    "activeMeshes": 952
+  },
+  "street": {
+    "samples": [
+      {
+        "drawCalls": 2520,
+        "frameMs": 29.2,
+        "renderMs": 6.4,
+        "triangles": 728271,
+        "memoryMb": 164
+      },
+      {
+        "drawCalls": 2520,
+        "frameMs": 29.2,
+        "renderMs": 6.4,
+        "triangles": 728271,
+        "memoryMb": 163
+      },
+      {
+        "drawCalls": 2520,
+        "frameMs": 25.6,
+        "renderMs": 6.8,
+        "triangles": 728271,
+        "memoryMb": 163
+      },
+      {
+        "drawCalls": 2520,
+        "frameMs": 25.6,
+        "renderMs": 6.8,
+        "triangles": 728271,
+        "memoryMb": 163
+      },
+      {
+        "drawCalls": 2520,
+        "frameMs": 29.6,
+        "renderMs": 7.5,
+        "triangles": 728271,
+        "memoryMb": 163
+      },
+      {
+        "drawCalls": 2520,
+        "frameMs": 29.6,
+        "renderMs": 7.5,
+        "triangles": 728271,
+        "memoryMb": 163
+      },
+      {
+        "drawCalls": 2520,
+        "frameMs": 35.7,
+        "renderMs": 6.8,
+        "triangles": 728271,
+        "memoryMb": 163
+      },
+      {
+        "drawCalls": 2520,
+        "frameMs": 35.7,
+        "renderMs": 6.8,
+        "triangles": 728271,
+        "memoryMb": 163
+      },
+      {
+        "drawCalls": 2520,
+        "frameMs": 33.3,
+        "renderMs": 9.1,
+        "triangles": 728271,
+        "memoryMb": 163
+      },
+      {
+        "drawCalls": 2520,
+        "frameMs": 33.3,
+        "renderMs": 9.1,
+        "triangles": 728271,
+        "memoryMb": 162
+      },
+      {
+        "drawCalls": 2520,
+        "frameMs": 25.3,
+        "renderMs": 7.3,
+        "triangles": 728271,
+        "memoryMb": 162
+      },
+      {
+        "drawCalls": 2520,
+        "frameMs": 25.3,
+        "renderMs": 7.3,
+        "triangles": 728271,
+        "memoryMb": 164
+      },
+      {
+        "drawCalls": 2520,
+        "frameMs": 33.9,
+        "renderMs": 14.9,
+        "triangles": 728271,
+        "memoryMb": 164
+      },
+      {
+        "drawCalls": 2520,
+        "frameMs": 33.9,
+        "renderMs": 14.9,
+        "triangles": 728271,
+        "memoryMb": 164
+      },
+      {
+        "drawCalls": 2520,
+        "frameMs": 23.3,
+        "renderMs": 6.1,
+        "triangles": 728271,
+        "memoryMb": 164
+      },
+      {
+        "drawCalls": 2520,
+        "frameMs": 23.3,
+        "renderMs": 6.1,
+        "triangles": 728271,
+        "memoryMb": 164
+      },
+      {
+        "drawCalls": 2520,
+        "frameMs": 25.7,
+        "renderMs": 6.8,
+        "triangles": 728271,
+        "memoryMb": 164
+      },
+      {
+        "drawCalls": 2520,
+        "frameMs": 25.7,
+        "renderMs": 6.8,
+        "triangles": 728271,
+        "memoryMb": 164
+      },
+      {
+        "drawCalls": 2520,
+        "frameMs": 28.7,
+        "renderMs": 7.4,
+        "triangles": 728271,
+        "memoryMb": 164
+      },
+      {
+        "drawCalls": 2520,
+        "frameMs": 28.7,
+        "renderMs": 7.4,
+        "triangles": 728271,
+        "memoryMb": 164
+      },
+      {
+        "drawCalls": 2520,
+        "frameMs": 26.8,
+        "renderMs": 7.5,
+        "triangles": 728271,
+        "memoryMb": 164
+      },
+      {
+        "drawCalls": 2520,
+        "frameMs": 26.8,
+        "renderMs": 7.5,
+        "triangles": 728271,
+        "memoryMb": 164
+      },
+      {
+        "drawCalls": 2520,
+        "frameMs": 23.4,
+        "renderMs": 6.9,
+        "triangles": 728271,
+        "memoryMb": 164
+      },
+      {
+        "drawCalls": 2520,
+        "frameMs": 23.4,
+        "renderMs": 6.9,
+        "triangles": 728271,
+        "memoryMb": 164
+      },
+      {
+        "drawCalls": 2520,
+        "frameMs": 24.2,
+        "renderMs": 6.5,
+        "triangles": 728271,
+        "memoryMb": 164
+      },
+      {
+        "drawCalls": 2520,
+        "frameMs": 24.2,
+        "renderMs": 6.5,
+        "triangles": 728271,
+        "memoryMb": 164
+      },
+      {
+        "drawCalls": 2520,
+        "frameMs": 47.4,
+        "renderMs": 10.6,
+        "triangles": 728271,
+        "memoryMb": 164
+      },
+      {
+        "drawCalls": 2520,
+        "frameMs": 47.4,
+        "renderMs": 10.6,
+        "triangles": 728271,
+        "memoryMb": 164
+      },
+      {
+        "drawCalls": 2520,
+        "frameMs": 37.7,
+        "renderMs": 9.6,
+        "triangles": 728271,
+        "memoryMb": 164
+      },
+      {
+        "drawCalls": 2520,
+        "frameMs": 37.7,
+        "renderMs": 9.6,
+        "triangles": 728271,
+        "memoryMb": 164
+      }
+    ],
+    "meshes": 2738,
+    "triangles": 728271,
+    "activeMeshes": 1074
+  },
+  "bike": {
+    "samples": [
+      {
+        "drawCalls": 2418,
+        "frameMs": 34.2,
+        "renderMs": 7.1,
+        "triangles": 709587,
+        "memoryMb": 166
+      },
+      {
+        "drawCalls": 2418,
+        "frameMs": 33.4,
+        "renderMs": 13.9,
+        "triangles": 709587,
+        "memoryMb": 164
+      },
+      {
+        "drawCalls": 2418,
+        "frameMs": 33.4,
+        "renderMs": 13.9,
+        "triangles": 709587,
+        "memoryMb": 166
+      },
+      {
+        "drawCalls": 2418,
+        "frameMs": 32.7,
+        "renderMs": 9.1,
+        "triangles": 709587,
+        "memoryMb": 164
+      },
+      {
+        "drawCalls": 2418,
+        "frameMs": 32.7,
+        "renderMs": 9.1,
+        "triangles": 709587,
+        "memoryMb": 166
+      },
+      {
+        "drawCalls": 2418,
+        "frameMs": 35.3,
+        "renderMs": 8.1,
+        "triangles": 709587,
+        "memoryMb": 164
+      },
+      {
+        "drawCalls": 2418,
+        "frameMs": 35.3,
+        "renderMs": 8.1,
+        "triangles": 709587,
+        "memoryMb": 166
+      },
+      {
+        "drawCalls": 2418,
+        "frameMs": 28.1,
+        "renderMs": 5.5,
+        "triangles": 709587,
+        "memoryMb": 164
+      },
+      {
+        "drawCalls": 2418,
+        "frameMs": 28.1,
+        "renderMs": 5.5,
+        "triangles": 709587,
+        "memoryMb": 166
+      },
+      {
+        "drawCalls": 2418,
+        "frameMs": 32.2,
+        "renderMs": 5.7,
+        "triangles": 709587,
+        "memoryMb": 164
+      },
+      {
+        "drawCalls": 2418,
+        "frameMs": 32.2,
+        "renderMs": 5.7,
+        "triangles": 709587,
+        "memoryMb": 166
+      },
+      {
+        "drawCalls": 2418,
+        "frameMs": 30.1,
+        "renderMs": 7.5,
+        "triangles": 709587,
+        "memoryMb": 164
+      },
+      {
+        "drawCalls": 2418,
+        "frameMs": 30.1,
+        "renderMs": 7.5,
+        "triangles": 709587,
+        "memoryMb": 166
+      },
+      {
+        "drawCalls": 2418,
+        "frameMs": 22.7,
+        "renderMs": 5.4,
+        "triangles": 709587,
+        "memoryMb": 164
+      },
+      {
+        "drawCalls": 2418,
+        "frameMs": 22.7,
+        "renderMs": 5.4,
+        "triangles": 709587,
+        "memoryMb": 166
+      },
+      {
+        "drawCalls": 2418,
+        "frameMs": 22.9,
+        "renderMs": 5.5,
+        "triangles": 706955,
+        "memoryMb": 164
+      },
+      {
+        "drawCalls": 2418,
+        "frameMs": 22.9,
+        "renderMs": 5.5,
+        "triangles": 706955,
+        "memoryMb": 166
+      },
+      {
+        "drawCalls": 2418,
+        "frameMs": 29.8,
+        "renderMs": 12.4,
+        "triangles": 706955,
+        "memoryMb": 164
+      },
+      {
+        "drawCalls": 2418,
+        "frameMs": 29.8,
+        "renderMs": 12.4,
+        "triangles": 706955,
+        "memoryMb": 166
+      },
+      {
+        "drawCalls": 2418,
+        "frameMs": 30,
+        "renderMs": 5.8,
+        "triangles": 706955,
+        "memoryMb": 164
+      },
+      {
+        "drawCalls": 2418,
+        "frameMs": 30,
+        "renderMs": 5.8,
+        "triangles": 706955,
+        "memoryMb": 166
+      },
+      {
+        "drawCalls": 2418,
+        "frameMs": 36.3,
+        "renderMs": 5.8,
+        "triangles": 706955,
+        "memoryMb": 164
+      },
+      {
+        "drawCalls": 2418,
+        "frameMs": 36.3,
+        "renderMs": 5.8,
+        "triangles": 706955,
+        "memoryMb": 166
+      },
+      {
+        "drawCalls": 2418,
+        "frameMs": 23.5,
+        "renderMs": 5.4,
+        "triangles": 706955,
+        "memoryMb": 164
+      },
+      {
+        "drawCalls": 2418,
+        "frameMs": 23.5,
+        "renderMs": 5.4,
+        "triangles": 706955,
+        "memoryMb": 166
+      },
+      {
+        "drawCalls": 2418,
+        "frameMs": 24.4,
+        "renderMs": 6,
+        "triangles": 706955,
+        "memoryMb": 164
+      },
+      {
+        "drawCalls": 2418,
+        "frameMs": 24.4,
+        "renderMs": 6,
+        "triangles": 706955,
+        "memoryMb": 166
+      },
+      {
+        "drawCalls": 2418,
+        "frameMs": 28.2,
+        "renderMs": 7.2,
+        "triangles": 706955,
+        "memoryMb": 164
+      },
+      {
+        "drawCalls": 2418,
+        "frameMs": 28.2,
+        "renderMs": 7.2,
+        "triangles": 706955,
+        "memoryMb": 166
+      },
+      {
+        "drawCalls": 2418,
+        "frameMs": 22.2,
+        "renderMs": 5.4,
+        "triangles": 706955,
+        "memoryMb": 164
+      }
+    ],
+    "meshes": 2738,
+    "triangles": 706955,
+    "activeMeshes": 959
+  },
+  "interior": {
+    "samples": [
+      {
+        "drawCalls": 2325,
+        "frameMs": 22.9,
+        "renderMs": 5.8,
+        "triangles": 682215,
+        "memoryMb": 164
+      },
+      {
+        "drawCalls": 2325,
+        "frameMs": 28.8,
+        "renderMs": 11.1,
+        "triangles": 682215,
+        "memoryMb": 166
+      },
+      {
+        "drawCalls": 2325,
+        "frameMs": 28.8,
+        "renderMs": 11.1,
+        "triangles": 682215,
+        "memoryMb": 165
+      },
+      {
+        "drawCalls": 2325,
+        "frameMs": 28.3,
+        "renderMs": 5.9,
+        "triangles": 682215,
+        "memoryMb": 166
+      },
+      {
+        "drawCalls": 2325,
+        "frameMs": 28.3,
+        "renderMs": 5.9,
+        "triangles": 682215,
+        "memoryMb": 165
+      },
+      {
+        "drawCalls": 2325,
+        "frameMs": 29.8,
+        "renderMs": 6.5,
+        "triangles": 682215,
+        "memoryMb": 166
+      },
+      {
+        "drawCalls": 2325,
+        "frameMs": 29.8,
+        "renderMs": 6.5,
+        "triangles": 682215,
+        "memoryMb": 164
+      },
+      {
+        "drawCalls": 2325,
+        "frameMs": 30.3,
+        "renderMs": 4.7,
+        "triangles": 682215,
+        "memoryMb": 166
+      },
+      {
+        "drawCalls": 2325,
+        "frameMs": 30.3,
+        "renderMs": 4.7,
+        "triangles": 682215,
+        "memoryMb": 164
+      },
+      {
+        "drawCalls": 2325,
+        "frameMs": 21.8,
+        "renderMs": 4.6,
+        "triangles": 682215,
+        "memoryMb": 166
+      },
+      {
+        "drawCalls": 2325,
+        "frameMs": 21.8,
+        "renderMs": 4.6,
+        "triangles": 682215,
+        "memoryMb": 165
+      },
+      {
+        "drawCalls": 2325,
+        "frameMs": 22.4,
+        "renderMs": 4.9,
+        "triangles": 682215,
+        "memoryMb": 166
+      },
+      {
+        "drawCalls": 2325,
+        "frameMs": 22.4,
+        "renderMs": 4.9,
+        "triangles": 682215,
+        "memoryMb": 164
+      },
+      {
+        "drawCalls": 2325,
+        "frameMs": 21.9,
+        "renderMs": 5,
+        "triangles": 682215,
+        "memoryMb": 166
+      },
+      {
+        "drawCalls": 2325,
+        "frameMs": 21.9,
+        "renderMs": 5,
+        "triangles": 682215,
+        "memoryMb": 164
+      },
+      {
+        "drawCalls": 2325,
+        "frameMs": 28,
+        "renderMs": 6,
+        "triangles": 682215,
+        "memoryMb": 166
+      },
+      {
+        "drawCalls": 2325,
+        "frameMs": 28,
+        "renderMs": 6,
+        "triangles": 682215,
+        "memoryMb": 165
+      },
+      {
+        "drawCalls": 2325,
+        "frameMs": 22.3,
+        "renderMs": 5,
+        "triangles": 682215,
+        "memoryMb": 166
+      },
+      {
+        "drawCalls": 2325,
+        "frameMs": 22.3,
+        "renderMs": 5,
+        "triangles": 682215,
+        "memoryMb": 165
+      },
+      {
+        "drawCalls": 2325,
+        "frameMs": 24.4,
+        "renderMs": 4.9,
+        "triangles": 682215,
+        "memoryMb": 166
+      },
+      {
+        "drawCalls": 2325,
+        "frameMs": 24.4,
+        "renderMs": 4.9,
+        "triangles": 682215,
+        "memoryMb": 165
+      },
+      {
+        "drawCalls": 2325,
+        "frameMs": 23.2,
+        "renderMs": 4.9,
+        "triangles": 682215,
+        "memoryMb": 166
+      },
+      {
+        "drawCalls": 2325,
+        "frameMs": 23.2,
+        "renderMs": 4.9,
+        "triangles": 682215,
+        "memoryMb": 165
+      },
+      {
+        "drawCalls": 2325,
+        "frameMs": 26.7,
+        "renderMs": 9.4,
+        "triangles": 682215,
+        "memoryMb": 166
+      },
+      {
+        "drawCalls": 2325,
+        "frameMs": 26.7,
+        "renderMs": 9.4,
+        "triangles": 682215,
+        "memoryMb": 165
+      },
+      {
+        "drawCalls": 2325,
+        "frameMs": 20.9,
+        "renderMs": 5.2,
+        "triangles": 682215,
+        "memoryMb": 166
+      },
+      {
+        "drawCalls": 2325,
+        "frameMs": 20.9,
+        "renderMs": 5.2,
+        "triangles": 682215,
+        "memoryMb": 165
+      },
+      {
+        "drawCalls": 2325,
+        "frameMs": 24.3,
+        "renderMs": 5.3,
+        "triangles": 682215,
+        "memoryMb": 166
+      },
+      {
+        "drawCalls": 2325,
+        "frameMs": 24.3,
+        "renderMs": 5.3,
+        "triangles": 682215,
+        "memoryMb": 165
+      },
+      {
+        "drawCalls": 2325,
+        "frameMs": 42.6,
+        "renderMs": 7.6,
+        "triangles": 682215,
+        "memoryMb": 166
+      }
+    ],
+    "meshes": 2738,
+    "triangles": 682215,
+    "activeMeshes": 784
+  }
+}

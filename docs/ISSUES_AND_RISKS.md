@@ -137,3 +137,9 @@ Não marcar bloqueio como corrigido sem evidência de execução, timestamp e, q
 | GFX-03 | Média | AVALIAÇÃO HUMANA | Aprovação estética frente às imagens de referência (que são arte promocional, não capturas). |
 | GFX-04 | Baixa | ABERTO | Moto e personagens não foram remodelados; árvores não foram refeitas; sem PBR. |
 | GFX-05 | Baixa | ABERTO | Roteiro de navegador depende de tempo real em ~2 FPS de software; o limite de um passo foi ampliado de 60 s para 120 s. |
+
+## ART-001 — limites de arte e validação (14/11/2026)
+
+- A comparação em `docs/evidence/art-001/` mostra melhora localizada, não uma remasterização concluída. Ainda há volumes em primitivas, fachadas adjacentes antigas, superfícies uniformes e interior com intervenção pequena.
+- O jogo padrão começa em `construcao` pela seed 2026; outras seeds podem começar em outra loja e não recebem esta arte.
+- Medição de cena em Chromium/SwiftShader; FPS, temperatura, bateria, toque e legibilidade no Android físico continuam sem teste. O aumento de triângulos e draw calls está registrado nos dados reais, sem previsão de desempenho no aparelho.

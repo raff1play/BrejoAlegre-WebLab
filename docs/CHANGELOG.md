@@ -156,3 +156,9 @@ Próximas mudanças devem registrar PR/SHA e resultados verificáveis.
 - C: luzes da moto, carga no baú, mistura de poses, rota dos funcionários.
 - D: comportamento de veículos e pedestres.
 - E: capturas antes/depois e métricas (`scripts/gfx/`, `docs/evidence/gfx-001/`).
+
+## ART-001 — 14/11/2026 (branch isolada, sem publicação)
+
+- Arte concentrada no Depósito de Construção, primeira coleta da seed padrão: nova platibanda, letreiro pintado, toldo, esquadrias, cerâmica, desgaste localizado, instalação elétrica e calçada imediata.
+- Moto do jogador com rodas raiadas, tanque e carenagem revistos, banco nervurado, farol redondo e baú maior com identidade original de entregas. Física e regras preservadas.
+- Capturas reais antes/depois e dados de complexidade em `docs/evidence/art-001/`; referência visual ainda não alcançada, Android real pendente.

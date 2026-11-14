@@ -21,3 +21,7 @@ Nenhum asset externo novo. Veículos NPC, pessoas (funcionários, clientes, tran
 - As imagens do jogo são uma "Produced Work" e precisam da atribuição.
 - Nenhum dado do Google Maps foi usado.
 - O experimento Patch.gg foi removido; seus GLBs e licenças saíram do repositório. Os assets CC0 Poly Haven (CORE-011) continuam.
+
+## ART-001 (14/11/2026)
+
+Arte original implementada em `src/world/city/firstPickupArt.ts` e na apresentação da moto do jogador (`src/features/driving/motorcycle.ts`). Letreiro e identidade fictícia BREJO ENTREGAS desenhados em canvas; geometrias montadas no motor. Sem download ou novo asset de terceiros, fonte comercial externa, imagem de IA ou dependência nova. As capturas em `docs/evidence/art-001/` são renders reais do Babylon/Chromium; preservada a atribuição dos dados OSM do projeto. A referência pictórica exata não foi anexada nesta tarefa.

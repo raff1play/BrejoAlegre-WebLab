@@ -1,0 +1,5 @@
+
+> brejo-alegre-web-lab@0.1.0 validate:repo
+> node scripts/validate-repository.mjs
+
+Repository integrity checks passed (28 required text files).
