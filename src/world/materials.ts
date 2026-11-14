@@ -1,10 +1,12 @@
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Texture } from '@babylonjs/core/Materials/Textures/texture';
+import { DynamicTexture } from '@babylonjs/core/Materials/Textures/dynamicTexture';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
 import type { Scene } from '@babylonjs/core/scene';
 import type { BaseTexture } from '@babylonjs/core/Materials/Textures/baseTexture';
 import type { GraphicsProfile } from '../config/graphics';
 import {
+  normalMapFrom,
   paintAsphalt, paintBlockwork, paintCobogo, paintContactShadow, paintHydraulicTile, paintPavers, paintPortuguesePavement,
   paintStoneCladding, paintHousePlates, paintLeafCluster, paintConcrete, paintDirt, paintFoliage, paintGrass, paintPlaster, paintRailing,
   paintRibbedMetal, paintRoofTiles, paintSign, paintStripes, paintTexture, paintWindow, paintWoodDoor, type SignLine,
@@ -52,15 +54,16 @@ export class Materials {
     const tex = (name: string, base: number, seed: number, painter: Parameters<typeof paintTexture>[3]) =>
       this.texture(name, () => paintTexture(scene, name, { size: size(base), seed, anisotropy: profile.anisotropy }, painter));
 
-    this.asphalt = this.make('asfalto', '#ffffff', { tile: 6, specular: 0.05 }, tex('tx-asfalto', 512, 11, paintAsphalt));
+    this.asphalt = this.relief(this.make('asfalto', '#ffffff', { tile: 6, specular: 0.16 }, tex('tx-asfalto', 512, 11, paintAsphalt)), 1.3);
+    this.asphalt.material.specularPower = 22;
     const concrete = tex('tx-concreto', 256, 23, paintConcrete);
-    this.pavement = this.make('calcada', '#ffffff', { tile: 2.2 }, concrete);
+    this.pavement = this.relief(this.make('calcada', '#ffffff', { tile: 2.2 }, concrete), 0.9);
     this.plazaPaving = this.make('praca-piso', '#e9d9c0', { tile: 1.6 }, concrete);
-    this.curb = this.paint('#d6d2c8');
+    this.curb = this.paint('#e4e1d8');
     this.grass = this.make('grama', '#ffffff', { tile: 5 }, tex('tx-grama', 256, 37, paintGrass));
     this.dirt = this.make('terra', '#ffffff', { tile: 6 }, tex('tx-terra', 256, 41, paintDirt));
-    this.blockwork = this.make('bloco-ceramico', '#ffffff', { tile: 1.2 }, tex('tx-bloco', 256, 53, paintBlockwork));
-    this.roofTiles = this.make('telha-ceramica', '#ffffff', { tile: 1.6, specular: 0.04 }, tex('tx-telha', 256, 67, paintRoofTiles));
+    this.blockwork = this.relief(this.make('bloco-ceramico', '#ffffff', { tile: 1.2 }, tex('tx-bloco', 256, 53, paintBlockwork)), 3);
+    this.roofTiles = this.relief(this.make('telha-ceramica', '#ffffff', { tile: 1.6, specular: 0.07 }, tex('tx-telha', 256, 67, paintRoofTiles)), 3.2);
     this.door = this.make('porta-madeira', '#ffffff', { tile: 1 }, tex('tx-porta', 128, 71, paintWoodDoor));
     this.window = this.make('janela', '#ffffff', { tile: 1, specular: 0.5 }, tex('tx-janela', 256, 73, paintWindow));
     const railingTexture = this.texture('tx-grade', () =>
@@ -77,7 +80,7 @@ export class Materials {
     this.asphaltPatch = this.tinted(roadPaint, '#3f4042');
 
     // W009 showcase surfaces.
-    this.stone = this.make('pedra-canjiquinha', '#ffffff', { tile: 0.9 }, tex('tx-pedra', 256, 89, paintStoneCladding));
+    this.stone = this.relief(this.make('pedra-canjiquinha', '#ffffff', { tile: 0.9 }, tex('tx-pedra', 256, 89, paintStoneCladding)), 3);
     const cobogoTexture = this.texture('tx-cobogo', () =>
       paintTexture(scene, 'tx-cobogo', { size: size(128), alpha: true, anisotropy: profile.anisotropy }, paintCobogo));
     this.cobogo = this.make('cobogo', '#ffffff', { tile: 0.8 }, cobogoTexture);
@@ -140,6 +143,17 @@ export class Materials {
       receiveShadows: options.receiveShadows ?? true,
     };
     this.cache.set(name, entry);
+    return entry;
+  }
+
+  /**
+   * GFX-001: normal map derived from the material's own painted texture. High profile only: on
+   * the light (phone) profile the surfaces stay flat-shaded, as before.
+   */
+  private relief(entry: LabMaterial, strength: number): LabMaterial {
+    const m = entry.material;
+    if (this.profile.name !== 'desktop' || m.bumpTexture || !(m.diffuseTexture instanceof DynamicTexture)) return entry;
+    m.bumpTexture = this.texture(`${m.diffuseTexture.name}-relevo`, () => normalMapFrom(this.scene, `${m.diffuseTexture!.name}-relevo`, m.diffuseTexture as DynamicTexture, strength, this.profile.anisotropy));
     return entry;
   }
 
@@ -262,7 +276,7 @@ export class Materials {
   plaster(color: string): LabMaterial {
     const texture = this.texture('tx-reboco', () => paintTexture(this.scene, 'tx-reboco',
       { size: Math.max(64, Math.round(256 * this.profile.textureScale)), seed: 5, anisotropy: this.profile.anisotropy }, paintPlaster));
-    return this.tinted(this.make('reboco', '#ffffff', { tile: 3 }, texture), color);
+    return this.tinted(this.relief(this.make('reboco', '#ffffff', { tile: 3 }, texture), 1.1), color);
   }
 
   /** Corrugated sheet metal tinted in `color`. */

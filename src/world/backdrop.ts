@@ -24,7 +24,8 @@ function seeded(seed: number): () => number {
 function hillHeight(angle: number, radius: number): number {
   const t = (radius - INNER) / (OUTER - INNER);
   const ridge = 14 + 9 * Math.sin(angle * 3 + 0.7) + 6 * Math.sin(angle * 7 + 2.1) + 3 * Math.sin(angle * 13);
-  return Math.max(0, Math.sin(Math.min(1, t * 1.15) * Math.PI * 0.5)) * ridge * (0.55 + t * 0.6);
+  // GFX-001: ×3.4 — at 1.2 km a 25 m hill is 1° tall and vanished behind the first roof.
+  return Math.max(0, Math.sin(Math.min(1, t * 1.15) * Math.PI * 0.5)) * ridge * (0.55 + t * 0.6) * 3.4;
 }
 
 function buildHills(scene: Scene, mats: Materials): Mesh {
@@ -43,8 +44,11 @@ function buildHills(scene: Scene, mats: Materials): Mesh {
       // Greens vary with height and a little noise; some dry pasture patches.
       const k = 0.85 + random() * 0.2;
       const dry = Math.sin(a * 5 + r) > 0.75 ? 1 : 0;
-      const g = [0.36 + y * 0.004, 0.52 + y * 0.003, 0.27];
-      colors.push((dry ? 0.6 : g[0]!) * k, (dry ? 0.55 : g[1]!) * k, (dry ? 0.32 : g[2]!) * k, 1);
+      const g = [0.3 + y * 0.0012, 0.5 + y * 0.0009, 0.24];
+      // Aerial perspective is painted in (the hills ignore the scene fog): bluer and paler far away.
+      const haze = 0.3 + 0.3 * (r / rings);
+      const c = [(dry ? 0.58 : g[0]!) * k, (dry ? 0.56 : g[1]!) * k, (dry ? 0.3 : g[2]!) * k];
+      colors.push(c[0]! + (0.62 - c[0]!) * haze, c[1]! + (0.74 - c[1]!) * haze, c[2]! + (0.86 - c[2]!) * haze, 1);
     }
   }
   const row = sides + 1;
@@ -62,6 +66,7 @@ function buildHills(scene: Scene, mats: Materials): Mesh {
   const mesh = new Mesh('morros', scene);
   data.applyToMesh(mesh);
   mesh.material = mats.paint('#ffffff').material;
+  mesh.applyFog = false;
   return mesh;
 }
 
@@ -122,6 +127,7 @@ export function buildBackdrop(scene: Scene, mats: Materials): Mesh[] {
   town.absorb(white, stem);
   const meshes = [hills, ...town.build('casario', scene)];
   for (const mesh of meshes) {
+    mesh.applyFog = false;
     mesh.isPickable = false;
     mesh.receiveShadows = false;
     mesh.freezeWorldMatrix();

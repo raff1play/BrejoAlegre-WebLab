@@ -66,11 +66,11 @@ function blotches(ctx: Ctx, size: number, random: () => number, count: number, c
 export const paintAsphalt: Painter = (ctx, size, random) => {
   // Street preview: restrained dark asphalt with finer aggregate and small colour variations.
   // No large repeated potholes: the tiled texture represents material, not road geometry.
-  ctx.fillStyle = '#484b4e';
+  ctx.fillStyle = '#5a5d60';
   ctx.fillRect(0, 0, size, size);
   blotches(ctx, size, random, 12, 'rgba(27,29,32,0.11)', 0.16);
   blotches(ctx, size, random, 11, 'rgba(138,135,126,0.065)', 0.2);
-  speckle(ctx, size, random, size * 52, ['#404346', '#55595b', '#686b6c', '#3c4043', '#57564e'], 1.25);
+  speckle(ctx, size, random, size * 52, ['#4b4e51', '#62666a', '#787b7c', '#45494c', '#6b6a62', '#8a8c8c'], 1.25);
   ctx.strokeStyle = 'rgba(30,32,34,0.17)';
   ctx.lineWidth = Math.max(1, size / 512);
   for (let i = 0; i < 3; i++) {
@@ -322,36 +322,74 @@ export const paintSign = (background: string, border: string, lines: SignLine[],
 
 /** Vertical sky gradient with a few soft clouds, mapped on the inside of a dome. */
 export const paintSky: Painter = (ctx, size, random) => {
+  // GFX-001: the street camera looks almost level, so the blue has to reach down to the horizon
+  // (it used to turn beige 11° above it) and the clouds sit where they are actually seen.
   const w = size * 2;
   const g = ctx.createLinearGradient(0, 0, 0, size);
-  g.addColorStop(0, '#2c6dc4');
-  g.addColorStop(0.28, '#5a9ae0');
-  g.addColorStop(0.44, '#a9cdea');
-  g.addColorStop(0.49, '#f0e3c4');
-  g.addColorStop(0.5, '#e8dfc9');
-  g.addColorStop(1, '#e8dfc9');
+  g.addColorStop(0, '#1f5fbf');
+  g.addColorStop(0.22, '#3d82d6');
+  g.addColorStop(0.38, '#6aa6e6');
+  g.addColorStop(0.46, '#9cc6ee');
+  g.addColorStop(0.492, '#cfe3f3');
+  g.addColorStop(0.5, '#e6eef2');
+  g.addColorStop(0.52, '#dfe6e6');
+  g.addColorStop(1, '#dfe6e6');
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, w, size);
-  // Fluffy cumulus: bright sunlit tops, warm-grey undersides.
-  for (let i = 0; i < 26; i++) {
-    const cx = random() * w;
-    const cy = size * (0.16 + random() * 0.27);
-    const scale = size * (0.025 + random() * 0.045) * (1 + (cy / size - 0.16) * 1.5);
-    for (let k = 0; k < 11; k++) {
-      const x = cx + (random() - 0.5) * scale * 5.5;
-      const y = cy + (random() - 0.7) * scale * 1.1;
-      const r = scale * (0.6 + random() * 0.9);
+  // Cumulus in three layers: big towers high up, flatter and smaller towards the horizon.
+  const puff = (cx: number, cy: number, scale: number, lumps: number, flat: number) => {
+    for (let k = 0; k < lumps; k++) {
+      const x = cx + (random() - 0.5) * scale * 6;
+      const y = cy + (random() - 0.75) * scale * flat;
+      const r = scale * (0.6 + random() * 0.95);
       for (const ox of [-w, 0, w]) {
-        const c = ctx.createRadialGradient(x + ox, y - r * 0.3, 0, x + ox, y, r);
-        c.addColorStop(0, 'rgba(255,250,240,0.75)');
-        c.addColorStop(0.6, 'rgba(236,228,220,0.45)');
-        c.addColorStop(1, 'rgba(200,196,200,0)');
+        // Sunlit top, cool grey-violet underside.
+        const c = ctx.createRadialGradient(x + ox, y - r * 0.35, 0, x + ox, y, r);
+        c.addColorStop(0, 'rgba(255,253,246,0.9)');
+        c.addColorStop(0.55, 'rgba(244,238,232,0.6)');
+        c.addColorStop(0.85, 'rgba(196,200,216,0.25)');
+        c.addColorStop(1, 'rgba(190,196,214,0)');
         ctx.fillStyle = c;
         ctx.fillRect(x + ox - r, y - r, r * 2, r * 2);
       }
     }
-  }
+  };
+  for (let i = 0; i < 14; i++) puff(random() * w, size * (0.12 + random() * 0.18), size * (0.05 + random() * 0.05), 14, 1.3);
+  for (let i = 0; i < 22; i++) puff(random() * w, size * (0.33 + random() * 0.09), size * (0.028 + random() * 0.03), 11, 0.9);
+  for (let i = 0; i < 26; i++) puff(random() * w, size * (0.44 + random() * 0.04), size * (0.012 + random() * 0.014), 9, 0.5);
 };
+
+/**
+ * GFX-001: tangent-space normal map from the brightness of a painted texture (Sobel, wrapping),
+ * so asphalt grain, pavement joints, brick and tile courses catch the low sun. Built once.
+ */
+export function normalMapFrom(scene: Scene, name: string, source: DynamicTexture, strength: number, anisotropy: number): DynamicTexture {
+  const { width, height } = source.getSize();
+  const src = (source.getContext() as unknown as Ctx).getImageData(0, 0, width, height).data;
+  const lum = new Float32Array(width * height);
+  for (let i = 0; i < width * height; i++) lum[i] = (src[i * 4]! * 0.3 + src[i * 4 + 1]! * 0.59 + src[i * 4 + 2]! * 0.11) / 255;
+  const out = new DynamicTexture(name, { width, height }, scene, true, Texture.TRILINEAR_SAMPLINGMODE);
+  const ctx = out.getContext() as unknown as Ctx;
+  const image = ctx.createImageData(width, height);
+  const at = (x: number, y: number) => lum[((y + height) % height) * width + ((x + width) % width)]!;
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const dx = (at(x + 1, y - 1) + 2 * at(x + 1, y) + at(x + 1, y + 1) - at(x - 1, y - 1) - 2 * at(x - 1, y) - at(x - 1, y + 1)) * strength;
+      const dy = (at(x - 1, y + 1) + 2 * at(x, y + 1) + at(x + 1, y + 1) - at(x - 1, y - 1) - 2 * at(x, y - 1) - at(x + 1, y - 1)) * strength;
+      const inv = 1 / Math.hypot(dx, dy, 1);
+      const i = (y * width + x) * 4;
+      image.data[i] = (-dx * inv * 0.5 + 0.5) * 255;
+      image.data[i + 1] = (-dy * inv * 0.5 + 0.5) * 255;
+      image.data[i + 2] = (inv * 0.5 + 0.5) * 255;
+      image.data[i + 3] = 255;
+    }
+  }
+  ctx.putImageData(image, 0, 0);
+  out.update(true);
+  out.anisotropicFilteringLevel = anisotropy;
+  out.wrapU = source.wrapU; out.wrapV = source.wrapV;
+  return out;
+}
 
 /** "Canjiquinha" stone cladding: thin irregular stone slivers in warm beige, grey and rust. */
 export const paintStoneCladding: Painter = (ctx, size, random) => {

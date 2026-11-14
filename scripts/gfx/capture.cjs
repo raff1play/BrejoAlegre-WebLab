@@ -17,7 +17,7 @@ fs.mkdirSync(OUT, { recursive: true });
 (async () => {
   const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
   const metrics = {};
-  for (const gfx of ['desktop', 'mobile']) {
+  for (const gfx of (process.env.GFX_PROFILES || 'desktop,mobile').split(',')) {
     const page = await (await browser.newContext({ viewport: gfx === 'desktop' ? { width: 1280, height: 720 } : { width: 780, height: 360 }, deviceScaleFactor: 1 })).newPage();
     const errors = []; page.on('pageerror', (e) => errors.push(e.message)); page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
     const t0 = Date.now();
@@ -45,6 +45,7 @@ fs.mkdirSync(OUT, { recursive: true });
     await ev(([a]) => window.__debug.camera(a + 0.9, 1.25, 3.2), [behind(P.junction.yaw)]); await wait(2500); await shot('moto-perto');
     await ev(([x, z, y]) => window.__debug.placeWalker(x + 2.2, z + 1.0, y), [P.junction.startX, P.junction.startZ, P.junction.yaw + 2.4]);
     await ev(([a]) => window.__debug.camera(a, 1.2, 3.0), [behind(P.junction.yaw + 2.4) + Math.PI]); await wait(2500); await shot('entregador-perto');
+    if (process.env.GFX_QUICK === 'rua') { await page.close(); continue; }
     // 3. The eight shops: facade from the street and interior at the counter.
     const stores = (await snap()).delivery.stores;
     for (const st of stores) {

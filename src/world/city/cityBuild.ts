@@ -139,7 +139,8 @@ export function buildRoads(flat: BatchSet, upright: BatchSet, mats: Materials): 
   // Street-paint geometry is batched by colour and floats above asphalt. All markings
   // are derived from real roads; the new crosswalks and signals are fictional.
   for (const mark of streetPaint()) {
-    ribbon(flat, mats.lineWhite, [mark.start, mark.end], mark.width, 0.014);
+    // GFX-001: centre lines divide opposite flows → yellow (Brazilian road marking); the rest white.
+    ribbon(flat, mark.kind === 'centre' ? mats.lineYellow : mats.lineWhite, [mark.start, mark.end], mark.kind === 'centre' ? mark.width * 1.4 : mark.width, 0.014);
   }
   // Blocks: kerb face, gutter, pavement and the lot area behind it.
   for (const b of BLOCKS) {
@@ -575,7 +576,8 @@ export function buildCity(scene: Scene, mats: Materials, shared: SharedBatches):
   buildDepot(scene, upright, flat, mats);
   upright.setTransform(null); flat.setTransform(null);
   // Frontage walls (plaster, stone plinth, coping, pillars) along every block edge between lots.
-  const wallPaint = ['#e2d8c4', '#ece4d2', '#d9cdb5', '#e8dcc6'];
+  // GFX-001: painted walls in the pastel range of a small Brazilian town (they were all beige).
+  const wallPaint = ['#ece4d2', '#f2d9b8', '#e8c9a0', '#dbe6dc', '#f0e0c8', '#e9c4b0', '#d6e2ec', '#f4ead2', '#e6d3bd', '#cfe0c4'];
   frontageWalls().forEach((w, i) => {
     upright.setTransform(placement(w.frame));
     const paint = mats.plaster(wallPaint[i % wallPaint.length]!);

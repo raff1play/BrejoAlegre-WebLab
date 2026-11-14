@@ -41,20 +41,22 @@ export function lightingAt(hour: number): Lighting {
   const night = 1 - daylight;
   const golden = Math.max(1 - Math.abs(h - (SUNSET - 0.6)) / 1.6, 1 - Math.abs(h - (SUNRISE + 0.6)) / 1.4, 0);
   // Day colours keep the approved CORE-010 warm grade (sun #ffd9a4, sky #c4d8f0, ground #a08665).
-  const noon: Rgb = [1.0, 0.87, 0.68];
-  const gold: Rgb = [1.0, 0.72, 0.42];
+  // GFX-001: whiter noon sun against a bluer sky light (more colour contrast between lit and
+  // shaded sides), and a deeper orange at golden hour.
+  const noon: Rgb = [1.0, 0.92, 0.78];
+  const gold: Rgb = [1.0, 0.66, 0.34];
   const moon: Rgb = [0.55, 0.65, 0.95];
   const sunColor = night > 0.6 ? moon : mix(noon, gold, Math.min(1, golden));
-  const sunIntensity = lerp(0.5, 2.15, daylight) * (1 - 0.2 * golden);
-  const skyDay: Rgb = [0.77, 0.85, 0.94];
+  const sunIntensity = lerp(0.5, 2.45, daylight) * (1 - 0.12 * golden);
+  const skyDay: Rgb = [0.66, 0.8, 1.0];
   const skyNight: Rgb = [0.45, 0.52, 0.78];
   const skyColor = mix(skyDay, skyNight, night);
-  const groundColor = mix([0.63, 0.53, 0.4], [0.24, 0.24, 0.3], night);
-  const skyIntensity = lerp(0.6, 0.78, daylight);
-  const fogDay: Rgb = [0.91, 0.87, 0.79];
-  const fogDusk: Rgb = [0.93, 0.7, 0.55];
+  const groundColor = mix([0.66, 0.56, 0.42], [0.24, 0.24, 0.3], night);
+  const skyIntensity = lerp(0.6, 0.86, daylight);
+  const fogDay: Rgb = [0.84, 0.9, 0.95];
+  const fogDusk: Rgb = [0.97, 0.74, 0.56];
   const fogNight: Rgb = [0.11, 0.14, 0.23];
   const fogColor = mix(mix(fogDay, fogDusk, Math.min(1, golden)), fogNight, night);
-  const skyTint = mix(mix([1, 1, 1], [1.05, 0.8, 0.68], Math.min(1, golden)), [0.24, 0.29, 0.48], night);
+  const skyTint = mix(mix([1, 1, 1], [1.08, 0.82, 0.66], Math.min(1, golden)), [0.24, 0.29, 0.48], night);
   return { sunDirection, sunColor, sunIntensity, skyColor, groundColor, skyIntensity, fogColor, skyTint, night, shadows: daylight > 0.2 };
 }

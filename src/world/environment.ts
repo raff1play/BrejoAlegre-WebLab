@@ -14,7 +14,7 @@ import type { GraphicsProfile } from '../config/graphics';
 import { paintSky, paintTexture } from './textures';
 import type { Lighting } from '../core/city/dayNight';
 
-const HORIZON = '#e8dfc9';
+const HORIZON = '#d5e3ee';
 
 export type Environment = {
   shadows: ShadowGenerator;
@@ -34,26 +34,27 @@ export function setupEnvironment(scene: Scene, profile: GraphicsProfile): Enviro
   scene.fogMode = Scene.FOGMODE_LINEAR;
   scene.fogColor = Color3.FromHexString(HORIZON);
   // CORE-015: the real town is ~1.5 km wide; distant streets fade into the haze.
-  scene.fogStart = 110;
-  scene.fogEnd = 560;
+  // GFX-001: thinner, cooler aerial haze (the beige wall at 560 m hid the sky line and the hills).
+  scene.fogStart = 150;
+  scene.fogEnd = 820;
   const grading = scene.imageProcessingConfiguration;
   grading.toneMappingEnabled = true;
   grading.toneMappingType = ImageProcessingConfiguration.TONEMAPPING_ACES;
-  grading.exposure = 1.3;
-  grading.contrast = 1.18;
+  grading.exposure = 1.34;
+  grading.contrast = 1.24;
   // Colour curves run inside the material shaders (no extra pass): richer colour, warm highlights.
   const curves = new ColorCurves();
-  curves.globalSaturation = 14;
+  curves.globalSaturation = 26;
   curves.highlightsHue = 35;
-  curves.highlightsDensity = 10;
+  curves.highlightsDensity = 14;
   curves.highlightsSaturation = 20;
   curves.shadowsHue = 215;
-  curves.shadowsDensity = 12;
-  curves.shadowsSaturation = 15;
+  curves.shadowsDensity = 18;
+  curves.shadowsSaturation = 22;
   grading.colorCurvesEnabled = true;
   grading.colorCurves = curves;
   grading.vignetteEnabled = true;
-  grading.vignetteWeight = 1.3;
+  grading.vignetteWeight = 1.1;
   grading.vignetteColor = new Color4(0.12, 0.08, 0.04, 0);
 
   const sky = new HemisphericLight('ceu', new Vector3(0.1, 1, -0.1), scene);
@@ -78,11 +79,19 @@ export function setupEnvironment(scene: Scene, profile: GraphicsProfile): Enviro
   shadows.filteringQuality = profile.softShadows ? ShadowGenerator.QUALITY_MEDIUM : ShadowGenerator.QUALITY_LOW;
   shadows.bias = 0.0012;
   shadows.normalBias = 0.03;
-  shadows.setDarkness(0.12);
+  shadows.setDarkness(0.2);
 
   const dome = CreateSphere('ceu-domo', { diameter: 1600, segments: 16, sideOrientation: Mesh.BACKSIDE }, scene);
   const skyMaterial = new StandardMaterial('ceu', scene);
-  skyMaterial.emissiveTexture = paintTexture(scene, 'tx-ceu', { size: 512, width: 1024, seed: 19, anisotropy: 1, clamp: false }, paintSky);
+  skyMaterial.diffuseTexture = paintTexture(scene, 'tx-ceu', { size: profile.name === 'desktop' ? 1024 : 512, width: profile.name === 'desktop' ? 2048 : 1024, seed: 19, anisotropy: 1, clamp: false }, paintSky);
+  // GFX-001: the panorama is the DIFFUSE texture of an unlit material and the emissive colour
+  // tints it (unlit: colour = emissive × texture). As an EMISSIVE texture it was ADDED to the
+  // white emissive colour, so the day sky was always blown out to plain white (no blue, no clouds).
+  skyMaterial.emissiveColor = Color3.White();
+  skyMaterial.specularColor = Color3.Black();
+  // The panorama's first row is the zenith; on this dome that row lands on the nadir unless V is flipped.
+  const skyTexture = skyMaterial.diffuseTexture as unknown as { vScale: number; vOffset: number };
+  skyTexture.vScale = -1; skyTexture.vOffset = 1;
   skyMaterial.disableLighting = true;
   skyMaterial.fogEnabled = false;
   dome.material = skyMaterial;
@@ -107,7 +116,7 @@ export function setupEnvironment(scene: Scene, profile: GraphicsProfile): Enviro
       sun.specular.set(l.sunColor[0] * 0.9, l.sunColor[1] * 0.9, l.sunColor[2] * 0.9);
       sun.intensity = l.sunIntensity;
       sun.shadowEnabled = l.shadows;
-      shadows.setDarkness(0.12 + 0.5 * l.night);
+      shadows.setDarkness(0.2 + 0.45 * l.night);
       sky.diffuse.set(l.skyColor[0], l.skyColor[1], l.skyColor[2]);
       sky.groundColor.set(l.groundColor[0], l.groundColor[1], l.groundColor[2]);
       sky.intensity = l.skyIntensity;
@@ -115,7 +124,7 @@ export function setupEnvironment(scene: Scene, profile: GraphicsProfile): Enviro
       scene.clearColor.set(l.fogColor[0], l.fogColor[1], l.fogColor[2], 1);
       skyMaterial.emissiveColor.set(l.skyTint[0], l.skyTint[1], l.skyTint[2]);
       grading.exposure = baseExposure * (1 - 0.05 * l.night);
-      grading.vignetteWeight = 1.3 + 0.8 * l.night;
+      grading.vignetteWeight = 1.1 + 0.9 * l.night;
     },
     focusShadows(x, z) {
       focus.set(x, 0, z);
