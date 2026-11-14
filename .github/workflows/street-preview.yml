@@ -1,8 +1,8 @@
 name: Street Lab - preview isolada (publicacao autorizada)
 
-# Publica quatro versoes independentes em UM unico Pages:
-# CORE-015.1 na raiz, CORE-015.2 em /street-preview/, GFX-001 em /gfx-preview/
-# e ART-001 em /art-preview/.
+# Publica cinco versoes independentes em UM unico Pages:
+# CORE-015.1 na raiz, CORE-015.2 em /street-preview/, GFX-001 em /gfx-preview/,
+# ART-001 em /art-preview/ e ART-002 em /depot-preview/.
 # Preserva main/preview e nunca faz merge. Apenas o gatilho autorizado publica.
 on:
   push:
@@ -50,6 +50,11 @@ jobs:
         with:
           ref: 3931aa2acfe2fd1b59ff7c8bb37f55e9fb4c243e
           path: art
+      - name: Checkout ART-002 aprovada pela CI (commit fixo)
+        uses: actions/checkout@v4
+        with:
+          ref: 190b7a09d1607273026617a83b89233dd6dff9e7
+          path: depot
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -81,18 +86,27 @@ jobs:
           npm run validate:repo
           npm run test:unit
           npm run build:staging
-      - name: Montar quatro caminhos independentes no MESMO Pages
+      - name: Validar e compilar ART-002 sem alterar versoes anteriores
+        working-directory: depot
         run: |
-          mkdir -p public-site/street-preview public-site/gfx-preview public-site/art-preview
+          npm ci --no-audit --no-fund
+          npm run validate:repo
+          npm run test:unit
+          npm run build:staging
+      - name: Montar cinco caminhos independentes no MESMO Pages
+        run: |
+          mkdir -p public-site/street-preview public-site/gfx-preview public-site/art-preview public-site/depot-preview
           cp -a stable/dist/. public-site/
           cp -a experiment/dist/. public-site/street-preview/
           cp -a gfx/dist/. public-site/gfx-preview/
           cp -a art/dist/. public-site/art-preview/
+          cp -a depot/dist/. public-site/depot-preview/
           touch public-site/.nojekyll
           test -f public-site/index.html
           test -f public-site/street-preview/index.html
           test -f public-site/gfx-preview/index.html
           test -f public-site/art-preview/index.html
+          test -f public-site/depot-preview/index.html
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
