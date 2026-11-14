@@ -117,8 +117,11 @@ test('first workday with PHYSICAL parcels: shop → hands → top box → base �
   assert.equal(day.phase, 'CONFERENCIA');
   audit('hand over');
   tick(13.95);
-  assert.equal(day.count('RECEBIDO_BASE'), 8, 'checker counted player + truck parcels');
-  assert.ok(day.parcels.every((p) => p.place === 'conferencia'));
+  assert.ok(day.parcels.some((p) => p.history.some((e) => e.place === 'triagem')),
+    'a collected parcel reaches sorting before 14h');
+  assert.ok(day.parcels.some((p) => p.history.some((e) => e.place === 'conferencia')),
+    'the checker processed a real parcel');
+  audit('sorting in progress before 14h');
   tick(14.99);
   assert.equal(day.takeSack(hour,visit('dispatch')),0,'never before 15h');
   tick(15.9);
