@@ -11,7 +11,7 @@ import type { Scene } from '@babylonjs/core/scene';
 import type { MotionGuard } from '../../core/collision';
 import { approach, clamp } from '../../core/math';
 import { MOTO, createMotoState, stepMotorcycle, type MotoControls, type MotoState } from '../../core/motorcyclePhysics';
-import { BatchSet } from '../../world/geometry';
+import { BatchSet, type P3 } from '../../world/geometry';
 import type { LabMaterial, Materials } from '../../world/materials';
 import { Character, RIDER_LOOK, type Pose } from '../shared/character';
 import { ballPart, boxPart, discPart, ringPart, rodPart, tyrePart, type Xyz } from '../../world/modelParts';
@@ -27,7 +27,7 @@ const MOUNT_TIME = 0.42;
 
 export type MotorcycleLook = { paint: string; box: string; helmet: string; stripe?: string };
 /** CORE-010 livery from the references: yellow bike and top box with black accents. */
-export const PLAYER_LOOK: MotorcycleLook = { paint: '#ffcd16', box: '#ffcb12', helmet: '#26282c', stripe: '#16181a' };
+export const PLAYER_LOOK: MotorcycleLook = { paint: '#d29b32', box: '#e6c067', helmet: '#26282c', stripe: '#16181a' };
 
 export type MotorcycleOptions = { withRider?: boolean; static?: boolean };
 
@@ -64,6 +64,7 @@ export class Motorcycle {
   private cargoCount = 0;
   private brake = 0;
   private readonly rider: Character | null;
+  private readonly playerArt: boolean;
   private ridden: boolean;
   private groundY = 0;
   private time = 0;
@@ -82,6 +83,7 @@ export class Motorcycle {
     scene: Scene, mats: Materials, look: MotorcycleLook, x: number, z: number, yaw: number, groundHeight: number,
     options: MotorcycleOptions = {},
   ) {
+    this.playerArt = look === PLAYER_LOOK;
     const withRider = options.withRider ?? true;
     this.state = createMotoState(x, z, yaw);
     this.root = new TransformNode('moto', scene);
@@ -93,7 +95,7 @@ export class Motorcycle {
     this.upperSteer.position.set(0, 0, AXLE);
     this.stand = this.child(scene, 'moto-descanso', this.leanNode);
     this.lid = this.child(scene, 'moto-tampa-bau', this.chassis);
-    this.lid.position.set(LID_HINGE[0], LID_HINGE[1], LID_HINGE[2]);
+    this.lid.position.set(0, this.playerArt ? 1.37 : LID_HINGE[1], this.playerArt ? -.53 : LID_HINGE[2]);
 
     const paint = mats.lacquer(look.paint);
     const parts = {
@@ -101,7 +103,7 @@ export class Motorcycle {
       frame: mats.lacquer('#1b1d20'),
       plastic: mats.paint('#202225', 0.2),
       rubber: mats.paint('#151617'),
-      seat: mats.paint('#19191a'),
+      seat: mats.paint(this.playerArt ? '#47382c' : '#19191a'),
       chrome: mats.chrome(),
       alloy: mats.chrome('#8e9398'),
       engine: mats.lacquer('#4b4f54'),
@@ -125,7 +127,7 @@ export class Motorcycle {
     add(this.chassis, this.buildChassis(scene, mats, parts), 'moto-chassi');
     // Top-box lid as its own bone, modelled around the hinge on the rider's side of the box.
     const lid = new BatchSet();
-    const [lw, ld] = [0.48, 0.46];
+    const [lw, ld] = this.playerArt ? [.60, .56] : [.48, .46];
     lid.absorb(parts.box, boxPart(scene, [lw, 0.07, ld], [0, 0.02, -ld / 2 + 0.01]));
     lid.absorb(mats.paint('#0f1011', 0.2), boxPart(scene, [lw + 0.005, 0.012, ld + 0.005], [0, -0.015, -ld / 2 + 0.01]));
     lid.absorb(parts.chrome, boxPart(scene, [0.07, 0.04, 0.02], [0, -0.04, -ld + 0.0]));
@@ -352,7 +354,7 @@ export class Motorcycle {
 
   private buildWheel(scene: Scene, mats: Materials, p: Parts, front: boolean): BatchSet {
     const set = new BatchSet();
-    set.absorb(p.rubber, tyrePart(scene, WHEEL_RADIUS, 0.1));
+    set.absorb(p.rubber, tyrePart(scene, WHEEL_RADIUS, this.playerArt ? .125 : .1));
     // Tread blocks: a ring of small bumps reads as a real tyre when it spins.
     for (let i = 0; i < 16; i++) {
       const a = (i / 16) * Math.PI * 2;
@@ -361,10 +363,20 @@ export class Motorcycle {
     set.absorb(p.frame, ringPart(scene, 0.212, 0.04, [0, 0, 0], 'x', 18));
     set.absorb(p.chrome, ringPart(scene, 0.232, 0.012, [0.022, 0, 0], 'x', 18));
     set.absorb(p.chrome, ringPart(scene, 0.232, 0.012, [-0.022, 0, 0], 'x', 18));
-    // Five-spoke cast wheel.
-    for (let i = 0; i < 5; i++) {
-      const a = (i / 5) * Math.PI * 2;
-      set.absorb(p.frame, boxPart(scene, [0.028, 0.16, 0.034], [0, Math.cos(a) * 0.12, Math.sin(a) * 0.12], [a, 0, 0]));
+    if (this.playerArt) {
+      // ART-001: wire-spoke utility wheels, bright rims and hub with real negative space.
+      for (let i = 0; i < 18; i++) {
+        const a = i / 18 * Math.PI * 2;
+        for (const side of [-1, 1]) set.absorb(p.chrome, rodPart(scene,
+          [side * .028, Math.cos(a) * .218, Math.sin(a) * .218],
+          [side * .044, Math.cos(a + .5) * .057, Math.sin(a + .5) * .057], .006, .006, 4));
+      }
+    } else {
+      // Five-spoke cast wheel.
+      for (let i = 0; i < 5; i++) {
+        const a = (i / 5) * Math.PI * 2;
+        set.absorb(p.frame, boxPart(scene, [0.028, 0.16, 0.034], [0, Math.cos(a) * 0.12, Math.sin(a) * 0.12], [a, 0, 0]));
+      }
     }
     set.absorb(p.alloy, discPart(scene, 0.1, 0.14, [0, 0, 0], 12));
     if (front) {
@@ -408,9 +420,26 @@ export class Motorcycle {
     set.absorb(p.frame, rodPart(scene, [0, 0.88, -0.12], [0, 0.885, 0.01], 0.2, 0.19, 16));
     set.absorb(p.chrome, ringPart(scene, 0.093, 0.022, [0, 0.885, 0.018], 'z', 16));
     set.absorb(mats.glow('#fff4d2'), rodPart(scene, [0, 0.885, 0.0], [0, 0.885, 0.024], 0.168, 0.168, 16));
+    if (this.playerArt) {
+      set.absorb(p.paint,ballPart(scene,[.28,.045,.23],[0,1.0,-.035],10));
+    } else {
     set.absorb(p.paint, boxPart(scene, [0.25, 0.03, 0.2], [0, 0.995, -0.04], [-0.2, 0, 0]));
     set.absorb(p.paint, boxPart(scene, [0.03, 0.15, 0.17], [-0.125, 0.93, -0.05], [-0.2, 0, 0]));
     set.absorb(p.paint, boxPart(scene, [0.03, 0.15, 0.17], [0.125, 0.93, -0.05], [-0.2, 0, 0]));
+    }
+    if (this.playerArt) {
+      // Larger round lamp, protective visor, fluted lens and fork gaiters.
+      set.absorb(p.chrome,ringPart(scene,.111,.018,[0,.885,.026],'z',24));
+      set.absorb(mats.glow('#fff1ce'),rodPart(scene,[0,.885,.023],[0,.885,.03],.20,.20,24));
+      for(let x=-.07;x<.08;x+=.025) set.absorb(p.alloy,boxPart(scene,[.003,.12,.004],[x,.885,.034]));
+      for(const side of [-1,1]) for(let y=.60;y<.81;y+=.027)
+        set.absorb(p.rubber,ringPart(scene,.033,.014,[side*.088,y,-.11],'y',10));
+      // Brake cables follow the steering assembly.
+      for(const side of [-1,1]) {
+        set.absorb(p.rubber,rodPart(scene,[side*.25,1.09,-.26],[side*.15,.91,-.16],.009));
+        set.absorb(p.rubber,rodPart(scene,[side*.15,.91,-.16],[side*.09,.63,-.08],.009));
+      }
+    }
     // Instrument cluster.
     set.absorb(p.plastic, boxPart(scene, [0.22, 0.09, 0.09], [0, 1.065, -0.17], [-0.6, 0, 0]));
     set.absorb(mats.glow('#cfe9ff'), boxPart(scene, [0.15, 0.004, 0.05], [0, 1.1, -0.17], [-0.6, 0, 0]));
@@ -485,22 +514,44 @@ export class Motorcycle {
     set.absorb(p.plastic, boxPart(scene, [0.02, 0.05, 0.56], [-0.135, 0.44, -0.33], [0.02, 0, 0]));
 
     // Fuel tank: lacquered teardrop with a white side stripe and chrome cap.
-    const tank = ballPart(scene, [0.35, 0.25, 0.6], [0, 0.89, 0.2], 10);
+    const tank = ballPart(scene, this.playerArt ? [.43, .30, .63] : [.35,.25,.6], [0, 0.89, 0.2], this.playerArt ? 12 : 10);
     tank.rotation.x = -0.12;
     set.absorb(p.paint, tank);
-    const stripe = ballPart(scene, [0.356, 0.045, 0.5], [0, 0.865, 0.2], 8);
+    const stripe = ballPart(scene, this.playerArt ? [.438,.07,.51] : [.356,.045,.5], [0, 0.865, 0.2], this.playerArt ? 12 : 8);
     stripe.rotation.x = -0.12;
     set.absorb(p.white, stripe);
     set.absorb(p.chrome, rodPart(scene, [0, 1.0, 0.17], [0, 1.017, 0.17], 0.075, 0.07, 12));
     for (const side of [-1, 1]) set.absorb(p.paint, boxPart(scene, [0.03, 0.14, 0.18], [side * 0.15, 0.78, 0.4], [-0.3, 0, 0]));
 
     // Long dual seat with rounded ends.
-    set.absorb(p.seat, boxPart(scene, [0.27, 0.085, 0.6], [0, 0.865, -0.37]));
+    set.absorb(p.seat, boxPart(scene, this.playerArt ? [.30,.105,.6] : [.27,.085,.6], [0, 0.865, -0.37]));
     set.absorb(p.seat, ballPart(scene, [0.27, 0.11, 0.2], [0, 0.865, -0.07], 6));
     set.absorb(p.seat, ballPart(scene, [0.25, 0.1, 0.14], [0, 0.865, -0.67], 6));
     set.absorb(mats.paint('#5a5c60'), boxPart(scene, [0.275, 0.012, 0.62], [0, 0.825, -0.37]));
+    if (this.playerArt) {
+      // Ribbed saddle, raised piping and knee pads distinguish the new utility silhouette.
+      for(let z=-.61;z<-.12;z+=.055) set.absorb(p.seat, boxPart(scene,[.295,.012,.014],[0,.922,z]));
+      for(const side of [-1,1]) {
+        set.absorb(p.plastic,ballPart(scene,[.018,.11,.26],[side*.21,.86,.15],8));
+        set.absorb(p.alloy,rodPart(scene,[side*.18,.79,-.1],[side*.18,.77,-.63],.018));
+        // Engine protection hoop, brushed exhaust guard and cooling slots.
+        set.absorb(p.frame,rodPart(scene,[side*.23,.29,.25],[side*.27,.61,.28],.03));
+        set.absorb(p.frame,rodPart(scene,[side*.27,.61,.28],[side*.14,.7,.3],.03));
+      }
+      set.absorb(p.alloy,boxPart(scene,[.02,.10,.40],[.275,.38,-.57],[-.18,0,0]));
+      for(let z=-.74;z<-.4;z+=.052) set.absorb(p.plastic,boxPart(scene,[.022,.023,.025],[.288,.38,z]));
+    }
     // Side covers and tail.
-    set.absorb(p.paint, boxPart(scene, [0.3, 0.17, 0.27], [0, 0.69, -0.32], [0.08, 0, 0]));
+    if (this.playerArt) {
+      // Sculpted side covers: tapered outline instead of the previous rectangular block.
+      for(const side of [-1,1]) {
+        const x=side*.16;
+        const outline: P3[] = [[x,.78,-.15],[x,.75,-.55],[x,.62,-.48],[x,.60,-.22]];
+        set.of(p.paint).poly(side > 0 ? outline : outline.reverse(),[[0,1],[1,1],[1,0],[0,0]]);
+        const stripe: P3[] = [[x*1.01,.72,-.21],[x*1.01,.71,-.46],[x*1.01,.74,-.46],[x*1.01,.75,-.21]];
+        set.of(p.white).poly(side > 0 ? stripe : stripe.reverse(),[[0,0],[1,0],[1,1],[0,1]]);
+      }
+    } else set.absorb(p.paint, boxPart(scene, [0.3, 0.17, 0.27], [0, 0.69, -0.32], [0.08, 0, 0]));
     for (const side of [-1, 1]) set.absorb(p.white, boxPart(scene, [0.004, 0.025, 0.18], [side * 0.152, 0.72, -0.32], [0.08, 0, 0]));
     set.absorb(p.plastic, boxPart(scene, [0.2, 0.05, 0.36], [0, 0.79, -0.88], [-0.22, 0, 0]));
     set.absorb(p.alloy, boxPart(scene, [0.15, 0.08, 0.06], [0, 0.76, -1.06]));
@@ -540,7 +591,7 @@ export class Motorcycle {
     }
     for (const z of [-0.55, -1.05]) set.absorb(p.frame, rodPart(scene, [-0.17, 0.915, z], [0.17, 0.915, z], 0.022));
     const bz = -0.8;
-    const [hw, hd, y0, y1] = [0.23, 0.22, 0.95, 1.27];
+    const [hw, hd, y0, y1] = this.playerArt ? [.29,.27,.95,1.37] : [.23,.22,.95,1.27];
     set.absorb(p.plastic, boxPart(scene, [0.44, 0.03, 0.42], [0, 0.935, bz]));
     set.absorb(p.box, boxPart(scene, [hw * 2, y1 - y0, hd * 2 - 0.08], [0, (y0 + y1) / 2, bz]));
     set.absorb(p.box, boxPart(scene, [hw * 2 - 0.08, y1 - y0, hd * 2], [0, (y0 + y1) / 2, bz]));
@@ -553,6 +604,31 @@ export class Motorcycle {
     // Black band around the top box (livery).
     set.absorb(p.white, boxPart(scene, [hw * 2 + 0.012, 0.06, hd * 2 + 0.012], [0, 1.15, bz]));
     for (const sx of [-1, 1]) set.absorb(mats.paint('#e5e7e8', 0.4), boxPart(scene, [0.006, 0.035, 0.3], [sx * (hw + 0.003), 1.05, bz]));
+    if (this.playerArt) {
+      // Reinforced delivery case: corner guards, tie rails, rivets and reflective chevrons.
+      for(const side of [-1,1]) {
+        for(const z of [bz-hd+.025,bz+hd-.025]) {
+          set.absorb(p.alloy,boxPart(scene,[.016,.30,.033],[side*(hw+.005),1.11,z]));
+          for(const y of [1.0,1.23])set.absorb(p.chrome,ballPart(scene,[.02,.02,.02],[side*(hw+.017),y,z],4));
+        }
+        set.absorb(p.frame,rodPart(scene,[side*.245,1.26,-.94],[side*.245,1.26,-.65],.018));
+        for(let z=-.93;z<-.65;z+=.06)set.absorb(p.white,boxPart(scene,[.008,.027,.04],[side*.239,1.04,z],[.4,0,0]));
+      }
+      const sideBadge=mats.sign('art001-entregas-lateral','#285751','#f1dcab',[
+        {text:'BREJO',size:.38,color:'#f1dcab',weight:'900'},
+        {text:'ENTREGAS',size:.22,color:'#f1dcab',weight:'800'}],1.7,256);
+      for(const side of [-1,1]) {
+        const x=side*(hw+.012);
+        const z0 = side > 0 ? -.98 : -.63;
+        const z1 = side > 0 ? -.63 : -.98;
+        set.of(sideBadge).quad([x,1.09,z0],[x,1.09,z1],[x,1.31,z1],[x,1.31,z0],1,1);
+        set.absorb(p.plastic,boxPart(scene,[.025,.06,.48],[side*(hw+.003),.98,-.8]));
+      }
+      const badge=mats.sign('art001-entregas','#254e49','#f1dcab',[
+        {text:'BREJO',size:.35,color:'#f1dcab',weight:'900'},
+        {text:'ENTREGAS',size:.22,color:'#f1dcab',weight:'800'}],2.2,128);
+      set.of(badge).quad([-.17,1.10,-1.079],[.17,1.10,-1.079],[.17,1.33,-1.079],[-.17,1.33,-1.079],1,1);
+    }
     return set;
   }
 }
