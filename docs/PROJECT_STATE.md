@@ -454,3 +454,11 @@ Números atuais do mapa: 46 quadras, 695 lotes, 681 casas estimadas, 48 endereç
 - Malha OSM, escala 1:1 e CORE-015.1 preservadas. `main` permanece em `2c55f70`; `preview` em `d6eabc4`.
 - Chrome Android físico, FPS/temperatura: não testados. Resultado final do roteiro amplo e eventual publicação serão registrados abaixo; push não significa deploy.
 - Navegador final: roteiro amplo **83/84** em resolução interna reduzida (única falha: expectativa de tamanho do render, afetada pelo adaptador); repetição desktop sem redução **33/33**, incluindo redimensionamento 900×420. Jornada 8/8 entregas e toque emulado aprovados. Logs completos e condições em `docs/evidence/street-fixes/`.
+
+### Publicação das correções de ruas — confirmada em 14/11/2026
+
+- SHA publicado: `1d96bd3ae94eae0b7374eac91610b55e3416e1fa`, branch `feat/core-015-2-urban-roads-preview`.
+- CI [43553501002](https://github.com/raff1play/BrejoAlegre-WebLab/actions/runs/43553501002): **Success** (45 s).
+- Street Lab [43553500987](https://github.com/raff1play/BrejoAlegre-WebLab/actions/runs/43553500987): **Success** (1 min 38 s), confirmado pela página pública do GitHub Actions.
+- Preview: https://raff1play.github.io/BrejoAlegre-WebLab/street-preview/ . Raiz preservada no commit fixo CORE-015.1 `d6eabc4909551001c3203aa4314d8c1c852ac304`; branches `main`/`preview` não alteradas, nenhum merge.
+- A consulta direta ao Pages e à API do GitHub devolveu HTTP 403 no ambiente de execução; a publicação foi confirmada pelo workflow, não por carregamento pós-deploy do site público. Testes visuais e funcionais foram executados localmente no código candidato.

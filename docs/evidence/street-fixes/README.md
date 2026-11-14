@@ -37,3 +37,9 @@ Capturas e testes de navegador são de Chromium em Linux com GPU por software, n
 - Repetição integral do bloco desktop **sem redução**: **33/33**, incluindo render 900×420; [log](e2e-desktop-original.txt). Assim, todas as verificações funcionais passaram nas condições apropriadas; a rodada reduzida não é apresentada como 84/84.
 - Jornada: 8/8 entregues, coleta/baú/galpão/saca, HUD, minimapa, tráfego e cinco sinais fictícios aprovados. Toque emulado: multitoque, cancelamento, câmera, montar/descer e pausa aprovados. Sem erros de console.
 - Rodadas iniciais com edição ao vivo foram interrompidas por recarga do Vite; uma rodada de alta resolução concorrente teve timeout na pilotagem. A repetição final sem alterações ao vivo passou. Não são resultados de aparelho físico.
+
+## Publicação
+
+[Deploy 43553500987](https://github.com/raff1play/BrejoAlegre-WebLab/actions/runs/43553500987): **Success**, SHA `1d96bd3ae94eae0b7374eac91610b55e3416e1fa`. [CI 43553501002](https://github.com/raff1play/BrejoAlegre-WebLab/actions/runs/43553501002): **Success**.
+
+[Prévia experimental](https://raff1play.github.io/BrejoAlegre-WebLab/street-preview/). O workflow preserva CORE-015.1 na raiz; nenhum merge. O ambiente retornou HTTP 403 para acesso direto ao Pages, portanto a confirmação pós-publicação vem do GitHub Actions. Android físico permanece pendente.
