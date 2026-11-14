@@ -395,11 +395,13 @@ function buildStore(scene: Scene, mats: Materials, s: Store): { meshes: Mesh[]; 
   set.box(wall, 0, W, 3.0, H, L, L + t, { fitV: true });
   for (const [x0, x1] of [[0, 0.5], [door0 - 0.3, door0], [door1, door1 + 0.3], [W - 0.5, W]] as const) set.box(wall, x0, x1, 0, 3.0, L, L + t, { fitV: true });
   for (const [x0, x1] of [[0.5, door0 - 0.3], [door1 + 0.3, W - 0.5]] as const) set.box(band, x0, x1, 0, 0.45, L, L + t);
-  set.box(band, -0.02, W + 0.02, 0, 0.9, L + t, D + 0.02, { fitV: true, top: false });
-  set.box(trim, -0.1, W + 0.1, H, H + 0.14, L - 0.1, D + 0.1);
+  // Three wall strips, never a box around the entire room: that box added a
+  // phantom front face across the doorway and windows at z=L+t.
+  for (const r of storePlan(s).baseWalls) set.box(band, r.x0, r.x1, 0, 0.9, r.z0, r.z1, { fitV: true });
+  set.box(trim, 0, W, H, H + 0.14, L - 0.1, D);
   set.box(mats.ribbed('#8f948f'), t, W - t, H - 0.4, H - 0.35, L + t, D - t, { sides: false, bottom: true });
   // Pilasters on the long side walls.
-  for (let z = L + 3; z < D - 1; z += 3.5) for (const x of [-0.04, W - 0.02]) set.box(band, x, x + 0.06, 0.9, H, z - 0.18, z + 0.18);
+  for (let z = L + 3; z < D - 1; z += 3.5) for (const x of [0, W - 0.06]) set.box(band, x, x + 0.06, 0.9, H, z - 0.18, z + 0.18);
   // Glazing: shop windows either side of the door, glass doors with metal frames.
   const glass = mats.glass();
   const frame = mats.paint('#5d6368', 0.3);
@@ -430,8 +432,8 @@ function buildStore(scene: Scene, mats: Materials, s: Store): { meshes: Mesh[]; 
   const side = storePlan(s).sideWall;
   if (side) {
     set.box(wall, side.x0, side.x1, 0.35, WALL_H, side.z0, side.z1, { fitV: true });
-    set.box(mats.paint('#9b9184'), side.x0, side.x1 + 0.02, 0, 0.35, side.z0 - 0.02, side.z1 + 0.02);
-    set.box(trim, side.x0, side.x1 + 0.03, WALL_H, WALL_H + 0.07, side.z0 - 0.04, side.z1 + 0.04);
+    set.box(mats.paint('#9b9184'), side.x0, side.x1, 0, 0.35, side.z0 - 0.02, side.z1 + 0.02);
+    set.box(trim, side.x0, side.x1, WALL_H, WALL_H + 0.07, side.z0 - 0.04, side.z1 + 0.04);
   }
   set.setTransform(null);
   const meshes = set.build(`loja-${s.id}`, scene);
@@ -579,13 +581,13 @@ export function buildCity(scene: Scene, mats: Materials, shared: SharedBatches):
     const paint = mats.plaster(wallPaint[i % wallPaint.length]!);
     const L = w.length;
     upright.box(paint, 0, L, 0.35, WALL_H, 0, 0.22, { fitV: true });
-    upright.box(mats.paint('#9b9184'), -0.02, L + 0.02, 0, 0.35, -0.02, 0.24);
-    upright.box(mats.paint('#cfc6b4'), -0.05, L + 0.05, WALL_H, WALL_H + 0.07, -0.05, 0.27);
+    upright.box(mats.paint('#9b9184'), 0, L, 0, 0.35, -0.02, 0.24);
+    upright.box(mats.paint('#cfc6b4'), 0, L, WALL_H, WALL_H + 0.07, -0.05, 0.27);
     const n = Math.max(1, Math.round(L / 3.2));
     for (let k = 0; k <= n; k++) {
       const t = (L * k) / n;
-      upright.box(paint, t - 0.16, t + 0.16, 0, WALL_H + 0.18, -0.08, 0.3, { fitV: true });
-      upright.box(mats.paint('#cfc6b4'), t - 0.2, t + 0.2, WALL_H + 0.18, WALL_H + 0.25, -0.12, 0.34);
+      upright.box(paint, Math.max(0, t - 0.16), Math.min(L, t + 0.16), 0, WALL_H + 0.18, -0.08, 0.3, { fitV: true });
+      upright.box(mats.paint('#cfc6b4'), Math.max(0, t - 0.2), Math.min(L, t + 0.2), WALL_H + 0.18, WALL_H + 0.25, -0.12, 0.34);
     }
   });
   upright.setTransform(null);

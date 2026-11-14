@@ -398,7 +398,7 @@ async function cityAndJob(browser) {
   s = await snap();
   check('cidade viva: tráfego e pedestres se movem', s.city.fingerprint !== fp0 && s.city.moving > 0, `${s.city.moving} veículos em movimento`);
   void sig0;
-  check('sem semáforos inventados (o OSM não mapeia nenhum na sede)', Object.keys(s.city.signals).length === 0, JSON.stringify(s.city.signals));
+  check('preview: cinco semáforos fictícios ativos (não são dados OSM)', Object.keys(s.city.signals).length === 5, JSON.stringify(s.city.signals));
   check('relógio virtual no formato HH:MM e jornada 11h–21h ativa', /^\d\d:\d\d$/.test(s.clock.label) && s.clock.workday === (s.clock.hour >= 11 && s.clock.hour < 21), s.clock.label);
   const P = await page.evaluate(() => window.__debug.probe().junction);
   await page.evaluate(([x, z]) => window.__debug.placeWalker(x + 40, z, Math.PI / 2), [P.x, P.z]);

@@ -108,7 +108,7 @@ export function shopFurniture(): { lamps: { x: number; z: number; yaw: number }[
     const yaw = yawOf(s.frame) + Math.PI; // models look out to the street
     for (const lx of [-0.9, s.width + 0.9]) { const p = framePoint(s.frame, lx, -SIDEWALK + 0.45); lamps.push({ x: p.x, z: p.z, yaw }); }
     const q = framePoint(s.frame, 1.7, 0.85);
-    planters.push({ x: q.x, z: q.z, yaw: yaw + Math.PI / 2, poly: makePoly(frameCorners(s.frame, 1.05, 2.35, 0.55, 1.15)) });
+    planters.push({ x: q.x, z: q.z, yaw, poly: makePoly(frameCorners(s.frame, 1.01, 2.39, 0.60, 1.10)) });
   }
   return { lamps, planters };
 }

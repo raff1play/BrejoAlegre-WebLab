@@ -146,8 +146,8 @@ export function buildHouse(scene: Scene, mats: Materials, spec: HouseSpec, share
   flat.of(mats.plazaPaving).box(hx0, hx1, 0, 0.012, 0, sb, mats.plazaPaving.tileU, mats.plazaPaving.tileV, { sides: false });
 
   // Side and back boundary walls, left unplastered as is common.
-  upright.box(mats.blockwork, 0, WALL_T, 0, WALL_H, 0, D);
-  upright.box(mats.blockwork, W - WALL_T, W, 0, WALL_H, 0, D);
+  upright.box(mats.blockwork, 0, WALL_T, 0, WALL_H, spec.front === 'open' ? 0 : WALL_T, D - WALL_T);
+  upright.box(mats.blockwork, W - WALL_T, W, 0, WALL_H, spec.front === 'open' ? 0 : WALL_T, D - WALL_T);
   upright.box(mats.blockwork, 0, W, 0, WALL_H, D - WALL_T, D);
 
   // Street front: full wall, low wall with railing, or open yard.
@@ -160,7 +160,7 @@ export function buildHouse(scene: Scene, mats: Materials, spec: HouseSpec, share
     for (const [g0, g1] of [...openings, [W, W] as [number, number]]) {
       if (g0 - cursor > 0.01) {
         upright.box(wall, cursor, g0, 0, wallTop, 0, WALL_T, { fitV: true });
-        upright.box(trim, cursor - 0.02, g0 + 0.02, wallTop, wallTop + 0.06, -0.03, WALL_T + 0.03);
+        upright.box(trim, Math.max(0, cursor - 0.02), Math.min(W, g0 + 0.02), wallTop, wallTop + 0.06, -0.03, WALL_T + 0.03);
         if (lowWall) upright.of(mats.railing).quad([cursor, wallTop, 0.1], [g0, wallTop, 0.1], [g0, WALL_H - 0.1, 0.1], [cursor, WALL_H - 0.1, 0.1], g0 - cursor, 1);
       }
       cursor = g1;
@@ -196,7 +196,7 @@ export function buildHouse(scene: Scene, mats: Materials, spec: HouseSpec, share
   sideQuad(solid, mats.door, sideX, sb + 5.4, sb + 6.25, 0, 2.1, spec.garageSide);
 
   // Roof.
-  const eave = 0.55;
+  const eave = Math.min(0.55, D - back - 0.07);
   const roofY = HOUSE_WALL_H + 0.12;
   if (spec.roof === 'hip-x' || spec.roof === 'hip-z') {
     solid.box(trim, hx0 - eave, hx1 + eave, HOUSE_WALL_H, roofY, sb - eave, back + eave, { bottom: true });

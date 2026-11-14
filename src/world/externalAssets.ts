@@ -164,6 +164,9 @@ export async function populateExternalAssets(
       for (const source of sources) {
         const instance = source.createInstance(`${id}@${p.x.toFixed(1)},${p.z.toFixed(1)}`);
         instance.position.set(p.x, p.y, p.z);
+        // glTF sources carry an identity quaternion after baking. Instances inherit it;
+        // Babylon ignores Euler rotation while that quaternion is present.
+        instance.rotationQuaternion = null;
         instance.rotation.y = p.yaw;
         instance.scaling.set(...p.scale);
         instance.isPickable = false;

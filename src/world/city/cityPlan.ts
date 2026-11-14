@@ -171,12 +171,17 @@ export type Rect = Readonly<{ x0: number; x1: number; z0: number; z1: number }>;
  */
 export function storePlan(s: Pick<Store, 'width' | 'depth' | 'lotWidth'>): {
   cz: number; door0: number; door1: number; counter: Rect; backShelf: Rect; sideShelf: Rect;
-  displayLeft: Rect; displayRight: Rect; windowDisplay: Rect; feature: Rect; sideWall: Rect | null;
+  displayLeft: Rect; displayRight: Rect; windowDisplay: Rect; feature: Rect; sideWall: Rect | null; baseWalls: Rect[];
 } {
   const W = s.width; const D = s.depth; const t = 0.25; const L = STORE_SETBACK;
   const cz = D * 0.52; const door0 = W / 2 - 1.3; const door1 = W / 2 + 1.3;
   return {
     cz, door0, door1,
+    baseWalls: [
+      { x0: 0, x1: t + 0.02, z0: L + t, z1: D },
+      { x0: W - t - 0.02, x1: W, z0: L + t, z1: D },
+      { x0: t + 0.02, x1: W - t - 0.02, z0: D - t - 0.02, z1: D },
+    ],
     counter: { x0: 1.2, x1: W - 3.2, z0: cz - 0.35, z1: cz + 0.35 },
     backShelf: { x0: 0.6, x1: W - 0.6, z0: D - 1.0, z1: D - t },
     sideShelf: { x0: t, x1: t + 0.6, z0: cz + 1.2, z1: D - 1.6 },

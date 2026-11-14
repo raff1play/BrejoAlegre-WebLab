@@ -12,7 +12,7 @@ test('street preview: new paint follows the actual OSM streets with no stripes t
   const zebra = m.filter((p) => p.kind === 'zebra');
   const stop = m.filter((p) => p.kind === 'stop');
   const local = m.filter((p) => p.kind === 'centre');
-  assert.ok(zebra.length > 20 && zebra.length % 6 === 0, `zebra strokes: ${zebra.length}`);
+  assert.ok(zebra.length > 20 && zebra.length % 11 === 0, `zebra strokes: ${zebra.length}`);
   assert.ok(local.length > 10, `residential centre marks: ${local.length}`);
   assert.ok(stop.length > 0, `stop bars: ${stop.length}`);
   for (const p of m) {
@@ -22,8 +22,17 @@ test('street preview: new paint follows the actual OSM streets with no stripes t
     assert.ok(roadDistance(midpoint.x, midpoint.z) <= ROAD_HALF + 0.25, `${p.kind}: painted mark off the carriageway`);
   }
   const sites = zebraSites();
-  assert.equal(zebra.length, sites.length * 6, 'six bars per crossing');
+  assert.equal(zebra.length, sites.length * 11, 'eleven bars per crossing');
   for (const z of sites) {
+    const bars = zebra.filter((p) => p.nodeId === z.nodeId && p.roadId === z.roadId);
+    const offsets = bars.map((p) => {
+      const dx = p.end[0] - p.start[0], dz = p.end[1] - p.start[1];
+      assert.ok(Math.abs(dx * z.dirZ - dz * z.dirX) < 1e-8, 'stripe parallel to local tangent');
+      assert.ok(Math.abs(Math.hypot(dx, dz) - 3) < 1e-8);
+      return -z.dirZ * ((p.start[0] + p.end[0]) / 2 - z.x) + z.dirX * ((p.start[1] + p.end[1]) / 2 - z.z);
+    });
+    assert.ok(Math.abs(Math.min(...offsets) - 0.2 + ROAD_HALF) < 1e-8);
+    assert.ok(Math.abs(Math.max(...offsets) + 0.2 - ROAD_HALF) < 1e-8);
     assert.ok(roadDistance(z.x, z.z) < 0.2, `${z.roadId}: crosswalk must be on street axis`);
     assert.ok(Math.abs(Math.hypot(z.dirX, z.dirZ) - 1) < 1e-5);
   }
@@ -54,4 +63,13 @@ test('street preview: fictional traffic signals placed at separate, safe urban j
       if (s.ped === 'walk') assert.equal(green.length, 0, 'pedestrian phase excludes car green');
     }
   }
+});
+
+test('armPose uses the local tangent after a bend and reverses it from the opposite end', () => {
+  const road = { ...ROADS[0]!, a: 'a', b: 'b', pts: [[0, 0], [10, 0], [16, 8]] as const, length: 20 };
+  const forward = armPose(road, 'a', 15), reverse = armPose(road, 'b', 5);
+  assert.deepEqual([forward.x, forward.z], [13, 4]);
+  assert.deepEqual([reverse.x, reverse.z], [13, 4]);
+  assert.ok(Math.abs(forward.dx - .6) < 1e-9 && Math.abs(forward.dz - .8) < 1e-9);
+  assert.ok(Math.abs(reverse.dx + .6) < 1e-9 && Math.abs(reverse.dz + .8) < 1e-9);
 });

@@ -43,7 +43,7 @@ const line = (a: XZ, b: XZ, width: number, kind: PaintStroke['kind'], roadId: st
   ({ start: a, end: b, width, kind, roadId, ...(nodeId ? { nodeId } : {}) });
 
 /**
- * A crossing spans the carriageway, with bars laid across the road (not along it).
+ * A crossing spans the carriageway, with long bars parallel to vehicle travel, distributed across the road.
  * Limit to intersections with roomy approaches; tiny OSM offset junctions otherwise
  * produce overlapping markings. Pedestrian graph uses the same crossingDistance().
  */
@@ -75,16 +75,17 @@ export function streetPaint(): PaintStroke[] {
       result.push(line([a.x, a.z], [b.x, b.z], 0.085, 'centre', r.id));
     }
   }
-  // Zebra stripes: six stripes 0.34m wide, spaced 0.54m apart. All lie
-  // inside the 8m carriageway and align with the actual pedestrian crossings.
+  // 3 m long stripes follow the local tangent; their centres follow its normal.
+  // The outer edges reach both kerbs of the 8 m carriageway.
   for (const z of zebraSites()) {
     const sideX = -z.dirZ, sideZ = z.dirX;
-    for (let k = 0; k < 6; k++) {
-      const along = (k - 2.5) * 0.54;
-      const cx = z.x + z.dirX * along, cz = z.z + z.dirZ * along;
-      const a: XZ = [cx - sideX * (ROAD_HALF - 0.48), cz - sideZ * (ROAD_HALF - 0.48)];
-      const b: XZ = [cx + sideX * (ROAD_HALF - 0.48), cz + sideZ * (ROAD_HALF - 0.48)];
-      result.push(line(a, b, 0.34, 'zebra', z.roadId, z.nodeId));
+    const width = 0.4, count = 11;
+    const pitch = (ROAD_HALF * 2 - width) / (count - 1);
+    for (let k = 0; k < count; k++) {
+      const across = -ROAD_HALF + width / 2 + k * pitch;
+      const cx = z.x + sideX * across, cz = z.z + sideZ * across;
+      result.push(line([cx - z.dirX * 1.5, cz - z.dirZ * 1.5],
+        [cx + z.dirX * 1.5, cz + z.dirZ * 1.5], width, 'zebra', z.roadId, z.nodeId));
     }
   }
   // Stop bars on inbound half-lanes (not across opposing traffic).
