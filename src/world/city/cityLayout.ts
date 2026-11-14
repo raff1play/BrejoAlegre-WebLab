@@ -4,6 +4,8 @@ import { HOUSE_DEPTH, HOUSE_STYLES, ROAD_HALF, SIDEWALK, frameCorners, framePoin
 import { CITY_LOTS, DEPOT, ROADS, STORES, cityPolygons, depotWorld, depotYaw, nodeById, storeLayout, type CityRoad } from './cityPlan.ts';
 import { GEO_WALLS, OPEN_SPACES, pointInPolygon } from '../geo/geoCity.ts';
 import { PLAY_BOUNDS } from '../geo/network.ts';
+import { clearOfFixtures, validFixtureSite } from './fixturePlacement.ts';
+import { NODES } from './cityPlan.ts';
 
 /**
  * CORE-015 street furniture and solids along the REAL streets. Lamp posts and street trees are
@@ -39,16 +41,20 @@ const inPlay = (p: P) => p.x > PLAY_BOUNDS.minX && p.x < PLAY_BOUNDS.maxX && p.z
 
 export function streetLightPositions(): { x: number; z: number; yaw: number }[] {
   const out: { x: number; z: number; yaw: number }[] = [];
-  const clear = keepClear();
+  const decorative = shopFurniture().lamps;
+  const signals = NODES.filter((n) => n.control === 'signal');
   for (const r of ROADS) {
     if (r.kind !== 'urban') continue;
     let k = 0;
     along(r, 32, 12, (p, d) => {
       const side = k++ % 2 === 0 ? 1 : -1;
-      const off = ROAD_HALF + 0.45;
+      const off = ROAD_HALF + 0.48;
       const q = { x: p.x + d.z * off * side, z: p.z - d.x * off * side };
-      if (!inPlay(q) || clear.some((c) => Math.hypot(c.x - q.x, c.z - q.z) < 7)) return;
-      // The arm points over the road (towards the axis).
+      // All roads, buildings, gates, raised sidewalks and other equipment share
+      // the SAME validation. Junctions need room for traffic signals and zebras.
+      if (!inPlay(q) || !validFixtureSite(q, 0.18)) return;
+      if (!clearOfFixtures(q, decorative, 3.4) || !clearOfFixtures(q, signals, 15)) return;
+      if (!clearOfFixtures(q, out, 3.2)) return;
       out.push({ ...q, yaw: Math.atan2(-d.z * side, d.x * side) });
     });
   }
@@ -59,6 +65,8 @@ export function cityTrees(): TreeSpec[] {
   const trees: TreeSpec[] = [];
   const lights = streetLightPositions();
   const clear = keepClear();
+  const decorative = shopFurniture().lamps;
+  const signals = NODES.filter((n) => n.control === 'signal');
   const kinds: TreeSpec['kind'][] = ['oiti', 'oiti', 'ipe', 'oiti', 'ipe-roxo'];
   let k = 0;
   for (const r of ROADS) {
@@ -68,9 +76,11 @@ export function cityTrees(): TreeSpec[] {
       const side = n++ % 2 === 0 ? -1 : 1;
       const off = ROAD_HALF + 0.75;
       const q = { x: p.x + d.z * off * side, z: p.z - d.x * off * side };
-      if (!inPlay(q)) return;
-      if (lights.some((l) => Math.hypot(l.x - q.x, l.z - q.z) < 4)) return;
+      if (!inPlay(q) || !validFixtureSite(q, 0.27)) return;
+      if (!clearOfFixtures(q, lights, 4) || !clearOfFixtures(q, decorative, 4)) return;
+      if (!clearOfFixtures(q, signals, 14)) return;
       if (clear.some((c) => Math.hypot(c.x - q.x, c.z - q.z) < 9)) return;
+      if (!clearOfFixtures(q, trees, 3.5)) return;
       trees.push({ x: q.x, z: q.z, kind: kinds[k++ % kinds.length]!, scale: 0.85 + (k % 4) * 0.08, solid: true });
     });
   }
@@ -106,7 +116,13 @@ export function shopFurniture(): { lamps: { x: number; z: number; yaw: number }[
   const lamps: { x: number; z: number; yaw: number }[] = []; const planters: { x: number; z: number; yaw: number; poly: Poly2D }[] = [];
   for (const s of STORES) {
     const yaw = yawOf(s.frame) + Math.PI; // models look out to the street
-    for (const lx of [-0.9, s.width + 0.9]) { const p = framePoint(s.frame, lx, -SIDEWALK + 0.45); lamps.push({ x: p.x, z: p.z, yaw }); }
+    for (const lx of [-0.9, s.width + 0.9]) {
+      const p = framePoint(s.frame, lx, -SIDEWALK + 0.45);
+      if (validFixtureSite(p, 0.20) && clearOfFixtures(p, lamps, 3) &&
+        clearOfFixtures(p, NODES.filter((n) => n.control === 'signal'), 12)) {
+        lamps.push({ x: p.x, z: p.z, yaw });
+      }
+    }
     const q = framePoint(s.frame, 1.7, 0.85);
     planters.push({ x: q.x, z: q.z, yaw, poly: makePoly(frameCorners(s.frame, 1.01, 2.39, 0.60, 1.10)) });
   }
