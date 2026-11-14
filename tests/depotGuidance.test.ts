@@ -24,7 +24,7 @@ test('ART-002: after unloading at 12:46, explain truck and sorting time and enab
   assert.equal(before.waitUntil, ROUTINE.sortFrom);
   assert.match(before.title, /triagem às 14h/);
   assert.match(before.detail, /4 na bancada/);
-  assert.match(before.detail, /4 volume\\(s\\) do caminhão previstos às 13h/);
+  assert.match(before.detail, /4 volume\(s\) do caminhão previstos às 13h/);
   assert.equal(day.parcels.filter(p => p.place === 'caminhao').length, 4);
 
   day.update(13.01, 0.1);
