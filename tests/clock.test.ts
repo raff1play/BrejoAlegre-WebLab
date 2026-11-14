@@ -3,19 +3,19 @@ import assert from 'node:assert/strict';
 import { VirtualClock, REAL_SECONDS_PER_VIRTUAL_HOUR, WORKDAY_END, WORKDAY_START, activityAt } from '../src/core/city/clock.ts';
 import { lightingAt } from '../src/core/city/dayNight.ts';
 
-test('clock keeps the approved scale: 4 real minutes per virtual hour, starting at 11:00', () => {
-  assert.equal(REAL_SECONDS_PER_VIRTUAL_HOUR, 240);
+test('clock runs at 2min30s real per virtual hour, starting at 11:00', () => {
+  assert.equal(REAL_SECONDS_PER_VIRTUAL_HOUR, 150);
   assert.equal(WORKDAY_START, 11);
   assert.equal(WORKDAY_END, 21);
   const c = new VirtualClock();
   assert.equal(c.label, '11:00');
   assert.ok(c.isWorkday);
-  c.advance(240);
+  c.advance(REAL_SECONDS_PER_VIRTUAL_HOUR);
   assert.equal(c.label, '12:00');
-  for (let i = 0; i < 600; i++) c.advance(4); // 40 real minutes = 10 virtual hours
+  for (let i = 0; i < 600; i++) c.advance(2.5); // 25 real minutes = 10 virtual hours
   assert.equal(c.label, '22:00');
   assert.equal(c.isWorkday, false);
-  c.advance(240 * 3);
+  c.advance(REAL_SECONDS_PER_VIRTUAL_HOUR * 3);
   assert.equal(c.label, '01:00', 'wraps past midnight');
   c.advance(Number.NaN);
   c.advance(-5);
@@ -26,7 +26,7 @@ test('development hour control jumps without changing the scale', () => {
   const c = new VirtualClock();
   c.setHour(6.5);
   assert.equal(c.label, '06:30');
-  c.advance(120);
+  c.advance(75);
   assert.equal(c.label, '07:00');
   c.setHour(27);
   assert.equal(c.label, '03:00');
