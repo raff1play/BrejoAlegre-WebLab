@@ -16,3 +16,14 @@
 - Código candidato: `c9f5c0a9e2504f53f587ffc3da703a9f11572cd0`; CI 43553014170 Success.
 - 99 testes unitários, TypeScript, build staging e comparações visuais aprovados. Roteiro amplo 83/84 com redução de resolução (falha artificial de tamanho); repetição desktop sem redução 33/33, resolvendo essa verificação. Jornada completa e toque emulado aprovados. Evidências: `docs/evidence/street-fixes/README.md`.
 - Base da raiz permanece fixada em `d6eabc4909551001c3203aa4314d8c1c852ac304`; nenhum merge nem push em main/preview.
+
+## 14/11/2026 — revisão de posicionamento dos postes e semáforos
+
+- Autorização: usuário solicitou que a correção fosse executada diretamente; publicar **somente a preview experimental** se o código e testes estivessem corretos. Nenhum merge em `preview` ou `main`.
+- Código auditado: `e37f64f0391b3ccae65b01d775fefb63170572f6`; CI [43558683610](https://github.com/raff1play/BrejoAlegre-WebLab/actions/runs/43558683610) **success**: integridade do repositório, **101/101 testes unitários**, TypeScript e build staging aprovados.
+- `src/world/city/fixturePlacement.ts`: cada equipamento de rua é testado contra pista mais próxima, calçada elevada real, colisão com edificações/muros, entradas e demais equipamentos.
+- `cityLayout.ts`: postes públicos e decorativos e árvores de calçada passam a ser filtrados; visual e colisor usam o mesmo conjunto. 253 postes urbanos e 6 decorativos aprovados na área válida, em vez dos pontos inválidos anteriormente instanciados.
+- `cityPlan.ts`: semáforos fictícios selecionados somente em cinco cruzamentos com espaço físico para cada aproximação. `signalFixtures.ts` corrige compensação de mão única, tenta calçadas alternativas e respeita árvores/jardineiras/postes.
+- Verificação geométrica: cinco cruzamentos, 19 aproximações, **19 cabeçotes veiculares válidos**, 29 pedonais, nenhum acesso sem sinal; testes cruzam IDs com a lógica de tráfego e verificam afastamentos físicos.
+- Não há evidência de medição de FPS/temperatura em aparelho Android ou nova revisão visual interativa em navegador desta revisão. A publicação é **somente para avaliação experimental**. Preservar versão estável fixada `d6eabc4909551001c3203aa4314d8c1c852ac304` na raiz do Pages.
+- O commit de documentação é o gatilho de deploy; confirmar `Street Lab` `success` antes de declarar publicação.
