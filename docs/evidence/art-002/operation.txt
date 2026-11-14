@@ -1,0 +1,39 @@
+PASS 10 original IDs for partial-unload fixture 
+PASS two shops: six collected in the same trunk 
+PASS closed gate is solid to bike 
+PASS real riding cannot cross closed gate {"x":106.0387401981013,"z":-91.24806895816378}
+PASS open gate leaves a clear gap 
+PASS real riding enters the yard through open gate {"x":106.03874019810155,"z":-99.67286493075949}
+FIXTURE depot walking { x: 83, z: -113.5 }
+FIXTURE depot walking { x: 84, z: -112.25 }
+PASS first trip: 4 in hands, 2 remain in trunk 
+FIXTURE depot walking { x: 97.8, z: -122.3 }
+PASS 4 IDs deposited physically 
+FIXTURE depot walking { x: 84, z: -113.5 }
+FIXTURE depot walking { x: 84, z: -112.25 }
+FIXTURE depot walking { x: 97.8, z: -122.3 }
+PASS second trip empties the vehicle 
+TRACE BA-0001 EM_TRANSPORTE conferencia conferente { x: 99.55, y: 0.95, z: -122.3 }
+TRACE BA-0001 RECEBIDO_BASE transferencia descarregador-2 {
+  x: 100.68928571428572,
+  y: 1.0678571428571428,
+  z: -121.35714285714286
+}
+TRACE BA-0001 RECEBIDO_BASE triagem separador-1 { x: 105.89875, y: 0.93, z: -129.6 }
+TRACE BA-0001 TRIADO transferencia separador-2 { x: 116.3, y: 0.9785714285714286, z: -129.35714285714286 }
+TRACE BA-0001 TRIADO gaiola gaiola:Brejo Alegre { x: 124.35, y: 0.25, z: -136.2 }
+TRACE BA-0001 TRIADO transferencia expedidor {
+  x: 125.17142857142856,
+  y: 0.8571428571428572,
+  z: -135.37857142857143
+}
+TRACE BA-0001 NA_SACA saca expedidor { x: 103.3, y: 0.46, z: -119.8 }
+PASS same load completed at D02 
+PASS early withdrawal refused 
+PASS wrong dock cannot release load 
+PASS same 10 IDs in mixed sack, ML and SHP 
+FIXTURE depot walking { x: 84, z: -113.5 }
+FIXTURE depot walking { x: 84, z: -112.25 }
+PASS mixed sack stowed before delivery 
+PASS complete delivery workday, no replacement IDs 
+PASS no browser or task errors []

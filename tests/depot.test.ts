@@ -18,7 +18,7 @@ test('ART002B entry sliding leaves block exactly where rendered, open gap has no
  assert.ok(gateLeaves(0).some(b=>circleIntersectsBox(106,-92.32,.55,b)));
  assert.ok(!gateLeaves(1).some(b=>circleIntersectsBox(106,-92.32,.55,b)));
  assert.ok(guard(p.x,p.z,.55),'no permanent collider across the vehicle opening');
- const pedestrian=depotWorld(93.4,-92.32);assert.ok(guard(pedestrian.x,pedestrian.z,.35));
+ const pedestrian=depotWorld(92.9,-92.32);assert.ok(guard(pedestrian.x,pedestrian.z,.35));
  for(const k of [0,.25,.5,.75,1])for(const b of gateLeaves(k)){
   const g=createMotionGuard(CITY_BOUNDS,[],[depotPoly(b)]);const w=depotWorld((b.minX+b.maxX)/2,-92.32);assert.ok(!g(w.x,w.z,.35));
  }
@@ -38,4 +38,10 @@ test('ART002B usable parking dimensions, dismount and protected receiving/dispat
  }
  const local=depotLocal(...Object.values(depotWorld(84,-111)) as [number,number]);assert.ok(Math.abs(local.x-84)<1e-8&&Math.abs(local.z+111)<1e-8);
  assert.equal(depotYaw(0)-depotYaw(1),-1);
+});
+
+test('ART002F grid connection clears the parked player motorcycle and never snaps through it',()=>{
+ const bike={minX:83.66,maxX:84.34,minZ:-111.89,maxZ:-110.11};
+ const route=depotPath({x:84,z:-112.25},DEPOT_POINTS.receiving,[bike]);
+ for(const p of route)assert.ok(!circleIntersectsBox(p.x,p.z,.34,bike));
 });

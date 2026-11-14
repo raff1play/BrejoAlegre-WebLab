@@ -21,7 +21,7 @@ import { Hud, type HudMode } from './features/hud/hud';
 import { Pedestrian } from './features/walking/pedestrian';
 import { setupEnvironment } from './world/environment';
 import { CURB_H, yawOf } from './world/layout';
-import { STORES, depotWorld, depotYaw } from './world/city/cityPlan';
+import { STORES, depotWorld, depotYaw, depotLocal } from './world/city/cityPlan';
 import { buildProbe, parkNear } from './world/city/testProbe';
 import { HouseStreamer } from './features/city/houseStreamer';
 import { buildTemporaryWorld } from './world/temporaryWorld';
@@ -305,7 +305,10 @@ function start(canvas: HTMLCanvasElement): void {
         depotLocal: (x: number, z: number) => buildProbe().depotLocal(x, z),
         depotYaw: (yaw: number) => depotYaw(yaw),
         depotPlan:()=>({spots:DEPOT_SPOTS,local:DEPOT_POINTS,fixtures:depotFixtures(),parking:MOTO_PARKING}),
-        depotPath:(from:{x:number;z:number},to:{x:number;z:number})=>depotPath(from,to),
+        depotPath:(from:{x:number;z:number},to:{x:number;z:number})=>{
+          const p=depotLocal(moto.state.x,moto.state.z),yaw=moto.state.yaw-depotYaw(0),rx=Math.abs(Math.sin(yaw))*.55+.34,rz=Math.abs(Math.cos(yaw))*.55+.34;
+          return depotPath(from,to,[{minX:p.x-rx,maxX:p.x+rx,minZ:p.z-rz,maxZ:p.z+rz}]);
+        },
         depotGate:(open:boolean|null)=>{delivery.gateManual=open},
         canStand:(x:number,z:number,r=.35,riding=false)=>world.guard(x,z,r)&&!delivery.doorBlocked(x,z,r,riding,{x,z}),
         /** Deterministic test clock: executes real work in bounded steps, never edits parcels. */
@@ -339,7 +342,7 @@ function start(canvas: HTMLCanvasElement): void {
           depot:{gateOpen:delivery.gateOpen,gateManual:delivery.gateManual,visibleIds:[...delivery.parcelViews.visibleIds],workers:delivery.workday.depot.workers.map(w=>({...w,task:w.task?{id:w.task.id,kind:w.task.kind,stage:w.task.stage}:null})),errors:[...delivery.workday.depot.errors]},
           phase: delivery.workday.phase,
           objective: delivery.workday.objective(clock.hour, moto.state),
-          cargo: { hands: delivery.workday.inHands().length, trunk: delivery.workday.inTrunk().length, sack: delivery.workday.sackInHands, label: delivery.workday.cargoLabel(), trunkOpen: moto.trunkOpen, trunkSpot: trunkSpot(bikeSpot()) },
+          cargo: { visualHands:walker.displayedLoad, hands: delivery.workday.inHands().length, trunk: delivery.workday.inTrunk().length, sack: delivery.workday.sackInHands, label: delivery.workday.cargoLabel(), trunkOpen: moto.trunkOpen, trunkSpot: trunkSpot(bikeSpot()) },
           progress: delivery.workday.progress(),
           assigned: [...delivery.workday.assigned],
           route: [...delivery.workday.route],

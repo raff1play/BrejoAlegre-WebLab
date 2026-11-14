@@ -37,10 +37,12 @@ export function buildDepotArchitecture(scene:Scene,set:BatchSet,flat:BatchSet,ma
   switch(r.kind){
    case 'wall':box(concrete,x0,x1,0,1.15,z0,z1);box(mats.ribbed('#c9c9b9'),x0,x1,1.15,h,z0,z1);box(ink,x0,x1,1.12,1.38,z0-.012,z1+.012);break;
    case 'booth':box(concrete,x0,x1,0,.95,z0,z1);box(mats.glass(),x0,x1,.95,2.15,z0,z1);box(ink,x0,x1,2.15,h,z0,z1);for(const x of [x0,x1-.035])box(ink,x,x+.035,.95,2.15,z0,z1);break;
-   case 'column':box(steel,x0,x1,0,h,z0,z1);box(yellow,x0,x1,0,1.25,z0,z1);for(let y=.2;y<1.2;y+=.3)box(ink,x0,x1,y,y+.1,z0-.004,z1+.004);break;
+   case 'column':box(steel,x0,x1,0,h,z0,z1);box(yellow,x0,x1,0,Math.min(1.25,h),z0,z1);for(let y=.2;y<Math.min(1.2,h-.1);y+=.3)box(ink,x0,x1,y,y+.1,z0-.004,z1+.004);break;
    case 'fence':case 'guard':rail(r,h);break;
    case 'cage':
     box(steel,x0,x1,.06,.18,z0,z1);
+    // Front retaining rail blocks feet; its open upper half lets workers load over it.
+    box(steel,x0,x1,.53,.57,z1-.035,z1);
     for(const x of [x0,x1-.03])for(const z of [z0,z1-.03])box(steel,x,x+.03,.18,h,z,z+.03);
     for(let y=.4;y<h;y+=.25){box(steel,x0,x1,y,y+.018,z0,z0+.025);for(const x of [x0,x1-.025])box(steel,x,x+.025,y,y+.018,z0,z1);}
     for(let x=x0;x<x1;x+=.24)box(steel,x,x+.018,.18,h,z0,z0+.018);
@@ -57,8 +59,8 @@ export function buildDepotArchitecture(scene:Scene,set:BatchSet,flat:BatchSet,ma
  // Pitched, corrugated industrial roof on trusses. Roof is a separate render group for inspection.
  const roof=new BatchSet();const tr=(p:P3):P3=>{const q=depotWorld(p[0],p[2]);return[q.x,p[1],q.z]};roof.setTransform(tr);
  const roofMat=mats.ribbed('#8a9186');
- roof.of(roofMat).quad([91.4,Y+7.8,-117.3],[136.6,Y+7.8,-117.3],[136.6,Y+9.2,-130],[91.4,Y+9.2,-130],22,6);
- roof.of(roofMat).quad([91.4,Y+9.2,-130],[136.6,Y+9.2,-130],[136.6,Y+7.8,-142.7],[91.4,Y+7.8,-142.7],22,6);
+ roof.of(roofMat).quad([91.4,Y+9.2,-130],[136.6,Y+9.2,-130],[136.6,Y+7.8,-117.3],[91.4,Y+7.8,-117.3],22,6);
+ roof.of(roofMat).quad([91.4,Y+7.8,-142.7],[136.6,Y+7.8,-142.7],[136.6,Y+9.2,-130],[91.4,Y+9.2,-130],22,6);
  roofMat.material.backFaceCulling=false;
  for(const x of [92.6,106,120,135.4]){
   line([x,7.65,-141.3],[x,7.65,-118.7],.13);line([x,7.7,-141.3],[x,9.08,-130],.12);line([x,9.08,-130],[x,7.7,-118.7],.12);
@@ -88,6 +90,7 @@ export function buildDepotArchitecture(scene:Scene,set:BatchSet,flat:BatchSet,ma
  // Paint-only label stands at ground edge have no physical posts in the circulation lane.
  for(const [name,text,x,z,w]of [['receiving','01 • RECEBIMENTO',101,-120.8,7],['sorting','02 • CONFERÊNCIA / TRIAGEM',111,-128.9,11],['regions','03 • CENTRO / BREJO ALEGRE',123,-135.3,10],['dispatch','04 • EXPEDIÇÃO / ROTA 01',104,-122,7]] as const){
   sign(name,text,x-w/2,x+w/2,z,2.65,.65);
+  for(const dx of [-w/2+.2,w/2-.2])line([x+dx,3.3,z],[x+dx,6.5,z],.015);
  }
  for(const x of [100,112,130])for(const z of [-124,-138]){line([x,7.6,z],[x,6.6,z],.015);box(mats.glow('#f5dfab'),x-.55,x+.55,6.45,6.55,z-.18,z+.18);}
  for(const x of [99.4,134]){box(mats.paint('#b34e31'),x,x+.2,.5,1.2,-118.55,-118.4);}

@@ -16,10 +16,10 @@ export const PLATFORM_LABEL: Record<Platform, string> = { ML: 'Plataforma ML (fi
 export type ParcelPlace = 'loja' | 'caminhao' | 'maos' | 'bau' | 'galpao' | 'saca' | 'destinatario' | 'recebimento' | 'conferencia' | 'transferencia' | 'triagem' | 'gaiola' | 'doca';
 export const PLACE_MOVES: Readonly<Record<ParcelPlace, readonly ParcelPlace[]>> = {
   loja: ['maos'],
-  caminhao: ['galpao', 'transferencia'],
-  maos: ['bau', 'galpao', 'recebimento', 'destinatario'],
+  caminhao: ['transferencia'],
+  maos: ['bau', 'recebimento', 'destinatario'],
   bau: ['maos'],
-  galpao: ['saca'],
+  galpao: [],
   saca: ['maos'],
   recebimento: ['conferencia'],
   conferencia: ['transferencia'],
@@ -62,6 +62,7 @@ export class ParcelError extends Error {}
 
 /** Moves a parcel exactly one stage forward; anything else is a logic error. */
 export function advance(p: Parcel, to: ParcelState, holder: string, hour: number): void {
+  if(!holder||!Number.isFinite(hour))throw new ParcelError(`${p.id}: custódia/horário inválidos`);
   const from = PARCEL_FLOW.indexOf(p.state);
   const next = PARCEL_FLOW.indexOf(to);
   if (next !== from + 1) throw new ParcelError(`${p.id}: ${p.state} → ${to} não é permitido`);
@@ -74,6 +75,8 @@ export function advance(p: Parcel, to: ParcelState, holder: string, hour: number
 
 /** Physically moves a parcel to an adjacent place; anything else is a logic error. */
 export function move(p: Parcel, to: ParcelPlace, by: string, hour: number, position:ParcelPosition|null = null): void {
+  if(!by||!Number.isFinite(hour))throw new ParcelError(`${p.id}: custódia/horário inválidos`);
+  if(to==='transferencia'&&((p.place==='conferencia'&&p.state!=='RECEBIDO_BASE')||(['triagem','gaiola'].includes(p.place)&&p.state!=='TRIADO')))throw new ParcelError(`${p.id}: transferência sem processamento`);
   if (!PLACE_MOVES[p.place].includes(to)) throw new ParcelError(`${p.id}: ${p.place} → ${to} não é permitido`);
   if (['recebimento','conferencia','transferencia','triagem','gaiola','doca'].includes(to) && (!position || !Object.values(position).every(Number.isFinite))) throw new ParcelError(`${p.id}: posição física obrigatória em ${to}`);
   const required:Partial<Record<ParcelPlace,ParcelState>>={recebimento:'EM_TRANSPORTE',conferencia:'EM_TRANSPORTE',triagem:'RECEBIDO_BASE',gaiola:'TRIADO',doca:'TRIADO',saca:'NA_SACA',destinatario:'ENTREGUE'};

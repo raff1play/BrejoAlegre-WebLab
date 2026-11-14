@@ -20,7 +20,7 @@ export class DepotParcels {
  private matrices=new Float32Array(0);
  private positions: number[]=[];
  readonly visibleIds:string[]=[];
- constructor(private scene:Scene,private mats:Materials){
+ constructor(private scene:Scene,mats:Materials){
   const b=new BatchSet();b.box(mats.paint('#ba925b'),-.23,.23,0,.28,-.17,.17);
   b.box(mats.paint('#ddd0ad'),-.035,.035,.281,.284,-.17,.17);
   this.boxes=b.build('art002-live-parcels',scene)[0]!;this.boxes.alwaysSelectAsActiveMesh=true;this.boxes.isPickable=false;
@@ -40,7 +40,6 @@ export class DepotParcels {
   this.labels.material=m;const data=new VertexData();data.positions=this.positions;data.normals=normals;data.uvs=uvs;data.indices=indices;data.applyToMesh(this.labels,true);
   this.boxes.thinInstanceSetBuffer('matrix',this.matrices,16,false);
   this.boxes.metadata={ids:this.ids,capacity:parcels.length};
-  void this.mats;
  }
  update(parcels:readonly Parcel[],near=true):void{
   this.boxes.setEnabled(near);this.labels.setEnabled(near);if(!near){this.visibleIds.length=0;return;}
@@ -55,6 +54,7 @@ export class DepotParcels {
    const corners=[[-.19,-.12],[.19,-.12],[.19,.12],[-.19,.12]];
    corners.forEach(([dx,dz],k)=>{const w=visible?depotWorld(pos!.x+dx!,pos!.z+dz!):{x:0,z:0};const n=i*12+k*3;this.positions[n]=w.x;this.positions[n+1]=y+.287;this.positions[n+2]=w.z;});
   }
+  this.boxes.setEnabled(this.visibleIds.length>0);this.labels.setEnabled(this.visibleIds.length>0);
   this.boxes.thinInstanceBufferUpdated('matrix');this.boxes.thinInstanceCount=parcels.length;
   this.labels.updateVerticesData(VertexBuffer.PositionKind,this.positions,false,false);
  }

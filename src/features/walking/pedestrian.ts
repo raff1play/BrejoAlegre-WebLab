@@ -50,7 +50,7 @@ export class Pedestrian {
     this.parcel = box.build('pedestre-pacote', scene, this.root)[0]!;
     this.parcel.position.set(0, 1.08, 0.36);
     this.parcel.isVisible = false;
-    for (const [i, c] of (['#c69a5f', '#d2ab73'] as const).entries()) {
+    for (const [i, c] of (['#c69a5f', '#d2ab73', '#ad864f'] as const).entries()) {
       const b = new BatchSet();
       const w = 0.17 - i * 0.02;
       b.box(mats.paint(c), -w, w, -0.1, 0.1, -0.13, 0.13);
@@ -72,7 +72,16 @@ export class Pedestrian {
   }
 
   /** What the rider holds: `count` loose volumes or the mixed sack. */
-  setLoad(count: number, sack: boolean): void { this.load = { count, sack }; }
+  setLoad(count: number, sack: boolean): void {
+    this.load = { count, sack }; this.shown = this.load; this.showLoad();
+  }
+  get displayedLoad(): {count:number;sack:boolean} { return {...this.shown}; }
+  private showLoad(): void {
+    const holding=this.shown.count>0;
+    this.parcel.isVisible=holding&&!this.shown.sack;
+    this.extra.forEach((m,i)=>{m.isVisible=holding&&!this.shown.sack&&this.shown.count>=i+2});
+    this.sack.isVisible=holding&&this.shown.sack;
+  }
   /** Plays the short "reach into the top box" gesture. */
   reachTrunk(seconds = 0.55): void { this.reach = seconds; }
   get reaching(): boolean { return this.reach > 0; }
@@ -115,9 +124,9 @@ export class Pedestrian {
       this.state.z + this.from.z * rest,
     );
     this.root.rotation.y = this.state.yaw;
-    // The content of the hands changes in the middle of the reach gesture, not at its start.
+    // ART-002: visibility follows custody in the same rendered frame; only the pose is eased.
     this.reach = Math.max(0, this.reach - dt);
-    if (this.reach < 0.28) this.shown = this.load;
+    this.shown = this.load;
     const holding = this.shown.count > 0;
     this.carrying = holding;
     const target = holding || this.reach > 0 ? carryingPose(this.phase, this.amount, this.time) : walkingPose(this.phase, this.amount, this.time);
@@ -130,10 +139,7 @@ export class Pedestrian {
       pose.pitch += 0.3 * k;
       for (const hand of pose.hands) { hand.z += 0.2 * k; hand.y += 0.08 * k; }
     }
-    this.parcel.isVisible = holding && !this.shown.sack;
-    this.extra[0]!.isVisible = holding && !this.shown.sack && this.shown.count >= 2;
-    this.extra[1]!.isVisible = holding && !this.shown.sack && this.shown.count >= 3;
-    this.sack.isVisible = holding && this.shown.sack;
+    this.showLoad();
     if (rest > 0) {
       // Landing: knees absorb the step, arms come off the handlebar.
       pose.pelvis.y -= Math.sin(this.transition * Math.PI) * 0.12;

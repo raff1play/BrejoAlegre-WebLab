@@ -1,0 +1,32 @@
+PASS 10 original IDs for partial-unload fixture 
+PASS two shops: six collected in the same trunk 
+PASS closed gate is solid to bike 
+PASS real riding cannot cross closed gate {"x":106.13795550814976,"z":-91.24247842011933}
+PASS open gate leaves a clear gap 
+PASS real riding enters the yard through open gate {"x":106.13795550815001,"z":-99.6621838810982}
+WALK { x: 83, z: -113.5 }
+WALK { x: 84, z: -113.5 }
+WALK { x: 84, z: -112.25 }
+PASS first trip: 4 in hands, 2 remain in trunk 
+WALK { x: 94, z: -112.5 }
+WALK { x: 94, z: -116.5 }
+WALK { x: 97.5, z: -116.5 }
+WALK { x: 97.5, z: -119 }
+WALK { x: 98, z: -119 }
+WALK { x: 98, z: -122.5 }
+WALK { x: 97.8, z: -122.3 }
+PASS 4 IDs deposited physically 
+WALK { x: 98, z: -122.5 }
+WALK { x: 84, z: -122.5 }
+WALK { x: 84, z: -113.5 }
+WALK { x: 84, z: -112.25 }
+WALK { x: 94, z: -112.5 }
+WALK { x: 94, z: -116.5 }
+WALK { x: 97.5, z: -116.5 }
+WALK { x: 97.5, z: -119 }
+WALK { x: 98, z: -119 }
+WALK { x: 98, z: -122.5 }
+WALK { x: 97.8, z: -122.3 }
+PASS second trip empties the vehicle 
+TRACE BA-0001 RECEBIDO_BASE transferencia descarregador-2 { x: 101, y: 1.1, z: -120.1 }
+TRACE BA-0001 RECEBIDO_BASE triagem separador-1 { x: 107.49709750000123, y: 0.93, z: -129.6 }

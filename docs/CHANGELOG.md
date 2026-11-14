@@ -162,3 +162,10 @@ Próximas mudanças devem registrar PR/SHA e resultados verificáveis.
 - Arte concentrada no Depósito de Construção, primeira coleta da seed padrão: nova platibanda, letreiro pintado, toldo, esquadrias, cerâmica, desgaste localizado, instalação elétrica e calçada imediata.
 - Moto do jogador com rodas raiadas, tanque e carenagem revistos, banco nervurado, farol redondo e baú maior com identidade original de entregas. Física e regras preservadas.
 - Capturas reais antes/depois e dados de complexidade em `docs/evidence/art-001/`; referência visual ainda não alcançada, Android real pendente.
+
+## ART-002 — 14/11/2026 (continuação na branch ART-001, sem publicação)
+
+- Reconstruídos portaria, perímetro, portões deslizantes com colisão dinâmica, pátio, vagas e docas no terreno existente; planta única para sólidos/renderização/navegação.
+- Logística física por ID: recebimento, conferência, transferência com funcionário, esteira, gaiola regional e expedição na doca 02. Caminhão da doca 05 entra no mesmo fluxo; eliminadas caixas e rotas decorativas.
+- Descarga exige vaga válida, parada, jogador a pé e viagens conforme a capacidade das mãos. A saca única contém os mesmos volumes, sem substituição de IDs.
+- Atlas de etiquetas, instâncias de volumes, sincronização de custódia e apresentação; loja e moto ART-001 sem alterações. Evidências, planta e limites em `docs/evidence/art-002/README.md`.

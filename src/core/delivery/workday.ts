@@ -73,8 +73,8 @@ export class Workday {
     const st = (role: DepotRole, station: { x: number; z: number }, shift: [number, number]): DepotStaff => ({ role, state: 'fora', station, shift, carrying: false });
     this.staff = [
       st('porteiro', S.gatehouse, [6, 22]), st('conferente', S.receiving, [10, 21]),
-      st('descarregador-1', depotWorld(104, -121), [10, 19]), st('descarregador-2', depotWorld(120, -121), [10, 19]),
-      st('separador-1', depotWorld(108, -128), [12, 20]), st('separador-2', depotWorld(113, -131), [12, 20]),
+      st('descarregador-1', depotWorld(104, -121), [10, 21]), st('descarregador-2', depotWorld(120, -121), [10, 21]),
+      st('separador-1', depotWorld(108, -128), [12, 21]), st('separador-2', depotWorld(113, -131), [12, 21]),
       st('expedidor', S.dispatch, [13, 21.5]), st('supervisor', S.office, [9, 21]),
     ];
   }

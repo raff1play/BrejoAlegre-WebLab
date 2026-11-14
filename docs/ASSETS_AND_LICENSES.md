@@ -25,3 +25,7 @@ Nenhum asset externo novo. Veículos NPC, pessoas (funcionários, clientes, tran
 ## ART-001 (14/11/2026)
 
 Arte original implementada em `src/world/city/firstPickupArt.ts` e na apresentação da moto do jogador (`src/features/driving/motorcycle.ts`). Letreiro e identidade fictícia BREJO ENTREGAS desenhados em canvas; geometrias montadas no motor. Sem download ou novo asset de terceiros, fonte comercial externa, imagem de IA ou dependência nova. As capturas em `docs/evidence/art-001/` são renders reais do Babylon/Chromium; preservada a atribuição dos dados OSM do projeto. A referência pictórica exata não foi anexada nesta tarefa.
+
+## ART-002 (14/11/2026)
+
+Arquitetura, portões, caminhão local de recebimento, equipamentos e volumes são geometria original do projeto. Etiquetas de IDs usam atlas canvas original; sem logos licenciados, downloads ou novas dependências. As capturas `docs/evidence/art-002/` são renders reais, não imagens IA. Mantida a implantação/atribuição OSM e os assets CC0 já existentes. A instalação logística é fictícia dentro da quadra real q3; não é levantamento de uma empresa existente.

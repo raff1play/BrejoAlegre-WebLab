@@ -323,7 +323,7 @@ async function cityAndJob(browser) {
   check('coleta nas duas lojas: 4 volumes no baú, em transporte', d.phase === 'RETORNO' && d.cargo.trunk === 4 && d.cargo.hands === 0 && d.parcels.filter((q) => q.state === 'EM_TRANSPORTE' && q.place === 'bau' && q.holder === 'jogador').length === 4, d.cargo.label);
   // Base: park in the yard; the checker takes nothing while the volumes are still in the box.
   await page.evaluate(() => { const p = window.__debug.depot(84, -111); window.__debug.parkAt(p.x, p.z, window.__debug.depotYaw(0)); });
-  const desk = await page.evaluate(() => ({ p: window.__debug.depot(95.4, -122.4), q: window.__debug.depot(95.4, -131), yaw: window.__debug.depotYaw(-Math.PI / 2) }));
+  const desk = await page.evaluate(() => ({ p: window.__debug.depotPlan().spots.receiving, q: window.__debug.depotPlan().spots.dispatch, yaw: window.__debug.depotYaw(-Math.PI / 2) }));
   await walkTo(desk.p.x, desk.p.z, desk.yaw);
   const blocked = await label(/baú/i);
   await act();
@@ -337,13 +337,18 @@ async function cityAndJob(browser) {
   await label(/conferente/);
   await act();
   c = await cargo();
-  check('galpão: conferente recebe os volumes das mãos', c.hands === 0 && c.trunk === 0 && (await snap()).delivery.parcels.filter((q) => q.place === 'galpao').length >= 4);
+  check('galpão: conferente recebe os volumes das mãos', c.hands === 0 && c.trunk === 0 && (await snap()).delivery.parcels.filter((q) => ['recebimento','conferencia'].includes(q.place)).length >= 4);
+  const processUntil = async (predicate) => {
+    const deadline=Date.now()+120000; let state;
+    do {await page.evaluate(()=>window.__debug.processDepot(1));await page.evaluate(()=>new Promise(resolve=>window.__scene.onAfterRenderObservable.addOnce(()=>resolve(null))));state=await snap();if(predicate(state))return state;}while(Date.now()<deadline);
+    return state;
+  };
   await page.evaluate(() => window.__debug.setHour(13.95));
-  s = await until((v) => v.delivery.parcels.every((q) => q.state === 'RECEBIDO_BASE'), 30000);
-  check('galpão: conferente recebe volumes da loja e do caminhão', s.delivery.parcels.every((q) => q.state === 'RECEBIDO_BASE' && q.holder === 'conferente' && q.place === 'galpao'));
+  s = await processUntil(v=>v.delivery.parcels.every(q=>q.state==='RECEBIDO_BASE'));
+  check('galpão: conferente recebe volumes da loja e do caminhão', s.delivery.parcels.every((q) => q.state === 'RECEBIDO_BASE' && q.holder === 'conferente' && ['recebimento','conferencia'].includes(q.place)));
   await shot('12-galpao-conferencia.jpg');
   await page.evaluate(() => window.__debug.setHour(14.3));
-  s = await until((v) => v.delivery.parcels.every((q) => q.state === 'NA_SACA'), 30000);
+  s = await processUntil(v=>v.delivery.parcels.every(q=>q.state==='NA_SACA'&&q.dock==='D02'));
   check('triagem pelos separadores e saca pelo expedidor', s.delivery.parcels.every((q) => q.state === 'NA_SACA' && q.place === 'saca'), JSON.stringify(s.delivery.staff.map((x) => x.state)));
   await page.evaluate(() => window.__debug.setHour(15.05));
   await walkTo(desk.q.x, desk.q.z, desk.yaw);

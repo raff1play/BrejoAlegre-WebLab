@@ -56,7 +56,7 @@ export class DepotOperations {
    switch(t.stage){
     case 'approach':
      if(!this.walk(w,dt))break;
-     w.yaw=Math.PI;w.activity='work';t.timer=0;
+     w.yaw=t.kind==='truck'?0:Math.PI;w.activity='work';t.timer=0;
      if(t.kind==='check'){move(p,'conferencia','conferente',hour,p.position);t.expected='conferencia';t.stage='process';}
      else if(t.kind==='belt')t.stage='process';
      else {move(p,'transferencia',w.role,hour,t.origin);t.expected='transferencia';t.stage='lift';}

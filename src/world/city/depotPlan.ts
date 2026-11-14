@@ -9,6 +9,7 @@ export const DEPOT_POINTS = {
   entry:{x:106,z:-91}, parking:{x:84,z:-111}, truck:{x:128,z:-119.4},
 } as const;
 export const REGIONAL_CAGES = [rect(119,122,-137,-135.5),rect(124,127,-137,-135.5)];
+export const INBOUND_TAIL=rect(127.2,128.8,-118.45,-117.8);
 export const INBOUND_TRUCK=rect(126.75,129.25,-117.8,-109.6);
 export const DISPATCH_DOCK = 'D02';
 export const MIXED_LOAD = 'ROTA-01';
@@ -37,6 +38,8 @@ export function depotFixtures(): DepotFixture[] {
  REGIONAL_CAGES.forEach((r,i)=>add(`region-${i}`,'cage',r,1.65));
  add('dispatch','table',rect(103,105,-120.4,-119.2),.45);
  add('reserve-rack','rack',rect(129,134,-141.5,-140),3.8);
+ for(const x of [78,91])add(`parking-sign-${x}`,'column',rect(x-.045,x+.045,-113.345,-113.255),2.5);
+ add('pedestrian-bollard','column',rect(93.31,93.49,-92.5,-92.22),.85);
  // Guard booth has an actual doorway to the west, no solid glass cube.
  add('booth-front','booth',rect(96,99.3,-95,-94.8),2.7);
  add('booth-back','booth',rect(96,99.3,-98.5,-98.3),2.7);
@@ -47,7 +50,7 @@ export function depotFixtures(): DepotFixture[] {
  add('fence-west','fence',rect(76.2,76.4,-150,-92.42),2.35);
  add('fence-east','fence',rect(139.6,139.8,-150,-92.42),2.35);
  add('fence-back','fence',rect(76.4,139.6,-150,-149.8),2.35);
- for(const x of [92.4,94.4,99.8,112.2])add(`gate-post-${x}`,'column',rect(x-.12,x+.12,-92.6,-92.12),2.8);
+ for(const x of [92.4,94.4,99.8,112.2])add(`gate-post-${x}`,'column',rect(x-.12,x+.12,-92.6,-92.22),2.8);
  // Footway barrier protects the public approach; crosswalk gaps at both ends.
  add('footway-guard','guard',rect(94.8,95,-116,-100),.95);
  add('decoy-bike','parked',rect(86.65,87.35,-112.1,-109.9),1.35);
@@ -62,13 +65,19 @@ export function depotFree(p:{x:number;z:number},r=.34):boolean {
  return insideRect(rect(76.4,139.6,-149.8,-92.5),p,r)&&!depotFixtures().some(b=>circleIntersectsBox(p.x,p.z,r,b));
 }
 /** Deterministic 0.5 m navigation grid. Every edge is checked against the shared fixtures. */
-export function depotPath(from:{x:number;z:number},to:{x:number;z:number}):{x:number;z:number}[] {
- if(!depotFree(from)||!depotFree(to))throw new Error(`depot route endpoint blocked: ${JSON.stringify({from,to})}`);
- const cell=.5,key=(x:number,z:number)=>`${x},${z}`;
- const start={x:Math.round(from.x/cell),z:Math.round(from.z/cell)},end={x:Math.round(to.x/cell),z:Math.round(to.z/cell)};
- const queue=[start],prev=new Map<string,string|null>([[key(start.x,start.z),null]]);let found=false;
- const fixtures=depotFixtures();
+export function depotPath(from:{x:number;z:number},to:{x:number;z:number},extra:readonly Box2D[]=[]):{x:number;z:number}[] {
+ const cell=.5,key=(x:number,z:number)=>`${x},${z}`,fixtures=[...depotFixtures(),...extra];
  const free=(x:number,z:number)=>insideRect(rect(76.4,139.6,-149.8,-92.5),{x,z},.34)&&!fixtures.some(b=>circleIntersectsBox(x,z,.34,b));
+ const link=(a:{x:number;z:number},b:{x:number;z:number})=>{const n=Math.ceil(Math.hypot(a.x-b.x,a.z-b.z)/.1);for(let i=0;i<=n;i++){const t=n?i/n:0;if(!free(a.x+(b.x-a.x)*t,a.z+(b.z-a.z)*t))return false;}return true;};
+ if(!free(from.x,from.z)||!free(to.x,to.z))throw new Error(`depot route endpoint blocked: ${JSON.stringify({from,to})}`);
+ const snap=(p:{x:number;z:number})=>{
+  const candidates:{x:number;z:number}[]=[];
+  for(let dx=-2;dx<=2;dx++)for(let dz=-2;dz<=2;dz++)candidates.push({x:Math.round(p.x/cell)+dx,z:Math.round(p.z/cell)+dz});
+  candidates.sort((a,b)=>Math.hypot(a.x*cell-p.x,a.z*cell-p.z)-Math.hypot(b.x*cell-p.x,b.z*cell-p.z));
+  const result=candidates.find(c=>link(p,{x:c.x*cell,z:c.z*cell}));if(!result)throw new Error('No safe grid connection');return result;
+ };
+ const start=snap(from),end=snap(to);
+ const queue=[start],prev=new Map<string,string|null>([[key(start.x,start.z),null]]);let found=false;
  for(let i=0;i<queue.length;i++){
   const p=queue[i]!;if(p.x===end.x&&p.z===end.z){found=true;break;}
   for(const [dx,dz]of [[1,0],[-1,0],[0,1],[0,-1]]){const x=p.x+dx!,z=p.z+dz!,k=key(x,z);if(prev.has(k)||!free(x*cell,z*cell)||!free((x+p.x)*cell/2,(z+p.z)*cell/2))continue;prev.set(k,key(p.x,p.z));queue.push({x,z});}

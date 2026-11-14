@@ -1,0 +1,4757 @@
+{
+  "method": "real browser controls + fixture teleports for city trips, bounded task steps for headless",
+  "ids": [
+    "BA-0001",
+    "BA-0002",
+    "BA-0003",
+    "BA-0004",
+    "BA-0005",
+    "BA-0006",
+    "ML-0007",
+    "SHP-0008",
+    "ML-0009",
+    "SHP-0010"
+  ],
+  "trace": [
+    {
+      "id": "BA-0001",
+      "state": "EM_TRANSPORTE",
+      "place": "conferencia",
+      "holder": "conferente",
+      "origin": "construcao",
+      "destination": "end-q38-l595",
+      "platform": "LOJA",
+      "region": "Brejo Alegre",
+      "position": {
+        "x": 99.55,
+        "y": 0.95,
+        "z": -122.3
+      },
+      "dock": null,
+      "load": null,
+      "history": [
+        {
+          "state": "NA_LOJA",
+          "place": "loja",
+          "hour": 12.1,
+          "by": "construcao",
+          "holder": "construcao",
+          "position": null,
+          "dock": null,
+          "load": null,
+          "operation": "criado"
+        },
+        {
+          "state": "COLETADO",
+          "place": "loja",
+          "hour": 12.111839999999832,
+          "by": "jogador",
+          "holder": "jogador",
+          "position": null,
+          "dock": null,
+          "load": null,
+          "operation": "estado:COLETADO"
+        },
+        {
+          "state": "COLETADO",
+          "place": "maos",
+          "hour": 12.111839999999832,
+          "by": "jogador",
+          "holder": "jogador",
+          "position": null,
+          "dock": null,
+          "load": null,
+          "operation": "transferência:maos"
+        },
+        {
+          "state": "EM_TRANSPORTE",
+          "place": "maos",
+          "hour": 12.111839999999832,
+          "by": "jogador",
+          "holder": "jogador",
+          "position": null,
+          "dock": null,
+          "load": null,
+          "operation": "estado:EM_TRANSPORTE"
+        },
+        {
+          "state": "EM_TRANSPORTE",
+          "place": "bau",
+          "hour": 12.111839999999832,
+          "by": "jogador",
+          "holder": "jogador",
+          "position": null,
+          "dock": null,
+          "load": null,
+          "operation": "transferência:bau"
+        },
+        {
+          "state": "EM_TRANSPORTE",
+          "place": "maos",
+          "hour": 12.137528749999486,
+          "by": "jogador",
+          "holder": "jogador",
+          "position": null,
+          "dock": null,
+          "load": null,
+          "operation": "transferência:maos"
+        },
+        {
+          "state": "EM_TRANSPORTE",
+          "place": "recebimento",
+          "hour": 12.137528749999486,
+          "by": "recebimento",
+          "holder": "recebimento",
+          "position": {
+            "x": 99.55,
+            "y": 0.95,
+            "z": -122.3
+          },
+          "dock": null,
+          "load": null,
+          "operation": "transferência:recebimento"
+        },
+        {
+          "state": "EM_TRANSPORTE",
+          "place": "conferencia",
+          "hour": 12.1388195833328,
+          "by": "conferente",
+          "holder": "conferente",
+          "position": {
+            "x": 99.55,
+            "y": 0.95,
+            "z": -122.3
+          },
+          "dock": null,
+          "load": null,
+          "operation": "transferência:conferencia"
+        }
+      ]
+    },
+    {
+      "id": "BA-0001",
+      "state": "RECEBIDO_BASE",
+      "place": "transferencia",
+      "holder": "descarregador-2",
+      "origin": "construcao",
+      "destination": "end-q38-l595",
+      "platform": "LOJA",
+      "region": "Brejo Alegre",
+      "position": {
+        "x": 100.68928571428572,
+        "y": 1.0678571428571428,
+        "z": -121.35714285714286
+      },
+      "dock": null,
+      "load": null,
+      "history": [
+        {
+          "state": "NA_LOJA",
+          "place": "loja",
+          "hour": 12.1,
+          "by": "construcao",
+          "holder": "construcao",
+          "position": null,
+          "dock": null,
+          "load": null,
+          "operation": "criado"
+        },
+        {
+          "state": "COLETADO",
+          "place": "loja",
+          "hour": 12.111839999999832,
+          "by": "jogador",
+          "holder": "jogador",
+          "position": null,
+          "dock": null,
+          "load": null,
+          "operation": "estado:COLETADO"
+        },
+        {
+          "state": "COLETADO",
+          "place": "maos",
+          "hour": 12.111839999999832,
+          "by": "jogador",
+          "holder": "jogador",
+          "position": null,
+          "dock": null,
+          "load": null,
+          "operation": "transferência:maos"
+        },
+        {
+          "state": "EM_TRANSPORTE",
+          "place": "maos",
+          "hour": 12.111839999999832,
+          "by": "jogador",
+          "holder": "jogador",
+          "position": null,
+          "dock": null,
+          "load": null,
+          "operation": "estado:EM_TRANSPORTE"
+        },
+        {
+          "state": "EM_TRANSPORTE",
+          "place": "bau",
+          "hour": 12.111839999999832,
+          "by": "jogador",
+          "holder": "jogador",
+          "position": null,
+          "dock": null,
+          "load": null,
+          "operation": "transferência:bau"
+        },
+        {
+          "state": "EM_TRANSPORTE",
+          "place": "maos",
+          "hour": 12.137528749999486,
+          "by": "jogador",
+          "holder": "jogador",
+          "position": null,
+          "dock": null,
+          "load": null,
+          "operation": "transferência:maos"
+        },
+        {
+          "state": "EM_TRANSPORTE",
+          "place": "recebimento",
+          "hour": 12.137528749999486,
+          "by": "recebimento",
+          "holder": "recebimento",
+          "position": {
+            "x": 99.55,
+            "y": 0.95,
+            "z": -122.3
+          },
+          "dock": null,
+          "load": null,
+          "operation": "transferência:recebimento"
+        },
+        {
+          "state": "EM_TRANSPORTE",
+          "place": "conferencia",
+          "hour": 12.1388195833328,
+          "by": "conferente",
+          "holder": "conferente",
+          "position": {
+            "x": 99.55,
+            "y": 0.95,
+            "z": -122.3
+          },
+          "dock": null,
+          "load": null,
+          "operation": "transferência:conferencia"
+        },
+        {
+          "state": "RECEBIDO_BASE",
+          "place": "conferencia",
+          "hour": 14.200624999999992,
+          "by": "conferente",
+          "holder": "conferente",
+          "position": {
+            "x": 99.55,
+            "y": 0.95,
+            "z": -122.3
+          },
+          "dock": null,
+          "load": null,
+          "operation": "estado:RECEBIDO_BASE"
+        },
+        {
+          "state": "RECEBIDO_BASE",
+          "place": "transferencia",
+          "hour": 14.20259249999996,
+          "by": "descarregador-2",
+          "holder": "descarregador-2",
+          "position": {
+            "x": 99.55,
+            "y": 0.95,
+            "z": -122.3
+          },
+          "dock": null,
+          "load": null,
+          "operation": "transferência:transferencia"
+        }
+      ]
+    },
+    {
+      "id": "BA-0001",
+      "state": "RECEBIDO_BASE",
+      "place": "triagem",
+      "holder": "separador-1",
+      "origin": "construcao",
+      "destination": "end-q38-l595",
+      "platform": "LOJA",
+      "region": "Brejo Alegre",
+      "position": {
+        "x": 105.89875,
+        "y": 0.93,
+        "z": -129.6
+      },
+      "dock": null,
+      "load": null,
+      "history": [
+        {
+          "state": "NA_LOJA",
+          "place": "loja",
+          "hour": 12.1,
+          "by": "construcao",
+          "holder": "construcao",
+          "position": null,
+          "dock": null,
+          "load": null,
+          "operation": "criado"
+        },
+        {
+          "state": "COLETADO",
+          "place": "loja",
+          "hour": 12.111839999999832,
+          "by": "jogador",
+          "holder": "jogador",
+          "position": null,
+          "dock": null,
+          "load": null,
+          "operation": "estado:COLETADO"
+        },
+        {
+          "state": "COLETADO",
+          "place": "maos",
+          "hour": 12.111839999999832,
+          "by": "jogador",
+          "holder": "jogador",
+          "position": null,
+          "dock": null,
+          "load": null,
+          "operation": "transferência:maos"
+        },
+        {
+          "state": "EM_TRANSPORTE",
+          "place": "maos",
+          "hour": 12.111839999999832,
+          "by": "jogador",
+          "holder": "jogador",
+          "position": null,
+          "dock": null,
+          "load": null,
+          "operation": "estado:EM_TRANSPORTE"
+        },
+        {
+          "state": "EM_TRANSPORTE",
+          "place": "bau",
+          "hour": 12.111839999999832,
+          "by": "jogador",
+          "holder": "jogador",
+          "position": null,
+          "dock": null,
+          "load": null,
+          "operation": "transferência:bau"
+        },
+        {
+          "state": "EM_TRANSPORTE",
+          "place": "maos",
+          "hour": 12.137528749999486,
+          "by": "jogador",
+          "holder": "jogador",
+          "position": null,
+          "dock": null,
+          "load": null,
+          "operation": "transferência:maos"
+        },
+        {
+          "state": "EM_TRANSPORTE",
+          "place": "recebimento",
+          "hour": 12.137528749999486,
+          "by": "recebimento",
+          "holder": "recebimento",
+          "position": {
+            "x": 99.55,
+            "y": 0.95,
+            "z": -122.3
+          },
+          "dock": null,
+          "load": null,
+          "operation": "transferência:recebimento"
+        },
+        {
+          "state": "EM_TRANSPORTE",
+          "place": "conferencia",
+          "hour": 12.1388195833328,
+          "by": "conferente",
+          "holder": "conferente",
+          "position": {
+            "x": 99.55,
+            "y": 0.95,
+            "z": -122.3
+          },
+          "dock": null,
+          "load": null,
+          "operation": "transferência:conferencia"
+        },
+        {
+          "state": "RECEBIDO_BASE",
+          "place": "conferencia",
+          "hour": 14.200624999999992,
+          "by": "conferente",
+          "holder": "conferente",
+          "position": {
+            "x": 99.55,
+            "y": 0.95,
+            "z": -122.3
+          },
+          "dock": null,
+          "load": null,
+          "operation": "estado:RECEBIDO_BASE"
+        },
+        {
+          "state": "RECEBIDO_BASE",
+          "place": "transferencia",
+          "hour": 14.20259249999996,
+          "by": "descarregador-2",
+          "holder": "descarregador-2",
+          "position": {
+            "x": 99.55,
+            "y": 0.95,
+            "z": -122.3
+          },
+          "dock": null,
+          "load": null,
+          "operation": "transferência:transferencia"
+        },
+        {
+          "state": "RECEBIDO_BASE",
+          "place": "triagem",
+          "hour": 14.205925833333247,
+          "by": "separador-1",
+          "holder": "separador-1",
+          "position": {
+            "x": 105.7,
+            "y": 0.93,
+            "z": -129.6
+          },
+          "dock": null,
+          "load": null,
+          "operation": "transferência:triagem"
+        }
+      ]
+    },
+    {
+      "id": "BA-0001",
+      "state": "TRIADO",
+      "place": "transferencia",
+      "holder": "separador-2",
+      "origin": "construcao",
+      "destination": "end-q38-l595",
+      "platform": "LOJA",
+      "region": "Brejo Alegre",
+      "position": {
+        "x": 116.3,
+        "y": 0.9785714285714286,
+        "z": -129.35714285714286
+      },
+      "dock": null,
+      "load": null,
+      "history": [
+        {
+          "state": "NA_LOJA",
+          "place": "loja",
+          "hour": 12.1,
+          "by": "construcao",
+          "holder": "construcao",
+          "position": null,
+          "dock": null,
+          "load": null,
+          "operation": "criado"
+        },
+        {
+          "state": "COLETADO",
+          "place": "loja",
+          "hour": 12.111839999999832,
+          "by": "jogador",
+          "holder": "jogador",
+          "position": null,
+          "dock": null,
+          "load": null,
+          "operation": "estado:COLETADO"
+        },
+        {
+          "state": "COLETADO",
+          "place": "maos",
+          "hour": 12.111839999999832,
+          "by": "jogador",
+          "holder": "jogador",
+          "position": null,
+          "dock": null,
+          "load": null,
+          "operation": "transferência:maos"
+        },
+        {
+          "state": "EM_TRANSPORTE",
+          "place": "maos",
+          "hour": 12.111839999999832,
+          "by": "jogador",
+          "holder": "jogador",
+          "position": null,
+          "dock": null,
+          "load": null,
+          "operation": "estado:EM_TRANSPORTE"
+        },
+        {
+          "state": "EM_TRANSPORTE",
+          "place": "bau",
+          "hour": 12.111839999999832,
+          "by": "jogador",
+          "holder": "jogador",
+          "position": null,
+          "dock": null,
+          "load": null,
+          "operation": "transferência:bau"
+        },
+        {
+          "state": "EM_TRANSPORTE",
+          "place": "maos",
+          "hour": 12.137528749999486,
+          "by": "jogador",
+          "holder": "jogador",
+          "position": null,
+          "dock": null,
+          "load": null,
+          "operation": "transferência:maos"
+        },
+        {
+          "state": "EM_TRANSPORTE",
+          "place": "recebimento",
+          "hour": 12.137528749999486,
+          "by": "recebimento",
+          "holder": "recebimento",
+          "position": {
+            "x": 99.55,
+            "y": 0.95,
+            "z": -122.3
+          },
+          "dock": null,
+          "load": null,
+          "operation": "transferência:recebimento"
+        },
+        {
+          "state": "EM_TRANSPORTE",
+          "place": "conferencia",
+          "hour": 12.1388195833328,
+          "by": "conferente",
+          "holder": "conferente",
+          "position": {
+            "x": 99.55,
+            "y": 0.95,
+            "z": -122.3
+          },
+          "dock": null,
+          "load": null,
+          "operation": "transferência:conferencia"
+        },
+        {
+          "state": "RECEBIDO_BASE",
+          "place": "conferencia",
+          "hour": 14.200624999999992,
+          "by": "conferente",
+          "holder": "conferente",
+          "position": {
+            "x": 99.55,
+            "y": 0.95,
+            "z": -122.3
+          },
+          "dock": null,
+          "load": null,
+          "operation": "estado:RECEBIDO_BASE"
+        },
+        {
+          "state": "RECEBIDO_BASE",
+          "place": "transferencia",
+          "hour": 14.20259249999996,
+          "by": "descarregador-2",
+          "holder": "descarregador-2",
+          "position": {
+            "x": 99.55,
+            "y": 0.95,
+            "z": -122.3
+          },
+          "dock": null,
+          "load": null,
+          "operation": "transferência:transferencia"
+        },
+        {
+          "state": "RECEBIDO_BASE",
+          "place": "triagem",
+          "hour": 14.205925833333247,
+          "by": "separador-1",
+          "holder": "separador-1",
+          "position": {
+            "x": 105.7,
+            "y": 0.93,
+            "z": -129.6
+          },
+          "dock": null,
+          "load": null,
+          "operation": "transferência:triagem"
+        },
+        {
+          "state": "TRIADO",
+          "place": "triagem",
+          "hour": 14.212038333333172,
+          "by": "separador-1",
+          "holder": "separador-1",
+          "position": {
+            "x": 116.3,
+            "y": 0.93,
+            "z": -129.6
+          },
+          "dock": null,
+          "load": null,
+          "operation": "estado:TRIADO"
+        },
+        {
+          "state": "TRIADO",
+          "place": "transferencia",
+          "hour": 14.213913333333146,
+          "by": "separador-2",
+          "holder": "separador-2",
+          "position": {
+            "x": 116.3,
+            "y": 0.93,
+            "z": -129.6
+          },
+          "dock": null,
+          "load": null,
+          "operation": "transferência:transferencia"
+        }
+      ]
+    },
+    {
+      "id": "BA-0001",
+      "state": "TRIADO",
+      "place": "gaiola",
+      "holder": "gaiola:Brejo Alegre",
+      "origin": "construcao",
+      "destination": "end-q38-l595",
+      "platform": "LOJA",
+      "region": "Brejo Alegre",
+      "position": {
+        "x": 124.35,
+        "y": 0.25,
+        "z": -136.2
+      },
+      "dock": null,
+      "load": null,
+      "history": [
+        {
+          "state": "NA_LOJA",
+          "place": "loja",
+          "hour": 12.1,
+          "by": "construcao",
+          "holder": "construcao",
+          "position": null,
+          "dock": null,
+          "load": null,
+          "operation": "criado"
+        },
+        {
+          "state": "COLETADO",
+          "place": "loja",
+          "hour": 12.111839999999832,
+          "by": "jogador",
+          "holder": "jogador",
+          "position": null,
+          "dock": null,
+          "load": null,
+          "operation": "estado:COLETADO"
+        },
+        {
+          "state": "COLETADO",
+          "place": "maos",
+          "hour": 12.111839999999832,
+          "by": "jogador",
+          "holder": "jogador",
+          "position": null,
+          "dock": null,
+          "load": null,
+          "operation": "transferência:maos"
+        },
+        {
+          "state": "EM_TRANSPORTE",
+          "place": "maos",
+          "hour": 12.111839999999832,
+          "by": "jogador",
+          "holder": "jogador",
+          "position": null,
+          "dock": null,
+          "load": null,
+          "operation": "estado:EM_TRANSPORTE"
+        },
+        {
+          "state": "EM_TRANSPORTE",
+          "place": "bau",
+          "hour": 12.111839999999832,
+          "by": "jogador",
+          "holder": "jogador",
+          "position": null,
+          "dock": null,
+          "load": null,
+          "operation": "transferência:bau"
+        },
+        {
+          "state": "EM_TRANSPORTE",
+          "place": "maos",
+          "hour": 12.137528749999486,
+          "by": "jogador",
+          "holder": "jogador",
+          "position": null,
+          "dock": null,
+          "load": null,
+          "operation": "transferência:maos"
+        },
+        {
+          "state": "EM_TRANSPORTE",
+          "place": "recebimento",
+          "hour": 12.137528749999486,
+          "by": "recebimento",
+          "holder": "recebimento",
+          "position": {
+            "x": 99.55,
+            "y": 0.95,
+            "z": -122.3
+          },
+          "dock": null,
+          "load": null,
+          "operation": "transferência:recebimento"
+        },
+        {
+          "state": "EM_TRANSPORTE",
+          "place": "conferencia",
+          "hour": 12.1388195833328,
+          "by": "conferente",
+          "holder": "conferente",
+          "position": {
+            "x": 99.55,
+            "y": 0.95,
+            "z": -122.3
+          },
+          "dock": null,
+          "load": null,
+          "operation": "transferência:conferencia"
+        },
+        {
+          "state": "RECEBIDO_BASE",
+          "place": "conferencia",
+          "hour": 14.200624999999992,
+          "by": "conferente",
+          "holder": "conferente",
+          "position": {
+            "x": 99.55,
+            "y": 0.95,
+            "z": -122.3
+          },
+          "dock": null,
+          "load": null,
+          "operation": "estado:RECEBIDO_BASE"
+        },
+        {
+          "state": "RECEBIDO_BASE",
+          "place": "transferencia",
+          "hour": 14.20259249999996,
+          "by": "descarregador-2",
+          "holder": "descarregador-2",
+          "position": {
+            "x": 99.55,
+            "y": 0.95,
+            "z": -122.3
+          },
+          "dock": null,
+          "load": null,
+          "operation": "transferência:transferencia"
+        },
+        {
+          "state": "RECEBIDO_BASE",
+          "place": "triagem",
+          "hour": 14.205925833333247,
+          "by": "separador-1",
+          "holder": "separador-1",
+          "position": {
+            "x": 105.7,
+            "y": 0.93,
+            "z": -129.6
+          },
+          "dock": null,
+          "load": null,
+          "operation": "transferência:triagem"
+        },
+        {
+          "state": "TRIADO",
+          "place": "triagem",
+          "hour": 14.212038333333172,
+          "by": "separador-1",
+          "holder": "separador-1",
+          "position": {
+            "x": 116.3,
+            "y": 0.93,
+            "z": -129.6
+          },
+          "dock": null,
+          "load": null,
+          "operation": "estado:TRIADO"
+        },
+        {
+          "state": "TRIADO",
+          "place": "transferencia",
+          "hour": 14.213913333333146,
+          "by": "separador-2",
+          "holder": "separador-2",
+          "position": {
+            "x": 116.3,
+            "y": 0.93,
+            "z": -129.6
+          },
+          "dock": null,
+          "load": null,
+          "operation": "transferência:transferencia"
+        },
+        {
+          "state": "TRIADO",
+          "place": "gaiola",
+          "hour": 14.21787166666642,
+          "by": "gaiola:Brejo Alegre",
+          "holder": "gaiola:Brejo Alegre",
+          "position": {
+            "x": 124.35,
+            "y": 0.25,
+            "z": -136.2
+          },
+          "dock": null,
+          "load": null,
+          "operation": "transferência:gaiola"
+        }
+      ]
+    },
+    {
+      "id": "BA-0001",
+      "state": "TRIADO",
+      "place": "transferencia",
+      "holder": "expedidor",
+      "origin": "construcao",
+      "destination": "end-q38-l595",
+      "platform": "LOJA",
+      "region": "Brejo Alegre",
+      "position": {
+        "x": 125.17142857142856,
+        "y": 0.8571428571428572,
+        "z": -135.37857142857143
+      },
+      "dock": null,
+      "load": null,
+      "history": [
+        {
+          "state": "NA_LOJA",
+          "place": "loja",
+          "hour": 12.1,
+          "by": "construcao",
+          "holder": "construcao",
+          "position": null,
+          "dock": null,
+          "load": null,
+          "operation": "criado"
+        },
+        {
+          "state": "COLETADO",
+          "place": "loja",
+          "hour": 12.111839999999832,
+          "by": "jogador",
+          "holder": "jogador",
+          "position": null,
+          "dock": null,
+          "load": null,
+          "operation": "estado:COLETADO"
+        },
+        {
+          "state": "COLETADO",
+          "place": "maos",
+          "hour": 12.111839999999832,
+          "by": "jogador",
+          "holder": "jogador",
+          "position": null,
+          "dock": null,
+          "load": null,
+          "operation": "transferência:maos"
+        },
+        {
+          "state": "EM_TRANSPORTE",
+          "place": "maos",
+          "hour": 12.111839999999832,
+          "by": "jogador",
+          "holder": "jogador",
+          "position": null,
+          "dock": null,
+          "load": null,
+          "operation": "estado:EM_TRANSPORTE"
+        },
+        {
+          "state": "EM_TRANSPORTE",
+          "place": "bau",
+          "hour": 12.111839999999832,
+          "by": "jogador",
+          "holder": "jogador",
+          "position": null,
+          "dock": null,
+          "load": null,
+          "operation": "transferência:bau"
+        },
+        {
+          "state": "EM_TRANSPORTE",
+          "place": "maos",
+          "hour": 12.137528749999486,
+          "by": "jogador",
+          "holder": "jogador",
+          "position": null,
+          "dock": null,
+          "load": null,
+          "operation": "transferência:maos"
+        },
+        {
+          "state": "EM_TRANSPORTE",
+          "place": "recebimento",
+          "hour": 12.137528749999486,
+          "by": "recebimento",
+          "holder": "recebimento",
+          "position": {
+            "x": 99.55,
+            "y": 0.95,
+            "z": -122.3
+          },
+          "dock": null,
+          "load": null,
+          "operation": "transferência:recebimento"
+        },
+        {
+          "state": "EM_TRANSPORTE",
+          "place": "conferencia",
+          "hour": 12.1388195833328,
+          "by": "conferente",
+          "holder": "conferente",
+          "position": {
+            "x": 99.55,
+            "y": 0.95,
+            "z": -122.3
+          },
+          "dock": null,
+          "load": null,
+          "operation": "transferência:conferencia"
+        },
+        {
+          "state": "RECEBIDO_BASE",
+          "place": "conferencia",
+          "hour": 14.200624999999992,
+          "by": "conferente",
+          "holder": "conferente",
+          "position": {
+            "x": 99.55,
+            "y": 0.95,
+            "z": -122.3
+          },
+          "dock": null,
+          "load": null,
+          "operation": "estado:RECEBIDO_BASE"
+        },
+        {
+          "state": "RECEBIDO_BASE",
+          "place": "transferencia",
+          "hour": 14.20259249999996,
+          "by": "descarregador-2",
+          "holder": "descarregador-2",
+          "position": {
+            "x": 99.55,
+            "y": 0.95,
+            "z": -122.3
+          },
+          "dock": null,
+          "load": null,
+          "operation": "transferência:transferencia"
+        },
+        {
+          "state": "RECEBIDO_BASE",
+          "place": "triagem",
+          "hour": 14.205925833333247,
+          "by": "separador-1",
+          "holder": "separador-1",
+          "position": {
+            "x": 105.7,
+            "y": 0.93,
+            "z": -129.6
+          },
+          "dock": null,
+          "load": null,
+          "operation": "transferência:triagem"
+        },
+        {
+          "state": "TRIADO",
+          "place": "triagem",
+          "hour": 14.212038333333172,
+          "by": "separador-1",
+          "holder": "separador-1",
+          "position": {
+            "x": 116.3,
+            "y": 0.93,
+            "z": -129.6
+          },
+          "dock": null,
+          "load": null,
+          "operation": "estado:TRIADO"
+        },
+        {
+          "state": "TRIADO",
+          "place": "transferencia",
+          "hour": 14.213913333333146,
+          "by": "separador-2",
+          "holder": "separador-2",
+          "position": {
+            "x": 116.3,
+            "y": 0.93,
+            "z": -129.6
+          },
+          "dock": null,
+          "load": null,
+          "operation": "transferência:transferencia"
+        },
+        {
+          "state": "TRIADO",
+          "place": "gaiola",
+          "hour": 14.21787166666642,
+          "by": "gaiola:Brejo Alegre",
+          "holder": "gaiola:Brejo Alegre",
+          "position": {
+            "x": 124.35,
+            "y": 0.25,
+            "z": -136.2
+          },
+          "dock": null,
+          "load": null,
+          "operation": "transferência:gaiola"
+        },
+        {
+          "state": "TRIADO",
+          "place": "transferencia",
+          "hour": 14.226999166666307,
+          "by": "expedidor",
+          "holder": "expedidor",
+          "position": {
+            "x": 124.35,
+            "y": 0.25,
+            "z": -136.2
+          },
+          "dock": null,
+          "load": null,
+          "operation": "transferência:transferencia"
+        }
+      ]
+    },
+    {
+      "id": "BA-0001",
+      "state": "NA_SACA",
+      "place": "saca",
+      "holder": "expedidor",
+      "origin": "construcao",
+      "destination": "end-q38-l595",
+      "platform": "LOJA",
+      "region": "Brejo Alegre",
+      "position": {
+        "x": 103.3,
+        "y": 0.46,
+        "z": -119.8
+      },
+      "dock": "D02",
+      "load": "ROTA-01",
+      "history": [
+        {
+          "state": "NA_LOJA",
+          "place": "loja",
+          "hour": 12.1,
+          "by": "construcao",
+          "holder": "construcao",
+          "position": null,
+          "dock": null,
+          "load": null,
+          "operation": "criado"
+        },
+        {
+          "state": "COLETADO",
+          "place": "loja",
+          "hour": 12.111839999999832,
+          "by": "jogador",
+          "holder": "jogador",
+          "position": null,
+          "dock": null,
+          "load": null,
+          "operation": "estado:COLETADO"
+        },
+        {
+          "state": "COLETADO",
+          "place": "maos",
+          "hour": 12.111839999999832,
+          "by": "jogador",
+          "holder": "jogador",
+          "position": null,
+          "dock": null,
+          "load": null,
+          "operation": "transferência:maos"
+        },
+        {
+          "state": "EM_TRANSPORTE",
+          "place": "maos",
+          "hour": 12.111839999999832,
+          "by": "jogador",
+          "holder": "jogador",
+          "position": null,
+          "dock": null,
+          "load": null,
+          "operation": "estado:EM_TRANSPORTE"
+        },
+        {
+          "state": "EM_TRANSPORTE",
+          "place": "bau",
+          "hour": 12.111839999999832,
+          "by": "jogador",
+          "holder": "jogador",
+          "position": null,
+          "dock": null,
+          "load": null,
+          "operation": "transferência:bau"
+        },
+        {
+          "state": "EM_TRANSPORTE",
+          "place": "maos",
+          "hour": 12.137528749999486,
+          "by": "jogador",
+          "holder": "jogador",
+          "position": null,
+          "dock": null,
+          "load": null,
+          "operation": "transferência:maos"
+        },
+        {
+          "state": "EM_TRANSPORTE",
+          "place": "recebimento",
+          "hour": 12.137528749999486,
+          "by": "recebimento",
+          "holder": "recebimento",
+          "position": {
+            "x": 99.55,
+            "y": 0.95,
+            "z": -122.3
+          },
+          "dock": null,
+          "load": null,
+          "operation": "transferência:recebimento"
+        },
+        {
+          "state": "EM_TRANSPORTE",
+          "place": "conferencia",
+          "hour": 12.1388195833328,
+          "by": "conferente",
+          "holder": "conferente",
+          "position": {
+            "x": 99.55,
+            "y": 0.95,
+            "z": -122.3
+          },
+          "dock": null,
+          "load": null,
+          "operation": "transferência:conferencia"
+        },
+        {
+          "state": "RECEBIDO_BASE",
+          "place": "conferencia",
+          "hour": 14.200624999999992,
+          "by": "conferente",
+          "holder": "conferente",
+          "position": {
+            "x": 99.55,
+            "y": 0.95,
+            "z": -122.3
+          },
+          "dock": null,
+          "load": null,
+          "operation": "estado:RECEBIDO_BASE"
+        },
+        {
+          "state": "RECEBIDO_BASE",
+          "place": "transferencia",
+          "hour": 14.20259249999996,
+          "by": "descarregador-2",
+          "holder": "descarregador-2",
+          "position": {
+            "x": 99.55,
+            "y": 0.95,
+            "z": -122.3
+          },
+          "dock": null,
+          "load": null,
+          "operation": "transferência:transferencia"
+        },
+        {
+          "state": "RECEBIDO_BASE",
+          "place": "triagem",
+          "hour": 14.205925833333247,
+          "by": "separador-1",
+          "holder": "separador-1",
+          "position": {
+            "x": 105.7,
+            "y": 0.93,
+            "z": -129.6
+          },
+          "dock": null,
+          "load": null,
+          "operation": "transferência:triagem"
+        },
+        {
+          "state": "TRIADO",
+          "place": "triagem",
+          "hour": 14.212038333333172,
+          "by": "separador-1",
+          "holder": "separador-1",
+          "position": {
+            "x": 116.3,
+            "y": 0.93,
+            "z": -129.6
+          },
+          "dock": null,
+          "load": null,
+          "operation": "estado:TRIADO"
+        },
+        {
+          "state": "TRIADO",
+          "place": "transferencia",
+          "hour": 14.213913333333146,
+          "by": "separador-2",
+          "holder": "separador-2",
+          "position": {
+            "x": 116.3,
+            "y": 0.93,
+            "z": -129.6
+          },
+          "dock": null,
+          "load": null,
+          "operation": "transferência:transferencia"
+        },
+        {
+          "state": "TRIADO",
+          "place": "gaiola",
+          "hour": 14.21787166666642,
+          "by": "gaiola:Brejo Alegre",
+          "holder": "gaiola:Brejo Alegre",
+          "position": {
+            "x": 124.35,
+            "y": 0.25,
+            "z": -136.2
+          },
+          "dock": null,
+          "load": null,
+          "operation": "transferência:gaiola"
+        },
+        {
+          "state": "TRIADO",
+          "place": "transferencia",
+          "hour": 14.226999166666307,
+          "by": "expedidor",
+          "holder": "expedidor",
+          "position": {
+            "x": 124.35,
+            "y": 0.25,
+            "z": -136.2
+          },
+          "dock": null,
+          "load": null,
+          "operation": "transferência:transferencia"
+        },
+        {
+          "state": "TRIADO",
+          "place": "doca",
+          "hour": 14.23512416666619,
+          "by": "expedidor",
+          "holder": "expedidor",
+          "position": {
+            "x": 103.3,
+            "y": 0.46,
+            "z": -119.8
+          },
+          "dock": "D02",
+          "load": "ROTA-01",
+          "operation": "transferência:doca"
+        },
+        {
+          "state": "NA_SACA",
+          "place": "doca",
+          "hour": 14.23512416666619,
+          "by": "expedidor",
+          "holder": "expedidor",
+          "position": {
+            "x": 103.3,
+            "y": 0.46,
+            "z": -119.8
+          },
+          "dock": "D02",
+          "load": "ROTA-01",
+          "operation": "estado:NA_SACA"
+        },
+        {
+          "state": "NA_SACA",
+          "place": "saca",
+          "hour": 14.23512416666619,
+          "by": "expedidor",
+          "holder": "expedidor",
+          "position": {
+            "x": 103.3,
+            "y": 0.46,
+            "z": -119.8
+          },
+          "dock": "D02",
+          "load": "ROTA-01",
+          "operation": "transferência:saca"
+        }
+      ]
+    }
+  ],
+  "final": {
+    "depot": {
+      "gateOpen": 1,
+      "gateManual": true,
+      "visibleIds": [],
+      "workers": [
+        {
+          "role": "conferente",
+          "x": 101,
+          "z": -120.7,
+          "yaw": 3.141592653589793,
+          "activity": "idle",
+          "parcel": null,
+          "task": null
+        },
+        {
+          "role": "descarregador-1",
+          "x": 101,
+          "z": -120.7,
+          "yaw": 3.141592653589793,
+          "activity": "idle",
+          "parcel": null,
+          "task": null
+        },
+        {
+          "role": "descarregador-2",
+          "x": 105.7,
+          "z": -128.35,
+          "yaw": 0.9272952180061597,
+          "activity": "idle",
+          "parcel": null,
+          "task": null
+        },
+        {
+          "role": "separador-1",
+          "x": 110,
+          "z": -128.35,
+          "yaw": 3.141592653589793,
+          "activity": "idle",
+          "parcel": null,
+          "task": null
+        },
+        {
+          "role": "separador-2",
+          "x": 120.5,
+          "z": -134.65,
+          "yaw": 3.141592653589793,
+          "activity": "idle",
+          "parcel": null,
+          "task": null
+        },
+        {
+          "role": "expedidor",
+          "x": 104,
+          "z": -121.3,
+          "yaw": 0,
+          "activity": "idle",
+          "parcel": null,
+          "task": null
+        }
+      ],
+      "errors": []
+    },
+    "phase": "CONCLUIDA",
+    "objective": {
+      "title": "Jornada concluída",
+      "detail": "10/10 volumes entregues",
+      "target": null,
+      "waitUntil": null
+    },
+    "cargo": {
+      "hands": 0,
+      "trunk": 0,
+      "sack": false,
+      "label": "",
+      "trunkOpen": 0.8946007754381357,
+      "trunkSpot": {
+        "x": -338.8128593708815,
+        "z": 180.3092968453219
+      }
+    },
+    "progress": {
+      "collected": 6,
+      "delivered": 10,
+      "total": 10
+    },
+    "assigned": [
+      "construcao",
+      "farmacia"
+    ],
+    "route": [],
+    "parcels": [
+      {
+        "id": "BA-0001",
+        "state": "ENTREGUE",
+        "place": "destinatario",
+        "holder": "destinatario",
+        "origin": "construcao",
+        "destination": "end-q38-l595",
+        "platform": "LOJA",
+        "region": "Brejo Alegre",
+        "position": null,
+        "dock": "D02",
+        "load": "ROTA-01",
+        "history": [
+          {
+            "state": "NA_LOJA",
+            "place": "loja",
+            "hour": 12.1,
+            "by": "construcao",
+            "holder": "construcao",
+            "position": null,
+            "dock": null,
+            "load": null,
+            "operation": "criado"
+          },
+          {
+            "state": "COLETADO",
+            "place": "loja",
+            "hour": 12.111839999999832,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": null,
+            "load": null,
+            "operation": "estado:COLETADO"
+          },
+          {
+            "state": "COLETADO",
+            "place": "maos",
+            "hour": 12.111839999999832,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": null,
+            "load": null,
+            "operation": "transferência:maos"
+          },
+          {
+            "state": "EM_TRANSPORTE",
+            "place": "maos",
+            "hour": 12.111839999999832,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": null,
+            "load": null,
+            "operation": "estado:EM_TRANSPORTE"
+          },
+          {
+            "state": "EM_TRANSPORTE",
+            "place": "bau",
+            "hour": 12.111839999999832,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": null,
+            "load": null,
+            "operation": "transferência:bau"
+          },
+          {
+            "state": "EM_TRANSPORTE",
+            "place": "maos",
+            "hour": 12.137528749999486,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": null,
+            "load": null,
+            "operation": "transferência:maos"
+          },
+          {
+            "state": "EM_TRANSPORTE",
+            "place": "recebimento",
+            "hour": 12.137528749999486,
+            "by": "recebimento",
+            "holder": "recebimento",
+            "position": {
+              "x": 99.55,
+              "y": 0.95,
+              "z": -122.3
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:recebimento"
+          },
+          {
+            "state": "EM_TRANSPORTE",
+            "place": "conferencia",
+            "hour": 12.1388195833328,
+            "by": "conferente",
+            "holder": "conferente",
+            "position": {
+              "x": 99.55,
+              "y": 0.95,
+              "z": -122.3
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:conferencia"
+          },
+          {
+            "state": "RECEBIDO_BASE",
+            "place": "conferencia",
+            "hour": 14.200624999999992,
+            "by": "conferente",
+            "holder": "conferente",
+            "position": {
+              "x": 99.55,
+              "y": 0.95,
+              "z": -122.3
+            },
+            "dock": null,
+            "load": null,
+            "operation": "estado:RECEBIDO_BASE"
+          },
+          {
+            "state": "RECEBIDO_BASE",
+            "place": "transferencia",
+            "hour": 14.20259249999996,
+            "by": "descarregador-2",
+            "holder": "descarregador-2",
+            "position": {
+              "x": 99.55,
+              "y": 0.95,
+              "z": -122.3
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:transferencia"
+          },
+          {
+            "state": "RECEBIDO_BASE",
+            "place": "triagem",
+            "hour": 14.205925833333247,
+            "by": "separador-1",
+            "holder": "separador-1",
+            "position": {
+              "x": 105.7,
+              "y": 0.93,
+              "z": -129.6
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:triagem"
+          },
+          {
+            "state": "TRIADO",
+            "place": "triagem",
+            "hour": 14.212038333333172,
+            "by": "separador-1",
+            "holder": "separador-1",
+            "position": {
+              "x": 116.3,
+              "y": 0.93,
+              "z": -129.6
+            },
+            "dock": null,
+            "load": null,
+            "operation": "estado:TRIADO"
+          },
+          {
+            "state": "TRIADO",
+            "place": "transferencia",
+            "hour": 14.213913333333146,
+            "by": "separador-2",
+            "holder": "separador-2",
+            "position": {
+              "x": 116.3,
+              "y": 0.93,
+              "z": -129.6
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:transferencia"
+          },
+          {
+            "state": "TRIADO",
+            "place": "gaiola",
+            "hour": 14.21787166666642,
+            "by": "gaiola:Brejo Alegre",
+            "holder": "gaiola:Brejo Alegre",
+            "position": {
+              "x": 124.35,
+              "y": 0.25,
+              "z": -136.2
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:gaiola"
+          },
+          {
+            "state": "TRIADO",
+            "place": "transferencia",
+            "hour": 14.226999166666307,
+            "by": "expedidor",
+            "holder": "expedidor",
+            "position": {
+              "x": 124.35,
+              "y": 0.25,
+              "z": -136.2
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:transferencia"
+          },
+          {
+            "state": "TRIADO",
+            "place": "doca",
+            "hour": 14.23512416666619,
+            "by": "expedidor",
+            "holder": "expedidor",
+            "position": {
+              "x": 103.3,
+              "y": 0.46,
+              "z": -119.8
+            },
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:doca"
+          },
+          {
+            "state": "NA_SACA",
+            "place": "doca",
+            "hour": 14.23512416666619,
+            "by": "expedidor",
+            "holder": "expedidor",
+            "position": {
+              "x": 103.3,
+              "y": 0.46,
+              "z": -119.8
+            },
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "estado:NA_SACA"
+          },
+          {
+            "state": "NA_SACA",
+            "place": "saca",
+            "hour": 14.23512416666619,
+            "by": "expedidor",
+            "holder": "expedidor",
+            "position": {
+              "x": 103.3,
+              "y": 0.46,
+              "z": -119.8
+            },
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:saca"
+          },
+          {
+            "state": "EM_ROTA",
+            "place": "saca",
+            "hour": 15.1,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": {
+              "x": 103.3,
+              "y": 0.46,
+              "z": -119.8
+            },
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "estado:EM_ROTA"
+          },
+          {
+            "state": "EM_ROTA",
+            "place": "maos",
+            "hour": 15.1,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:maos"
+          },
+          {
+            "state": "EM_ROTA",
+            "place": "bau",
+            "hour": 15.1,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:bau"
+          },
+          {
+            "state": "EM_ROTA",
+            "place": "maos",
+            "hour": 15.10062499999999,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:maos"
+          },
+          {
+            "state": "ENTREGUE",
+            "place": "maos",
+            "hour": 15.10062499999999,
+            "by": "destinatario",
+            "holder": "destinatario",
+            "position": null,
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "estado:ENTREGUE"
+          },
+          {
+            "state": "ENTREGUE",
+            "place": "destinatario",
+            "hour": 15.10062499999999,
+            "by": "destinatario",
+            "holder": "destinatario",
+            "position": null,
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:destinatario"
+          }
+        ]
+      },
+      {
+        "id": "BA-0002",
+        "state": "ENTREGUE",
+        "place": "destinatario",
+        "holder": "destinatario",
+        "origin": "construcao",
+        "destination": "end-q10-l221",
+        "platform": "LOJA",
+        "region": "Brejo Alegre",
+        "position": null,
+        "dock": "D02",
+        "load": "ROTA-01",
+        "history": [
+          {
+            "state": "NA_LOJA",
+            "place": "loja",
+            "hour": 12.1,
+            "by": "construcao",
+            "holder": "construcao",
+            "position": null,
+            "dock": null,
+            "load": null,
+            "operation": "criado"
+          },
+          {
+            "state": "COLETADO",
+            "place": "loja",
+            "hour": 12.111839999999832,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": null,
+            "load": null,
+            "operation": "estado:COLETADO"
+          },
+          {
+            "state": "COLETADO",
+            "place": "maos",
+            "hour": 12.111839999999832,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": null,
+            "load": null,
+            "operation": "transferência:maos"
+          },
+          {
+            "state": "EM_TRANSPORTE",
+            "place": "maos",
+            "hour": 12.111839999999832,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": null,
+            "load": null,
+            "operation": "estado:EM_TRANSPORTE"
+          },
+          {
+            "state": "EM_TRANSPORTE",
+            "place": "bau",
+            "hour": 12.111839999999832,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": null,
+            "load": null,
+            "operation": "transferência:bau"
+          },
+          {
+            "state": "EM_TRANSPORTE",
+            "place": "maos",
+            "hour": 12.137528749999486,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": null,
+            "load": null,
+            "operation": "transferência:maos"
+          },
+          {
+            "state": "EM_TRANSPORTE",
+            "place": "recebimento",
+            "hour": 12.137528749999486,
+            "by": "recebimento",
+            "holder": "recebimento",
+            "position": {
+              "x": 100.1,
+              "y": 0.95,
+              "z": -122.3
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:recebimento"
+          },
+          {
+            "state": "EM_TRANSPORTE",
+            "place": "conferencia",
+            "hour": 14.200925833333319,
+            "by": "conferente",
+            "holder": "conferente",
+            "position": {
+              "x": 100.1,
+              "y": 0.95,
+              "z": -122.3
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:conferencia"
+          },
+          {
+            "state": "RECEBIDO_BASE",
+            "place": "conferencia",
+            "hour": 14.20175916666664,
+            "by": "conferente",
+            "holder": "conferente",
+            "position": {
+              "x": 100.1,
+              "y": 0.95,
+              "z": -122.3
+            },
+            "dock": null,
+            "load": null,
+            "operation": "estado:RECEBIDO_BASE"
+          },
+          {
+            "state": "RECEBIDO_BASE",
+            "place": "transferencia",
+            "hour": 14.214954999999797,
+            "by": "descarregador-2",
+            "holder": "descarregador-2",
+            "position": {
+              "x": 100.1,
+              "y": 0.95,
+              "z": -122.3
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:transferencia"
+          },
+          {
+            "state": "RECEBIDO_BASE",
+            "place": "triagem",
+            "hour": 14.219707499999739,
+            "by": "separador-1",
+            "holder": "separador-1",
+            "position": {
+              "x": 105.7,
+              "y": 0.93,
+              "z": -129.6
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:triagem"
+          },
+          {
+            "state": "TRIADO",
+            "place": "triagem",
+            "hour": 14.224915833333004,
+            "by": "separador-1",
+            "holder": "separador-1",
+            "position": {
+              "x": 116.3,
+              "y": 0.93,
+              "z": -129.6
+            },
+            "dock": null,
+            "load": null,
+            "operation": "estado:TRIADO"
+          },
+          {
+            "state": "TRIADO",
+            "place": "transferencia",
+            "hour": 14.22824916666629,
+            "by": "separador-2",
+            "holder": "separador-2",
+            "position": {
+              "x": 116.3,
+              "y": 0.93,
+              "z": -129.6
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:transferencia"
+          },
+          {
+            "state": "TRIADO",
+            "place": "gaiola",
+            "hour": 14.232207499999564,
+            "by": "gaiola:Brejo Alegre",
+            "holder": "gaiola:Brejo Alegre",
+            "position": {
+              "x": 124.89999999999999,
+              "y": 0.25,
+              "z": -136.2
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:gaiola"
+          },
+          {
+            "state": "TRIADO",
+            "place": "transferencia",
+            "hour": 14.24304083333274,
+            "by": "expedidor",
+            "holder": "expedidor",
+            "position": {
+              "x": 124.89999999999999,
+              "y": 0.25,
+              "z": -136.2
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:transferencia"
+          },
+          {
+            "state": "TRIADO",
+            "place": "doca",
+            "hour": 14.251374166665952,
+            "by": "expedidor",
+            "holder": "expedidor",
+            "position": {
+              "x": 103.85,
+              "y": 0.46,
+              "z": -119.8
+            },
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:doca"
+          },
+          {
+            "state": "NA_SACA",
+            "place": "doca",
+            "hour": 14.251374166665952,
+            "by": "expedidor",
+            "holder": "expedidor",
+            "position": {
+              "x": 103.85,
+              "y": 0.46,
+              "z": -119.8
+            },
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "estado:NA_SACA"
+          },
+          {
+            "state": "NA_SACA",
+            "place": "saca",
+            "hour": 14.251374166665952,
+            "by": "expedidor",
+            "holder": "expedidor",
+            "position": {
+              "x": 103.85,
+              "y": 0.46,
+              "z": -119.8
+            },
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:saca"
+          },
+          {
+            "state": "EM_ROTA",
+            "place": "saca",
+            "hour": 15.1,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": {
+              "x": 103.85,
+              "y": 0.46,
+              "z": -119.8
+            },
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "estado:EM_ROTA"
+          },
+          {
+            "state": "EM_ROTA",
+            "place": "maos",
+            "hour": 15.1,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:maos"
+          },
+          {
+            "state": "EM_ROTA",
+            "place": "bau",
+            "hour": 15.1,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:bau"
+          },
+          {
+            "state": "EM_ROTA",
+            "place": "maos",
+            "hour": 15.10062499999999,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:maos"
+          },
+          {
+            "state": "ENTREGUE",
+            "place": "maos",
+            "hour": 15.10062499999999,
+            "by": "destinatario",
+            "holder": "destinatario",
+            "position": null,
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "estado:ENTREGUE"
+          },
+          {
+            "state": "ENTREGUE",
+            "place": "destinatario",
+            "hour": 15.10062499999999,
+            "by": "destinatario",
+            "holder": "destinatario",
+            "position": null,
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:destinatario"
+          }
+        ]
+      },
+      {
+        "id": "BA-0003",
+        "state": "ENTREGUE",
+        "place": "destinatario",
+        "holder": "destinatario",
+        "origin": "construcao",
+        "destination": "end-q1-l11",
+        "platform": "LOJA",
+        "region": "Brejo Alegre",
+        "position": null,
+        "dock": "D02",
+        "load": "ROTA-01",
+        "history": [
+          {
+            "state": "NA_LOJA",
+            "place": "loja",
+            "hour": 12.1,
+            "by": "construcao",
+            "holder": "construcao",
+            "position": null,
+            "dock": null,
+            "load": null,
+            "operation": "criado"
+          },
+          {
+            "state": "COLETADO",
+            "place": "loja",
+            "hour": 12.111839999999832,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": null,
+            "load": null,
+            "operation": "estado:COLETADO"
+          },
+          {
+            "state": "COLETADO",
+            "place": "maos",
+            "hour": 12.111839999999832,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": null,
+            "load": null,
+            "operation": "transferência:maos"
+          },
+          {
+            "state": "EM_TRANSPORTE",
+            "place": "maos",
+            "hour": 12.111839999999832,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": null,
+            "load": null,
+            "operation": "estado:EM_TRANSPORTE"
+          },
+          {
+            "state": "EM_TRANSPORTE",
+            "place": "bau",
+            "hour": 12.111839999999832,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": null,
+            "load": null,
+            "operation": "transferência:bau"
+          },
+          {
+            "state": "EM_TRANSPORTE",
+            "place": "maos",
+            "hour": 12.137528749999486,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": null,
+            "load": null,
+            "operation": "transferência:maos"
+          },
+          {
+            "state": "EM_TRANSPORTE",
+            "place": "recebimento",
+            "hour": 12.137528749999486,
+            "by": "recebimento",
+            "holder": "recebimento",
+            "position": {
+              "x": 100.64999999999999,
+              "y": 0.95,
+              "z": -122.3
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:recebimento"
+          },
+          {
+            "state": "EM_TRANSPORTE",
+            "place": "conferencia",
+            "hour": 14.20175916666664,
+            "by": "conferente",
+            "holder": "conferente",
+            "position": {
+              "x": 100.64999999999999,
+              "y": 0.95,
+              "z": -122.3
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:conferencia"
+          },
+          {
+            "state": "RECEBIDO_BASE",
+            "place": "conferencia",
+            "hour": 14.20259249999996,
+            "by": "conferente",
+            "holder": "conferente",
+            "position": {
+              "x": 100.64999999999999,
+              "y": 0.95,
+              "z": -122.3
+            },
+            "dock": null,
+            "load": null,
+            "operation": "estado:RECEBIDO_BASE"
+          },
+          {
+            "state": "RECEBIDO_BASE",
+            "place": "transferencia",
+            "hour": 14.227832499999629,
+            "by": "descarregador-2",
+            "holder": "descarregador-2",
+            "position": {
+              "x": 100.64999999999999,
+              "y": 0.95,
+              "z": -122.3
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:transferencia"
+          },
+          {
+            "state": "RECEBIDO_BASE",
+            "place": "triagem",
+            "hour": 14.231165833332913,
+            "by": "separador-1",
+            "holder": "separador-1",
+            "position": {
+              "x": 105.7,
+              "y": 0.93,
+              "z": -129.6
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:triagem"
+          },
+          {
+            "state": "TRIADO",
+            "place": "triagem",
+            "hour": 14.23637416666617,
+            "by": "separador-1",
+            "holder": "separador-1",
+            "position": {
+              "x": 116.3,
+              "y": 0.93,
+              "z": -129.6
+            },
+            "dock": null,
+            "load": null,
+            "operation": "estado:TRIADO"
+          },
+          {
+            "state": "TRIADO",
+            "place": "transferencia",
+            "hour": 14.239707499999456,
+            "by": "separador-2",
+            "holder": "separador-2",
+            "position": {
+              "x": 116.3,
+              "y": 0.93,
+              "z": -129.6
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:transferencia"
+          },
+          {
+            "state": "TRIADO",
+            "place": "gaiola",
+            "hour": 14.24366583333273,
+            "by": "gaiola:Brejo Alegre",
+            "holder": "gaiola:Brejo Alegre",
+            "position": {
+              "x": 125.44999999999999,
+              "y": 0.25,
+              "z": -136.2
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:gaiola"
+          },
+          {
+            "state": "TRIADO",
+            "place": "transferencia",
+            "hour": 14.259332083332508,
+            "by": "expedidor",
+            "holder": "expedidor",
+            "position": {
+              "x": 125.44999999999999,
+              "y": 0.25,
+              "z": -136.2
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:transferencia"
+          },
+          {
+            "state": "TRIADO",
+            "place": "doca",
+            "hour": 14.267697499999047,
+            "by": "expedidor",
+            "holder": "expedidor",
+            "position": {
+              "x": 104.39999999999999,
+              "y": 0.46,
+              "z": -119.8
+            },
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:doca"
+          },
+          {
+            "state": "NA_SACA",
+            "place": "doca",
+            "hour": 14.267697499999047,
+            "by": "expedidor",
+            "holder": "expedidor",
+            "position": {
+              "x": 104.39999999999999,
+              "y": 0.46,
+              "z": -119.8
+            },
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "estado:NA_SACA"
+          },
+          {
+            "state": "NA_SACA",
+            "place": "saca",
+            "hour": 14.267697499999047,
+            "by": "expedidor",
+            "holder": "expedidor",
+            "position": {
+              "x": 104.39999999999999,
+              "y": 0.46,
+              "z": -119.8
+            },
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:saca"
+          },
+          {
+            "state": "EM_ROTA",
+            "place": "saca",
+            "hour": 15.1,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": {
+              "x": 104.39999999999999,
+              "y": 0.46,
+              "z": -119.8
+            },
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "estado:EM_ROTA"
+          },
+          {
+            "state": "EM_ROTA",
+            "place": "maos",
+            "hour": 15.1,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:maos"
+          },
+          {
+            "state": "EM_ROTA",
+            "place": "bau",
+            "hour": 15.1,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:bau"
+          },
+          {
+            "state": "EM_ROTA",
+            "place": "maos",
+            "hour": 15.10041666666666,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:maos"
+          },
+          {
+            "state": "ENTREGUE",
+            "place": "maos",
+            "hour": 15.10041666666666,
+            "by": "destinatario",
+            "holder": "destinatario",
+            "position": null,
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "estado:ENTREGUE"
+          },
+          {
+            "state": "ENTREGUE",
+            "place": "destinatario",
+            "hour": 15.10041666666666,
+            "by": "destinatario",
+            "holder": "destinatario",
+            "position": null,
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:destinatario"
+          }
+        ]
+      },
+      {
+        "id": "BA-0004",
+        "state": "ENTREGUE",
+        "place": "destinatario",
+        "holder": "destinatario",
+        "origin": "farmacia",
+        "destination": "end-q3-l58",
+        "platform": "LOJA",
+        "region": "Brejo Alegre",
+        "position": null,
+        "dock": "D02",
+        "load": "ROTA-01",
+        "history": [
+          {
+            "state": "NA_LOJA",
+            "place": "loja",
+            "hour": 12.1,
+            "by": "farmacia",
+            "holder": "farmacia",
+            "position": null,
+            "dock": null,
+            "load": null,
+            "operation": "criado"
+          },
+          {
+            "state": "COLETADO",
+            "place": "loja",
+            "hour": 12.111839999999832,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": null,
+            "load": null,
+            "operation": "estado:COLETADO"
+          },
+          {
+            "state": "COLETADO",
+            "place": "maos",
+            "hour": 12.111839999999832,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": null,
+            "load": null,
+            "operation": "transferência:maos"
+          },
+          {
+            "state": "EM_TRANSPORTE",
+            "place": "maos",
+            "hour": 12.111839999999832,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": null,
+            "load": null,
+            "operation": "estado:EM_TRANSPORTE"
+          },
+          {
+            "state": "EM_TRANSPORTE",
+            "place": "bau",
+            "hour": 12.111839999999832,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": null,
+            "load": null,
+            "operation": "transferência:bau"
+          },
+          {
+            "state": "EM_TRANSPORTE",
+            "place": "maos",
+            "hour": 12.137528749999486,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": null,
+            "load": null,
+            "operation": "transferência:maos"
+          },
+          {
+            "state": "EM_TRANSPORTE",
+            "place": "recebimento",
+            "hour": 12.137528749999486,
+            "by": "recebimento",
+            "holder": "recebimento",
+            "position": {
+              "x": 101.2,
+              "y": 0.95,
+              "z": -122.3
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:recebimento"
+          },
+          {
+            "state": "EM_TRANSPORTE",
+            "place": "conferencia",
+            "hour": 14.20259249999996,
+            "by": "conferente",
+            "holder": "conferente",
+            "position": {
+              "x": 101.2,
+              "y": 0.95,
+              "z": -122.3
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:conferencia"
+          },
+          {
+            "state": "RECEBIDO_BASE",
+            "place": "conferencia",
+            "hour": 14.203425833333283,
+            "by": "conferente",
+            "holder": "conferente",
+            "position": {
+              "x": 101.2,
+              "y": 0.95,
+              "z": -122.3
+            },
+            "dock": null,
+            "load": null,
+            "operation": "estado:RECEBIDO_BASE"
+          },
+          {
+            "state": "RECEBIDO_BASE",
+            "place": "transferencia",
+            "hour": 14.239290833332795,
+            "by": "descarregador-2",
+            "holder": "descarregador-2",
+            "position": {
+              "x": 101.2,
+              "y": 0.95,
+              "z": -122.3
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:transferencia"
+          },
+          {
+            "state": "RECEBIDO_BASE",
+            "place": "triagem",
+            "hour": 14.24262416666608,
+            "by": "separador-1",
+            "holder": "separador-1",
+            "position": {
+              "x": 105.7,
+              "y": 0.93,
+              "z": -129.6
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:triagem"
+          },
+          {
+            "state": "TRIADO",
+            "place": "triagem",
+            "hour": 14.247832499999337,
+            "by": "separador-1",
+            "holder": "separador-1",
+            "position": {
+              "x": 116.3,
+              "y": 0.93,
+              "z": -129.6
+            },
+            "dock": null,
+            "load": null,
+            "operation": "estado:TRIADO"
+          },
+          {
+            "state": "TRIADO",
+            "place": "transferencia",
+            "hour": 14.251165833332623,
+            "by": "separador-2",
+            "holder": "separador-2",
+            "position": {
+              "x": 116.3,
+              "y": 0.93,
+              "z": -129.6
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:transferencia"
+          },
+          {
+            "state": "TRIADO",
+            "place": "gaiola",
+            "hour": 14.255259583332569,
+            "by": "gaiola:Brejo Alegre",
+            "holder": "gaiola:Brejo Alegre",
+            "position": {
+              "x": 126,
+              "y": 0.25,
+              "z": -136.2
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:gaiola"
+          },
+          {
+            "state": "TRIADO",
+            "place": "transferencia",
+            "hour": 14.275405833332266,
+            "by": "expedidor",
+            "holder": "expedidor",
+            "position": {
+              "x": 126,
+              "y": 0.25,
+              "z": -136.2
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:transferencia"
+          },
+          {
+            "state": "TRIADO",
+            "place": "doca",
+            "hour": 14.283739166665478,
+            "by": "expedidor",
+            "holder": "expedidor",
+            "position": {
+              "x": 103.3,
+              "y": 0.78,
+              "z": -119.8
+            },
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:doca"
+          },
+          {
+            "state": "NA_SACA",
+            "place": "doca",
+            "hour": 14.283739166665478,
+            "by": "expedidor",
+            "holder": "expedidor",
+            "position": {
+              "x": 103.3,
+              "y": 0.78,
+              "z": -119.8
+            },
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "estado:NA_SACA"
+          },
+          {
+            "state": "NA_SACA",
+            "place": "saca",
+            "hour": 14.283739166665478,
+            "by": "expedidor",
+            "holder": "expedidor",
+            "position": {
+              "x": 103.3,
+              "y": 0.78,
+              "z": -119.8
+            },
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:saca"
+          },
+          {
+            "state": "EM_ROTA",
+            "place": "saca",
+            "hour": 15.1,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": {
+              "x": 103.3,
+              "y": 0.78,
+              "z": -119.8
+            },
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "estado:EM_ROTA"
+          },
+          {
+            "state": "EM_ROTA",
+            "place": "maos",
+            "hour": 15.1,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:maos"
+          },
+          {
+            "state": "EM_ROTA",
+            "place": "bau",
+            "hour": 15.1,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:bau"
+          },
+          {
+            "state": "EM_ROTA",
+            "place": "maos",
+            "hour": 15.1,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:maos"
+          },
+          {
+            "state": "ENTREGUE",
+            "place": "maos",
+            "hour": 15.1,
+            "by": "destinatario",
+            "holder": "destinatario",
+            "position": null,
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "estado:ENTREGUE"
+          },
+          {
+            "state": "ENTREGUE",
+            "place": "destinatario",
+            "hour": 15.1,
+            "by": "destinatario",
+            "holder": "destinatario",
+            "position": null,
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:destinatario"
+          }
+        ]
+      },
+      {
+        "id": "BA-0005",
+        "state": "ENTREGUE",
+        "place": "destinatario",
+        "holder": "destinatario",
+        "origin": "farmacia",
+        "destination": "end-q23-l411",
+        "platform": "LOJA",
+        "region": "Brejo Alegre",
+        "position": null,
+        "dock": "D02",
+        "load": "ROTA-01",
+        "history": [
+          {
+            "state": "NA_LOJA",
+            "place": "loja",
+            "hour": 12.1,
+            "by": "farmacia",
+            "holder": "farmacia",
+            "position": null,
+            "dock": null,
+            "load": null,
+            "operation": "criado"
+          },
+          {
+            "state": "COLETADO",
+            "place": "loja",
+            "hour": 12.111839999999832,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": null,
+            "load": null,
+            "operation": "estado:COLETADO"
+          },
+          {
+            "state": "COLETADO",
+            "place": "maos",
+            "hour": 12.111839999999832,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": null,
+            "load": null,
+            "operation": "transferência:maos"
+          },
+          {
+            "state": "EM_TRANSPORTE",
+            "place": "maos",
+            "hour": 12.111839999999832,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": null,
+            "load": null,
+            "operation": "estado:EM_TRANSPORTE"
+          },
+          {
+            "state": "EM_TRANSPORTE",
+            "place": "bau",
+            "hour": 12.111839999999832,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": null,
+            "load": null,
+            "operation": "transferência:bau"
+          },
+          {
+            "state": "EM_TRANSPORTE",
+            "place": "maos",
+            "hour": 12.139332916666119,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": null,
+            "load": null,
+            "operation": "transferência:maos"
+          },
+          {
+            "state": "EM_TRANSPORTE",
+            "place": "recebimento",
+            "hour": 12.139332916666119,
+            "by": "recebimento",
+            "holder": "recebimento",
+            "position": {
+              "x": 101.75,
+              "y": 0.95,
+              "z": -122.3
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:recebimento"
+          },
+          {
+            "state": "EM_TRANSPORTE",
+            "place": "conferencia",
+            "hour": 14.203634166666612,
+            "by": "conferente",
+            "holder": "conferente",
+            "position": {
+              "x": 101.75,
+              "y": 0.95,
+              "z": -122.3
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:conferencia"
+          },
+          {
+            "state": "RECEBIDO_BASE",
+            "place": "conferencia",
+            "hour": 14.204259166666604,
+            "by": "conferente",
+            "holder": "conferente",
+            "position": {
+              "x": 101.75,
+              "y": 0.95,
+              "z": -122.3
+            },
+            "dock": null,
+            "load": null,
+            "operation": "estado:RECEBIDO_BASE"
+          },
+          {
+            "state": "RECEBIDO_BASE",
+            "place": "transferencia",
+            "hour": 14.250749166665962,
+            "by": "descarregador-2",
+            "holder": "descarregador-2",
+            "position": {
+              "x": 101.75,
+              "y": 0.95,
+              "z": -122.3
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:transferencia"
+          },
+          {
+            "state": "RECEBIDO_BASE",
+            "place": "triagem",
+            "hour": 14.254217916665917,
+            "by": "separador-1",
+            "holder": "separador-1",
+            "position": {
+              "x": 105.7,
+              "y": 0.93,
+              "z": -129.6
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:triagem"
+          },
+          {
+            "state": "TRIADO",
+            "place": "triagem",
+            "hour": 14.259540416665837,
+            "by": "separador-1",
+            "holder": "separador-1",
+            "position": {
+              "x": 116.3,
+              "y": 0.93,
+              "z": -129.6
+            },
+            "dock": null,
+            "load": null,
+            "operation": "estado:TRIADO"
+          },
+          {
+            "state": "TRIADO",
+            "place": "transferencia",
+            "hour": 14.262905833332448,
+            "by": "separador-2",
+            "holder": "separador-2",
+            "position": {
+              "x": 116.3,
+              "y": 0.93,
+              "z": -129.6
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:transferencia"
+          },
+          {
+            "state": "TRIADO",
+            "place": "gaiola",
+            "hour": 14.266864166665725,
+            "by": "gaiola:Brejo Alegre",
+            "holder": "gaiola:Brejo Alegre",
+            "position": {
+              "x": 124.35,
+              "y": 0.55,
+              "z": -136.2
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:gaiola"
+          },
+          {
+            "state": "TRIADO",
+            "place": "transferencia",
+            "hour": 14.29148083333204,
+            "by": "expedidor",
+            "holder": "expedidor",
+            "position": {
+              "x": 124.35,
+              "y": 0.55,
+              "z": -136.2
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:transferencia"
+          },
+          {
+            "state": "TRIADO",
+            "place": "doca",
+            "hour": 14.299814166665252,
+            "by": "expedidor",
+            "holder": "expedidor",
+            "position": {
+              "x": 103.85,
+              "y": 0.78,
+              "z": -119.8
+            },
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:doca"
+          },
+          {
+            "state": "NA_SACA",
+            "place": "doca",
+            "hour": 14.299814166665252,
+            "by": "expedidor",
+            "holder": "expedidor",
+            "position": {
+              "x": 103.85,
+              "y": 0.78,
+              "z": -119.8
+            },
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "estado:NA_SACA"
+          },
+          {
+            "state": "NA_SACA",
+            "place": "saca",
+            "hour": 14.299814166665252,
+            "by": "expedidor",
+            "holder": "expedidor",
+            "position": {
+              "x": 103.85,
+              "y": 0.78,
+              "z": -119.8
+            },
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:saca"
+          },
+          {
+            "state": "EM_ROTA",
+            "place": "saca",
+            "hour": 15.1,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": {
+              "x": 103.85,
+              "y": 0.78,
+              "z": -119.8
+            },
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "estado:EM_ROTA"
+          },
+          {
+            "state": "EM_ROTA",
+            "place": "maos",
+            "hour": 15.1,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:maos"
+          },
+          {
+            "state": "EM_ROTA",
+            "place": "bau",
+            "hour": 15.1,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:bau"
+          },
+          {
+            "state": "EM_ROTA",
+            "place": "maos",
+            "hour": 15.10062499999999,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:maos"
+          },
+          {
+            "state": "ENTREGUE",
+            "place": "maos",
+            "hour": 15.10062499999999,
+            "by": "destinatario",
+            "holder": "destinatario",
+            "position": null,
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "estado:ENTREGUE"
+          },
+          {
+            "state": "ENTREGUE",
+            "place": "destinatario",
+            "hour": 15.10062499999999,
+            "by": "destinatario",
+            "holder": "destinatario",
+            "position": null,
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:destinatario"
+          }
+        ]
+      },
+      {
+        "id": "BA-0006",
+        "state": "ENTREGUE",
+        "place": "destinatario",
+        "holder": "destinatario",
+        "origin": "farmacia",
+        "destination": "end-q14-l276",
+        "platform": "LOJA",
+        "region": "Centro",
+        "position": null,
+        "dock": "D02",
+        "load": "ROTA-01",
+        "history": [
+          {
+            "state": "NA_LOJA",
+            "place": "loja",
+            "hour": 12.1,
+            "by": "farmacia",
+            "holder": "farmacia",
+            "position": null,
+            "dock": null,
+            "load": null,
+            "operation": "criado"
+          },
+          {
+            "state": "COLETADO",
+            "place": "loja",
+            "hour": 12.111839999999832,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": null,
+            "load": null,
+            "operation": "estado:COLETADO"
+          },
+          {
+            "state": "COLETADO",
+            "place": "maos",
+            "hour": 12.111839999999832,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": null,
+            "load": null,
+            "operation": "transferência:maos"
+          },
+          {
+            "state": "EM_TRANSPORTE",
+            "place": "maos",
+            "hour": 12.111839999999832,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": null,
+            "load": null,
+            "operation": "estado:EM_TRANSPORTE"
+          },
+          {
+            "state": "EM_TRANSPORTE",
+            "place": "bau",
+            "hour": 12.111839999999832,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": null,
+            "load": null,
+            "operation": "transferência:bau"
+          },
+          {
+            "state": "EM_TRANSPORTE",
+            "place": "maos",
+            "hour": 12.139332916666119,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": null,
+            "load": null,
+            "operation": "transferência:maos"
+          },
+          {
+            "state": "EM_TRANSPORTE",
+            "place": "recebimento",
+            "hour": 12.139332916666119,
+            "by": "recebimento",
+            "holder": "recebimento",
+            "position": {
+              "x": 102.3,
+              "y": 0.95,
+              "z": -122.3
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:recebimento"
+          },
+          {
+            "state": "EM_TRANSPORTE",
+            "place": "conferencia",
+            "hour": 14.204467499999934,
+            "by": "conferente",
+            "holder": "conferente",
+            "position": {
+              "x": 102.3,
+              "y": 0.95,
+              "z": -122.3
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:conferencia"
+          },
+          {
+            "state": "RECEBIDO_BASE",
+            "place": "conferencia",
+            "hour": 14.205300833333256,
+            "by": "conferente",
+            "holder": "conferente",
+            "position": {
+              "x": 102.3,
+              "y": 0.95,
+              "z": -122.3
+            },
+            "dock": null,
+            "load": null,
+            "operation": "estado:RECEBIDO_BASE"
+          },
+          {
+            "state": "RECEBIDO_BASE",
+            "place": "transferencia",
+            "hour": 14.26248916666579,
+            "by": "descarregador-2",
+            "holder": "descarregador-2",
+            "position": {
+              "x": 102.3,
+              "y": 0.95,
+              "z": -122.3
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:transferencia"
+          },
+          {
+            "state": "RECEBIDO_BASE",
+            "place": "triagem",
+            "hour": 14.265822499999073,
+            "by": "separador-1",
+            "holder": "separador-1",
+            "position": {
+              "x": 105.7,
+              "y": 0.93,
+              "z": -129.6
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:triagem"
+          },
+          {
+            "state": "TRIADO",
+            "place": "triagem",
+            "hour": 14.27103083333233,
+            "by": "separador-1",
+            "holder": "separador-1",
+            "position": {
+              "x": 116.3,
+              "y": 0.93,
+              "z": -129.6
+            },
+            "dock": null,
+            "load": null,
+            "operation": "estado:TRIADO"
+          },
+          {
+            "state": "TRIADO",
+            "place": "transferencia",
+            "hour": 14.274364166665615,
+            "by": "separador-2",
+            "holder": "separador-2",
+            "position": {
+              "x": 116.3,
+              "y": 0.93,
+              "z": -129.6
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:transferencia"
+          },
+          {
+            "state": "TRIADO",
+            "place": "gaiola",
+            "hour": 14.27707249999891,
+            "by": "gaiola:Centro",
+            "holder": "gaiola:Centro",
+            "position": {
+              "x": 119.89999999999999,
+              "y": 0.55,
+              "z": -136.2
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:gaiola"
+          },
+          {
+            "state": "TRIADO",
+            "place": "transferencia",
+            "hour": 14.306480833331822,
+            "by": "expedidor",
+            "holder": "expedidor",
+            "position": {
+              "x": 119.89999999999999,
+              "y": 0.55,
+              "z": -136.2
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:transferencia"
+          },
+          {
+            "state": "TRIADO",
+            "place": "doca",
+            "hour": 14.31381166666506,
+            "by": "expedidor",
+            "holder": "expedidor",
+            "position": {
+              "x": 104.39999999999999,
+              "y": 0.78,
+              "z": -119.8
+            },
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:doca"
+          },
+          {
+            "state": "NA_SACA",
+            "place": "doca",
+            "hour": 14.31381166666506,
+            "by": "expedidor",
+            "holder": "expedidor",
+            "position": {
+              "x": 104.39999999999999,
+              "y": 0.78,
+              "z": -119.8
+            },
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "estado:NA_SACA"
+          },
+          {
+            "state": "NA_SACA",
+            "place": "saca",
+            "hour": 14.31381166666506,
+            "by": "expedidor",
+            "holder": "expedidor",
+            "position": {
+              "x": 104.39999999999999,
+              "y": 0.78,
+              "z": -119.8
+            },
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:saca"
+          },
+          {
+            "state": "EM_ROTA",
+            "place": "saca",
+            "hour": 15.1,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": {
+              "x": 104.39999999999999,
+              "y": 0.78,
+              "z": -119.8
+            },
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "estado:EM_ROTA"
+          },
+          {
+            "state": "EM_ROTA",
+            "place": "maos",
+            "hour": 15.1,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:maos"
+          },
+          {
+            "state": "EM_ROTA",
+            "place": "bau",
+            "hour": 15.1,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:bau"
+          },
+          {
+            "state": "EM_ROTA",
+            "place": "maos",
+            "hour": 15.100833333333322,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:maos"
+          },
+          {
+            "state": "ENTREGUE",
+            "place": "maos",
+            "hour": 15.100833333333322,
+            "by": "destinatario",
+            "holder": "destinatario",
+            "position": null,
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "estado:ENTREGUE"
+          },
+          {
+            "state": "ENTREGUE",
+            "place": "destinatario",
+            "hour": 15.100833333333322,
+            "by": "destinatario",
+            "holder": "destinatario",
+            "position": null,
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:destinatario"
+          }
+        ]
+      },
+      {
+        "id": "ML-0007",
+        "state": "ENTREGUE",
+        "place": "destinatario",
+        "holder": "destinatario",
+        "origin": "CD-ML",
+        "destination": "end-q6-l130",
+        "platform": "ML",
+        "region": "Brejo Alegre",
+        "position": null,
+        "dock": "D02",
+        "load": "ROTA-01",
+        "history": [
+          {
+            "state": "EM_TRANSPORTE",
+            "place": "caminhao",
+            "hour": 12.1,
+            "by": "motorista",
+            "holder": "motorista",
+            "position": null,
+            "dock": null,
+            "load": null,
+            "operation": "criado"
+          },
+          {
+            "state": "EM_TRANSPORTE",
+            "place": "caminhao",
+            "hour": 14.2,
+            "by": "motorista",
+            "holder": "motorista",
+            "position": {
+              "x": 127.55,
+              "y": 1.1,
+              "z": -117.4
+            },
+            "dock": null,
+            "load": null,
+            "operation": "caminhão:doca05"
+          },
+          {
+            "state": "EM_TRANSPORTE",
+            "place": "transferencia",
+            "hour": 14.2,
+            "by": "descarregador-1",
+            "holder": "descarregador-1",
+            "position": {
+              "x": 127.55,
+              "y": 1.1,
+              "z": -117.4
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:transferencia"
+          },
+          {
+            "state": "EM_TRANSPORTE",
+            "place": "recebimento",
+            "hour": 14.208025833333235,
+            "by": "recebimento",
+            "holder": "recebimento",
+            "position": {
+              "x": 99.55,
+              "y": 1.23,
+              "z": -122.3
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:recebimento"
+          },
+          {
+            "state": "EM_TRANSPORTE",
+            "place": "conferencia",
+            "hour": 14.208234166666564,
+            "by": "conferente",
+            "holder": "conferente",
+            "position": {
+              "x": 99.55,
+              "y": 1.23,
+              "z": -122.3
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:conferencia"
+          },
+          {
+            "state": "RECEBIDO_BASE",
+            "place": "conferencia",
+            "hour": 14.209067499999886,
+            "by": "conferente",
+            "holder": "conferente",
+            "position": {
+              "x": 99.55,
+              "y": 1.23,
+              "z": -122.3
+            },
+            "dock": null,
+            "load": null,
+            "operation": "estado:RECEBIDO_BASE"
+          },
+          {
+            "state": "RECEBIDO_BASE",
+            "place": "transferencia",
+            "hour": 14.273947499998956,
+            "by": "descarregador-2",
+            "holder": "descarregador-2",
+            "position": {
+              "x": 99.55,
+              "y": 1.23,
+              "z": -122.3
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:transferencia"
+          },
+          {
+            "state": "RECEBIDO_BASE",
+            "place": "triagem",
+            "hour": 14.27728083333224,
+            "by": "separador-1",
+            "holder": "separador-1",
+            "position": {
+              "x": 105.7,
+              "y": 0.93,
+              "z": -129.6
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:triagem"
+          },
+          {
+            "state": "TRIADO",
+            "place": "triagem",
+            "hour": 14.282489166665497,
+            "by": "separador-1",
+            "holder": "separador-1",
+            "position": {
+              "x": 116.3,
+              "y": 0.93,
+              "z": -129.6
+            },
+            "dock": null,
+            "load": null,
+            "operation": "estado:TRIADO"
+          },
+          {
+            "state": "TRIADO",
+            "place": "transferencia",
+            "hour": 14.28478083333213,
+            "by": "separador-2",
+            "holder": "separador-2",
+            "position": {
+              "x": 116.3,
+              "y": 0.93,
+              "z": -129.6
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:transferencia"
+          },
+          {
+            "state": "TRIADO",
+            "place": "gaiola",
+            "hour": 14.288530833332077,
+            "by": "gaiola:Brejo Alegre",
+            "holder": "gaiola:Brejo Alegre",
+            "position": {
+              "x": 125.44999999999999,
+              "y": 0.55,
+              "z": -136.2
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:gaiola"
+          },
+          {
+            "state": "TRIADO",
+            "place": "transferencia",
+            "hour": 14.321728333331611,
+            "by": "expedidor",
+            "holder": "expedidor",
+            "position": {
+              "x": 125.44999999999999,
+              "y": 0.55,
+              "z": -136.2
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:transferencia"
+          },
+          {
+            "state": "TRIADO",
+            "place": "doca",
+            "hour": 14.33003208333148,
+            "by": "expedidor",
+            "holder": "expedidor",
+            "position": {
+              "x": 103.3,
+              "y": 1.1,
+              "z": -119.8
+            },
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:doca"
+          },
+          {
+            "state": "NA_SACA",
+            "place": "doca",
+            "hour": 14.33003208333148,
+            "by": "expedidor",
+            "holder": "expedidor",
+            "position": {
+              "x": 103.3,
+              "y": 1.1,
+              "z": -119.8
+            },
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "estado:NA_SACA"
+          },
+          {
+            "state": "NA_SACA",
+            "place": "saca",
+            "hour": 14.33003208333148,
+            "by": "expedidor",
+            "holder": "expedidor",
+            "position": {
+              "x": 103.3,
+              "y": 1.1,
+              "z": -119.8
+            },
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:saca"
+          },
+          {
+            "state": "EM_ROTA",
+            "place": "saca",
+            "hour": 15.1,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": {
+              "x": 103.3,
+              "y": 1.1,
+              "z": -119.8
+            },
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "estado:EM_ROTA"
+          },
+          {
+            "state": "EM_ROTA",
+            "place": "maos",
+            "hour": 15.1,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:maos"
+          },
+          {
+            "state": "EM_ROTA",
+            "place": "bau",
+            "hour": 15.1,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:bau"
+          },
+          {
+            "state": "EM_ROTA",
+            "place": "maos",
+            "hour": 15.10041666666666,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:maos"
+          },
+          {
+            "state": "ENTREGUE",
+            "place": "maos",
+            "hour": 15.10041666666666,
+            "by": "destinatario",
+            "holder": "destinatario",
+            "position": null,
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "estado:ENTREGUE"
+          },
+          {
+            "state": "ENTREGUE",
+            "place": "destinatario",
+            "hour": 15.10041666666666,
+            "by": "destinatario",
+            "holder": "destinatario",
+            "position": null,
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:destinatario"
+          }
+        ]
+      },
+      {
+        "id": "SHP-0008",
+        "state": "ENTREGUE",
+        "place": "destinatario",
+        "holder": "destinatario",
+        "origin": "CD-SHP",
+        "destination": "end-q9-l180",
+        "platform": "SHP",
+        "region": "Brejo Alegre",
+        "position": null,
+        "dock": "D02",
+        "load": "ROTA-01",
+        "history": [
+          {
+            "state": "EM_TRANSPORTE",
+            "place": "caminhao",
+            "hour": 12.1,
+            "by": "motorista",
+            "holder": "motorista",
+            "position": null,
+            "dock": null,
+            "load": null,
+            "operation": "criado"
+          },
+          {
+            "state": "EM_TRANSPORTE",
+            "place": "caminhao",
+            "hour": 14.2,
+            "by": "motorista",
+            "holder": "motorista",
+            "position": {
+              "x": 128.35,
+              "y": 1.1,
+              "z": -117.4
+            },
+            "dock": null,
+            "load": null,
+            "operation": "caminhão:doca05"
+          },
+          {
+            "state": "EM_TRANSPORTE",
+            "place": "transferencia",
+            "hour": 14.214746666666466,
+            "by": "descarregador-1",
+            "holder": "descarregador-1",
+            "position": {
+              "x": 128.35,
+              "y": 1.1,
+              "z": -117.4
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:transferencia"
+          },
+          {
+            "state": "EM_TRANSPORTE",
+            "place": "recebimento",
+            "hour": 14.223040833333032,
+            "by": "recebimento",
+            "holder": "recebimento",
+            "position": {
+              "x": 100.1,
+              "y": 1.23,
+              "z": -122.3
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:recebimento"
+          },
+          {
+            "state": "EM_TRANSPORTE",
+            "place": "conferencia",
+            "hour": 14.223249166666362,
+            "by": "conferente",
+            "holder": "conferente",
+            "position": {
+              "x": 100.1,
+              "y": 1.23,
+              "z": -122.3
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:conferencia"
+          },
+          {
+            "state": "RECEBIDO_BASE",
+            "place": "conferencia",
+            "hour": 14.223874166666352,
+            "by": "conferente",
+            "holder": "conferente",
+            "position": {
+              "x": 100.1,
+              "y": 1.23,
+              "z": -122.3
+            },
+            "dock": null,
+            "load": null,
+            "operation": "estado:RECEBIDO_BASE"
+          },
+          {
+            "state": "RECEBIDO_BASE",
+            "place": "transferencia",
+            "hour": 14.285405833332122,
+            "by": "descarregador-2",
+            "holder": "descarregador-2",
+            "position": {
+              "x": 100.1,
+              "y": 1.23,
+              "z": -122.3
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:transferencia"
+          },
+          {
+            "state": "RECEBIDO_BASE",
+            "place": "triagem",
+            "hour": 14.288739166665406,
+            "by": "separador-1",
+            "holder": "separador-1",
+            "position": {
+              "x": 105.7,
+              "y": 0.93,
+              "z": -129.6
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:triagem"
+          },
+          {
+            "state": "TRIADO",
+            "place": "triagem",
+            "hour": 14.293980833332004,
+            "by": "separador-1",
+            "holder": "separador-1",
+            "position": {
+              "x": 116.3,
+              "y": 0.93,
+              "z": -129.6
+            },
+            "dock": null,
+            "load": null,
+            "operation": "estado:TRIADO"
+          },
+          {
+            "state": "TRIADO",
+            "place": "transferencia",
+            "hour": 14.29731416666529,
+            "by": "separador-2",
+            "holder": "separador-2",
+            "position": {
+              "x": 116.3,
+              "y": 0.93,
+              "z": -129.6
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:transferencia"
+          },
+          {
+            "state": "TRIADO",
+            "place": "gaiola",
+            "hour": 14.301272499998564,
+            "by": "gaiola:Brejo Alegre",
+            "holder": "gaiola:Brejo Alegre",
+            "position": {
+              "x": 126,
+              "y": 0.55,
+              "z": -136.2
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:gaiola"
+          },
+          {
+            "state": "TRIADO",
+            "place": "transferencia",
+            "hour": 14.338159166664703,
+            "by": "expedidor",
+            "holder": "expedidor",
+            "position": {
+              "x": 126,
+              "y": 0.55,
+              "z": -136.2
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:transferencia"
+          },
+          {
+            "state": "TRIADO",
+            "place": "doca",
+            "hour": 14.346492499997915,
+            "by": "expedidor",
+            "holder": "expedidor",
+            "position": {
+              "x": 103.85,
+              "y": 1.1,
+              "z": -119.8
+            },
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:doca"
+          },
+          {
+            "state": "NA_SACA",
+            "place": "doca",
+            "hour": 14.346492499997915,
+            "by": "expedidor",
+            "holder": "expedidor",
+            "position": {
+              "x": 103.85,
+              "y": 1.1,
+              "z": -119.8
+            },
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "estado:NA_SACA"
+          },
+          {
+            "state": "NA_SACA",
+            "place": "saca",
+            "hour": 14.346492499997915,
+            "by": "expedidor",
+            "holder": "expedidor",
+            "position": {
+              "x": 103.85,
+              "y": 1.1,
+              "z": -119.8
+            },
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:saca"
+          },
+          {
+            "state": "EM_ROTA",
+            "place": "saca",
+            "hour": 15.1,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": {
+              "x": 103.85,
+              "y": 1.1,
+              "z": -119.8
+            },
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "estado:EM_ROTA"
+          },
+          {
+            "state": "EM_ROTA",
+            "place": "maos",
+            "hour": 15.1,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:maos"
+          },
+          {
+            "state": "EM_ROTA",
+            "place": "bau",
+            "hour": 15.1,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:bau"
+          },
+          {
+            "state": "EM_ROTA",
+            "place": "maos",
+            "hour": 15.101041666666651,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:maos"
+          },
+          {
+            "state": "ENTREGUE",
+            "place": "maos",
+            "hour": 15.101041666666651,
+            "by": "destinatario",
+            "holder": "destinatario",
+            "position": null,
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "estado:ENTREGUE"
+          },
+          {
+            "state": "ENTREGUE",
+            "place": "destinatario",
+            "hour": 15.101041666666651,
+            "by": "destinatario",
+            "holder": "destinatario",
+            "position": null,
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:destinatario"
+          }
+        ]
+      },
+      {
+        "id": "ML-0009",
+        "state": "ENTREGUE",
+        "place": "destinatario",
+        "holder": "destinatario",
+        "origin": "CD-ML",
+        "destination": "end-q13-l260",
+        "platform": "ML",
+        "region": "Brejo Alegre",
+        "position": null,
+        "dock": "D02",
+        "load": "ROTA-01",
+        "history": [
+          {
+            "state": "EM_TRANSPORTE",
+            "place": "caminhao",
+            "hour": 12.1,
+            "by": "motorista",
+            "holder": "motorista",
+            "position": null,
+            "dock": null,
+            "load": null,
+            "operation": "criado"
+          },
+          {
+            "state": "EM_TRANSPORTE",
+            "place": "caminhao",
+            "hour": 14.2,
+            "by": "motorista",
+            "holder": "motorista",
+            "position": {
+              "x": 127.55,
+              "y": 1.4000000000000001,
+              "z": -117.4
+            },
+            "dock": null,
+            "load": null,
+            "operation": "caminhão:doca05"
+          },
+          {
+            "state": "EM_TRANSPORTE",
+            "place": "transferencia",
+            "hour": 14.2297074999996,
+            "by": "descarregador-1",
+            "holder": "descarregador-1",
+            "position": {
+              "x": 127.55,
+              "y": 1.4000000000000001,
+              "z": -117.4
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:transferencia"
+          },
+          {
+            "state": "EM_TRANSPORTE",
+            "place": "recebimento",
+            "hour": 14.236790833332831,
+            "by": "recebimento",
+            "holder": "recebimento",
+            "position": {
+              "x": 100.64999999999999,
+              "y": 1.23,
+              "z": -122.3
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:recebimento"
+          },
+          {
+            "state": "EM_TRANSPORTE",
+            "place": "conferencia",
+            "hour": 14.236790833332831,
+            "by": "conferente",
+            "holder": "conferente",
+            "position": {
+              "x": 100.64999999999999,
+              "y": 1.23,
+              "z": -122.3
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:conferencia"
+          },
+          {
+            "state": "RECEBIDO_BASE",
+            "place": "conferencia",
+            "hour": 14.237624166666153,
+            "by": "conferente",
+            "holder": "conferente",
+            "position": {
+              "x": 100.64999999999999,
+              "y": 1.23,
+              "z": -122.3
+            },
+            "dock": null,
+            "load": null,
+            "operation": "estado:RECEBIDO_BASE"
+          },
+          {
+            "state": "RECEBIDO_BASE",
+            "place": "transferencia",
+            "hour": 14.296897499998629,
+            "by": "descarregador-2",
+            "holder": "descarregador-2",
+            "position": {
+              "x": 100.64999999999999,
+              "y": 1.23,
+              "z": -122.3
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:transferencia"
+          },
+          {
+            "state": "RECEBIDO_BASE",
+            "place": "triagem",
+            "hour": 14.300230833331913,
+            "by": "separador-1",
+            "holder": "separador-1",
+            "position": {
+              "x": 105.7,
+              "y": 0.93,
+              "z": -129.6
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:triagem"
+          },
+          {
+            "state": "TRIADO",
+            "place": "triagem",
+            "hour": 14.30543916666517,
+            "by": "separador-1",
+            "holder": "separador-1",
+            "position": {
+              "x": 116.3,
+              "y": 0.93,
+              "z": -129.6
+            },
+            "dock": null,
+            "load": null,
+            "operation": "estado:TRIADO"
+          },
+          {
+            "state": "TRIADO",
+            "place": "transferencia",
+            "hour": 14.308772499998456,
+            "by": "separador-2",
+            "holder": "separador-2",
+            "position": {
+              "x": 116.3,
+              "y": 0.93,
+              "z": -129.6
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:transferencia"
+          },
+          {
+            "state": "TRIADO",
+            "place": "gaiola",
+            "hour": 14.312978333331738,
+            "by": "gaiola:Brejo Alegre",
+            "holder": "gaiola:Brejo Alegre",
+            "position": {
+              "x": 124.35,
+              "y": 0.85,
+              "z": -136.2
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:gaiola"
+          },
+          {
+            "state": "TRIADO",
+            "place": "transferencia",
+            "hour": 14.354266666664474,
+            "by": "expedidor",
+            "holder": "expedidor",
+            "position": {
+              "x": 124.35,
+              "y": 0.85,
+              "z": -136.2
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:transferencia"
+          },
+          {
+            "state": "TRIADO",
+            "place": "doca",
+            "hour": 14.362599999997686,
+            "by": "expedidor",
+            "holder": "expedidor",
+            "position": {
+              "x": 104.39999999999999,
+              "y": 1.1,
+              "z": -119.8
+            },
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:doca"
+          },
+          {
+            "state": "NA_SACA",
+            "place": "doca",
+            "hour": 14.362599999997686,
+            "by": "expedidor",
+            "holder": "expedidor",
+            "position": {
+              "x": 104.39999999999999,
+              "y": 1.1,
+              "z": -119.8
+            },
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "estado:NA_SACA"
+          },
+          {
+            "state": "NA_SACA",
+            "place": "saca",
+            "hour": 14.362599999997686,
+            "by": "expedidor",
+            "holder": "expedidor",
+            "position": {
+              "x": 104.39999999999999,
+              "y": 1.1,
+              "z": -119.8
+            },
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:saca"
+          },
+          {
+            "state": "EM_ROTA",
+            "place": "saca",
+            "hour": 15.1,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": {
+              "x": 104.39999999999999,
+              "y": 1.1,
+              "z": -119.8
+            },
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "estado:EM_ROTA"
+          },
+          {
+            "state": "EM_ROTA",
+            "place": "maos",
+            "hour": 15.1,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:maos"
+          },
+          {
+            "state": "EM_ROTA",
+            "place": "bau",
+            "hour": 15.1,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:bau"
+          },
+          {
+            "state": "EM_ROTA",
+            "place": "maos",
+            "hour": 15.101041666666651,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:maos"
+          },
+          {
+            "state": "ENTREGUE",
+            "place": "maos",
+            "hour": 15.101041666666651,
+            "by": "destinatario",
+            "holder": "destinatario",
+            "position": null,
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "estado:ENTREGUE"
+          },
+          {
+            "state": "ENTREGUE",
+            "place": "destinatario",
+            "hour": 15.101041666666651,
+            "by": "destinatario",
+            "holder": "destinatario",
+            "position": null,
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:destinatario"
+          }
+        ]
+      },
+      {
+        "id": "SHP-0010",
+        "state": "ENTREGUE",
+        "place": "destinatario",
+        "holder": "destinatario",
+        "origin": "CD-SHP",
+        "destination": "end-q17-l311",
+        "platform": "SHP",
+        "region": "Centro",
+        "position": null,
+        "dock": "D02",
+        "load": "ROTA-01",
+        "history": [
+          {
+            "state": "EM_TRANSPORTE",
+            "place": "caminhao",
+            "hour": 12.1,
+            "by": "motorista",
+            "holder": "motorista",
+            "position": null,
+            "dock": null,
+            "load": null,
+            "operation": "criado"
+          },
+          {
+            "state": "EM_TRANSPORTE",
+            "place": "caminhao",
+            "hour": 14.2,
+            "by": "motorista",
+            "holder": "motorista",
+            "position": {
+              "x": 128.35,
+              "y": 1.4000000000000001,
+              "z": -117.4
+            },
+            "dock": null,
+            "load": null,
+            "operation": "caminhão:doca05"
+          },
+          {
+            "state": "EM_TRANSPORTE",
+            "place": "transferencia",
+            "hour": 14.24324916666607,
+            "by": "descarregador-1",
+            "holder": "descarregador-1",
+            "position": {
+              "x": 128.35,
+              "y": 1.4000000000000001,
+              "z": -117.4
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:transferencia"
+          },
+          {
+            "state": "EM_TRANSPORTE",
+            "place": "recebimento",
+            "hour": 14.2503324999993,
+            "by": "recebimento",
+            "holder": "recebimento",
+            "position": {
+              "x": 101.2,
+              "y": 1.23,
+              "z": -122.3
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:recebimento"
+          },
+          {
+            "state": "EM_TRANSPORTE",
+            "place": "conferencia",
+            "hour": 14.2503324999993,
+            "by": "conferente",
+            "holder": "conferente",
+            "position": {
+              "x": 101.2,
+              "y": 1.23,
+              "z": -122.3
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:conferencia"
+          },
+          {
+            "state": "RECEBIDO_BASE",
+            "place": "conferencia",
+            "hour": 14.251165833332623,
+            "by": "conferente",
+            "holder": "conferente",
+            "position": {
+              "x": 101.2,
+              "y": 1.23,
+              "z": -122.3
+            },
+            "dock": null,
+            "load": null,
+            "operation": "estado:RECEBIDO_BASE"
+          },
+          {
+            "state": "RECEBIDO_BASE",
+            "place": "transferencia",
+            "hour": 14.308355833331795,
+            "by": "descarregador-2",
+            "holder": "descarregador-2",
+            "position": {
+              "x": 101.2,
+              "y": 1.23,
+              "z": -122.3
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:transferencia"
+          },
+          {
+            "state": "RECEBIDO_BASE",
+            "place": "triagem",
+            "hour": 14.311936666665087,
+            "by": "separador-1",
+            "holder": "separador-1",
+            "position": {
+              "x": 105.7,
+              "y": 0.93,
+              "z": -129.6
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:triagem"
+          },
+          {
+            "state": "TRIADO",
+            "place": "triagem",
+            "hour": 14.316936666665015,
+            "by": "separador-1",
+            "holder": "separador-1",
+            "position": {
+              "x": 116.3,
+              "y": 0.93,
+              "z": -129.6
+            },
+            "dock": null,
+            "load": null,
+            "operation": "estado:TRIADO"
+          },
+          {
+            "state": "TRIADO",
+            "place": "transferencia",
+            "hour": 14.32047833333163,
+            "by": "separador-2",
+            "holder": "separador-2",
+            "position": {
+              "x": 116.3,
+              "y": 0.93,
+              "z": -129.6
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:transferencia"
+          },
+          {
+            "state": "TRIADO",
+            "place": "gaiola",
+            "hour": 14.323186666664924,
+            "by": "gaiola:Centro",
+            "holder": "gaiola:Centro",
+            "position": {
+              "x": 119.89999999999999,
+              "y": 0.85,
+              "z": -136.2
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:gaiola"
+          },
+          {
+            "state": "TRIADO",
+            "place": "transferencia",
+            "hour": 14.369228333330936,
+            "by": "expedidor",
+            "holder": "expedidor",
+            "position": {
+              "x": 119.89999999999999,
+              "y": 0.85,
+              "z": -136.2
+            },
+            "dock": null,
+            "load": null,
+            "operation": "transferência:transferencia"
+          },
+          {
+            "state": "TRIADO",
+            "place": "doca",
+            "hour": 14.376311666664167,
+            "by": "expedidor",
+            "holder": "expedidor",
+            "position": {
+              "x": 103.3,
+              "y": 1.42,
+              "z": -119.8
+            },
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:doca"
+          },
+          {
+            "state": "NA_SACA",
+            "place": "doca",
+            "hour": 14.376311666664167,
+            "by": "expedidor",
+            "holder": "expedidor",
+            "position": {
+              "x": 103.3,
+              "y": 1.42,
+              "z": -119.8
+            },
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "estado:NA_SACA"
+          },
+          {
+            "state": "NA_SACA",
+            "place": "saca",
+            "hour": 14.376311666664167,
+            "by": "expedidor",
+            "holder": "expedidor",
+            "position": {
+              "x": 103.3,
+              "y": 1.42,
+              "z": -119.8
+            },
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:saca"
+          },
+          {
+            "state": "EM_ROTA",
+            "place": "saca",
+            "hour": 15.1,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": {
+              "x": 103.3,
+              "y": 1.42,
+              "z": -119.8
+            },
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "estado:EM_ROTA"
+          },
+          {
+            "state": "EM_ROTA",
+            "place": "maos",
+            "hour": 15.1,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:maos"
+          },
+          {
+            "state": "EM_ROTA",
+            "place": "bau",
+            "hour": 15.1,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:bau"
+          },
+          {
+            "state": "EM_ROTA",
+            "place": "maos",
+            "hour": 15.100833333333322,
+            "by": "jogador",
+            "holder": "jogador",
+            "position": null,
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:maos"
+          },
+          {
+            "state": "ENTREGUE",
+            "place": "maos",
+            "hour": 15.100833333333322,
+            "by": "destinatario",
+            "holder": "destinatario",
+            "position": null,
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "estado:ENTREGUE"
+          },
+          {
+            "state": "ENTREGUE",
+            "place": "destinatario",
+            "hour": 15.100833333333322,
+            "by": "destinatario",
+            "holder": "destinatario",
+            "position": null,
+            "dock": "D02",
+            "load": "ROTA-01",
+            "operation": "transferência:destinatario"
+          }
+        ]
+      }
+    ],
+    "staff": [
+      {
+        "role": "porteiro",
+        "state": "controle de acesso"
+      },
+      {
+        "role": "conferente",
+        "state": "aguardando tarefa"
+      },
+      {
+        "role": "descarregador-1",
+        "state": "aguardando tarefa"
+      },
+      {
+        "role": "descarregador-2",
+        "state": "aguardando tarefa"
+      },
+      {
+        "role": "separador-1",
+        "state": "aguardando tarefa"
+      },
+      {
+        "role": "separador-2",
+        "state": "aguardando tarefa"
+      },
+      {
+        "role": "expedidor",
+        "state": "aguardando tarefa"
+      },
+      {
+        "role": "supervisor",
+        "state": "supervisionando a operação"
+      }
+    ],
+    "stores": [
+      {
+        "id": "mercearia",
+        "employee": "atendendo",
+        "shutter": 1,
+        "queue": 0,
+        "served": 0,
+        "pickup": {
+          "x": -40.06882046532921,
+          "z": 34.67039215476139
+        },
+        "facing": -0.9745319773204035
+      },
+      {
+        "id": "farmacia",
+        "employee": "atendendo",
+        "shutter": 1,
+        "queue": 0,
+        "served": 0,
+        "pickup": {
+          "x": -17.151596787288845,
+          "z": 16.582431146881937
+        },
+        "facing": 2.1670606762693896
+      },
+      {
+        "id": "papelaria",
+        "employee": "atendendo",
+        "shutter": 1,
+        "queue": 0,
+        "served": 0,
+        "pickup": {
+          "x": -47.536552443034935,
+          "z": 70.74733750678546
+        },
+        "facing": -2.507596121534389
+      },
+      {
+        "id": "supermercado",
+        "employee": "atendendo",
+        "shutter": 1,
+        "queue": 0,
+        "served": 0,
+        "pickup": {
+          "x": -11.291467577381171,
+          "z": 80.24198859876054
+        },
+        "facing": 0.633996532055404
+      },
+      {
+        "id": "padaria",
+        "employee": "atendendo",
+        "shutter": 1,
+        "queue": 0,
+        "served": 0,
+        "pickup": {
+          "x": -63.781462609731314,
+          "z": 5.445756411655629
+        },
+        "facing": 0.590788974045526
+      },
+      {
+        "id": "variedades",
+        "employee": "atendendo",
+        "shutter": 1,
+        "queue": 0,
+        "served": 0,
+        "pickup": {
+          "x": 17.551366858207118,
+          "z": 59.99550678296576
+        },
+        "facing": 0.5924962821078221
+      },
+      {
+        "id": "construcao",
+        "employee": "atendendo",
+        "shutter": 1,
+        "queue": 0,
+        "served": 0,
+        "pickup": {
+          "x": -90.69548579115971,
+          "z": 68.56329599118938
+        },
+        "facing": 2.158212248098247
+      },
+      {
+        "id": "hortifruti",
+        "employee": "atendendo",
+        "shutter": 1,
+        "queue": 0,
+        "served": 0,
+        "pickup": {
+          "x": -103.45304846030265,
+          "z": -3.009706648286068
+        },
+        "facing": -2.5508036795442672
+      }
+    ],
+    "addresses": 48,
+    "action": null,
+    "waiting": null
+  },
+  "errors": []
+}

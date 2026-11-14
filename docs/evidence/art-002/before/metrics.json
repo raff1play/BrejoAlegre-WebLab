@@ -1,0 +1,506 @@
+{
+  "errors": [],
+  "poses": {
+    "entrada": {
+      "x": 158.72360209544183,
+      "z": 536.8540165157098,
+      "r": 29,
+      "b": 1.1,
+      "a": 2.9768021879437,
+      "y": 1
+    },
+    "patio": {
+      "x": 174.36840120215203,
+      "z": 530.1279284319363,
+      "r": 53,
+      "b": 0.8,
+      "a": 3.0268021879437,
+      "y": 0
+    },
+    "galpao": {
+      "x": 191.80869783456865,
+      "z": 529.2135688892408,
+      "r": 48,
+      "b": 0.65,
+      "a": 2.9268021879437,
+      "y": 0
+    },
+    "triagem": {
+      "x": 191.35790682469872,
+      "z": 526.0835868660624,
+      "r": 8,
+      "b": 1.2,
+      "a": 2.7768021879437,
+      "y": 1
+    },
+    "docas": {
+      "x": 181.07915625837893,
+      "z": 532.3563284353748,
+      "r": 30,
+      "b": 1.15,
+      "a": 2.8768021879437002,
+      "y": 1.6
+    }
+  },
+  "browser": "156.0.8078.79",
+  "viewport": [
+    1280,
+    720
+  ],
+  "renderer": "SwiftShader",
+  "triagem": {
+    "samples": [
+      {
+        "drawCalls": 1103,
+        "frameMs": 678.4,
+        "renderMs": 653.1,
+        "triangles": 547649,
+        "memoryMb": 171
+      },
+      {
+        "drawCalls": 1103,
+        "frameMs": 39.2,
+        "renderMs": 25.6,
+        "triangles": 547649,
+        "memoryMb": 172
+      },
+      {
+        "drawCalls": 1103,
+        "frameMs": 19.9,
+        "renderMs": 4.7,
+        "triangles": 547649,
+        "memoryMb": 174
+      },
+      {
+        "drawCalls": 1103,
+        "frameMs": 19.9,
+        "renderMs": 4.7,
+        "triangles": 547649,
+        "memoryMb": 174
+      },
+      {
+        "drawCalls": 1103,
+        "frameMs": 19.9,
+        "renderMs": 4.7,
+        "triangles": 547649,
+        "memoryMb": 176
+      },
+      {
+        "drawCalls": 1103,
+        "frameMs": 26.4,
+        "renderMs": 5.6,
+        "triangles": 547649,
+        "memoryMb": 177
+      },
+      {
+        "drawCalls": 1103,
+        "frameMs": 26.4,
+        "renderMs": 5.6,
+        "triangles": 547649,
+        "memoryMb": 178
+      },
+      {
+        "drawCalls": 1103,
+        "frameMs": 28.7,
+        "renderMs": 14.4,
+        "triangles": 547649,
+        "memoryMb": 179
+      },
+      {
+        "drawCalls": 1103,
+        "frameMs": 28.7,
+        "renderMs": 14.4,
+        "triangles": 547649,
+        "memoryMb": 180
+      },
+      {
+        "drawCalls": 1103,
+        "frameMs": 19.7,
+        "renderMs": 3.7,
+        "triangles": 547649,
+        "memoryMb": 182
+      },
+      {
+        "drawCalls": 1103,
+        "frameMs": 19.7,
+        "renderMs": 3.7,
+        "triangles": 547649,
+        "memoryMb": 183
+      },
+      {
+        "drawCalls": 1103,
+        "frameMs": 18.3,
+        "renderMs": 5.5,
+        "triangles": 547649,
+        "memoryMb": 184
+      }
+    ],
+    "active": 502,
+    "triangles": 547649,
+    "meshes": 1706
+  },
+  "entrada": {
+    "samples": [
+      {
+        "drawCalls": 1177,
+        "frameMs": 980.1,
+        "renderMs": 958.1,
+        "triangles": 597233,
+        "memoryMb": 151
+      },
+      {
+        "drawCalls": 1177,
+        "frameMs": 30.6,
+        "renderMs": 11.8,
+        "triangles": 597233,
+        "memoryMb": 151
+      },
+      {
+        "drawCalls": 1177,
+        "frameMs": 30.6,
+        "renderMs": 11.8,
+        "triangles": 597233,
+        "memoryMb": 153
+      },
+      {
+        "drawCalls": 1177,
+        "frameMs": 30.6,
+        "renderMs": 11.8,
+        "triangles": 597233,
+        "memoryMb": 154
+      },
+      {
+        "drawCalls": 1177,
+        "frameMs": 22.6,
+        "renderMs": 10.2,
+        "triangles": 597233,
+        "memoryMb": 156
+      },
+      {
+        "drawCalls": 1177,
+        "frameMs": 22.6,
+        "renderMs": 10.2,
+        "triangles": 597233,
+        "memoryMb": 157
+      },
+      {
+        "drawCalls": 1177,
+        "frameMs": 22.6,
+        "renderMs": 10.2,
+        "triangles": 597233,
+        "memoryMb": 158
+      },
+      {
+        "drawCalls": 1177,
+        "frameMs": 24.3,
+        "renderMs": 10.9,
+        "triangles": 597233,
+        "memoryMb": 159
+      },
+      {
+        "drawCalls": 1177,
+        "frameMs": 24.3,
+        "renderMs": 10.9,
+        "triangles": 597233,
+        "memoryMb": 160
+      },
+      {
+        "drawCalls": 1177,
+        "frameMs": 24.3,
+        "renderMs": 10.9,
+        "triangles": 597233,
+        "memoryMb": 162
+      },
+      {
+        "drawCalls": 1177,
+        "frameMs": 17.9,
+        "renderMs": 5.3,
+        "triangles": 597233,
+        "memoryMb": 163
+      },
+      {
+        "drawCalls": 1177,
+        "frameMs": 17.9,
+        "renderMs": 5.3,
+        "triangles": 597233,
+        "memoryMb": 164
+      }
+    ],
+    "active": 580,
+    "triangles": 597233,
+    "meshes": 1706
+  },
+  "patio": {
+    "samples": [
+      {
+        "drawCalls": 938,
+        "frameMs": 18,
+        "renderMs": 3.5,
+        "triangles": 570241,
+        "memoryMb": 148
+      },
+      {
+        "drawCalls": 938,
+        "frameMs": 20.6,
+        "renderMs": 5.6,
+        "triangles": 570241,
+        "memoryMb": 149
+      },
+      {
+        "drawCalls": 938,
+        "frameMs": 20.6,
+        "renderMs": 5.6,
+        "triangles": 570241,
+        "memoryMb": 150
+      },
+      {
+        "drawCalls": 938,
+        "frameMs": 20.6,
+        "renderMs": 5.6,
+        "triangles": 570241,
+        "memoryMb": 151
+      },
+      {
+        "drawCalls": 938,
+        "frameMs": 18.6,
+        "renderMs": 3.1,
+        "triangles": 570241,
+        "memoryMb": 152
+      },
+      {
+        "drawCalls": 938,
+        "frameMs": 18.6,
+        "renderMs": 3.1,
+        "triangles": 570241,
+        "memoryMb": 153
+      },
+      {
+        "drawCalls": 938,
+        "frameMs": 18.6,
+        "renderMs": 3.1,
+        "triangles": 570241,
+        "memoryMb": 154
+      },
+      {
+        "drawCalls": 938,
+        "frameMs": 28.1,
+        "renderMs": 3.5,
+        "triangles": 570241,
+        "memoryMb": 155
+      },
+      {
+        "drawCalls": 938,
+        "frameMs": 28.1,
+        "renderMs": 3.5,
+        "triangles": 570241,
+        "memoryMb": 156
+      },
+      {
+        "drawCalls": 938,
+        "frameMs": 28.1,
+        "renderMs": 3.5,
+        "triangles": 570241,
+        "memoryMb": 157
+      },
+      {
+        "drawCalls": 938,
+        "frameMs": 13.8,
+        "renderMs": 2.2,
+        "triangles": 570241,
+        "memoryMb": 158
+      },
+      {
+        "drawCalls": 938,
+        "frameMs": 13.8,
+        "renderMs": 2.2,
+        "triangles": 570241,
+        "memoryMb": 159
+      }
+    ],
+    "active": 244,
+    "triangles": 570241,
+    "meshes": 1706
+  },
+  "galpao": {
+    "samples": [
+      {
+        "drawCalls": 833,
+        "frameMs": 12,
+        "renderMs": 1.5,
+        "triangles": 556339,
+        "memoryMb": 142
+      },
+      {
+        "drawCalls": 833,
+        "frameMs": 12,
+        "renderMs": 1.5,
+        "triangles": 556339,
+        "memoryMb": 143
+      },
+      {
+        "drawCalls": 833,
+        "frameMs": 16.9,
+        "renderMs": 1.6,
+        "triangles": 556339,
+        "memoryMb": 144
+      },
+      {
+        "drawCalls": 833,
+        "frameMs": 16.9,
+        "renderMs": 1.6,
+        "triangles": 556339,
+        "memoryMb": 145
+      },
+      {
+        "drawCalls": 833,
+        "frameMs": 16.9,
+        "renderMs": 1.6,
+        "triangles": 556339,
+        "memoryMb": 146
+      },
+      {
+        "drawCalls": 833,
+        "frameMs": 16.9,
+        "renderMs": 1.6,
+        "triangles": 556339,
+        "memoryMb": 147
+      },
+      {
+        "drawCalls": 833,
+        "frameMs": 15.1,
+        "renderMs": 1.9,
+        "triangles": 556339,
+        "memoryMb": 147
+      },
+      {
+        "drawCalls": 833,
+        "frameMs": 15.1,
+        "renderMs": 1.9,
+        "triangles": 556339,
+        "memoryMb": 148
+      },
+      {
+        "drawCalls": 825,
+        "frameMs": 15.1,
+        "renderMs": 1.9,
+        "triangles": 556259,
+        "memoryMb": 149
+      },
+      {
+        "drawCalls": 825,
+        "frameMs": 22.7,
+        "renderMs": 7.2,
+        "triangles": 556259,
+        "memoryMb": 150
+      },
+      {
+        "drawCalls": 825,
+        "frameMs": 22.7,
+        "renderMs": 7.2,
+        "triangles": 556259,
+        "memoryMb": 151
+      },
+      {
+        "drawCalls": 825,
+        "frameMs": 22.7,
+        "renderMs": 7.2,
+        "triangles": 556259,
+        "memoryMb": 152
+      }
+    ],
+    "active": 134,
+    "triangles": 556259,
+    "meshes": 1706
+  },
+  "docas": {
+    "samples": [
+      {
+        "drawCalls": 1127,
+        "frameMs": 13,
+        "renderMs": 3.2,
+        "triangles": 562045,
+        "memoryMb": 135
+      },
+      {
+        "drawCalls": 1127,
+        "frameMs": 13,
+        "renderMs": 3.2,
+        "triangles": 562045,
+        "memoryMb": 135
+      },
+      {
+        "drawCalls": 1127,
+        "frameMs": 13,
+        "renderMs": 3.2,
+        "triangles": 562045,
+        "memoryMb": 135
+      },
+      {
+        "drawCalls": 1127,
+        "frameMs": 16.1,
+        "renderMs": 4.7,
+        "triangles": 562045,
+        "memoryMb": 135
+      },
+      {
+        "drawCalls": 1127,
+        "frameMs": 16.1,
+        "renderMs": 4.7,
+        "triangles": 562045,
+        "memoryMb": 135
+      },
+      {
+        "drawCalls": 1127,
+        "frameMs": 16.1,
+        "renderMs": 4.7,
+        "triangles": 562045,
+        "memoryMb": 135
+      },
+      {
+        "drawCalls": 1127,
+        "frameMs": 15.5,
+        "renderMs": 4.4,
+        "triangles": 562045,
+        "memoryMb": 135
+      },
+      {
+        "drawCalls": 1127,
+        "frameMs": 15.5,
+        "renderMs": 4.4,
+        "triangles": 562045,
+        "memoryMb": 136
+      },
+      {
+        "drawCalls": 1127,
+        "frameMs": 15.5,
+        "renderMs": 4.4,
+        "triangles": 562045,
+        "memoryMb": 135
+      },
+      {
+        "drawCalls": 1127,
+        "frameMs": 15.1,
+        "renderMs": 3.5,
+        "triangles": 562045,
+        "memoryMb": 136
+      },
+      {
+        "drawCalls": 1127,
+        "frameMs": 15.1,
+        "renderMs": 3.5,
+        "triangles": 562045,
+        "memoryMb": 135
+      },
+      {
+        "drawCalls": 1127,
+        "frameMs": 15.1,
+        "renderMs": 3.5,
+        "triangles": 562045,
+        "memoryMb": 136
+      }
+    ],
+    "active": 536,
+    "triangles": 562045,
+    "meshes": 1706
+  }
+}

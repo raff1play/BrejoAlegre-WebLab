@@ -1,7 +1,7 @@
 import { BatchSet } from '../../world/geometry';
 import { rodPart } from '../../world/modelParts';
 import { DepotParcels } from './depotParcels';
-import { gateLeaves, INBOUND_TRUCK } from '../../world/city/depotPlan';
+import { gateLeaves, INBOUND_TRUCK, INBOUND_TAIL } from '../../world/city/depotPlan';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { CreateCylinder } from '@babylonjs/core/Meshes/Builders/cylinderBuilder';
 import { CreateTorus } from '@babylonjs/core/Meshes/Builders/torusBuilder';
@@ -67,8 +67,8 @@ export class DeliveryGame {
     for(const x of [t.minX,t.maxX-.05])truck.box(mats.paint('#536a60'),x,x+.05,1.15,1.6,t.minZ,t.maxZ-2);
     truck.box(mats.paint('#e3dcc4'),t.minX,t.maxX,1.03,3,t.maxZ-2,t.maxZ);
     truck.box(mats.paint('#29463e',.3),t.minX+.1,t.maxX-.1,1.8,2.7,t.maxZ-.08,t.maxZ+.01);
-    for(const x of [t.minX-.04,t.maxX+.04])for(const z of [-116.3,-111.4])truck.absorb(mats.paint('#202822'),rodPart(scene,[x-.12,.5,z],[x+.12,.5,z],.9,.9,12));
-    truck.box(mats.paint('#777f73'),127.2,128.8,.1,.17,-118.45,-117.8);
+    for(const x of [t.minX+.12,t.maxX-.12])for(const z of [-116.3,-111.4])truck.absorb(mats.paint('#202822'),rodPart(scene,[x-.12,.5,z],[x+.12,.5,z],.9,.9,12));
+    truck.box(mats.paint('#777f73'),INBOUND_TAIL.minX,INBOUND_TAIL.maxX,.1,.17,INBOUND_TAIL.minZ,INBOUND_TAIL.maxZ);
     this.inboundTruck=truck.build('art002-inbound-truck',scene);this.inboundTruck.forEach(m=>m.setEnabled(false));
     const cast = profile.name === 'desktop' ? shadows : undefined;
     for (const s of STORES) {
@@ -210,7 +210,7 @@ export class DeliveryGame {
    * while it is down — except from the inside, so nobody is locked in at closing time.
    */
   doorBlocked(x: number, z: number, r: number, riding: boolean, from: { x: number; z: number }): boolean {
-    if(this.workday.depot.truckAvailable&&circleIntersectsPoly(x,z,r,depotPoly(INBOUND_TRUCK)))return true;
+    if(this.workday.depot.truckAvailable&&[INBOUND_TRUCK,INBOUND_TAIL].some(b=>circleIntersectsPoly(x,z,r,depotPoly(b))))return true;
     if(gateLeaves(this.gateOpen).some(b=>circleIntersectsPoly(x,z,r,depotPoly(b))))return true;
     for (const s of this.stores.values()) {
       if (!circleIntersectsPoly(x, z, r, s.layout.doorway)) continue;
@@ -270,10 +270,12 @@ export class DeliveryGame {
     if (close(DEPOT_SPOTS.receiving, 1.45) && w.carrying().length) {
       const mine = hands.filter((p) => p.state === 'COLETADO' || p.state === 'EM_TRANSPORTE').length;
       if (!mine) return { label: 'Volumes no baú: retire na moto', available: false, run: null };
+      if(!depotVisitAllowed(visit,'receiving'))return {label:'Estacione a moto nas vagas de descarga',available:false,run:null};
       return { label: `Entregar ao conferente (${mine})`, available: true, run: () => `Conferente recebendo ${n(w.handOver(hour,visit))}` };
     }
     if (close(DEPOT_SPOTS.dispatch, 1.45) && (w.phase === 'SACA' || w.phase === 'TRIAGEM')) {
       if (hands.length) return { label: 'Mãos cheias', available: false, run: null };
+      if(!depotVisitAllowed(visit,'dispatch'))return {label:'Use as vagas de descarga da base',available:false,run:null};
       if (!w.canTakeSack(hour)) return { label: hour < ROUTINE.sackFrom ? 'Saca às 15h' : 'Triagem em curso', available: false, run: null };
       return { label: 'Retirar a saca', available: true, run: () => `Saca com ${n(w.takeSack(hour,visit))} — guarde no baú da moto` };
     }

@@ -1,0 +1,1 @@
+PASS scheduled truck body and tail-lift block at their shared visible footprints; adjacent clear space stays accessible { tail: false, body: false, clear: true }

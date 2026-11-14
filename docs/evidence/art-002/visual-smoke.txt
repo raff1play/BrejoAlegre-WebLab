@@ -1,0 +1,2 @@
+PASS four tracked volumes = four visible hand volumes
+PASS receipt: same frame has zero hand volumes and four depot IDs; no visual duplication

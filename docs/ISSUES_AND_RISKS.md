@@ -143,3 +143,9 @@ Não marcar bloqueio como corrigido sem evidência de execução, timestamp e, q
 - A comparação em `docs/evidence/art-001/` mostra melhora localizada, não uma remasterização concluída. Ainda há volumes em primitivas, fachadas adjacentes antigas, superfícies uniformes e interior com intervenção pequena.
 - O jogo padrão começa em `construcao` pela seed 2026; outras seeds podem começar em outra loja e não recebem esta arte.
 - Medição de cena em Chromium/SwiftShader; FPS, temperatura, bateria, toque e legibilidade no Android físico continuam sem teste. O aumento de triângulos e draw calls está registrado nos dados reais, sem previsão de desempenho no aparelho.
+
+## ART-002 — limites restantes (14/11/2026)
+
+- Acabamento industrial simplificado e iluminação emissiva; não atinge referência fotográfica nem substitui arte profissional. Uma carga/entregador local, sem operação simultânea de múltiplas rotas.
+- O caminhão de recebimento é estacionado na doca 05 pela chegada programada (fallback 13h), com pacotes rastreados. Não foi implementada nova IA global de caminhões navegando pela portaria.
+- Contagens de geometria/draw calls medidas no SwiftShader. Android físico, temperatura, bateria, ergonomia e 30 FPS real não comprovados. Testes headless usam fixtures e escala reduzida de render; comparativos visuais usam 1280×720 nativo. Método exato nos logs e README da evidência.
