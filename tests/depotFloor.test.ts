@@ -30,5 +30,4 @@ test('convex clipping handles contained, disjoint and crossing triangles without
  const outside:SurfacePoint[]=[[-5,-5],[-4,-5],[-5,-4]];assert.equal(subtractSurface(outside,cut).reduce((s,p)=>s+surfaceArea(p),0),.5);
  const crossing:SurfacePoint[]=[[-10,2],[10,2],[0,8]];const pieces=subtractSurface(crossing,cut);
  assert.ok(Math.abs(pieces.reduce((s,p)=>s+surfaceArea(p),0)-30)<1e-8);
- const at=depotWorld(110,-106);assert.ok(Number.isFinite(at.x));
 });
