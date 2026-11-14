@@ -54,7 +54,11 @@ test('CORE-015.1: street furniture is solid and matches where it is drawn', asyn
   const { createMotionGuard: guardOf } = await import('../src/core/collision.ts');
   const guard = guardOf(CITY_BOUNDS, [], solidPolygons());
   const lights = streetLightPositions(); const f = shopFurniture();
-  assert.ok(lights.length > 300 && f.lamps.length === 16 && f.planters.length === 8);
+  // Street preview now rejects unsafe positions: not every 32 m sample or
+  // storefront has room for a pole. The geometric regression verifies every
+  // accepted footprint, rather than requiring the former unsafe raw counts.
+  assert.ok(lights.length >= 200 && f.lamps.length >= 4 && f.lamps.length <= 16 && f.planters.length === 8,
+    `lights=${lights.length}, storefront lamps=${f.lamps.length}`);
   assert.equal(furniturePolygons().length, lights.length + 24);
   for (const l of [...lights, ...f.lamps, ...f.planters]) assert.equal(guard(l.x, l.z, 0.05), false, `solid at ${l.x.toFixed(1)},${l.z.toFixed(1)}`);
   // …and never blocks a shop door or the way to the counter.
