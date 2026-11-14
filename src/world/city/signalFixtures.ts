@@ -39,8 +39,8 @@ export function signalFixturePositions(
       // pavement there, so a signal head may instead face traffic from the
       // opposite sidewalk rather than be drawn in the carriageway.
       for (const side of [1, -1]) {
-        for (const back of [0, 1.5, 3, 5, 7, 9, 11]) {
-          for (const outward of [0, 0.35, 0.75, -0.15]) {
+        for (const back of [0, 1.5, 3, 5, 7, 9, 11, 13, 15]) {
+          for (const outward of [0, 0.35, 0.75, -0.15, 1.25, -0.4, 2, 2.75, 3.5]) {
             const cross = side * (ROAD_HALF + 0.55 + outward) - laneShift;
             const p = {
               x: end.x - d.x * back + rx * cross,
