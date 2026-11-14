@@ -64,13 +64,14 @@ function blotches(ctx: Ctx, size: number, random: () => number, count: number, c
 }
 
 export const paintAsphalt: Painter = (ctx, size, random) => {
-  // CORE-010: darker, cleaner asphalt with fine aggregate and only a few faint repairs/cracks.
-  ctx.fillStyle = '#4e5054';
+  // Street preview: restrained dark asphalt with finer aggregate and small colour variations.
+  // No large repeated potholes: the tiled texture represents material, not road geometry.
+  ctx.fillStyle = '#484b4e';
   ctx.fillRect(0, 0, size, size);
-  blotches(ctx, size, random, 8, 'rgba(30,30,34,0.14)', 0.2);
-  blotches(ctx, size, random, 6, 'rgba(120,118,112,0.08)', 0.22);
-  speckle(ctx, size, random, size * 40, ['#45474b', '#5b5d61', '#66676a', '#3e4044', '#58564f'], 1.6);
-  ctx.strokeStyle = 'rgba(28,28,30,0.3)';
+  blotches(ctx, size, random, 12, 'rgba(27,29,32,0.11)', 0.16);
+  blotches(ctx, size, random, 11, 'rgba(138,135,126,0.065)', 0.2);
+  speckle(ctx, size, random, size * 52, ['#404346', '#55595b', '#686b6c', '#3c4043', '#57564e'], 1.25);
+  ctx.strokeStyle = 'rgba(30,32,34,0.17)';
   ctx.lineWidth = Math.max(1, size / 512);
   for (let i = 0; i < 3; i++) {
     let x = random() * size;
