@@ -87,7 +87,7 @@ async function desktop(browser) {
   const toJ = (v) => Math.hypot(v.moto.x - J.x, v.moto.z - J.z);
   // Moderate speed (~15–20 km/h), as a rider would approach a corner; headless runs at ~2 FPS.
   let gas = false;
-  for (const end = Date.now() + 60000; Date.now() < end;) {
+  for (const end = Date.now() + 120000; Date.now() < end;) {
     s = await snap();
     if (toJ(s) < 9) break;
     const want = s.moto.speed < (gas ? 5 : 3.5);

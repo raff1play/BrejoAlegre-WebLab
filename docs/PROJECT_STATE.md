@@ -462,3 +462,26 @@ Números atuais do mapa: 46 quadras, 695 lotes, 681 casas estimadas, 48 endereç
 - Street Lab [43553500987](https://github.com/raff1play/BrejoAlegre-WebLab/actions/runs/43553500987): **Success** (1 min 38 s), confirmado pela página pública do GitHub Actions.
 - Preview: https://raff1play.github.io/BrejoAlegre-WebLab/street-preview/ . Raiz preservada no commit fixo CORE-015.1 `d6eabc4909551001c3203aa4314d8c1c852ac304`; branches `main`/`preview` não alteradas, nenhum merge.
 - A consulta direta ao Pages e à API do GitHub devolveu HTTP 403 no ambiente de execução; a publicação foi confirmada pelo workflow, não por carregamento pós-deploy do site público. Testes visuais e funcionais foram executados localmente no código candidato.
+
+## GFX-001 — Remaster visual e cidade viva (15/11/2026, branch `feat/gfx-001-visual-lab`)
+
+**Situação:** laboratório visual a partir de `eb8d5c9` (CORE-015.2). `preview`, `main` e `feat/core-015-2-urban-roads-preview` **não foram tocadas**; nada publicado; nenhum merge. Malha OSM, física, jornada e custódia dos volumes preservadas.
+
+| Etapa | O que entrou | Evidência |
+|---|---|---|
+| A — base visual | Céu corrigido (saía branco: textura somada ao emissivo), luz, névoa azulada, morros visíveis, relevo por normal map no perfil alto, eixo amarelo, muros em tons pastel | `docs/evidence/gfx-001/comparacao/*rua*` |
+| B — estabelecimentos | Oito fachadas próprias, item típico na calçada (sólido), interiores por categoria, ilha de gôndolas; galpão com placas, arco de leitura, gaiolas por região, luminárias, docas numeradas | `…/comparacao/*loja*`, `*galpao*` |
+| C — moto e personagens | Luz de freio viva, farol à noite, carga visível no baú; mistura de poses, pose de entregar, alturas variadas; funcionário contorna o balcão | `…/comparacao/*moto*`, `*noite*` |
+| D — inteligência | Temperamento do motorista, redução antes das curvas, pedais progressivos, cautela ao lado do jogador, recuperação de engarrafamento; pedestres desviam, seguem e viram gradualmente | `tests/traffic.test.ts`, `tests/pedestrians.test.ts` |
+| E — integração | Capturas antes/depois, métricas, roteiro de navegador | `docs/evidence/gfx-001/` |
+
+**Testes:** 104 unitários (base: 101), `typecheck`, `validate:repo`, `build:staging`; roteiro de navegador **84/84** (`docs/evidence/gfx-001/e2e/e2e-gfx-001.log`).
+
+**Cena medida (headless, não é FPS de aparelho):** no perfil celular, triângulos +3 a +6 %, draw calls +2 a +6 %, memória JS 150 → 159 MB; no perfil alto, memória 169 → 202 MB (normal maps). Tabela em `docs/evidence/gfx-001/comparacao/metricas.md`.
+
+**Não feito / limitações:**
+- FPS, temperatura e toque no Galaxy S24: **não medidos**.
+- Sem assets externos novos e sem materiais PBR: tudo continua procedural com `StandardMaterial` (relevo e reflexo pintado). Modelos de moto e personagens ganharam luzes, carga e animação, não uma remodelagem completa.
+- Árvores e vegetação não foram refeitas.
+- Não existe sistema de pagamentos nesta base; nada foi criado nem alterado nesse sentido.
+- Draw calls do perfil alto continuam altos (≈ 2400–2900 por quadro com o passe de sombra); não foi otimizado.

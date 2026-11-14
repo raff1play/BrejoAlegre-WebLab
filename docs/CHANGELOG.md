@@ -148,3 +148,11 @@ Próximas mudanças devem registrar PR/SHA e resultados verificáveis.
 - Removida face indevida do barrado que atravessava a entrada das lojas; acabamentos e encontros de muros contidos nos limites disponíveis.
 - Jardineira identificada e alinhada à fachada/colisor; quaternion herdado não bloqueia mais a rotação das instâncias GLB.
 - Evidências reais antes/depois em `docs/evidence/street-fixes/`; somente branch experimental, sem integração à CORE-015.1.
+
+## GFX-001 — Remaster visual e cidade viva (15/11/2026, branch `feat/gfx-001-visual-lab`)
+
+- A: céu, luz, névoa, morros, relevo, marcação viária amarela, paleta dos muros.
+- B: fachadas e interiores das oito lojas; sinalização e triagem do galpão.
+- C: luzes da moto, carga no baú, mistura de poses, rota dos funcionários.
+- D: comportamento de veículos e pedestres.
+- E: capturas antes/depois e métricas (`scripts/gfx/`, `docs/evidence/gfx-001/`).

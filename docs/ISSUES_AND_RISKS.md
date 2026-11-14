@@ -127,3 +127,13 @@ Não marcar bloqueio como corrigido sem evidência de execução, timestamp e, q
 | C151-04 | Baixa | ABERTO | Clientes NPC atravessam expositores (andam em linha reta, sem colisão). |
 | C151-05 | Baixa | ABERTO | Câmera fora da loja enquanto a porta de enrolar sobe; sem teste automático de cintilação de superfícies. |
 | C151-06 | Baixa | ABERTO | Volumes não aparecem dentro do baú aberto (só a tampa abre); a saca nas mãos é um volume único estilizado. |
+
+## GFX-001
+
+| ID | Prioridade | Status | Ação / decisão |
+|---|---|---|---|
+| GFX-01 | Alta | **NÃO MEDIDO** | FPS/termal no Galaxy S24. A cena do perfil celular cresceu ~3–6 % em triângulos e draw calls. |
+| GFX-02 | Média | ABERTO | Perfil alto com ≈ 2400–2900 draw calls por quadro (já era assim na base): candidatos a fusão por material e a tirar sombras de objetos pequenos. |
+| GFX-03 | Média | AVALIAÇÃO HUMANA | Aprovação estética frente às imagens de referência (que são arte promocional, não capturas). |
+| GFX-04 | Baixa | ABERTO | Moto e personagens não foram remodelados; árvores não foram refeitas; sem PBR. |
+| GFX-05 | Baixa | ABERTO | Roteiro de navegador depende de tempo real em ~2 FPS de software; o limite de um passo foi ampliado de 60 s para 120 s. |

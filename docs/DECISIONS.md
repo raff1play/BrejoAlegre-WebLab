@@ -140,3 +140,11 @@
 - **Rota do minimapa:** pelo grafo real de ruas, respeitando mão única; abaixo de 60 m mostra só a distância em linha reta.
 - **Dirigibilidade:** a curva do analógico aprovada antes (25 % → 45 %) foi mantida. Mudou só o batente do esterço com a velocidade (`steerSpeedRef`) e as rampas de acelerador/freio; são constantes em `MOTO`, reversíveis.
 - **Galpão:** o lote desliza na testada até ficar livre de qualquer via; ficou na mesma estrada.
+
+## GFX-001 (15/11/2026)
+
+- Branch isolada `feat/gfx-001-visual-lab` a partir de `eb8d5c9`; não incorporada à CORE-015.1 nem à CORE-015.2.
+- **Sem assets externos e sem PBR:** o ganho veio de corrigir o céu, da luz e de geometria procedural; normal maps são gerados da própria textura pintada e só existem no perfil alto. Substituir por modelos CC0 fica como proposta.
+- Planta única continua valendo: fachada/ilha/item de calçada novos entram em `storePlan()` e as gaiolas em `depotLayout()`; nada sólido é desenhado fora dos colisores.
+- Animações e NPCs de galpão são apenas visuais; nenhum estado de volume é alterado por elas.
+- IA dos NPCs por grafos, máquinas de estado e regras locais; nenhum modelo de linguagem ou API externa.
