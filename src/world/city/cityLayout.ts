@@ -1,3 +1,4 @@
+import { depotFixtures } from './depotPlan.ts';
 import { makePoly, type Box2D, type Poly2D } from '../../core/collision.ts';
 import type { Box3D } from '../../core/math.ts';
 import { HOUSE_DEPTH, HOUSE_STYLES, ROAD_HALF, SIDEWALK, frameCorners, framePoint, houseSpan, yawOf, type TreeSpec } from '../layout.ts';
@@ -160,11 +161,12 @@ export function cityCameraObstacles(): Box3D[] {
     out.push(obox(s.frame, yaw, 0, s.width, 1.5, s.depth, s.height - 0.45, s.height + 0.6));
   }
   for (const w of GEO_WALLS) out.push(obox(w.frame, yawOf(w.frame), 0, w.length, 0, 0.22, 0, 2.4));
-  // Depot shed: walls 9.6 m, roof slab (the yard stays open).
+  for (const fixture of depotFixtures()) out.push(toBox((()=>{ const p = [[fixture.minX,fixture.minZ],[fixture.maxX,fixture.minZ],[fixture.maxX,fixture.maxZ],[fixture.minX,fixture.maxZ]].map(([x,z])=>{const q=depotWorld(x!,z!);return [q.x,q.z] as const});return makePoly(p) })(), fixture.height + .15));
+  // Depot pitched roof: clear of the player camera at floor level.
   const shed = DEPOT.building;
   const o = depotWorld(139.8, -92.2);
   const yaw = depotYaw(Math.PI);
-  out.push(obox({ ox: o.x, oz: o.z }, yaw, 139.8 - shed.maxX, 139.8 - shed.minX, -92.2 - shed.maxZ, -92.2 - shed.minZ, DEPOT.height - 0.6, DEPOT.height + 0.6));
+  out.push(obox({ ox: o.x, oz: o.z }, yaw, 139.8 - shed.maxX, 139.8 - shed.minX, -92.2 - shed.maxZ, -92.2 - shed.minZ, DEPOT.height, DEPOT.height + 1.5));
   void framePoint; void nodeById; void SIDEWALK;
   return out;
 }
