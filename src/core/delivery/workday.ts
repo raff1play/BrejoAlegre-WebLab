@@ -303,7 +303,19 @@ export class Workday {
         return hands?{title:'Depositar os volumes no recebimento',detail:`${hands} nas mãos • ${trunk} no baú • várias viagens se necessário`,target:depot('Descarga / recebimento'),waitUntil:null}
         :{title:'Estacionar na zona de descarga',detail:`${trunk} no baú • pare, desça e retire até ${HANDS_MAX} volumes por viagem`,target:{kind:'galpao',id:'descarga',...DEPOT_SPOTS.parking,label:'Vagas de descarga'},waitUntil:null};
       }
-      case 'CONFERENCIA': return { title: 'Conferência no recebimento', detail: `${this.parcels.filter(p=>p.place==='recebimento'||p.place==='conferencia').length} volume(s) no recebimento/conferência`, target: depot('Recebimento'), waitUntil: null };
+      case 'CONFERENCIA': {
+        const checked = this.parcels.filter(p => ['RECEBIDO_BASE', 'TRIADO', 'NA_SACA', 'EM_ROTA', 'ENTREGUE'].includes(p.state)).length;
+        const inbound = this.parcels.filter(p => p.place === 'caminhao').length;
+        const atDesk = this.parcels.filter(p => p.place === 'recebimento' || p.place === 'conferencia').length;
+        const waiting = hour < ROUTINE.sortFrom;
+        const inboundStatus = inbound ? ` · ${inbound} volume(s) do caminhão ${hour < 13 ? 'previstos às 13h' : 'em descarga'}` : '';
+        return {
+          title: waiting ? 'Conferência na base · triagem às 14h' : 'Finalizando a conferência',
+          detail: `${checked}/${this.parcels.length} conferidos · ${atDesk} na bancada${inboundStatus}${waiting ? ' · aguarde ou acelere até 14h' : ' · equipe processando os volumes'}`,
+          target: depot('Recebimento'),
+          waitUntil: waiting ? ROUTINE.sortFrom : null,
+        };
+      }
       case 'TRIAGEM': {
         const waiting = hour < ROUTINE.sortFrom;
         return { title: waiting ? 'Aguardar a triagem (14h)' : 'Triagem em andamento', detail: `${this.count('TRIADO') + this.count('NA_SACA')}/${this.parcels.length} volumes triados`, target: { kind: 'galpao', id: 'galpao', ...DEPOT_SPOTS.dispatch, label: 'Expedição' }, waitUntil: waiting ? ROUTINE.sortFrom : null };
