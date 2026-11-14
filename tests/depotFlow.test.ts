@@ -1,5 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import { Workday, DEPOT_SPOTS, type DepotVisit } from '../src/core/delivery/workday.ts';
+import { REAL_SECONDS_PER_VIRTUAL_HOUR } from '../src/core/city/clock.ts';
 import { depotWorld,depotYaw } from '../src/world/city/cityPlan.ts';
 import { PLACE_MOVES,PARCEL_FLOW } from '../src/core/delivery/parcels.ts';
 import {depotFree} from '../src/world/city/depotPlan.ts';
@@ -34,7 +35,7 @@ test('ART002D full ID custody, partial unloading, time jumps, truck, regional ca
  let h=18;
  const seen=new Set<string>();let previous=new Map<string,{x:number;y:number;z:number}>();
  for(let i=0;i<16000&&!day.canTakeSack(h);i++){
-  h+=.05/240;day.update(h,.05);
+  h+=.05/REAL_SECONDS_PER_VIRTUAL_HOUR;day.update(h,.05);
   for(const p of day.parcels){seen.add(p.place);if(p.position){const prev=previous.get(p.id);if(prev&&p.place==='transferencia')assert.ok(Math.hypot(p.position.x-prev.x,p.position.z-prev.z)<1.1,'continuous carried position');previous.set(p.id,{...p.position});}}
   if(i%100===0)assertConserved(day,ids);
  }
