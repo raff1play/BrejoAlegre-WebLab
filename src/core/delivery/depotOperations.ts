@@ -26,7 +26,7 @@ export class DepotOperations {
   const origin=p.position??{x:128,y:.6,z:-119.8};
   w.parcel=p.id;w.task={id:p.id,kind,stage:'approach',route:depotPath(w,at),timer:0,origin:{...origin},destination,to,expected:p.place,state:p.state};
  }
- private assign(w:DepotWorker,parcels:readonly Parcel[],hour:number):void {
+ private assign(w:DepotWorker,parcels:readonly Parcel[]):void {
   const claimed=new Set(this.workers.filter(w=>w.task).map(w=>w.parcel));
   const pick=(f:(p:Parcel)=>boolean)=>parcels.find(p=>!claimed.has(p.id)&&f(p));
   const cage=(p:Parcel)=>REGIONAL_CAGES[p.region==='Centro'?0:1]!;
@@ -34,8 +34,8 @@ export class DepotOperations {
   switch(w.role){
    case 'descarregador-1':p=this.truckAvailable?pick(p=>p.place==='caminhao'):undefined;if(p)this.plan(w,p,'truck',{x:128,z:-119.4},receivingStand,depotReceivingPosition(this.handoffIndex++));break;
    case 'conferente':p=pick(p=>p.place==='recebimento'&&p.state==='EM_TRANSPORTE');if(p)this.plan(w,p,'check',receivingStand,receivingStand,p.position!);break;
-   case 'descarregador-2':if(hour<14||parcels.some(p=>p.place==='triagem'&&p.state==='RECEBIDO_BASE'))break;p=pick(p=>p.place==='conferencia'&&p.state==='RECEBIDO_BASE');if(p)this.plan(w,p,'feed',receivingStand,feedStand,{x:105.7,y:.93,z:-129.6});break;
-   case 'separador-1':if(hour<14||parcels.some(p=>p.place==='triagem'&&p.state==='TRIADO'))break;p=pick(p=>p.place==='triagem'&&p.state==='RECEBIDO_BASE');if(p)this.plan(w,p,'belt',{x:110,z:-128.35},{x:110,z:-128.35},{x:116.3,y:.93,z:-129.6});break;
+   case 'descarregador-2':if(parcels.some(p=>p.place==='triagem'&&p.state==='RECEBIDO_BASE'))break;p=pick(p=>p.place==='conferencia'&&p.state==='RECEBIDO_BASE');if(p)this.plan(w,p,'feed',receivingStand,feedStand,{x:105.7,y:.93,z:-129.6});break;
+   case 'separador-1':if(parcels.some(p=>p.place==='triagem'&&p.state==='TRIADO'))break;p=pick(p=>p.place==='triagem'&&p.state==='RECEBIDO_BASE');if(p)this.plan(w,p,'belt',{x:110,z:-128.35},{x:110,z:-128.35},{x:116.3,y:.93,z:-129.6});break;
    case 'separador-2':p=pick(p=>p.place==='triagem'&&p.state==='TRIADO');if(p){const c=cage(p);this.plan(w,p,'region',outStand,{x:(c.minX+c.maxX)/2,z:-134.65},{x:c.minX+.35+(parcels.indexOf(p)%4)*.55,y:.25+Math.floor(parcels.indexOf(p)/4)*.3,z:-136.2});}break;
    case 'expedidor':p=pick(p=>p.place==='gaiola'&&p.state==='TRIADO');if(p){const c=cage(p);const n=parcels.indexOf(p);this.plan(w,p,'dispatch',{x:(c.minX+c.maxX)/2,z:-134.65},dispatchStand,{x:103.3+(n%3)*.55,y:.46+Math.floor(n/3)*.32,z:-119.8});}break;
   }
@@ -50,7 +50,7 @@ export class DepotOperations {
   if(!(seconds>0)||hour>=21)return;
   const dt=Math.min(seconds,.4);
   for(const w of this.workers){
-   w.activity='idle';if(!w.task)this.assign(w,parcels,hour);
+   w.activity='idle';if(!w.task)this.assign(w,parcels);
    const t=w.task;if(!t)continue;const p=parcels.find(p=>p.id===t.id);
    if(!p||p.place!==t.expected||p.state!==t.state){this.errors.push(`${t.id}: tarefa invalidada ${t.kind}`);w.task=null;w.parcel=null;continue;}
    switch(t.stage){
