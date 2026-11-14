@@ -51,3 +51,12 @@
 - Criar a rota de homologacao `/depot-preview/` sem substituir CORE-015.1 na raiz, CORE-015.2 `/street-preview/`, GFX-001 `/gfx-preview/` ou ART-001 `/art-preview/`. Todos os cinco builds fazem parte do mesmo artefato de Pages.
 - Nenhum merge para `main`/`preview`, nenhuma alteracao da branch da ART-002, nenhum lancamento estavel.
 - Considerar o deploy concluido somente depois de `deploy-street-preview` obter `success`. Teste fisico no Android permanece pendente.
+
+## 14/11/2026 — Correção do piso da ART-002 — homologacao
+
+- Pedido explicito do usuario: verificar a correção da sobreposição entre grama, asfalto e concreto no pátio da base e republicar a prévia.
+- Branch de desenvolvimento `feat/art-001-primeira-loja-moto`; commit corrigido fixado `731fbccbb29f2e05a5be5a7936c4312bc6c3beb8` (CI [43646227728](https://github.com/raff1play/BrejoAlegre-WebLab/actions/runs/43646227728) sucesso, 113/113 testes).
+- Auditoria da correção: `docs/evidence/floor-fix/README.md`; remoção geométrica da grama sob o galpão, pisos principais com partição sem sobreposição e pintura com tratamento de profundidade. Desktop e móvel emulado testados, Android físico ainda não testado.
+- Atualiza somente o checkout fixado da ART-002 em `/depot-preview/`, preservando a raiz e `/street-preview/`, `/gfx-preview/`, `/art-preview/`.
+- Sem merge para `main`/`preview`; não modifica o código da ART-002 nem publica versão estável.
+- Publicação confirmada apenas se o job do GitHub Pages concluir com sucesso.
