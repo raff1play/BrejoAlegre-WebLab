@@ -41,7 +41,24 @@
 
 **Evidência da base existente:** `src/main.ts` em `preview` utiliza `localStorage` principalmente para manter `CALENDAR_STORAGE_KEY`; ainda não há uma persistência de quatro carreiras nem snapshot integral de entregas. Criar checkpoint não é apenas adicionar um botão “Salvar”.
 
-**PRÓXIMAS DECISÕES ABERTAS:** (a) o que abrange “personalização básica” e como fica o gênero/aparência; (b) como a escolha inicial entre moto e carro quitados aparecerá e ficará jogável; (c) em que momento se pode alternar o perfil ativo; (d) retomar a jornada pelo último checkpoint de forma segura após fechar o navegador. Não pressupor escolhas ou iniciar implementação antes do alinhamento.
+**CONFIRMADO — Questionário 2 (4/4 respostas do usuário, 15/11/2026):**
+5. **Personalização:** quatro personagens prontos, com **opções predefinidas de aparência masculina/feminina e equipamentos**. Não autoriza editor corporal/facial completo nem determina nomes, cores ou catálogo de equipamentos.
+6. **Veículo inicial:** **uma moto antiga ou um carro popular antigo**, escolhido individualmente **por carreira**; ambos próprios e quitados conforme decisão anterior. **Ambos devem ser realmente jogáveis antes de aceitar B1-01**. Não basta exibir uma miniatura do carro no menu.
+7. **Troca de carreira:** **somente depois de finalizar o expediente**. Não foi escolhido ainda o tratamento de abandono/encerramento antecipado de jornada travada, nem o efeito de fechar o navegador.
+8. **Recuperação:** retomar a carreira **no último ponto seguro**, preservando **entregas concluídas e inventário**. A posição exata do ponto seguro, os gatilhos do checkpoint e como tratar o relógio/NPCs continuam por definir.
+
+**Análise técnica fundamentada no código atual (`preview` em 15/11/2026):**
+- `src/main.ts` instancia uma `Motorcycle` como veículo controlado; `src/features/city/vehicleModels.ts` contém modelo de carro de **trânsito NPC**, não uma classe de carro jogável. A decisão 6 exige mecânica nova de carro (controles, colisão, entrar/sair, câmera, estacionamento, interação básica de carga) e testes próprios. O detalhamento visual/físico avançado de carga continua no B1-05, mas não pode ser usado para disfarçar que o carro ainda não é dirigível.
+- O salvamento da linha atual guarda principalmente o índice do calendário em `localStorage`; saves independentes + checkpoints consistentes precisam de estados de jornada, moto/carro, pacotes/custódia e proteção contra duplicação de pagamento.
+- Proibir troca de carreira durante o expediente requer decidir o que fazer após travamento real, fechamento do navegador ou desejo de encerrar cedo; não flexibilizar unilateralmente a decisão 7.
+
+**DECISÕES ESSENCIAIS AINDA ABERTAS (próxima rodada, não aprovadas):**
+- Regra para **encerrar antecipadamente ou cancelar jornada impossível** e quando isso desbloqueia a escolha de outra carreira.
+- Escopo mínimo do **carro dirigível dentro do B1-01**: apenas rodar/estacionar versus participar do ciclo logístico básico, sem antecipar recursos do B1-05.
+- Se a escolha de moto/carro fica fixa ao iniciar uma carreira ou se é possível mudar gratuitamente antes da garagem/progressão.
+- Critérios do **último ponto seguro e backup** (inclusive restauração de falha/corrupção e efeito sobre pacotes e dinheiro).
+
+**Não decididos:** nome/visual definitivo dos quatro personagens, lista de equipamentos, modelo exato da moto/carro, economia detalhada, migração de saves antigos e implementação técnica do banco local. Não assumir aprovação implícita. **Não iniciar implementação ainda.**
 
 ### B1-02 — Casas e começo do dia
 **Fazer:** quatro casas pequenas com quarto/cabide/garagem/portão; equipamento, moto e início 11h30.
