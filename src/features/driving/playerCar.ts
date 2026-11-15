@@ -12,6 +12,7 @@ import type { Scene } from '@babylonjs/core/scene';
 import type { MotionGuard } from '../../core/collision';
 import { approach, clamp } from '../../core/math';
 import { CAR, createCarState, stepCar, type CarControls, type CarState, type DoorSide } from '../../core/carPhysics';
+import { CAR_TRUNK } from '../../core/delivery/carTrunk';
 import { BatchSet } from '../../world/geometry';
 import type { LabMaterial, Materials } from '../../world/materials';
 import { boxPart, rodPart } from '../../world/modelParts';
@@ -35,6 +36,18 @@ const DOOR_HINGE_Z = 0.66;
 const DOOR_LEN = 1.12;
 const DOOR_OPEN = 1.05;
 const DOOR_TIME = 0.9;
+/**
+ * B1-01 F3: the boot. Its usable volume is exactly `CAR_TRUNK` (core/delivery/carTrunk): floor at
+ * TRUNK_FLOOR_Y, between the walls at ±TRUNK_HALF_W, from the rear-seat back (SEAT_BACK_Z) to the
+ * inside of the tailgate. The tailgate is hinged at the rear edge of the roof and swings up.
+ */
+export const TRUNK_FLOOR_Y = 0.42;
+export const TRUNK_HALF_W = CAR_TRUNK.width / 2;
+const TAILGATE_INNER_Z = -HL + 0.05;
+export const SEAT_BACK_Z = TAILGATE_INNER_Z + CAR_TRUNK.depth;
+const HINGE_Y = 1.36;
+const HINGE_Z = -1.58;
+const TAILGATE_OPEN = 1.25;
 
 type ZY = readonly [number, number];
 function prism(scene: Scene, set: BatchSet, mat: LabMaterial, profile: readonly ZY[], x0: number, x1: number): void {
@@ -54,6 +67,9 @@ export class PlayerCar {
   private readonly wheels: TransformNode[] = [];
   private readonly doors: Record<'motorista' | 'passageiro', TransformNode>;
   private readonly doorOpen = { motorista: 0, passageiro: 0 };
+  private readonly tailgate: TransformNode;
+  private tailgateOpen = 0;
+  private tailgateWanted = false;
   private doorTimer = 0;
   private doorSide: 'motorista' | 'passageiro' = 'motorista';
   private readonly driver: Character;
@@ -82,8 +98,20 @@ export class PlayerCar {
 
     const shell = new BatchSet();
     // Boxy hatch: short bonnet, upright glasshouse, near-vertical tailgate.
-    prism(scene, shell, lacquer, [[HL, 0.32], [HL + 0.02, 0.66], [HL - 0.1, 0.75], [0.66, 0.86], [-HL + 0.1, 0.9], [-HL, 0.84], [-HL - 0.01, 0.36], [-HL + 0.12, 0.3]], -HW, HW);
-    prism(scene, shell, glass, [[0.66, 0.86], [0.04, 1.33], [-1.56, 1.36], [-HL + 0.07, 0.92]], -HW + 0.07, HW - 0.07);
+    prism(scene, shell, lacquer, [[HL, 0.32], [HL + 0.02, 0.66], [HL - 0.1, 0.75], [0.66, 0.86], [SEAT_BACK_Z, 0.885], [SEAT_BACK_Z, 0.3]], -HW, HW);
+    prism(scene, shell, glass, [[0.66, 0.86], [0.04, 1.33], [-1.56, 1.36], [-1.56, 0.925], [SEAT_BACK_Z, 0.925]], -HW + 0.07, HW - 0.07);
+    // B1-01 F3 boot (open compartment, closed by the tailgate): floor, rear sill, quarter panels,
+    // rear-seat back, quarter windows. Its inside is exactly CAR_TRUNK.
+    shell.box(trim, -HW, HW, 0.3, TRUNK_FLOOR_Y, -HL, SEAT_BACK_Z);
+    shell.box(lacquer, -HW, HW, 0.3, 0.47, -HL - 0.01, TAILGATE_INNER_Z);
+    shell.box(interior, -TRUNK_HALF_W, TRUNK_HALF_W, TRUNK_FLOOR_Y, TRUNK_FLOOR_Y + 0.01, TAILGATE_INNER_Z, SEAT_BACK_Z);
+    shell.box(interior, -TRUNK_HALF_W, TRUNK_HALF_W, TRUNK_FLOOR_Y, 0.9, SEAT_BACK_Z, SEAT_BACK_Z + 0.08);
+    for (const sx of [-1, 1]) {
+      shell.box(lacquer, sx > 0 ? TRUNK_HALF_W : -HW, sx > 0 ? HW : -TRUNK_HALF_W, TRUNK_FLOOR_Y, 0.9, -HL, SEAT_BACK_Z);
+      prism(scene, shell, glass, [[-1.56, 1.36], [-1.56, 0.9], [-HL + 0.07, 0.9]], sx * (HW - 0.09), sx * (HW - 0.07));
+      // D pillar beside the tailgate opening.
+      prism(scene, shell, lacquer, [[-1.56, 1.38], [-HL + 0.05, 0.9], [-HL - 0.005, 0.9], [-1.6, 1.4]], sx > 0 ? TRUNK_HALF_W : -(HW - 0.07), sx > 0 ? HW - 0.07 : -TRUNK_HALF_W);
+    }
     prism(scene, shell, lacquer, [[0.08, 1.31], [0.03, 1.38], [-1.56, 1.4], [-1.62, 1.33]], -HW + 0.09, HW - 0.09);
     for (const sx of [-1, 1]) {
       const px = sx * (HW - 0.09);
@@ -101,12 +129,10 @@ export class PlayerCar {
     shell.box(trim, -HW + 0.02, HW - 0.02, 0.26, 0.42, HL - 0.05, HL + 0.09); // bumpers
     shell.box(trim, -HW + 0.02, HW - 0.02, 0.26, 0.44, -HL - 0.09, -HL + 0.05);
     shell.box(plate, -0.25, 0.25, 0.44, 0.55, HL + 0.09, HL + 0.1);
-    shell.box(plate, -0.25, 0.25, 0.5, 0.61, -HL - 0.1, -HL - 0.09);
-    shell.box(chrome, -0.04, 0.04, 0.64, 0.7, -HL - 0.03, -HL - 0.01);       // tailgate latch
     // Cabin: seats, dashboard, steering wheel (seen through the glass).
-    shell.box(interior, -HW + 0.12, HW - 0.12, 0.3, 0.52, -1.5, 0.6);
+    shell.box(interior, -HW + 0.12, HW - 0.12, 0.3, 0.52, SEAT_BACK_Z + 0.08, 0.6);
     for (const sx of [-1, 1]) shell.box(interior, sx * 0.36 - 0.24, sx * 0.36 + 0.24, 0.52, 1.08, -0.42, -0.3);
-    shell.box(interior, -0.4, 0.4, 0.52, 0.92, -1.45, -1.0);
+    shell.box(interior, -0.4, 0.4, 0.52, 0.92, SEAT_BACK_Z + 0.08, SEAT_BACK_Z + 0.22);
     shell.box(trim, -HW + 0.1, HW - 0.1, 0.78, 0.9, 0.45, 0.66);
     shell.absorb(trim, rodPart(scene, [-0.36, 0.88, 0.42], [-0.36, 0.79, 0.52], 0.05, 0.05, 6));
     const wheelRing = CreateCylinder('carro-volante', { diameter: 0.38, height: 0.035, tessellation: 14 }, scene);
@@ -129,6 +155,20 @@ export class PlayerCar {
       return node;
     };
     this.doors = { motorista: door(-1, 'carro-porta-motorista'), passageiro: door(1, 'carro-porta-passageiro') };
+
+    // B1-01 F3: tailgate (rear window + lower panel + plate + latch), hinged at the roof's rear edge.
+    this.tailgate = this.child(scene, 'carro-tampa-traseira', this.body);
+    this.tailgate.position.set(0, HINGE_Y, HINGE_Z);
+    const gate = new BatchSet();
+    const rel = (pts: readonly ZY[]): ZY[] => pts.map(([z, y]) => [z - HINGE_Z, y - HINGE_Y] as const);
+    prism(scene, gate, glass, rel([[-1.575, 1.365], [-HL + 0.03, 0.93], [-HL - 0.005, 0.93], [-1.605, 1.38]]), -TRUNK_HALF_W + 0.04, TRUNK_HALF_W - 0.04);
+    prism(scene, gate, lacquer, rel([[-1.56, 1.4], [-1.575, 1.365], [-1.605, 1.38], [-1.6, 1.41]]), -TRUNK_HALF_W, TRUNK_HALF_W);
+    for (const sx of [-1, 1]) prism(scene, gate, lacquer, rel([[-1.575, 1.365], [-HL + 0.03, 0.93], [-HL - 0.005, 0.93], [-1.605, 1.38]]), sx > 0 ? TRUNK_HALF_W - 0.04 : -TRUNK_HALF_W, sx > 0 ? TRUNK_HALF_W : -TRUNK_HALF_W + 0.04);
+    const gz = (z: number) => z - HINGE_Z; const gy = (y: number) => y - HINGE_Y;
+    gate.box(lacquer, -TRUNK_HALF_W, TRUNK_HALF_W, gy(0.47), gy(0.935), gz(-HL - 0.01), gz(-HL + 0.03));
+    gate.box(plate, -0.25, 0.25, gy(0.52), gy(0.63), gz(-HL - 0.025), gz(-HL - 0.01));
+    gate.box(chrome, -0.05, 0.05, gy(0.68), gy(0.73), gz(-HL - 0.03), gz(-HL - 0.01));
+    skin.add(this.tailgate, gate);
 
     for (const [i, [z, sx]] of ([[AXLE_F, -1], [AXLE_F, 1], [AXLE_R, -1], [AXLE_R, 1]] as const).entries()) {
       const front = i < 2;
@@ -153,7 +193,7 @@ export class PlayerCar {
     this.brakeMat = new StandardMaterial('carro-luz-freio', scene);
     this.brakeMat.disableLighting = true; this.brakeMat.emissiveColor = new Color3(0.45, 0.04, 0.03);
     const tail = new BatchSet();
-    for (const sx of [-1, 1]) tail.box(mats.paint('#ffffff'), sx * (HW - 0.3) - 0.2, sx * (HW - 0.3) + 0.2, 0.66, 0.8, -HL - 0.035, -HL + 0.005);
+    for (const sx of [-1, 1]) tail.box(mats.paint('#ffffff'), sx * (HW - 0.14) - 0.12, sx * (HW - 0.14) + 0.12, 0.6, 0.86, -HL - 0.035, -HL + 0.005);
     for (const m of tail.build('carro-lanternas', scene, this.body)) { m.material = this.brakeMat; this.meshes.push(m); }
     // Headlights: additive pool of light on the road ahead, from dusk, only with a driver.
     this.beamMat = new StandardMaterial('carro-farol-feixe', scene);
@@ -182,6 +222,12 @@ export class PlayerCar {
   }
 
   get isDriven(): boolean { return this.driven; }
+  /** How open the tailgate is (0 closed … 1 fully up). */
+  get trunk01(): number { return this.tailgateOpen; }
+  /** Node of the car body that boot contents are parented to (car-local frame). */
+  get cargoParent(): TransformNode { return this.body; }
+  /** B1-01 F3: animate the tailgate towards open/closed (the domain decides whether it may). */
+  setTrunkOpen(open: boolean): void { this.tailgateWanted = open; }
   /** How open each front door is (0 closed … 1 open). */
   get doors01(): { motorista: number; passageiro: number } { return { ...this.doorOpen }; }
 
@@ -244,6 +290,8 @@ export class PlayerCar {
       // Hinge at the front edge: the rear of the door swings outwards.
       this.doors[side].rotation.y = (side === 'motorista' ? 1 : -1) * this.doorOpen[side] * DOOR_OPEN;
     }
+    this.tailgateOpen = dt > 0 ? approach(this.tailgateOpen, this.tailgateWanted ? 1 : 0, 5, dt) : (this.tailgateWanted ? 1 : 0);
+    this.tailgate.rotation.x = this.tailgateOpen * TAILGATE_OPEN;
     if (this.driven) this.driver.apply({ ...SEATED, yaw: s.steer * 0.1, headYaw: s.steer * 0.25, hands: steeringHands(s.steer) });
   }
 }

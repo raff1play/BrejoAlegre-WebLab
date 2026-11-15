@@ -5,6 +5,9 @@ import { browserStorage } from './core/career/careerStore';
 import { CHARACTERS, isVehicleKind, type VehicleKind } from './core/career/careers';
 import { CAR, carFits, carToWorld, isCarStopped } from './core/carPhysics';
 import { PlayerCar } from './features/driving/playerCar';
+import { CarCargoView } from './features/driving/carCargo';
+import { CarTrunk, type Arrangement } from './core/delivery/carTrunk';
+import { canonicalJson, captureParcels, emptyShift, parseSave, sealSave, shiftIdOf, vehicleIdOf } from './core/career/snapshot';
 import { carVehicle, motoVehicle, type PlayerVehicle } from './features/driving/playerVehicle';
 import { askVehicle } from './features/career/vehicleChoice';
 import { DEPOT_SPOTS } from './core/delivery/workday';
@@ -101,6 +104,9 @@ function start(canvas: HTMLCanvasElement, boot: BrowserCareer): void {
   const car = moto ? null : new PlayerCar(scene, world.materials, SPAWN.x, SPAWN.z, SPAWN.yaw, ground(SPAWN.x, SPAWN.z));
   car?.setDriven(true);
   const vehicle: PlayerVehicle = moto ? motoVehicle(moto) : carVehicle(car!);
+  // B1-01 F3: the car's boot works on the shared parcel list; its 3D boxes only mirror that list.
+  const trunk = car ? new CarTrunk(boot.career.session.profile.vehicle?.vehicleId ?? vehicleIdOf(boot.career.session.careerId)) : null;
+  const cargoView = car && trunk ? new CarCargoView(scene, car.cargoParent, trunk.vehicleId) : null;
   // CORE-015: detailed houses are streamed by sector around the player; far lots stay low-poly.
   const houses = new HouseStreamer(scene, world.materials, profile, profile.name === 'desktop' ? environment.shadows : null);
   houses.update(SPAWN.x, SPAWN.z, true);
@@ -205,15 +211,58 @@ function start(canvas: HTMLCanvasElement, boot: BrowserCareer): void {
     return depotCarBay(corners, !isCarStopped(s));
   };
   const canEnter = (): boolean => vehicle.enterSide(walker.state) !== null;
+  /** B1-01 F3: standing right behind the car (within reach of the boot opening). */
+  const atCarRear = (p: { x: number; z: number }): boolean => {
+    if (!car) return false;
+    const s = car.state; const dx = p.x - s.x; const dz = p.z - s.z; const c = Math.cos(s.yaw); const n = Math.sin(s.yaw);
+    const right = dx * c - dz * n; const forward = dx * n + dz * c;
+    return Math.abs(right) < 0.95 && forward < -CAR.length / 2 + 0.05 && forward > -CAR.length / 2 - 1.5;
+  };
+  const trunkParked = (): boolean => !!car && car.state.parked && isCarStopped(car.state);
+  /** Dry run of the automatic arrangement for the parcels in the hands (cached: labels ask every frame). */
+  let planKey = ''; let planCache: Arrangement | null = null;
+  const trunkPlan = (): Arrangement => {
+    const wd = delivery.workday;
+    const key = [...wd.inHands().map((p) => p.id), '|', ...wd.inCarBoot().map((p) => `${p.id}@${p.stowage!.x},${p.stowage!.y},${p.stowage!.z}`)].join(' ');
+    if (key !== planKey || !planCache) { planKey = key; planCache = trunk!.plan(wd.parcels); }
+    return planCache;
+  };
+  const closeTrunk = (): string => { trunk!.setOpen(false); car!.setTrunkOpen(false); return 'Porta-malas fechado'; };
   /**
-   * B1-01 F2: the car's boot and the car's part of the parcel cycle are F3/F4. Until then a car
-   * career never takes parcels into the hands without a place to put them: cargo interactions
-   * stay visible but unavailable, with an explicit reason (the depot gate control still works).
+   * B1-01 F3: the boot of the parked car. Open/close, and put what is in the hands inside with the
+   * automatic arrangement; a volume with no room is refused and stays in the hands.
+   */
+  const trunkJob = (here: { x: number; z: number; riding: boolean }) => {
+    if (!car || !trunk || here.riding || !atCarRear(here)) return null;
+    if (!trunkParked()) return { label: 'Estacione o carro para abrir o porta-malas', available: false, run: null };
+    const hands = delivery.workday.inHands().length;
+    if (!trunk.open) return { label: 'Abrir porta-malas', available: true, run: () => { trunk.setOpen(true); car.setTrunkOpen(true); return null; } };
+    if (!hands) return { label: 'Fechar porta-malas', available: true, run: closeTrunk };
+    const fit = trunkPlan().accepted.length;
+    if (!fit) return { label: 'Fechar porta-malas (cheio)', available: true, run: () => `${closeTrunk()} · sem espaço: ${hands} ${hands === 1 ? 'volume continua' : 'volumes continuam'} nas mãos` };
+    return {
+      label: `Guardar no porta-malas (${fit})`, available: true, trunk: true,
+      run: () => {
+        const r = trunk.stow(delivery.workday.parcels, clock.hour, { parked: trunkParked() });
+        if (r.refused) return r.refused;
+        // Same as the motorcycle top box: once the hands are empty, no sack is being carried.
+        if (!delivery.workday.inHands().length) delivery.workday.sackInHands = false;
+        const kept = r.rejected.length ? ` · sem espaço: ${r.rejected.length} ${r.rejected.length === 1 ? 'continua' : 'continuam'} nas mãos` : '';
+        return `${r.stowed.length} ${r.stowed.length === 1 ? 'volume guardado' : 'volumes guardados'} no porta-malas${kept}`;
+      },
+    };
+  };
+  /**
+   * B1-01 F2/F3: coleta, base e entrega pelo carro são da F4. Until then a car career never takes
+   * parcels at a store counter or a depot desk: those interactions stay visible but unavailable,
+   * with an explicit reason (the boot and the depot gate control work).
    */
   const jobAt = (here: { x: number; z: number; riding: boolean }) => {
+    const atBoot = trunkJob(here);
+    if (atBoot) return atBoot;
     const job = delivery.action(clock.hour, here, moto ? bikeSpot() : undefined);
     if (moto || !job || /port[ãa]o/i.test(job.label)) return job;
-    return { label: 'Carga pelo carro: porta-malas na próxima etapa (F3/F4)', available: false, run: null };
+    return { label: 'Carga pelo carro: coleta/base/entrega na próxima etapa (F4)', available: false, run: null };
   };
   const toggleMount = (): void => {
     if (mode === 'riding') {
@@ -226,7 +275,9 @@ function start(canvas: HTMLCanvasElement, boot: BrowserCareer): void {
     } else {
       if (!canEnter()) { hud.toast(vehicle.words.tooFar); return; }
       // CORE-015.1: nobody rides with parcels in the hands — they go in the top box first.
-      if (delivery.workday.inHands().length) { hud.toast(moto ? 'Guarde os volumes no baú antes de montar' : 'Volumes nas mãos: o porta-malas do carro chega na etapa F3'); return; }
+      if (delivery.workday.inHands().length) { hud.toast(moto ? 'Guarde os volumes no baú antes de montar' : 'Guarde os volumes no porta-malas antes de entrar'); return; }
+      // B1-01 F3: nobody drives off with the tailgate up; getting in closes it.
+      if (trunk?.open) hud.toast(closeTrunk());
       walker.root.setEnabled(false);
       vehicle.enter(walker.state);
       mode = 'riding';
@@ -269,7 +320,7 @@ function start(canvas: HTMLCanvasElement, boot: BrowserCareer): void {
   const rig = new IsometricCameraRig(scene, canvas, startFocus, narrow ? 15 : 18, cameraObstacles());
   rig.setDriveFraming(vehicle.camera.radius, vehicle.camera.beta);
   rig.resetBehind(SPAWN.yaw, true);
-  if (car) window.setTimeout(() => hud.toast('Carro próprio: dirigir e estacionar ativos; porta-malas e coleta pelo carro na etapa F3/F4'), 1200);
+  if (car) window.setTimeout(() => hud.toast('Carro próprio: dirigir, estacionar e porta-malas ativos; coleta/base/entrega pelo carro na etapa F4'), 1200);
   if (boot.note) window.setTimeout(() => hud.toast(boot.note!), 4200);
   const fader = new OcclusionFader(world.occluders);
   const cameraTarget = new Vector3();
@@ -356,6 +407,7 @@ function start(canvas: HTMLCanvasElement, boot: BrowserCareer): void {
     walker.setLoad(delivery.workday.inHands().length, delivery.workday.sackInHands);
     vehicle.setLights(mode === 'riding' && input.isDown('brake') && m.speed > 0.2, lighting.night, dt);
     moto?.setTrunkCargo(delivery.workday.inTrunk().length);
+    cargoView?.update(delivery.workday.parcels);
     const found = jobAt(here);
     // A blocked job hint never hides "Montar" when the rider can simply get on the bike.
     const enterable = canEnter();
@@ -431,6 +483,26 @@ function start(canvas: HTMLCanvasElement, boot: BrowserCareer): void {
         carBays: () => CAR_PARKING.map((r) => ({ ...depotWorld((r.minX + r.maxX) / 2, (r.minZ + r.maxZ) / 2), yaw: depotYaw(0) })),
         /** B1-01 F2: would the vehicle fit at this pose on the static world? */
         fitsAt: (x: number, z: number, yaw: number) => vehicle.fitsAt(world.guard, x, z, yaw),
+        /**
+         * B1-01 F3 TEST FIXTURE (development only, not a game feature): the player's own store
+         * parcels handed over by the domain's real `collect` (NA_LOJA → COLETADO, loja → mãos, with
+         * history), skipping only the walk to the counter. Store pickup BY CAR is F4 and stays off in play.
+         */
+        fixtureCollect: () => { const w = delivery.workday; const kind = w.assigned.find((k) => w.readyAt(k).length > 0); return kind ? w.collect(kind, clock.hour) : 0; },
+        /** B1-01 F3: a parked car's boot spot (behind the tailgate), in world coordinates. */
+        trunkSpot: () => (car ? carToWorld(car.state, 0, -CAR.length / 2 - 0.55) : null),
+        /**
+         * B1-01 F3 persistence PREPARATION: seals the live parcels (boot slots included) into a v2
+         * career save in memory and parses it back. Nothing is written; in-game checkpoints are F6.
+         */
+        cargoRoundTrip: () => {
+          const id = career.session.careerId; const day = career.session.profile.calendarIndex;
+          const save = sealSave({ careerId: id, checkpointSequence: career.session.save.checkpointSequence + 1, profile: { ...career.session.profile, activeShiftId: shiftIdOf(id, day) }, shift: { ...emptyShift(id, day, career.roster), parcels: captureParcels(delivery.workday.parcels) } });
+          const text = canonicalJson(save);
+          const back = parseSave(JSON.parse(text), id);
+          const inBoot = (list: readonly { id: string; place: string; stowage: unknown }[]) => list.filter((p) => p.place === 'porta-malas').map((p) => ({ id: p.id, stowage: p.stowage }));
+          return { schemaVersion: back.schemaVersion, bytes: text.length, live: inBoot(delivery.workday.parcels), restored: inBoot(back.shift!.parcels) };
+        },
       },
     });
   }
@@ -459,7 +531,9 @@ function start(canvas: HTMLCanvasElement, boot: BrowserCareer): void {
           phase: delivery.workday.phase,
           logistics:{seed:delivery.workday.options.seed??day?.seed??2026,calendar:day?{date:day.date,index:day.index,tier:day.tier,target:day.depotTarget}:null,sortedAt:delivery.workday.allSortedAt,assignments:delivery.workday.assignments,teamReady:delivery.workday.teamReady,released:delivery.workday.released,releaseHour:delivery.workday.releaseHour,van:{state:delivery.workday.van.state,door:delivery.workday.van.door,approach:'assisted-D05'},couriers:delivery.workday.couriers.map(c=>({id:c.id,name:c.name,sector:c.sector,state:c.state,bike:{...c.bike},person:{...c.person},riding:c.riding,error:c.error,stops:[...c.stops],route:c.route.map(p=>({...p})),trunk:c.trunk(delivery.workday).map(p=>p.id),hands:c.hands(delivery.workday).map(p=>p.id)}))},
           objective: delivery.workday.objective(clock.hour, moto?.state),
-          cargo: { visualHands:walker.displayedLoad, hands: delivery.workday.inHands().length, trunk: delivery.workday.inTrunk().length, sack: delivery.workday.sackInHands, label: delivery.workday.cargoLabel(), trunkOpen: moto?.trunkOpen ?? 0, trunkSpot: moto ? trunkSpot(bikeSpot()) : null },
+          cargo: { visualHands:walker.displayedLoad, hands: delivery.workday.inHands().length, trunk: delivery.workday.inTrunk().length, sack: delivery.workday.sackInHands, label: delivery.workday.cargoLabel(), trunkOpen: moto?.trunkOpen ?? 0, trunkSpot: moto ? trunkSpot(bikeSpot()) : null,
+            /** B1-01 F3: the car boot — domain (open flag, parcels with slots) and what is drawn. */
+            carBoot: car && trunk && cargoView ? { open: trunk.open, lid: car.trunk01, vehicleId: trunk.vehicleId, problem: trunk.problem(delivery.workday.parcels), parcels: trunk.contents(delivery.workday.parcels).map((p) => ({ id: p.id, state: p.state, holder: p.holder, stowage: { ...p.stowage! } })), drawn: cargoView.drawn() } : null },
           progress: delivery.workday.progress(),
           assigned: [...delivery.workday.assigned],
           route: [...delivery.workday.route],
