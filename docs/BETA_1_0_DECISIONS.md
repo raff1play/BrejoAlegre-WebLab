@@ -30,8 +30,18 @@
 
 ### B1-01 — Personagens e carreiras
 **Fazer:** menu de quatro perfis, identidade visual, progresso, economia e saves separados.
-**Já confirmado:** quatro carreiras independentes, um personagem ativo; moto ou carro popular antigo quitado como escolha de início.
-**Pendente:** avatar predefinido/customizável, residências e setores fixos/selecionáveis, troca entre perfis durante jornada, efeitos dos NPCs nos outros três saves, checkpoints/backup. **Primeiro questionário:** avatar, região, progresso de perfis inativos, salvamento.
+
+**CONFIRMADO — Questionário 1 (4/4 respostas do usuário, 15/11/2026):**
+1. **Personagens prontos e personalização básica:** quatro personagens predefinidos. O alcance exato da personalização básica (roupa, cabelo, gênero etc.) **não foi decidido**.
+2. **Casa e setor fixos:** um personagem predefinido por setor, com sua casa própria fixa.
+3. **Carreiras inativas sem progressão:** quando um perfil é jogado, os outros três personagens trabalham como NPCs **somente naquela simulação**; não recebem dinheiro nem experiência/progresso nos próprios saves por participarem como NPCs.
+4. **Salvamento automático por checkpoints e opção de backup:** não foi definida ainda a frequência dos checkpoints, o comportamento exato de retomada, nem o formato e local do backup.
+
+**CONFIRMADO anteriormente:** quatro carreiras independentes; um personagem sob controle por vez; começo possível com **moto antiga ou carro popular antigo próprio e quitado** (a escolha e a entrega técnica desse veículo ainda exigem alinhamento).
+
+**Evidência da base existente:** `src/main.ts` em `preview` utiliza `localStorage` principalmente para manter `CALENDAR_STORAGE_KEY`; ainda não há uma persistência de quatro carreiras nem snapshot integral de entregas. Criar checkpoint não é apenas adicionar um botão “Salvar”.
+
+**PRÓXIMAS DECISÕES ABERTAS:** (a) o que abrange “personalização básica” e como fica o gênero/aparência; (b) como a escolha inicial entre moto e carro quitados aparecerá e ficará jogável; (c) em que momento se pode alternar o perfil ativo; (d) retomar a jornada pelo último checkpoint de forma segura após fechar o navegador. Não pressupor escolhas ou iniciar implementação antes do alinhamento.
 
 ### B1-02 — Casas e começo do dia
 **Fazer:** quatro casas pequenas com quarto/cabide/garagem/portão; equipamento, moto e início 11h30.
