@@ -87,23 +87,65 @@ A Beta 1.0 está definida por um **ciclo diário completo, repetível e divertid
 
 ## 2. Módulo B1-01 — Personagens e carreiras
 
-**CONFIRMADO:**
-- Quatro personagens jogáveis, cada um com sua casa, veículo, setor e coletas. A opção já definida para o começo da carreira é ter **moto antiga ou carro popular antigo próprio e quitado**; detalhes da seleção e jogabilidade do carro continuam pendentes.
-- Quatro carreiras individuais, não uma carreira compartilhada.
-- **Questionário B1-01, rodada 1 (15/11/2026):** quatro personagens **prontos** com personalização **básica**; **um personagem por setor e casa fixos**; os outros três trabalham como NPCs **sem gerar dinheiro, experiência ou progresso em seus próprios saves inativos**; salvamento **automático por checkpoints com opção de backup**.
-- **Questionário B1-01, rodada 2 (15/11/2026):** personagens predefinidos com **opções de aparência masculina/feminina e equipamentos**; escolha **por carreira** entre **uma moto antiga e um carro popular antigo**, próprios/quitados, **ambos dirigíveis antes do aceite do B1-01**; **troca de carreira somente após finalizar o expediente**; ao recarregar, **retomar do último ponto seguro com entregas e inventário preservados**.
-- **PENDENTE, sem decisão automática:** o que permite finalizar antecipadamente uma jornada interrompida; escopo mínimo de interação/rota/carga do carro no B1-01; possibilidade de trocar veículo depois da escolha inicial; pontos/gatilhos de checkpoint e política de backup/restauração. Nomes, modelos e aparências específicos não foram escolhidos.
+**Estado: 12 decisões confirmadas; ESCOPO PRELIMINAR CONSOLIDADO, NÃO CONGELADO.** As decisões 9–12 foram respondidas expressamente em 15/11/2026. Os bloqueadores abaixo permanecem abertos; não implementar nem abrir o PR funcional antes da resolução.
 
-**PROPOSTO:**
-- Tela inicial: quatro cartões de personagem mostrando nome, bairro/setor, residência, moto/veículo, dinheiro, reputação, dia da carreira e botão Continuar/Nova carreira.
-- Apenas **um personagem controlado por vez**; os demais trabalham como NPCs no mesmo dia. A estrutura deve permitir futura conversão para jogadores cooperativos.
-- **Não permitir alternar carreira durante expediente em andamento**. Apenas após seu encerramento. O caminho de encerramento antecipado em caso de turno travado ainda requer decisão; jamais transferir pacotes ao trocar perfil.
-- Dados separados por identificador de carreira: personagem, casa, veículo, dia, equipamentos, progresso, dinheiro, reputação, inventário, ocorrências e histórico.
-- Aplicar a decisão confirmada: os três NPCs trabalham no mundo do perfil ativo, **sem alterar dinheiro nem qualquer progresso de seus respectivos perfis de carreira**.
-- Implementar a decisão confirmada de **salvar automaticamente por checkpoints, oferecer backup e retomar no último ponto seguro**, conservando entregas e inventário sem repetir pagamentos. Tecnologia (por exemplo, IndexedDB), frequência, definição dos pontos seguros, retomada de relógio/NPCs, migração e formato do backup ainda estão em aberto; nenhuma integração paga.
-- **Carro jogador é requisito de aprovação, não só visual de tráfego NPC.** A linha publicada usa a classe `Motorcycle` para o jogador; `vehicleModels` desenha carros NPC, sem comprovar carro dirigível. Desenvolver e testar o controle, colisão, câmera e transições básicas do carro antes de declarar o B1-01 aceito. O que é exigido do carro no ciclo logístico mínimo ainda depende de decisão; a organização de cargas de formas e tamanhos diferentes segue no B1-05.
+### Produto confirmado — Questionários 1, 2 e 3
 
-**Critérios de aceite preliminares (a detalhar após últimas decisões):** criar quatro perfis predefinidos vinculados a casas/setores distintos; demonstrar presets masculino/feminino e equipamentos; escolher moto ou carro antigo próprio/quitado por carreira, **com ambos efetivamente dirigíveis**; concluir um expediente em A, alternar para B e retornar a A sem cruzar dinheiro, volumes, casa, calendário ou progresso; bloquear a troca durante expediente; demonstrar que NPCs inativos não alteram seus saves; interromper o jogo, retomar em ponto seguro e restaurar backup sem duplicar inventário, entregas ou pagamentos. Não homologar até definir o encerramento antecipado e o escopo mínimo do carro.
+1. Quatro **personagens prontos** com personalização básica: opções predefinidas de aparência **masculina/feminina** e equipamentos, sem editor facial/corporal completo definido.
+2. **Uma casa e um setor fixos por personagem**; quatro carreiras independentes. A casa funcional e a rotina das 11h30 serão detalhadas no B1-02.
+3. Apenas um personagem controlado por vez. Os três restantes trabalham como NPCs no mundo da carreira ativa, **sem adicionar dinheiro, experiência, dia de jogo ou progresso aos seus saves próprios inativos**.
+4. **Salvamento automático por checkpoints e opção de backup**.
+5. Veículo inicial selecionado **por carreira**: **moto antiga ou carro popular antigo**, próprio e quitado, ambos jogáveis antes do aceite B1-01.
+6. Uma vez escolhido, o veículo **permanece fixo** até implementação futura de garagem/progressão; não oferecer troca gratuita no B1-01.
+7. **Carro com ciclo logístico COMPLETO e carga visual AVANÇADA já no B1-01.** Conduzir, estacionar, entrar/sair, coletar, carregar visualmente o carro, levar à base, descarregar, receber/organizar carga, realizar entregas, atualizar custódia e salvar os estados. Não postergar esta exigência para B1-05.
+8. **Troca de carreira somente após finalizar o expediente.** Proibir alternância em turno ativo; não interpretá-la como permissão para encerrar antecipadamente.
+9. **Expediente só encerra após concluir todas as entregas e procedimentos.** Sem opção de encerrar antecipadamente. A definição de conclusão de uma tentativa frustrada/devolução e o tratamento do limite das 21h permanecem **PENDENTES**, não são deduzidos automaticamente.
+10. Retomar no **último ponto seguro** após interrupção, **preservando entregas concluídas e inventário**.
+11. Checkpoints automáticos **após operações importantes e na pausa**, com tentativa adicional de salvar ao sair do navegador **quando tecnicamente possível**. Não depender do evento de fechamento para integridade.
+12. Backup opcional acessível ao jogador, com restauração verificável sem mistura entre os quatro perfis. Política exata de formato e conflitos permanece pendente.
+
+### Responsabilidades técnicas do módulo B1-01
+
+**Personagens e carreira:** tela de escolha de quatro perfis predefinidos; identificação estável; escolha visual masculino/feminino e equipamentos; setor, residência, veículo, saldo, dia, fase e inventário segregados; preservação dos três NPCs no mundo sem escrita nos saves inativos.
+
+**Carro jogador:** criar controles touch/teclado, física arcade e colisões condizentes com as dimensões do carro, câmera, entrada/saída, estacionamento e interação com carga. O modelo de carro em `src/features/city/vehicleModels.ts` atualmente é para trânsito NPC; `src/main.ts` instancia `Motorcycle` como veículo do jogador.
+
+**Ciclo logístico do carro:** em uma jornada compatível com a linha de jogo atual, realizar coleta nas lojas existentes, armazenamento físico/visual coerente no veículo, transporte, descarga no galpão, triagem/saca já existente, carregamento e entregas com o próprio carro. Reutilizar IDs, estado, custódia, histórico e regras de não duplicação; não confundir renderização da carga com inventário de verdade.
+
+**Divisão com B1-05:** o B1-01 antecipa e conclui a **carga visual avançada do carro**, conforme escolha explícita. B1-05 mantém foco na expansão das dimensões e nos equipamentos de transporte **da moto** (baú, alforjes, suporte externo, limite nas mãos), e na padronização/refinamento compartilhado de pacotes quando necessário. Qualidade visual, capacidade e interação exatas do carro ainda dependem de decisão final.
+
+**Salvar/retomar:** persistência durável por carreira (pode usar IndexedDB, sujeito à revisão técnica), snapshots/versionamento, ID estável dos pacotes, alterações atômicas no inventário, posição segura, fase/relógio, veículo, histórico e informações de NPC relevantes para continuidade. Salvar depois de eventos importantes e ao pausar, tentar salvar ao sair sem confiar nesse gatilho; exportar/importar backup com validação. Nunca reconstruir um pacote já entregue como se estivesse na loja ou pagar novamente.
+
+### Matriz preliminar de testes objetivos de aprovação B1-01
+
+| ID | Cenário verificável | Critério de aprovação |
+|---|---|---|
+| AC-01 | Criar as quatro carreiras | Quatro IDs distintos, um setor e uma casa fixa por personagem; nenhum dado compartilhado indevidamente |
+| AC-02 | Personalizar personagem pronto | Presets masculino/feminino e equipamentos refletem-se no avatar e permanecem no save |
+| AC-03 | Escolher moto antiga | Moto própria/quitada, pilotável por toque e teclado, salva e recupera sem mudar de tipo |
+| AC-04 | Escolher carro antigo | Carro próprio/quitado, dirigível, com aceleração/frenagem/direção, colisão realista para o jogo, câmera e entrar/sair |
+| AC-05 | Veículo inicial fixo | Após iniciar carreira não existe troca gratuita de moto para carro ou vice-versa; reiniciar não substitui a escolha |
+| AC-06 | Carro: coleta e acondicionamento | Coletar volumes com IDs únicos; colocá-los no carro; carga aparece fisicamente nas posições válidas e segue o inventário |
+| AC-07 | Carro: base e saída | Chegar à base, descarregar, registrar recebimento, participar do fluxo existente, retirar carga, carregar o carro e sair com a remessa certa |
+| AC-08 | Carro: entregas | Entregar volumes pelo ciclo atual, um único evento de custódia por transição, sem duplicação/sumiço ou pagamento duplo |
+| AC-09 | Concluir jornada e alternar carreira | Bloquear troca durante expediente; liberar apenas depois de todos os resultados/procedimentos finais válidos **conforme regra pendente de conclusão** |
+| AC-10 | Carreiras inativas | Operar uma carreira com três NPCs não altera saldos, experiência, calendário nem inventário dos três perfis inativos |
+| AC-11 | Checkpoint após ações importantes | Salvar após coleta, descarga, recebimento de carga e entrega; recarregar não duplica operação nem inverte custódia |
+| AC-12 | Pausa, interrupção e retomada | Persistir ao pausar; fechar/reabrir retoma no último ponto seguro com entregas e inventário preservados, sem depender de salvar ao fechar a aba |
+| AC-13 | Backup restaurável | Exportar/importar um backup válido de uma carreira e preservar o estado sem contaminar as demais; backup inválido é rejeitado sem destruir o save |
+| AC-14 | Prazo e turno impossível | Simular 21h, destinatário ausente e rota inacessível; não encerrar prematuramente, não bloquear perfil para sempre sem política explicitamente escolhida |
+| AC-15 | Regressões e mobile | CI de estrutura/unitários/TypeScript/build, E2E com tráfego e toque nos tamanhos de tela atuais; teste humano Android documentado separadamente |
+
+**Limites dos testes:** AC-06/AC-07 exigem registrar visualmente a carga do carro e testar sua persistência; um contador sem pacotes posicionados não satisfaz "carga visual avançada". AC-09 e AC-14 **não podem ser homologados** até decidir o significado de "entregas concluídas" e a política para 21h/bloqueios. Não afirmar testes reais antes de executá-los.
+
+### Bloqueadores antes de congelar B1-01
+
+1. **Conclusão de entregas difíceis:** morador ausente/recusa/endereço inacessível — basta registrar tentativa + devolução/processamento, ou **todos os volumes** precisam obrigatoriamente ser entregues ao destinatário? A escolha atual não definiu isto.
+2. **Limite 21h:** o código atual interrompe movimentação dos entregadores NPC em `src/core/delivery/couriers.ts` e impede novas entregas após 21h em `src/core/delivery/logisticsDay.ts`. A regra de não encerrar antes de concluir colide com o prazo atual sem uma política para pendências e bloqueios.
+3. **Critério de carga visual avançada no carro:** escolher mínimo funcional observável (porta-malas com posições e volumes, restrição por capacidade/porte, animação/interação, organização assistida ou manual) e como será validado na tela pequena.
+4. **Ponto seguro e backup:** decidir checkpoint de retorno, horários/NPCs na retomada e como o backup é exportado/importado sem perda, especialmente após corrupção ou atualização.
+
+**Não constituem bloqueio imediato para o modelo de carreira:** nomes finais, marcas de veículos, cores de roupas, catálogo completo de equipamentos e economia avançada/financiamento. A preparação B1-00 de orquestração também segue pendente, e esta documentação não integra/implanta o jogo.
 
 ## 3. Módulo B1-02 — Casas e começo do dia
 
@@ -343,12 +385,12 @@ A versão só pode ser anunciada **Beta 1.0 jogável** quando, no mínimo:
 
 ## 14. Questões pendentes (não inventar decisões)
 
-1. **Confirmado:** personagens predefinidos com opções de aparência masculina/feminina e equipamentos; escolha por carreira entre moto antiga ou carro antigo, ambos dirigíveis antes do aceite B1-01; casas e setores fixos. **Pendente:** nomes, aparências/modelos concretos, escopo logístico mínimo do carro e política de mudança posterior do veículo.
+1. **Confirmado:** quatro personagens predefinidos, presets masculino/feminino/equipamentos; casas e setores fixos; moto antiga ou carro antigo próprio/quitado por carreira; **carro com logística completa e carga visual avançada no B1-01**; veículo inicial fixo até a futura garagem. **Pendente:** nomes/aparências/modelos concretos e critérios visuais específicos da carga do carro.
 2. Equipar-se é obrigatório uma vez por turno ou oferece atalho automático permanente?
 3. O relógio continua após 21h durante o retorno à casa ou o encerramento exige estar em casa antes desse horário?
 4. Capacidade exata de baú/alforjes/suportes e limite de peso das mãos por classe de volume.
 5. Regras concretas de autorização de vizinho/portaria/porta/caixa, reclamação e resultado de arremesso.
-6. **Já decidido:** salvamento automático por checkpoints, backup e recuperação no último ponto seguro preservando entregas/inventário; troca de carreira só após expediente. **Pendente:** quais eventos definem pontos seguros, encerramento antecipado/turno impossível, estrutura de backup, exclusão/restauração e migração de saves anteriores.
+6. **Já decidido:** checkpoints após operações importantes, na pausa e tentativa ao fechar navegador quando possível, com backup e recuperação em ponto seguro; troca de carreira só após finalizar o expediente e **sem encerramento antecipado**. **Pendente:** política de entregas frustradas/retornos, limite 21h/turno impossível, gatilhos e posição do ponto seguro, estrutura de backup e migração de saves.
 7. Equilíbrio da economia/reputação do início da carreira e tipo de veículo inicial de cada personagem.
 8. Quantidade inicial de falas e assets sonoros, e o limite de desempenho aceitável medido em aparelho.
 9. Valores exatos de folga lateral e velocidade de corredor para motos, calibrados após validação da geometria e do desempenho real.
