@@ -17,6 +17,12 @@ export type CharacterLook = {
   jacket: string; vest?: string; trim: string; jeans: string; boots: string; gloves: string; helmet: string; helmetStripe: string; skin: string;
   /** CORE-014 civilians: hair or a cap instead of the rider's helmet, optional apron. */
   headwear?: 'helmet' | 'hair' | 'cap'; hair?: string; cap?: string; apron?: string; longHair?: boolean;
+  /**
+   * B1-01 F3.5: body preset of a career character (`masculino`/`feminino`). Feminine: narrower
+   * chest and shoulders, slightly wider hips, and a ponytail showing under the helmet. Absent =
+   * the original CORE-010 rider body.
+   */
+  figure?: 'masculino' | 'feminino';
 };
 export const RIDER_LOOK: CharacterLook = {
   // CORE-010: black riding jacket with yellow panels, dark trousers, dark helmet with yellow stripe.
@@ -62,7 +68,10 @@ export class Character {
   private readonly legs: Limb[] = [];
   private readonly feet: TransformNode[] = [];
 
+  /** The look this character was built with (read by tests: the player's preset in the world). */
+  readonly look: Readonly<CharacterLook>;
   constructor(scene: Scene, mats: Materials, name: string, look: CharacterLook = RIDER_LOOK) {
+    this.look = Object.freeze({ ...look });
     const node = (n: string, parent: TransformNode | null) => {
       const t = new TransformNode(`${name}-${n}`, scene);
       t.parent = parent;
@@ -83,7 +92,8 @@ export class Character {
     // Pelvis: hips and belt.
     this.pelvis = node('pelvis', this.root);
     const pelvis = new BatchSet();
-    pelvis.absorb(jeans, ballPart(scene, [0.34, 0.2, 0.23], [0, 0.0, 0], 6));
+    const fem = look.figure === 'feminino';
+    pelvis.absorb(jeans, ballPart(scene, fem ? [0.37, 0.21, 0.24] : [0.34, 0.2, 0.23], [0, 0.0, 0], 6));
     pelvis.absorb(mats.paint('#1a1a1a', 0.3), boxPart(scene, [0.33, 0.045, 0.22], [0, 0.07, 0]));
     build(this.pelvis, pelvis);
 
@@ -95,8 +105,8 @@ export class Character {
     const flat = <T extends { scaling: Vector3 }>(mesh: T): T => { mesh.scaling.z *= 0.62; return mesh; };
     // Delivery vest over the jacket: coloured torso, dark reflective bands (CORE-010 references).
     const vest = look.vest ? mats.paint(look.vest) : jacket;
-    torso.absorb(vest, flat(rodPart(scene, [0, 0.0, 0], [0, 0.44, 0], 0.33, 0.42, 12)));
-    for (const side of [-1, 1]) torso.absorb(jacket, ballPart(scene, [0.17, 0.15, 0.2], [side * BODY.shoulderHalf, BODY.shoulderUp - 0.02, 0], 5));
+    torso.absorb(vest, flat(rodPart(scene, [0, 0.0, 0], [0, 0.44, 0], fem ? 0.3 : 0.33, fem ? 0.37 : 0.42, 12)));
+    for (const side of [-1, 1]) torso.absorb(jacket, ballPart(scene, fem ? [0.15, 0.14, 0.18] : [0.17, 0.15, 0.2], [side * BODY.shoulderHalf, BODY.shoulderUp - 0.02, 0], 5));
     torso.absorb(jacket, ringPart(scene, 0.075, 0.05, [0, 0.47, 0.01], 'y', 12));
     torso.absorb(look.vest ? jacket : trim, flat(rodPart(scene, [0, 0.27, 0], [0, 0.31, 0], 0.418, 0.426, 12)));
     torso.absorb(look.vest ? jacket : trim, flat(rodPart(scene, [0, 0.11, 0], [0, 0.145, 0], 0.37, 0.378, 12)));
@@ -113,6 +123,12 @@ export class Character {
       head.absorb(mats.lacquer(look.helmetStripe), ballPart(scene, [0.06, 0.305, 0.325], [0, 0.175, -0.002], 7));
       head.absorb(mats.lacquer('#121619'), ballPart(scene, [0.235, 0.115, 0.17], [0, 0.185, 0.085], 7));
       head.absorb(mats.lacquer(look.helmet), boxPart(scene, [0.17, 0.07, 0.07], [0, 0.07, 0.125], [0.25, 0, 0]));
+      if (fem) {
+        // Ponytail out of the back of the helmet, down to the collar.
+        const hair = mats.paint(look.hair ?? '#3b2618');
+        head.absorb(hair, ballPart(scene, [0.1, 0.1, 0.1], [0, 0.07, -0.16], 6));
+        head.absorb(hair, rodPart(scene, [0, 0.06, -0.17], [0, -0.14, -0.2], 0.075, 0.035, 6));
+      }
     } else {
       const hair = mats.paint(look.hair ?? '#2a1d16');
       head.absorb(skinTone, ballPart(scene, [0.19, 0.24, 0.215], [0, 0.15, 0.005], 9));        // skull and face

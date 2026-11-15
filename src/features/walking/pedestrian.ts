@@ -5,7 +5,7 @@ import type { MotionGuard } from '../../core/collision';
 import { approach } from '../../core/math';
 import { stepWalker, WALKER, type WalkControls, type WalkerState } from '../../core/walking';
 import type { Materials } from '../../world/materials';
-import { Character, RIDER_LOOK, carryingPose, mixPose, walkingPose, type Pose } from '../shared/character';
+import { Character, RIDER_LOOK, carryingPose, mixPose, walkingPose, type CharacterLook, type Pose } from '../shared/character';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { BatchSet } from '../../world/geometry';
 
@@ -21,7 +21,7 @@ export class Pedestrian {
   readonly root: TransformNode;
   readonly state: WalkerState = { x: 0, z: 0, yaw: 0, moving: false };
   readonly meshes: AbstractMesh[];
-  private readonly body: Character;
+  readonly body: Character;
   private phase = 0;
   private amount = 0;
   private time = 0;
@@ -41,8 +41,9 @@ export class Pedestrian {
   private reach = 0;
   private lastPose: Pose | null = null;
 
-  constructor(scene: Scene, mats: Materials, helmetColor: string) {
-    this.body = new Character(scene, mats, 'pedestre', { ...RIDER_LOOK, helmet: helmetColor });
+  /** `look` (B1-01 F3.5): the career's presets; otherwise the CORE-010 rider with that helmet colour. */
+  constructor(scene: Scene, mats: Materials, helmetColor: string, look?: CharacterLook) {
+    this.body = new Character(scene, mats, 'pedestre', look ?? { ...RIDER_LOOK, helmet: helmetColor });
     this.root = this.body.root;
     const box = new BatchSet();
     box.box(mats.paint('#b88a55'), -0.2, 0.2, -0.14, 0.14, -0.15, 0.15);

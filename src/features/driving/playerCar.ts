@@ -17,7 +17,7 @@ import { BatchSet } from '../../world/geometry';
 import type { LabMaterial, Materials } from '../../world/materials';
 import { boxPart, rodPart } from '../../world/modelParts';
 import { RigidSkin } from '../shared/rigidSkin';
-import { Character, RIDER_LOOK, type Pose } from '../shared/character';
+import { Character, RIDER_LOOK, type CharacterLook, type Pose } from '../shared/character';
 
 /**
  * B1-01 F2: the player's own old popular car (generic boxy hatch, no real brand or model is
@@ -72,7 +72,7 @@ export class PlayerCar {
   private tailgateWanted = false;
   private doorTimer = 0;
   private doorSide: 'motorista' | 'passageiro' = 'motorista';
-  private readonly driver: Character;
+  readonly driver: Character;
   private readonly brakeMat: StandardMaterial;
   private readonly beam: Mesh;
   private readonly beamMat: StandardMaterial;
@@ -83,7 +83,7 @@ export class PlayerCar {
   private pitch = 0;
   private accel = 0;
 
-  constructor(scene: Scene, mats: Materials, x: number, z: number, yaw: number, groundHeight: number, paint = '#8e2b26') {
+  constructor(scene: Scene, mats: Materials, x: number, z: number, yaw: number, groundHeight: number, paint = '#8e2b26', driverLook: CharacterLook = RIDER_LOOK) {
     this.state = createCarState(x, z, yaw);
     this.root = new TransformNode('carro-jogador', scene);
     this.body = this.child(scene, 'carro-carroceria', this.root);
@@ -210,7 +210,7 @@ export class PlayerCar {
     this.beam.isPickable = false; this.beam.setEnabled(false);
 
     // Seated driver (same articulated character as the rider), hidden while the car is parked.
-    this.driver = new Character(scene, mats, 'motorista', { ...RIDER_LOOK });
+    this.driver = new Character(scene, mats, 'motorista', { ...driverLook });
     this.driver.root.parent = this.body;
     this.driver.root.position.set(-0.36, 0.25, 0);
     this.meshes.push(...this.driver.meshes);
