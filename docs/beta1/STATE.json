@@ -13,7 +13,7 @@
     {
       "id": "B1-01",
       "name": "Personagens e carreiras",
-      "status": "PENDENTE",
+      "status": "EM_DESENVOLVIMENTO",
       "reviewNote": null,
       "evidenceUrl": null,
       "approvedSha": null
@@ -111,6 +111,13 @@
       "to": "APROVADO",
       "on": "2026-11-15",
       "note": "APROVO B1-00 — aprovação explícita do usuário na conversa de 15/11/2026; implantação técnica dos PRs #10 e #11 e publicação de verificação confirmadas."
+    },
+    {
+      "module": "B1-01",
+      "from": "PENDENTE",
+      "to": "EM_DESENVOLVIMENTO",
+      "on": "2026-11-15",
+      "note": "Kickoff de F1 registrado pelo coordenador após o usuário encaminhar o bloqueio do executor e a instrução para liberar B1-01 na preview; B1-00 já aprovado. Autorizada apenas F1 e auditoria, sem merge/deploy nem mudança do contrato congelado."
     }
   ]
 }
