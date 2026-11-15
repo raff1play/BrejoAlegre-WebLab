@@ -91,17 +91,19 @@ A Beta 1.0 está definida por um **ciclo diário completo, repetível e divertid
 - Quatro personagens jogáveis, cada um com sua casa, veículo, setor e coletas. A opção já definida para o começo da carreira é ter **moto antiga ou carro popular antigo próprio e quitado**; detalhes da seleção e jogabilidade do carro continuam pendentes.
 - Quatro carreiras individuais, não uma carreira compartilhada.
 - **Questionário B1-01, rodada 1 (15/11/2026):** quatro personagens **prontos** com personalização **básica**; **um personagem por setor e casa fixos**; os outros três trabalham como NPCs **sem gerar dinheiro, experiência ou progresso em seus próprios saves inativos**; salvamento **automático por checkpoints com opção de backup**.
-- O escopo da personalização, o modo de escolha do veículo, a troca de perfil e a forma de retomar um checkpoint ainda estão **pendentes**, não implicitamente aprovados.
+- **Questionário B1-01, rodada 2 (15/11/2026):** personagens predefinidos com **opções de aparência masculina/feminina e equipamentos**; escolha **por carreira** entre **uma moto antiga e um carro popular antigo**, próprios/quitados, **ambos dirigíveis antes do aceite do B1-01**; **troca de carreira somente após finalizar o expediente**; ao recarregar, **retomar do último ponto seguro com entregas e inventário preservados**.
+- **PENDENTE, sem decisão automática:** o que permite finalizar antecipadamente uma jornada interrompida; escopo mínimo de interação/rota/carga do carro no B1-01; possibilidade de trocar veículo depois da escolha inicial; pontos/gatilhos de checkpoint e política de backup/restauração. Nomes, modelos e aparências específicos não foram escolhidos.
 
 **PROPOSTO:**
 - Tela inicial: quatro cartões de personagem mostrando nome, bairro/setor, residência, moto/veículo, dinheiro, reputação, dia da carreira e botão Continuar/Nova carreira.
 - Apenas **um personagem controlado por vez**; os demais trabalham como NPCs no mesmo dia. A estrutura deve permitir futura conversão para jogadores cooperativos.
-- Alternar carreira somente a partir do menu principal ou após encerrar a jornada; não transferir pacotes ao trocar perfil.
+- **Não permitir alternar carreira durante expediente em andamento**. Apenas após seu encerramento. O caminho de encerramento antecipado em caso de turno travado ainda requer decisão; jamais transferir pacotes ao trocar perfil.
 - Dados separados por identificador de carreira: personagem, casa, veículo, dia, equipamentos, progresso, dinheiro, reputação, inventário, ocorrências e histórico.
 - Aplicar a decisão confirmada: os três NPCs trabalham no mundo do perfil ativo, **sem alterar dinheiro nem qualquer progresso de seus respectivos perfis de carreira**.
-- Implementar a decisão confirmada de **salvar automaticamente por checkpoints com opção de backup**. Tecnologia (por exemplo, IndexedDB), frequência, retomada exata ou segura, migração e formato do backup são decisões técnicas/experienciais ainda abertas; nenhuma integração paga.
+- Implementar a decisão confirmada de **salvar automaticamente por checkpoints, oferecer backup e retomar no último ponto seguro**, conservando entregas e inventário sem repetir pagamentos. Tecnologia (por exemplo, IndexedDB), frequência, definição dos pontos seguros, retomada de relógio/NPCs, migração e formato do backup ainda estão em aberto; nenhuma integração paga.
+- **Carro jogador é requisito de aprovação, não só visual de tráfego NPC.** A linha publicada usa a classe `Motorcycle` para o jogador; `vehicleModels` desenha carros NPC, sem comprovar carro dirigível. Desenvolver e testar o controle, colisão, câmera e transições básicas do carro antes de declarar o B1-01 aceito. O que é exigido do carro no ciclo logístico mínimo ainda depende de decisão; a organização de cargas de formas e tamanhos diferentes segue no B1-05.
 
-**Teste de aceite:** criar quatro perfis predefinidos vinculados a casas/setores distintos; concluir um dia no perfil A, trocar para B e retornar a A sem misturar dinheiro, volumes, casa, calendário ou progresso. Verificar também que NPCs inativos não alteram seus próprios saves e que checkpoints/backup recuperam os dados sem duplicação; condições exatas da retomada aguardam decisão.
+**Critérios de aceite preliminares (a detalhar após últimas decisões):** criar quatro perfis predefinidos vinculados a casas/setores distintos; demonstrar presets masculino/feminino e equipamentos; escolher moto ou carro antigo próprio/quitado por carreira, **com ambos efetivamente dirigíveis**; concluir um expediente em A, alternar para B e retornar a A sem cruzar dinheiro, volumes, casa, calendário ou progresso; bloquear a troca durante expediente; demonstrar que NPCs inativos não alteram seus saves; interromper o jogo, retomar em ponto seguro e restaurar backup sem duplicar inventário, entregas ou pagamentos. Não homologar até definir o encerramento antecipado e o escopo mínimo do carro.
 
 ## 3. Módulo B1-02 — Casas e começo do dia
 
@@ -341,12 +343,12 @@ A versão só pode ser anunciada **Beta 1.0 jogável** quando, no mínimo:
 
 ## 14. Questões pendentes (não inventar decisões)
 
-1. Nomes e aparências específicas dos quatro personagens **predefinidos**, extensão da personalização **básica** e configuração do veículo inicial (moto ou carro antigo quitado). As casas e os setores já estão confirmados como fixos.
+1. **Confirmado:** personagens predefinidos com opções de aparência masculina/feminina e equipamentos; escolha por carreira entre moto antiga ou carro antigo, ambos dirigíveis antes do aceite B1-01; casas e setores fixos. **Pendente:** nomes, aparências/modelos concretos, escopo logístico mínimo do carro e política de mudança posterior do veículo.
 2. Equipar-se é obrigatório uma vez por turno ou oferece atalho automático permanente?
 3. O relógio continua após 21h durante o retorno à casa ou o encerramento exige estar em casa antes desse horário?
 4. Capacidade exata de baú/alforjes/suportes e limite de peso das mãos por classe de volume.
 5. Regras concretas de autorização de vizinho/portaria/porta/caixa, reclamação e resultado de arremesso.
-6. **Já decidido:** salvamento automático por checkpoints com backup. **Pendente:** gatilhos, retomada de jornada interrompida, estrutura de backup, exclusão/restauração e migração de saves anteriores.
+6. **Já decidido:** salvamento automático por checkpoints, backup e recuperação no último ponto seguro preservando entregas/inventário; troca de carreira só após expediente. **Pendente:** quais eventos definem pontos seguros, encerramento antecipado/turno impossível, estrutura de backup, exclusão/restauração e migração de saves anteriores.
 7. Equilíbrio da economia/reputação do início da carreira e tipo de veículo inicial de cada personagem.
 8. Quantidade inicial de falas e assets sonoros, e o limite de desempenho aceitável medido em aparelho.
 9. Valores exatos de folga lateral e velocidade de corredor para motos, calibrados após validação da geometria e do desempenho real.
