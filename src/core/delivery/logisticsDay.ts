@@ -12,7 +12,7 @@ export class LogisticsDay extends Workday {
  assignments:Record<ActorId,StoreKind[]>={jogador:[],npc1:[],npc2:[],npc3:[]};
  readonly demandOptions:DemandOptions;readonly calendar:CalendarDay|null;
  allSortedAt:number|null=null;private readinessWarned=false;
- trafficTime=0;trafficBlocked:((id:string,x:number,z:number,yaw:number)=>boolean)|null=null;
+ trafficTime=0;trafficBlocked:((id:string,x:number,z:number,yaw:number)=>'traffic'|'player'|'courier'|null)|null=null;
  gateOpen=1;released=false;releaseHour:number|null=null;private previousHour:number|null=null;
  readonly local=(p:{x:number;z:number})=>depotLocal(p.x,p.z);
  constructor(options:WorkdayOptions&DemandOptions={}){super(options);this.demandOptions=options;this.calendar=options.dayIndex===undefined?null:calendarDay(options.dayIndex);}
