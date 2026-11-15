@@ -133,6 +133,37 @@ test('CTRL-001 comparison old vs new at 10/25/40 km/h with 25/50/75 % deflection
   assert.ok(yawRate(40, newCommand(0.25, 40)) < 0.75 * yawRate(40, legacyCommand(0.25)));
 });
 
+// CTRL-002: regression targets are the real CTRL-001 measurements from PR #8, before this
+// user-requested calibration (10/25/40 km/h, 25% of thumb travel). No hardware claim.
+test('CTRL-002 agile ride has clearly better response than approved CTRL-001 at 10/25/40 km/h', () => {
+  const baseline = [
+    { kmh: 10, oldYaw: 41.7, gain: 1.4 },
+    { kmh: 25, oldYaw: 34.7, gain: 1.3 },
+    { kmh: 40, oldYaw: 17.4, gain: 1.35 },
+  ];
+  for (const { kmh, oldYaw, gain } of baseline) {
+    const newYaw = yawRate(kmh, newCommand(0.25, kmh));
+    assert.ok(newYaw > oldYaw * gain, `${kmh} km/h: ${newYaw.toFixed(1)}°/s vs CTRL-001 ${oldYaw.toFixed(1)}°/s`);
+    near(yawRate(kmh, newCommand(-0.25, kmh)), -newYaw, 1e-9);
+    const full = yawRate(kmh, newCommand(1, kmh));
+    assert.ok(newYaw <= full + 1e-9, 'short thumb motion never overdrives full steering');
+    assert.ok(yawRate(kmh, newCommand(0.5, kmh)) >= full * 0.9, 'half thumb gives almost full turning authority');
+  }
+  // Still grip-limited at 40 km/h: steering gets lighter but cannot spin the bike at speed.
+  assert.ok(yawRate(40, newCommand(1, 40)) < 60);
+  near(motoTurnFraction(0.01, 10 / 3.6), 0);
+});
+
+test('CTRL-002 steering reaches useful input in one frame and returns promptly to neutral', () => {
+  const s = createMotoState(0, 0, 0);
+  s.speed = 10 / 3.6;
+  const desired = newCommand(0.5, 10);
+  stepMotorcycle(s, { throttle: 0, brake: 0, steer: desired }, 1 / 60, () => true);
+  assert.ok(s.steer >= 0.14, `initial steering response ${s.steer}`);
+  for (let i = 0; i < 6; i++) stepMotorcycle(s, { throttle: 0, brake: 0, steer: 0 }, 1 / 60, () => true);
+  near(s.steer, 0);
+});
+
 test('floating stick: centre stays put inside the ring, follows past it, limited travel', () => {
   const origin = { x: 100, y: 300 };
   // Inside the radius: no follow.
