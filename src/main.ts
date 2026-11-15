@@ -90,7 +90,7 @@ function start(canvas: HTMLCanvasElement): void {
   let devSpeed = 1;
   /** Development only: a fixed overview camera for map comparisons (see __debug.view). */
   let freeView = false;
-  const delivery = new DeliveryGame(scene, world.materials, profile, environment.shadows, world.shutters, (x, z) => world.guard(x, z, 0.45), undefined, import.meta.env.DEV && params.get('depotTest')==='partial'?3:2);
+  const delivery = new DeliveryGame(scene, world.materials, profile, environment.shadows, world.shutters, (x, z) => world.guard(x, z, 0.45), import.meta.env.DEV&&params.has('seed')?Number(params.get('seed')):undefined, import.meta.env.DEV && params.get('depotTest')==='partial'?3:2);
   let simTime = 0;
   // NPC vehicles are solid for the player; if one already overlaps (e.g. it was spawned there),
   // only the static world blocks so the player can always move away.
@@ -244,7 +244,7 @@ function start(canvas: HTMLCanvasElement): void {
     const progress = delivery.workday.progress();
     const wait = delivery.waiting === null ? delivery.waitOption(clock.hour) : null;
     hud.setObjective(objective.title, objective.detail,
-      `Coletados ${progress.collected}/${delivery.workday.parcels.filter((p) => p.platform === 'LOJA').length} · Entregues ${progress.delivered}/${progress.total}`,
+      `Coletados ${progress.collected}/${delivery.workday.parcels.filter((p) => p.collector === 'jogador').length} · Entregues ${progress.delivered}/${progress.total}`,
       delivery.waiting !== null ? 'Aguardando…' : wait?.label ?? null);
     minimap.setTarget(objective.target);
     minimap.setBike(mode === 'walking' ? m : null);
@@ -338,12 +338,13 @@ function start(canvas: HTMLCanvasElement): void {
         delivery: {
           depot:{gateOpen:delivery.gateOpen,gateManual:delivery.gateManual,visibleIds:[...delivery.parcelViews.visibleIds],workers:delivery.workday.depot.workers.map(w=>({...w,task:w.task?{id:w.task.id,kind:w.task.kind,stage:w.task.stage}:null})),errors:[...delivery.workday.depot.errors]},
           phase: delivery.workday.phase,
+          logistics:{seed:delivery.workday.options.seed??2026,assignments:delivery.workday.assignments,teamReady:delivery.workday.teamReady,released:delivery.workday.released,releaseHour:delivery.workday.releaseHour,van:{state:delivery.workday.van.state,door:delivery.workday.van.door,approach:'assisted-D05'},couriers:delivery.workday.couriers.map(c=>({id:c.id,name:c.name,sector:c.sector,state:c.state,bike:{...c.bike},person:{...c.person},riding:c.riding,error:c.error,stops:[...c.stops],route:c.route.map(p=>({...p})),trunk:c.trunk(delivery.workday).map(p=>p.id),hands:c.hands(delivery.workday).map(p=>p.id)}))},
           objective: delivery.workday.objective(clock.hour, moto.state),
           cargo: { visualHands:walker.displayedLoad, hands: delivery.workday.inHands().length, trunk: delivery.workday.inTrunk().length, sack: delivery.workday.sackInHands, label: delivery.workday.cargoLabel(), trunkOpen: moto.trunkOpen, trunkSpot: trunkSpot(bikeSpot()) },
           progress: delivery.workday.progress(),
           assigned: [...delivery.workday.assigned],
           route: [...delivery.workday.route],
-          parcels: delivery.workday.parcels.map((p) => ({ id: p.id, state: p.state, place: p.place, holder: p.holder, origin: p.origin, destination: p.destination, platform: p.platform, region: p.region, position:p.position?{...p.position}:null,dock:p.dock,load:p.load,history:p.history.map(e=>({...e})) })),
+          parcels: delivery.workday.parcels.map((p) => ({ id: p.id, state: p.state, place: p.place, holder: p.holder, origin: p.origin, destination: p.destination, platform: p.platform, region: p.region, collector:p.collector,sector:p.sector, position:p.position?{...p.position}:null,dock:p.dock,load:p.load,history:p.history.map(e=>({...e})) })),
           staff: delivery.workday.staff.map((st) => ({ role: st.role, state: st.state })),
           stores: [...delivery.stores].map(([id, st]) => ({ id, employee: st.ops.employee, shutter: st.ops.shutter, queue: st.ops.queue.length, served: st.ops.served, pickup: st.layout.pickup, facing: yawOf(STORES.find((q) => q.id === id)!.frame) })),
           addresses: delivery.workday.addresses.length,

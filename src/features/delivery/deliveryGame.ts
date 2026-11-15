@@ -224,8 +224,9 @@ export class DeliveryGame {
    * box standing behind the parked bike, handed over or delivered only from the hands.
    */
   action(hour: number, player: { x: number; z: number; riding: boolean }, bike?: BikeSpot): ContextAction | null {
-    if (player.riding) return null;
     const w = this.workday;
+    if(w.teamReady&&!w.released&&bike&&!bike.moving){const p=depotLocal(bike.x,bike.z);if(p.x>76.4&&p.x<139.6&&p.z<-92.5&&p.z>-149.8)return {label:'Equipe pronta — iniciar rota de entregas',available:true,run:()=>w.release(hour)?'Quatro rotas liberadas':null};}
+    if (player.riding) return null;
     const visit=bike?{player,bike}:undefined;
     const close = (p: Spot, r: number) => Math.hypot(player.x - p.x, player.z - p.z) < r;
     const control=depotWorld(95,-97.1);

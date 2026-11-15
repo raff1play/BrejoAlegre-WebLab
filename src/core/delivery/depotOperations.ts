@@ -43,8 +43,8 @@ export class DepotOperations {
   switch(w.role){
    case 'descarregador-1':p=this.truckAvailable?pick(p=>p.place==='caminhao'):undefined;if(p){const at=this.receivingSlot(parcels);if(at)this.plan(w,p,'truck',{x:128,z:-119.4},receivingStand,at);}break;
    case 'conferente':p=pick(p=>p.place==='recebimento'&&p.state==='EM_TRANSPORTE');if(p)this.plan(w,p,'check',receivingStand,receivingStand,p.position!);break;
-   case 'descarregador-2':if(parcels.some(p=>p.place==='triagem'&&p.state==='RECEBIDO_BASE'))break;p=pick(p=>p.place==='conferencia'&&p.state==='RECEBIDO_BASE');if(p)this.plan(w,p,'feed',receivingStand,feedStand,{x:105.7,y:.93,z:-129.6});break;
-   case 'separador-1':if(parcels.some(p=>p.place==='triagem'&&p.state==='TRIADO'))break;p=pick(p=>p.place==='triagem'&&p.state==='RECEBIDO_BASE');if(p)this.plan(w,p,'belt',{x:110,z:-128.35},{x:110,z:-128.35},{x:116.3,y:.93,z:-129.6});break;
+   case 'descarregador-2':if(parcels.some(p=>p.place==='triagem'&&p.state==='RECEBIDO_BASE'&&!claimed.has(p.id)))break;p=pick(p=>p.place==='conferencia'&&p.state==='RECEBIDO_BASE');if(p)this.plan(w,p,'feed',receivingStand,feedStand,{x:105.7,y:.93,z:-129.6});break;
+   case 'separador-1':if(parcels.some(p=>p.place==='triagem'&&p.state==='TRIADO'&&!claimed.has(p.id)))break;p=pick(p=>p.place==='triagem'&&p.state==='RECEBIDO_BASE');if(p)this.plan(w,p,'belt',{x:110,z:-128.35},{x:110,z:-128.35},{x:116.3,y:.93,z:-129.6});break;
    case 'separador-2':p=pick(p=>p.place==='triagem'&&p.state==='TRIADO');if(p){const c=cage(p);this.plan(w,p,'region',outStand,{x:(c.minX+c.maxX)/2,z:-134.65},{x:c.minX+.45+(slot(p)%3)*.85,y:.2+Math.floor(slot(p)/6)*.3,z:-136.1-(Math.floor(slot(p)/3)%2)*.8});}break;
    case 'supervisor':case 'expedidor':p=pick(p=>p.place==='gaiola'&&p.state==='TRIADO');if(p){const c=cage(p);const n=slot(p),x=p.sector?SECTOR_DATA[p.sector].x:104;this.plan(w,p,'dispatch',{x:(c.minX+c.maxX)/2,z:-134.65},p.sector?{x,z:-121.3}:dispatchStand,{x:x-.65+(n%3)*.65,y:.46+Math.floor(n/6)*.3,z:-119.55-(Math.floor(n/3)%2)*.55});}break;
   }
