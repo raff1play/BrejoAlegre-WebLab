@@ -5,20 +5,22 @@ import {SECTOR_DATA,recommendedRoute,type Sector} from './sectors.ts';
 import {depotLocal,depotWorld,type StoreKind} from '../../world/city/cityPlan.ts';
 import {advance,move} from './parcels.ts';
 import {depotVisitAllowed} from './workday.ts';
+import {calendarDay,type CalendarDay} from './operatingCalendar.ts';
 /** Four actors share inherited parcels/depot. Actor inventories are queries, never copies. */
 export class LogisticsDay extends Workday {
  readonly couriers=[new Courier('npc1','Rosa','Norte'),new Courier('npc2','Caio','Leste'),new Courier('npc3','Davi','Sul')];
  assignments:Record<ActorId,StoreKind[]>={jogador:[],npc1:[],npc2:[],npc3:[]};
- readonly demandOptions:DemandOptions;
+ readonly demandOptions:DemandOptions;readonly calendar:CalendarDay|null;
+ allSortedAt:number|null=null;private readinessWarned=false;
  trafficTime=0;trafficBlocked:((id:string,x:number,z:number,yaw:number)=>boolean)|null=null;
  gateOpen=1;released=false;releaseHour:number|null=null;private previousHour:number|null=null;
  readonly local=(p:{x:number;z:number})=>depotLocal(p.x,p.z);
- constructor(options:WorkdayOptions&DemandOptions={}){super(options);this.demandOptions=options;}
+ constructor(options:WorkdayOptions&DemandOptions={}){super(options);this.demandOptions=options;this.calendar=options.dayIndex===undefined?null:calendarDay(options.dayIndex);}
  override start(hour:number):void{
   if(this.phase!=='ANTES')return;const d=dailyDemand(this.addresses,hour,this.demandOptions);
   this.assignments=d.assignments;this.assigned=d.assignments.jogador;this.parcels.push(...d.parcels);
   for(const c of this.couriers)c.stores=this.assignments[c.id];
-  this.phase='COLETA';this.events.push('Equipe designada: 8 lojas, quatro setores. Consulte Logística no menu.');
+  this.phase='COLETA';this.events.push(`Equipe designada: 8 lojas · ${this.calendar?.tier??'demanda padrão'} · 4 setores. Consulte Logística.`);
  }
  actorSector(actor:ActorId):Sector{return actor==='jogador'?'Oeste':this.couriers.find(c=>c.id===actor)!.sector;}
  load(actor:ActorId){return this.parcels.filter(p=>p.sector===this.actorSector(actor));}
@@ -47,6 +49,13 @@ export class LogisticsDay extends Workday {
  override update(hour:number,dt:number,truckDocked=false):void{
   this.trafficTime+=dt;
   super.update(hour,dt,truckDocked);
+  if(this.parcels.length&&this.allSortedAt===null&&this.parcels.every(p=>['NA_SACA','EM_ROTA','ENTREGUE'].includes(p.state))){
+    this.allSortedAt=hour;
+    this.events.push(`Quatro cargas separadas às ${String(Math.floor(hour)).padStart(2,'0')}:${String(Math.floor((hour%1)*60)).padStart(2,'0')}`);
+  }
+  if(this.calendar&&!this.readinessWarned&&hour>this.calendar.depotTarget&&this.allSortedAt===null){
+    this.readinessWarned=true;this.events.push(`Atenção: triagem ainda pendente após ${this.calendar.depotTarget}h`);
+  }
   const dh=this.previousHour===null?0:Math.max(0,hour-this.previousHour);this.previousHour=hour;
   const seconds=Math.min(4,dt*Math.max(1,Math.min(8,dt>0?dh*150/dt:1)));
   for(let t=0;t<seconds;t+=.1)for(const c of this.couriers)c.update(this,hour,Math.min(.1,seconds-t));
@@ -62,6 +71,7 @@ export class LogisticsDay extends Workday {
   }
   if(this.phase==='ENTREGAS'&&!this.route.length)return {title:'Setor Oeste concluído — acompanhando a equipe',detail:this.couriers.map(c=>`${c.name}: ${COURIER_LABEL[c.state]}`).join(' · '),target:null,waitUntil:null};
   const objective=super.objective(hour,bike);
+  if(['CONFERENCIA','TRIAGEM'].includes(this.phase)&&this.calendar)return {...objective,detail:`${objective.detail} · meta de separação até ${this.calendar.depotTarget}h`};
   if(this.phase==='SACA')return {...objective,title:hour<15?'Carga Oeste liberada às 15h':'Retirar a carga Oeste na D02',detail:`${this.load('jogador').length} volumes ML/SHP • somente seu setor`};
   return objective;
  }
