@@ -126,8 +126,8 @@ export class Workday {
 
   /** True while the mixed sack is being carried (one load, whatever it holds). */
   sackInHands = false;
-  inHands(): Parcel[] { return this.parcels.filter((p) => p.place === 'maos'); }
-  inTrunk(): Parcel[] { return this.parcels.filter((p) => p.place === 'bau'); }
+  inHands(): Parcel[] { return this.parcels.filter((p) => p.place === 'maos' && p.holder === 'jogador'); }
+  inTrunk(): Parcel[] { return this.parcels.filter((p) => p.place === 'bau' && p.holder === 'jogador'); }
   /** Trunk parcels still to be handed to the checker / still to be delivered. */
   trunkForDepot(): Parcel[] { return this.inTrunk().filter((p) => p.state === 'EM_TRANSPORTE'); }
   trunkForRoute(): Parcel[] { return this.inTrunk().filter((p) => p.state === 'EM_ROTA'); }
@@ -177,13 +177,13 @@ export class Workday {
   canCollect(kind: StoreKind, hour: number): 'ok' | 'cedo' | 'nada' | 'cheio' {
     if (!this.assigned.includes(kind) || this.readyAt(kind).length === 0) return 'nada';
     if (hour < ROUTINE.pickupFrom) return 'cedo';
-    return this.sackInHands || this.inHands().length + this.readyAt(kind).length > HANDS_MAX ? 'cheio' : 'ok';
+    return this.sackInHands || this.inHands().length >= HANDS_MAX ? 'cheio' : 'ok';
   }
 
   /** At the counter: the employee checks the parcels and hands them over (into the hands). */
   collect(kind: StoreKind, hour: number): number {
     if (this.canCollect(kind, hour) !== 'ok') return 0;
-    const list = this.readyAt(kind);
+    const list = this.readyAt(kind).slice(0,HANDS_MAX-this.inHands().length);
     for (const p of list) { advance(p, 'COLETADO', 'jogador', hour); move(p, 'maos', 'jogador', hour); }
     this.say(`${list.length === 1 ? '1 volume conferido e retirado' : `${list.length} volumes conferidos e retirados`} em ${this.storeOf(kind).name}`);
     if (this.assigned.every((s) => this.readyAt(s).length === 0)) this.phase = 'RETORNO';
@@ -191,7 +191,7 @@ export class Workday {
   }
 
   /** Parcels the player still has to bring to the base (in the hands or in the trunk). */
-  carrying(): Parcel[] { return this.parcels.filter((p) => (p.place === 'maos' || p.place === 'bau') && (p.state === 'COLETADO' || p.state === 'EM_TRANSPORTE')); }
+  carrying(): Parcel[] { return this.parcels.filter((p) => p.holder === 'jogador' && (p.place === 'maos' || p.place === 'bau') && (p.state === 'COLETADO' || p.state === 'EM_TRANSPORTE')); }
 
   /** At the receiving desk: the checker takes the parcels the player has IN THE HANDS. */
   handOver(hour: number,visit?:DepotVisit): number {

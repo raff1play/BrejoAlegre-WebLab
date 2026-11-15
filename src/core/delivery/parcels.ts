@@ -1,3 +1,4 @@
+import type { Sector } from './sectors.ts';
 /**
  * CORE-014 parcel model. Every parcel has a unique id, origin, destination, fictional platform,
  * region (bairro), state, holder and a full history. States only move forward one step at a time,
@@ -39,6 +40,8 @@ export type ParcelEvent = Readonly<{ state: ParcelState; place: ParcelPlace; hou
 const event=(p:Parcel,hour:number,operation:string):ParcelEvent=>({state:p.state,place:p.place,hour,by:p.holder,holder:p.holder,position:p.position?{...p.position}:null,dock:p.dock,load:p.load,operation});
 export type Parcel = {
   readonly id: string;
+  collector?: string;
+  sector?: Sector;
   readonly origin: string;
   readonly destination: string;
   readonly platform: Platform;
