@@ -36,6 +36,9 @@ export type EquipmentPresetId = (typeof EQUIPMENT_PRESETS)[number]['id'];
 /** Veículo inicial próprio e quitado (decisões 5–6). A física do carro é F2; aqui só a identidade. */
 export const VEHICLE_KINDS = ['moto-antiga', 'carro-antigo'] as const;
 export type VehicleKind = (typeof VEHICLE_KINDS)[number];
+export const isVehicleKind = (v: unknown): v is VehicleKind => typeof v === 'string' && (VEHICLE_KINDS as readonly string[]).includes(v);
+/** Rótulos de exibição (marcas/modelos reais não são usados). */
+export const VEHICLE_LABEL: Readonly<Record<VehicleKind, string>> = Object.freeze({ 'moto-antiga': 'Moto antiga', 'carro-antigo': 'Carro popular antigo' });
 
 export type CharacterDefinition = Readonly<{
   careerId: CareerId;

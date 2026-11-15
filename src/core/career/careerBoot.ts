@@ -1,6 +1,6 @@
-import { buildRoster, careerHome, type Home, type Roster } from './careers.ts';
+import { buildRoster, careerHome, isVehicleKind, type Home, type Roster, type VehicleKind } from './careers.ts';
 import { CareerSession, CareerStore, type KeyValueStorage } from './careerStore.ts';
-import { SaveError, type CareerSave } from './snapshot.ts';
+import { SaveError, chooseStartingVehicle, type CareerSave } from './snapshot.ts';
 
 /**
  * B1-01 F1: inicialização do jogo a partir da carreira ativa. Pura (sem DOM) para ser testável.
@@ -40,4 +40,14 @@ export function commitNextDay(session: CareerSession, nextIndex: number): Career
   const open = session.profile.activeShiftId ?? session.save.shift?.shiftId ?? null;
   if (open !== null) throw new SaveError(`Expediente ${open} aberto: o calendário só avança após encerrá-lo`);
   return session.commit(session.careerId, (p) => ({ profile: { ...p, calendarIndex: nextIndex }, shift: null }));
+}
+
+/**
+ * B1-01 F2 (decisões 5–6, AC-03): escolha ÚNICA do veículo inicial da carreira ativa, próprio e
+ * quitado, gravada em checkpoint. Depois de escolhido, permanece fixo até a garagem futura:
+ * uma segunda escolha é recusada (`chooseStartingVehicle`), inclusive vinda de outra aba.
+ */
+export function chooseCareerVehicle(session: CareerSession, kind: VehicleKind): CareerSave {
+  if (!isVehicleKind(kind)) throw new SaveError(`Veículo inválido: ${String(kind)}`);
+  return session.commit(session.careerId, (p, s) => ({ profile: chooseStartingVehicle(p, kind), shift: s }));
 }

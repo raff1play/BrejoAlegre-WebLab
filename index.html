@@ -38,7 +38,7 @@
           <li><i style="background:#ff4d2e;color:#fff">▲</i>Você</li><li><i style="background:#ff5a3c;color:#fff">★</i>Objetivo</li>
           <li><i class="line"></i>Rota pelas ruas</li><li><i class="sq next">1</i>Próxima entrega</li>
           <li><i class="sq" style="background:#6fb7ff">2</i><span id="legend-stops">0 paradas restantes</span></li>
-          <li><i style="background:#ffd84a">M</i>Moto</li><li><i style="background:#ffd84a">G</i>Galpão</li><li><i style="background:#f2b233">L</i>Lojas</li>
+          <li><i id="legend-vehicle-mark" style="background:#ffd84a">M</i><span id="legend-vehicle">Moto</span></li><li><i style="background:#ffd84a">G</i>Galpão</li><li><i style="background:#f2b233">L</i>Lojas</li>
           <li><i class="sectors"></i>Setores (Oeste: seu)</li><li><i style="background:#7fd06a">P</i>Praça</li>
           <li><i style="background:#8fc1e3">C</i>Campo</li><li><i style="background:#c9c2b2">✝</i>Cemitério</li>
           <li class="credit">© OpenStreetMap contributors</li>
@@ -73,6 +73,16 @@
         <p class="about-text osm-credit">Mapa: © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>, dados sob licença ODbL 1.0 (extração de 13/11/2026).</p>
         <p class="about-text"><strong id="mode">Pilotando</strong> · <span id="tips"></span> · <span id="fps">— FPS</span></p>
         <p class="about-text keys">Teclado: WASD/setas · F ação/montar · Q/E girar câmera · Z/X zoom · M mapa · P pausa</p>
+      </div>
+    </div>
+    <div id="vehicle-choice" class="pause vehicle-choice" role="dialog" aria-modal="true" aria-labelledby="vehicle-choice-title" hidden>
+      <div class="pause-card">
+        <h2 id="vehicle-choice-title">Veículo de <span id="vehicle-choice-name">—</span></h2>
+        <p class="about-text">Escolha o veículo próprio e quitado desta carreira. <strong>A escolha é permanente</strong> até existir garagem no jogo; cada carreira escolhe o seu.</p>
+        <div class="pause-actions vehicle-options">
+          <button type="button" data-vehicle="moto-antiga" class="primary">Moto antiga<small>ágil, baú traseiro</small></button>
+          <button type="button" data-vehicle="carro-antigo" class="primary">Carro popular antigo<small>porta-malas (em desenvolvimento)</small></button>
+        </div>
       </div>
     </div>
     <div id="fatal" class="fatal" role="alert" hidden></div>
