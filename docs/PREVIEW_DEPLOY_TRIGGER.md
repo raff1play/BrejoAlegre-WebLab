@@ -144,3 +144,11 @@ Em **Build and deployment > Source**, selecionar **GitHub Actions** e salvar. En
 - **CI de revisão:** execução de PR [43730075034](https://github.com/raff1play/BrejoAlegre-WebLab/actions/runs/43730075034) concluída em `success`: 155/155 unitários, build de staging e verificações de navegador com tráfego ativo (73 checks); testes no Galaxy S24 físico ainda pendentes, assim como jornada inteira percorrida manualmente.
 - **Publicação:** somente GitHub Pages `preview` via este documento; não utilizar `pages.yml`, não fazer merge na `main`, não ativar PWA antiga, não adicionar custos.
 - **Limitações:** roteamento inicial não leva em conta a orientação da moto; desempenho do SwiftShader não equivale a Android físico. Declarar publicado apenas após `Deploy preview` concluir com `success` e confirmar URL do Pages.
+
+## CTRL-002 — publicação de calibração da moto autorizada (15/11/2026)
+
+- **Autorização explícita do usuário:** "Publique", em sequência à apresentação da CTRL-002 no PR #9.
+- **Escopo e branch:** apenas GitHub Pages de testes a partir de `preview`; `main` não deve mudar. PR #9 `fix/ctrl-002-agile-moto-steering` → `preview`, integrado no commit `6898bfbac7085fdad2b6616759d76df1f45c1eb7`.
+- **Correção:** moto mais ágil em baixa/média velocidade (`maxSteerAngle` 0,67→0,82 rad, `maxLateralAccel` 8→9,5 m/s², `steerSpeedRef` 7,5→8, entrada/recentralização 5/8→9/12/s); polegar alcança curva máxima a 62% do raio em vez de 72%; preserves joystick a pé, frenagem, NPC, pacotes e minimapa.
+- **Evidência:** CI em [43731798649](https://github.com/raff1play/BrejoAlegre-WebLab/actions/runs/43731798649) `success`: 157 testes unitários e 75 verificações E2E em Chromium com trânsito; teste físico da nova sensibilidade no Galaxy S24 ainda pendente.
+- **Gatilho intencional:** esta edição aciona `.github/workflows/preview.yml` e recompila a HEAD da `preview`. Só declarar publicação concluída após `Deploy preview` success e URL confirmada.
