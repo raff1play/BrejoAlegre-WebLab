@@ -364,7 +364,7 @@ async function fourCareers(browser){
   await page.reload({waitUntil:'domcontentloaded'});
  }
  await page.waitForSelector('#main-menu:not([hidden]) .career-card',{timeout:120000});
- const cards=await page.locator('.career-card').evaluateAll(es=>es.map(e=>({id:e.dataset.career,text:e.innerText,svg:e.querySelector('svg')?.dataset.figure,kit:e.querySelector('svg')?.dataset.equipment})));
+ const cards=await page.locator('.career-card').evaluateAll(es=>es.map(e=>({id:e.dataset.career,text:e.innerText,svg:e.querySelector('svg')?.dataset.figure,kit:e.querySelector('svg')?.dataset.kit})));
  check('B1-01 F3.5: after the four careers the menu reads back each one\'s own presets, vehicle and saved checkpoint',plan.every((c,i)=>cards[i].id===c.id&&cards[i].svg===c.appearance&&cards[i].kit===c.equipment&&cards[i].text.includes(c.vehicle==='moto-antiga'?'Moto antiga (próprio)':'Carro popular antigo (próprio)')&&/checkpoint \d+/.test(cards[i].text)&&/Saldo R\$ 0,00/.test(cards[i].text)),cards);
  // Second entry into a career with a vehicle: no vehicle dialog, vehicle unchanged.
  await page.locator('.career-card[data-career="personagem-leste"]').tap();

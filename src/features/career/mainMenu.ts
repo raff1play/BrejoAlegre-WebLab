@@ -27,7 +27,7 @@ const el = <K extends keyof HTMLElementTagNameMap>(doc: Document, tag: K, cls?: 
 export function avatarSvg(appearance: AppearancePreset, equipment: EquipmentPresetId): string {
   const l = careerLook(appearance, equipment); const fem = appearance === 'feminino';
   const torso = l.vest ?? l.jacket; const sw = fem ? 30 : 36; const hip = fem ? 30 : 27;
-  return `<svg viewBox="0 0 80 120" role="img" aria-label="${APPEARANCE_LABEL[appearance]}, ${EQUIPMENT_PRESETS.find((e) => e.id === equipment)!.label}" data-figure="${appearance}" data-equipment="${equipment}">`
+  return `<svg viewBox="0 0 80 120" role="img" aria-label="${APPEARANCE_LABEL[appearance]}, ${EQUIPMENT_PRESETS.find((e) => e.id === equipment)!.label}" data-figure="${appearance}" data-kit="${equipment}">`
     + (fem ? `<path d="M40 18 q16 6 10 34 q-4 -6 -10 -8 z" fill="${l.hair ?? '#3b2618'}" data-part="rabo"/>` : '')
     + `<rect x="${40 - hip / 2}" y="70" width="${hip}" height="12" rx="5" fill="${l.jeans}"/>`
     + `<rect x="${40 - hip / 2 + 2}" y="80" width="10" height="34" rx="4" fill="${l.jeans}"/><rect x="${40 + hip / 2 - 12}" y="80" width="10" height="34" rx="4" fill="${l.jeans}"/>`
