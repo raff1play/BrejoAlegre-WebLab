@@ -115,3 +115,13 @@ Em **Build and deployment > Source**, selecionar **GitHub Actions** e salvar. En
 - **Browser/E2E:** o roteiro `tests/e2e/play.cjs` e capturas `docs/evidence/core015-1/` foram inspecionados. **84/84** consta na documentação do implementador, porém o log `docs/evidence/core015-1/e2e/e2e-core015-1.log` mencionado ali **não consta no GitHub** e esse E2E não integra a CI. Não declarar confirmação independente desse número.
 - **Pendências não bloqueantes do preview:** pequeno trecho de calçada sobreposta próximo de (−410, 9), NPCs de clientes atravessam expositor e possível câmera externa durante abertura da porta de loja. Baú abre, mas não mostra os pacotes dentro. Dirigibilidade, FPS e temperatura no Galaxy S24 físico não foram validados. A versão permanece experimental.
 - **Escopo:** nenhum código da CORE-016, PWA ou piloto Patch.gg reintegrado. Publicação ocorre no Pages único; `main` permanece no commit inicial. A edição **deste arquivo** é o gatilho autorizado; a publicação só está concluída depois de `Deploy preview` marcar `success`.
+
+## LOG-004 — preview autorizado em 15/11/2026
+
+- **Autorização explícita neste chat:** usuário pediu "Consegue publicar?" após a auditoria da implementação LOG-004.
+- **Escopo:** publicar somente no GitHub Pages de testes, a partir de `preview`, preservando `main` e sem promover a produção.
+- **Versão candidata de código:** `f509671877bb4e1d95aae8213fd2e9c21cf4604b` da branch `feat/art-001-primeira-loja-moto`, fast-forward incorporado à `preview`.
+- **Verificações de código:** GitHub Actions CI `43667415798` success; 142/142 testes unitários, validação do repositório, TypeScript e build staging aprovados.
+- **Incluído:** calendário semanal, três funcionários extras, motoboys auxiliando a triagem, ajuste de velocidade e monitoramento de retorno até 14h20, metas de separação por demanda.
+- **Limitações:** sem validação em Galaxy S24 físico e sem teste da jornada completa com tráfego ambiente; horário de chegada dos NPCs não é garantido sob bloqueio, apenas monitorado. Publicação experimental, não homologação da produção.
+- **Disparo de deploy:** esta alteração documental aciona exclusivamente `.github/workflows/preview.yml`; só considerar publicado após `Deploy preview` com resultado `success` e verificação do endereço do Pages.
