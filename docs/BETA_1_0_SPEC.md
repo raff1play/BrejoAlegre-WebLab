@@ -3,7 +3,7 @@
 
 **Status:** especificação de produto para implementação futura; NÃO implementado nem homologado.  
 **Data:** 15/11/2026.  
-**Base técnica:** Web Lab Babylon.js / TypeScript / Vite; baseline LOG-006 consolidada no Git.  
+**Base técnica:** Web Lab Babylon.js / TypeScript / Vite; atualizações HUD-001/CTRL-001/MAP-001 e CTRL-002 integradas à `preview`; `main` permanece como baseline separada.  
 **Pré-requisito já publicado para teste:** HUD-001 + CTRL-001 + MAP-001 (PR #8) e calibração de direção CTRL-002 (PR #9) na `preview`; ergonomia e desempenho reais continuam sujeitos à avaliação do usuário. A Beta 1.0 não foi implementada.  
 **Cuidado:** este documento não altera gameplay, não publica o site e não revoga o histórico da branch archive/2026-11-15-log006-published.
 
@@ -45,6 +45,24 @@ A Beta 1.0 está definida por um **ciclo diário completo, repetível e divertid
 
 
 
+### Mapa dos nove módulos (sequência oficial)
+
+**B1-00 é preparação de automação e aprovação, não um décimo módulo de jogabilidade.** O objetivo é permitir que cada um dos nove módulos seja implementado, testado, publicado para avaliação e, só com aprovação, liberado para o próximo. **O B1-00 ainda não foi implementado**; o deploy atual depende de autorização explícita e atualização intencional do arquivo-gatilho.
+
+| Ordem oficial | Nome simples | O que será construído | Como o usuário verifica |
+|---|---|---|---|
+| **B1-01** | Personagens e carreiras | Escolher entre quatro carreiras, personalizar avatar, salvar progresso sem misturar perfis | Trocar entre quatro perfis e retornar sem alterar dinheiro, inventário ou data dos outros |
+| **B1-02** | Casas e começo do dia | Quatro casas funcionais; vestir equipamento, sair às 11h30 e chegar à moto | Sair da própria casa às 11h30 e poder retornar sem colisões nem bloqueios |
+| **B1-03** | Lojas e distribuição de coletas | Expandir para 12 lojas, 3 por setor, com coletas por proximidade e equilíbrio | 12 lojas alcançáveis, cargas equilibradas e retorno planejado à base |
+| **B1-04** | Trânsito e corredor de motos | Moto do jogador e motoboys NPCs passando entre carros quando houver espaço | Ultrapassagens sem atravessar veículos e sem espera circular permanente |
+| **B1-05** | Pacotes e capacidade da moto | Caixas de tamanhos diferentes, transporte nas mãos e arrumação no baú/alforjes | Volume, posição e posse preservados, mesmo após recarregar o jogo |
+| **B1-06** | Base e separação de encomendas | Postos de trabalho, funcionários, descarga e triagem sem NPCs sobrepostos | Operação com demanda alta sem funcionários presos ou pacotes duplicados |
+| **B1-07** | Entregas e escolhas do jogador | Campainha, morador, vizinho, local autorizado, tentativa e ação arriscada | Cada escolha mantém localização e estado correto da encomenda |
+| **B1-08** | Sons, animações e humor | Movimentos expressivos, som da rua, moto, campainha e respostas dos moradores | Entrega audiovisual completa com áudio sincronizado e fluidez no Android |
+| **B1-09** | Fim de expediente e próximo dia | Retornar para casa, resumo de ganhos, pendências e avançar calendário | Terminar e repetir um dia inteiro sem perder saves e sem progresso cruzado |
+
+**Política de aceitação proposta:** implementar numa `feat/beta1-XX-...` baseada na `preview` aprovada; abrir PR para `preview`; CI/E2E verdes; integrar e publicar demonstração após gates configurados; registrar `AGUARDANDO APROVAÇÃO`; correção do mesmo módulo se reprovado; avançar só com aprovação explícita. Sem publicação automatizada antes do B1-00 ser aprovado e configurado. `main` só com autorização separada.
+
 ## 1. Situação atual vs. alvo Beta 1.0
 
 | Área | Base conhecida LOG-006 | Meta Beta 1.0 |
@@ -67,10 +85,10 @@ A Beta 1.0 está definida por um **ciclo diário completo, repetível e divertid
 
 ---
 
-## 2. Módulo B1-01 — Quatro personagens e carreiras independentes
+## 2. Módulo B1-01 — Personagens e carreiras
 
 **CONFIRMADO:**
-- Quatro personagens jogáveis, cada um com sua casa, veículo, setor e coletas.
+- Quatro personagens jogáveis, cada um com sua casa, veículo, setor e coletas. A opção já definida para o começo da carreira é ter **moto antiga ou carro popular antigo próprio e quitado**; detalhes de distribuição entre os quatro perfis continuam pendentes.
 - Quatro carreiras individuais, não uma carreira compartilhada.
 
 **PROPOSTO:**
@@ -83,7 +101,7 @@ A Beta 1.0 está definida por um **ciclo diário completo, repetível e divertid
 
 **Teste de aceite:** criar quatro perfis, concluir um dia no perfil A, trocar para B e retornar a A sem misturar dinheiro, volumes, casa, calendário ou progresso.
 
-## 3. Módulo B1-02 — Quatro casas e rotina das 11h30
+## 3. Módulo B1-02 — Casas e começo do dia
 
 **CONFIRMADO:** jornada começa às **11h30 na casa do personagem**; ele pega jaqueta, capacete, vai à moto, visita lojas, base e entregas, depois retorna a casa. Casa simples, funcional.
 
@@ -102,7 +120,7 @@ A Beta 1.0 está definida por um **ciclo diário completo, repetível e divertid
 
 **Teste de aceite:** cada um dos quatro personagens nasce em sua residência às 11h30, equipa-se, alcança moto, sai pela rua sem clipping e consegue retornar ao mesmo local.
 
-## 4. Módulo B1-03 — Doze lojas e distribuição inteligente
+## 4. Módulo B1-03 — Lojas e distribuição de coletas
 
 **CONFIRMADO:** lojas espalhadas pela cidade, aproximadamente 12 no total, com 3 a 4 por região; coletas influenciadas pela distância da residência.
 
@@ -120,105 +138,7 @@ A Beta 1.0 está definida por um **ciclo diário completo, repetível e divertid
 
 **Teste de aceite:** doze lojas aparecem nas rotas/3D, são alcançáveis e têm coleta válida; várias seeds/dias mantêm cargas equilibradas sem atrasos sistemáticos.
 
-## 5. Módulo B1-04 — Pacotes físicos, mãos e acondicionamento
-
-**CONFIRMADO:** caixas de tamanhos diferentes; até **seis pacotes por vez** nas mãos; ver os volumes realmente organizados no baú. O que não couber pode ir a alforjes ou ser preso em suportes externos, inspirados em motos de entrega de São Paulo.
-
-**PROPOSTO:**
-- Classes físicas simples (envelope, pequeno, médio, grande, volumoso), cada item com largura, altura, profundidade, peso e ID único.
-- Seis pacotes = **limite máximo de quantidade**, condicionado à soma de peso/volume e à possibilidade visual de transportar o conjunto; seis envelopes cabem, seis caixas enormes não.
-- Capacidade baseada no espaço disponível, não só em quantidade de IDs.
-- Armazenamento por slots/volumes tridimensionais: baú, alforje esquerdo/direito e suportes externos permitidos.
-- Opção **Organizar automaticamente** como padrão; ajuste manual opcional e rápido; feedback simples quando faltar espaço.
-- Carga externa usa cintas e limites de dimensão, peso e estabilidade. Não representar arranjos perigosos como escolha ideal.
-- A tampa do baú abre, os pacotes têm posição visual coerente e sua ordem pode ser consultada. Não exigir organizar manualmente 50 caixas.
-- Nenhum pacote troca de estado duas vezes nem some: retirar, levar nas mãos, guardar, descarregar, triar, retirar a saca, entregar e devolver são eventos de custódia rastreáveis.
-
-**Nota técnica fundamental:** a entidade lógica do pacote permanece registrada mesmo quando seu modelo 3D é descarregado por distância. Ao retornar ao local, ele reaparece no último estado/posição persistidos.
-
-**Teste de aceite:** pacotes de tamanhos diferentes encaixam ou são recusados coerentemente, sem interpenetração, perda, duplicação ou carga acima da capacidade. Testar recarga da página e retorno a endereço.
-
-## 6. Módulo B1-05 — Base operacional sem NPCs sobrepostos
-
-**CONFIRMADO:** reorganizar funcionários da base para eliminar sobreposição e melhorar a rotina e o desempenho. Manter recebimento, conferência, triagem, quatro sacas e ajuda dos motoboys após descarga.
-
-**PROPOSTO:**
-- Estações com posições reserváveis: doca, fila de descarga, conferência, transferência, triagem por setor, armazenamento e expedição.
-- Cada funcionário reserva um posto antes de caminhar; dois NPCs não ocupam o mesmo slot.
-- Rotas com corredores de circulação, pontos de espera e prioridade, evitando cruzamento desnecessário.
-- Se o caminho bloquear, replanejar ou ceder passagem; detectar travamento por tempo sem progresso e registrar diagnóstico. **Não teletransportar pacotes** para mascarar o bug.
-- Animação detalhada apenas para NPCs próximos; longe da câmera, a lógica de tarefas continua e o visual usa simplificação.
-- Preservar dez funcionários de base e ajuda dos entregadores após a descarga até que uma revisão explícita ajuste o quadro.
-- Metas operacionais: chegada ideal 14h, tolerância 14h20, separação 15h normal / até 16h alta demanda; não declarar metas automaticamente cumpridas se houve bloqueio.
-
-**Teste de aceite:** operações com demandas fraca, média e alta terminam com funcionários em postos válidos, sem sobreposição persistente nem pacotes teletransportados; logs mostram bloqueios e recuperações.
-
-## 7. Módulo B1-06 — Entregas contextuais, escolhas e consequências
-
-**CONFIRMADO:** descer da moto, pegar pacote, caminhar ao endereço, tocar campainha, aguardar morador ou escolher alternativa: vizinho, porta, caixa de correio, arremesso sobre muro ou não entregar. Pacote não pode desaparecer da cena.
-
-**Fluxo preferencial:**
-1. Estacionar e desmontar; abrir baú e selecionar **pacote do endereço correto**.
-2. Caminhar até portão/caixa/entrada; destacar elemento interativo válido.
-3. **Toque curto:** ação principal contextual (por padrão tocar campainha; depois entregar ao morador se disponível).
-4. **Botão secundário:** abrir ações alternativas em lista curta; menu não interrompe o jogo desnecessariamente.
-5. Evento de resposta: morador aparece, demora, recusa ou ninguém atende; variações rápidas e com humor.
-6. Confirmação do destino físico e do status, com recibo/evento de jornada.
-
-| Ação | Resultado proposto |
-|---|---|
-| Entregar ao destinatário | Animação de transferência + comprovante + status entregue |
-| Entregar ao vizinho/porteiro autorizado | Identificar recebedor, destino e status entregue |
-| Deixar em local autorizado | Pacote permanece fisicamente no local; status conforme autorização |
-| Caixa de correio | Disponível apenas se o pacote couber e a entrega for permitida |
-| Jogar por cima do muro | Minijogo arcade opcional com trajetória e risco de dano/reclamação; **não validar automaticamente como entregue** |
-| Desistir/ninguém atende | Tentativa registrada; pacote continua com o motoboy até devolução/procedimento válido |
-
-**PROPOSTO:** espera do morador normalmente entre 2–6 segundos reais e apenas ocasionalmente maior, para não tornar 50 entregas repetitivas. Mostrar opções situacionais, não cinco alternativas obrigatórias a cada endereço.
-
-**Estados mínimos:** aguardando entrega, em mãos, entregue ao destinatário, entregue a terceiro autorizado, depositado com autorização, tentativa frustrada, danificado, extraviado/ocorrência, devolução pendente e devolvido. Cada transição precisa ter quem, onde, quando e motivo, com validação de duplicidade.
-
-**Persistência física:** pacote abandonado/depositado tem ID e coordenadas do mundo; se sair da área de renderização, a posição continua salva. Transferência para o NPC recebedor pode terminar com o pacote armazenado no interior, mantendo o evento de posse, sem sumiço arbitrário.
-
-**Teste de aceite:** todas as alternativas alteram exatamente uma vez estado/custódia e localização; reabrir o jogo não devolve pacotes já concluídos nem apaga os deixados no cenário.
-
-## 8. Módulo B1-07 — Áudio, animações e humor
-
-**Direção:** humor de bairro brasileiro e respostas visuais curtas; evitar gritos/falas repetidos a cada entrega.
-
-**Aproveitar o que já existe:** personagens com animações procedurais e IK para ficar parado, caminhar, carregar e estender pacote; moto já tem inclinação, montagem e tampa do baú. Não refazer o rig sem necessidade.
-
-**Novas animações prioritárias:**
-- Pegar/vestir jaqueta e capacete, guardar equipamento e abrir portão de casa.
-- Estacionar, descer, destravar e abrir/fechar baú; retirar e acomodar caixas de dimensões variáveis.
-- Apertar campainha, aguardar, acenar, reagir a cachorro, morador caminhar/abrir portão, transferência das mãos.
-- Vizinho aceitar/recusar, deixar objeto na porta/caixa, arremesso arcade com queda/impacto.
-- Base: fila, transporte de caixa, conferência e separação sem dois corpos ocuparem o mesmo espaço.
-
-**Sons prioritários:** moto (partida/rotação/aceleração/desligamento), passos, capacete/fecho, baú, papelão, leitura/bip, campainha, portão, porta, cachorro, rua, fala curta, entrega confirmada e ocorrência engraçada.
-
-**Implementação proposta:**
-- Eventos de domínio separados dos efeitos: o mesmo evento pode acionar animação, som, legenda e feedback HUD; ausência de áudio/animação **não altera o pacote**.
-- Sons sincronizados a marcos da animação (ex.: som da campainha no contato do dedo); volumes por categoria (motor, ambiente, vozes, efeitos, interface), mute e legendas.
-- Usar áudio espacial apenas quando útil; limitar vozes simultâneas, reduzir detalhe com distância e liberar áudio após gesto do usuário no navegador móvel.
-- Preferir sons originais ou CC0; registrar fonte, autor, licença, edição e tamanho em public/assets/ASSET_MANIFEST.md. Verificar licenças individuais; não copiar vozes, músicas, logos ou efeitos de jogos/plataformas comerciais.
-- Toda fala em PT-BR pode ter texto de apoio. Situações cômicas devem ser variadas, mas não interromper o fluxo repetidamente.
-
-**Primeira prova audiovisual:** uma casa + uma loja + uma residência de entrega com moto, campainha, morador, transferência e retorno, antes de espalhar efeitos por toda a cidade.
-
-## 9. Módulo B1-08 — Encerramento do dia e progressão
-
-**CONFIRMADO:** cada entregador termina o trabalho, volta à sua própria casa e pode iniciar o expediente do próximo dia; quatro carreiras são independentes.
-
-**PROPOSTO:**
-- Ao terminar as entregas, objetivo vira **Voltar para casa**; moto/portão/área da garagem reconhecem chegada.
-- Após concluírem suas rotas (ou encerrarem suas tentativas), os três NPCs retornam às casas individuais pelos trajetos da rua; registrar estado e hora de chegada. Falhas de caminho precisam de recuperação segura, não desaparecimento visual que simule chegada.
-- Se não concluir tudo até 21h, pode parar, registrar não entregues e retornar: **não prender o jogador no expediente**. O horário de entrega termina às 21h; definir explicitamente se o relógio continua durante retorno após esse limite (PENDENTE).
-- Na casa aparece resumo: recolhidos, entregues, tentativas, devoluções, reclamações, bônus e ganhos da jornada, tempo, reputação.
-- Salvar checkpoint e avançar para o próximo dia útil da carreira atual. Recarregar os quatro perfis sem contaminação.
-- Economia inicial deve refletir decisões existentes e remuneração por volume sem duplicidade, mas financiamento, oficina, compra avançada de veículos e expansão de garagem são **fora do escopo central** desta Beta, a menos que sejam solicitados.
-
-## 10. Módulo B1-09 — Corredor de motos e trânsito fluido
+## 5. Módulo B1-04 — Trânsito e corredor de motos
 
 **CONFIRMADO pelo usuário:** motos devem conseguir passar pelo corredor entre carros, como na rotina urbana de São Paulo. Trânsito comum de automóveis **não deve deixar motoboys presos indefinidamente**. Esta funcionalidade integra a **Beta 1.0**, não é pedido para alterar agora a versão pública.
 
@@ -247,7 +167,7 @@ O jogo já tem grafo de ruas e faixas em `src/core/city/roadGraph.ts`, veículos
 
 **PENDENTE de calibração, não decisão de conceito:** folga lateral mínima, velocidade máxima no corredor, tolerância de desvio e tempo de reavaliação. Valores devem ser definidos com observação da geometria atual e testes no Galaxy S24, não inventados como regra legal.
 
-### Critérios de aceitação B1-09
+### Critérios de aceitação B1-04
 
 - Dois carros lentos/parados com corredor realmente livre: um motoboy NPC ultrapassa fisicamente, sem colisão, sem atravessar volumes e sem travar a circulação dos carros.
 - Fila de vários veículos, com duas motos: ambas encontram passagem, negociam precedência e retomam a rota sem sobreposição.
@@ -257,7 +177,105 @@ O jogo já tem grafo de ruas e faixas em `src/core/city/roadGraph.ts`, veículos
 - Diferentes demandas, dias e densidades de tráfego: NPCs seguem progredindo na rota e alcançam a base sem esperas circulares permanentes; metas 14h/14h20 são monitoradas, **não garantidas por teleporte**.
 - Testes unitários determinísticos + browser E2E com tráfego ligado + teste manual Android registrando fluidez, colisões, FPS e comportamento de motoboys.
 
-**Ordem recomendada de implementação:** executar B1-09 **após B1-03 (novas lojas e rotas)** e antes de consolidar B1-05 (base), porque a circulação das motos influencia a chegada às lojas, o prazo de 14h20 e o retorno para casa.
+**Ordem recomendada de implementação:** executar B1-04 **após B1-03 (novas lojas e rotas)** e antes de consolidar B1-06 (base), porque a circulação das motos influencia a chegada às lojas, o prazo de 14h20 e o retorno para casa.
+
+## 6. Módulo B1-05 — Pacotes e capacidade da moto
+
+**CONFIRMADO:** caixas de tamanhos diferentes; até **seis pacotes por vez** nas mãos; ver os volumes realmente organizados no baú. O que não couber pode ir a alforjes ou ser preso em suportes externos, inspirados em motos de entrega de São Paulo.
+
+**PROPOSTO:**
+- Classes físicas simples (envelope, pequeno, médio, grande, volumoso), cada item com largura, altura, profundidade, peso e ID único.
+- Seis pacotes = **limite máximo de quantidade**, condicionado à soma de peso/volume e à possibilidade visual de transportar o conjunto; seis envelopes cabem, seis caixas enormes não.
+- Capacidade baseada no espaço disponível, não só em quantidade de IDs.
+- Armazenamento por slots/volumes tridimensionais: baú, alforje esquerdo/direito e suportes externos permitidos.
+- Opção **Organizar automaticamente** como padrão; ajuste manual opcional e rápido; feedback simples quando faltar espaço.
+- Carga externa usa cintas e limites de dimensão, peso e estabilidade. Não representar arranjos perigosos como escolha ideal.
+- A tampa do baú abre, os pacotes têm posição visual coerente e sua ordem pode ser consultada. Não exigir organizar manualmente 50 caixas.
+- Nenhum pacote troca de estado duas vezes nem some: retirar, levar nas mãos, guardar, descarregar, triar, retirar a saca, entregar e devolver são eventos de custódia rastreáveis.
+
+**Nota técnica fundamental:** a entidade lógica do pacote permanece registrada mesmo quando seu modelo 3D é descarregado por distância. Ao retornar ao local, ele reaparece no último estado/posição persistidos.
+
+**Teste de aceite:** pacotes de tamanhos diferentes encaixam ou são recusados coerentemente, sem interpenetração, perda, duplicação ou carga acima da capacidade. Testar recarga da página e retorno a endereço.
+
+## 7. Módulo B1-06 — Base e separação de encomendas
+
+**CONFIRMADO:** reorganizar funcionários da base para eliminar sobreposição e melhorar a rotina e o desempenho. Manter recebimento, conferência, triagem, quatro sacas e ajuda dos motoboys após descarga.
+
+**PROPOSTO:**
+- Estações com posições reserváveis: doca, fila de descarga, conferência, transferência, triagem por setor, armazenamento e expedição.
+- Cada funcionário reserva um posto antes de caminhar; dois NPCs não ocupam o mesmo slot.
+- Rotas com corredores de circulação, pontos de espera e prioridade, evitando cruzamento desnecessário.
+- Se o caminho bloquear, replanejar ou ceder passagem; detectar travamento por tempo sem progresso e registrar diagnóstico. **Não teletransportar pacotes** para mascarar o bug.
+- Animação detalhada apenas para NPCs próximos; longe da câmera, a lógica de tarefas continua e o visual usa simplificação.
+- Preservar dez funcionários de base e ajuda dos entregadores após a descarga até que uma revisão explícita ajuste o quadro.
+- Metas operacionais: chegada ideal 14h, tolerância 14h20, separação 15h normal / até 16h alta demanda; não declarar metas automaticamente cumpridas se houve bloqueio.
+
+**Teste de aceite:** operações com demandas fraca, média e alta terminam com funcionários em postos válidos, sem sobreposição persistente nem pacotes teletransportados; logs mostram bloqueios e recuperações.
+
+## 8. Módulo B1-07 — Entregas e escolhas do jogador
+
+**CONFIRMADO:** descer da moto, pegar pacote, caminhar ao endereço, tocar campainha, aguardar morador ou escolher alternativa: vizinho, porta, caixa de correio, arremesso sobre muro ou não entregar. Pacote não pode desaparecer da cena.
+
+**Fluxo preferencial:**
+1. Estacionar e desmontar; abrir baú e selecionar **pacote do endereço correto**.
+2. Caminhar até portão/caixa/entrada; destacar elemento interativo válido.
+3. **Toque curto:** ação principal contextual (por padrão tocar campainha; depois entregar ao morador se disponível).
+4. **Botão secundário:** abrir ações alternativas em lista curta; menu não interrompe o jogo desnecessariamente.
+5. Evento de resposta: morador aparece, demora, recusa ou ninguém atende; variações rápidas e com humor.
+6. Confirmação do destino físico e do status, com recibo/evento de jornada.
+
+| Ação | Resultado proposto |
+|---|---|
+| Entregar ao destinatário | Animação de transferência + comprovante + status entregue |
+| Entregar ao vizinho/porteiro autorizado | Identificar recebedor, destino e status entregue |
+| Deixar em local autorizado | Pacote permanece fisicamente no local; status conforme autorização |
+| Caixa de correio | Disponível apenas se o pacote couber e a entrega for permitida |
+| Jogar por cima do muro | Minijogo arcade opcional com trajetória e risco de dano/reclamação; **não validar automaticamente como entregue** |
+| Desistir/ninguém atende | Tentativa registrada; pacote continua com o motoboy até devolução/procedimento válido |
+
+**PROPOSTO:** espera do morador normalmente entre 2–6 segundos reais e apenas ocasionalmente maior, para não tornar 50 entregas repetitivas. Mostrar opções situacionais, não cinco alternativas obrigatórias a cada endereço.
+
+**Estados mínimos:** aguardando entrega, em mãos, entregue ao destinatário, entregue a terceiro autorizado, depositado com autorização, tentativa frustrada, danificado, extraviado/ocorrência, devolução pendente e devolvido. Cada transição precisa ter quem, onde, quando e motivo, com validação de duplicidade.
+
+**Persistência física:** pacote abandonado/depositado tem ID e coordenadas do mundo; se sair da área de renderização, a posição continua salva. Transferência para o NPC recebedor pode terminar com o pacote armazenado no interior, mantendo o evento de posse, sem sumiço arbitrário.
+
+**Teste de aceite:** todas as alternativas alteram exatamente uma vez estado/custódia e localização; reabrir o jogo não devolve pacotes já concluídos nem apaga os deixados no cenário.
+
+## 9. Módulo B1-08 — Sons, animações e humor
+
+**Direção:** humor de bairro brasileiro e respostas visuais curtas; evitar gritos/falas repetidos a cada entrega.
+
+**Aproveitar o que já existe:** personagens com animações procedurais e IK para ficar parado, caminhar, carregar e estender pacote; moto já tem inclinação, montagem e tampa do baú. Não refazer o rig sem necessidade.
+
+**Novas animações prioritárias:**
+- Pegar/vestir jaqueta e capacete, guardar equipamento e abrir portão de casa.
+- Estacionar, descer, destravar e abrir/fechar baú; retirar e acomodar caixas de dimensões variáveis.
+- Apertar campainha, aguardar, acenar, reagir a cachorro, morador caminhar/abrir portão, transferência das mãos.
+- Vizinho aceitar/recusar, deixar objeto na porta/caixa, arremesso arcade com queda/impacto.
+- Base: fila, transporte de caixa, conferência e separação sem dois corpos ocuparem o mesmo espaço.
+
+**Sons prioritários:** moto (partida/rotação/aceleração/desligamento), passos, capacete/fecho, baú, papelão, leitura/bip, campainha, portão, porta, cachorro, rua, fala curta, entrega confirmada e ocorrência engraçada.
+
+**Implementação proposta:**
+- Eventos de domínio separados dos efeitos: o mesmo evento pode acionar animação, som, legenda e feedback HUD; ausência de áudio/animação **não altera o pacote**.
+- Sons sincronizados a marcos da animação (ex.: som da campainha no contato do dedo); volumes por categoria (motor, ambiente, vozes, efeitos, interface), mute e legendas.
+- Usar áudio espacial apenas quando útil; limitar vozes simultâneas, reduzir detalhe com distância e liberar áudio após gesto do usuário no navegador móvel.
+- Preferir sons originais ou CC0; registrar fonte, autor, licença, edição e tamanho em public/assets/ASSET_MANIFEST.md. Verificar licenças individuais; não copiar vozes, músicas, logos ou efeitos de jogos/plataformas comerciais.
+- Toda fala em PT-BR pode ter texto de apoio. Situações cômicas devem ser variadas, mas não interromper o fluxo repetidamente.
+
+**Primeira prova audiovisual:** uma casa + uma loja + uma residência de entrega com moto, campainha, morador, transferência e retorno, antes de espalhar efeitos por toda a cidade.
+
+## 10. Módulo B1-09 — Fim de expediente e próximo dia
+
+**CONFIRMADO:** cada entregador termina o trabalho, volta à sua própria casa e pode iniciar o expediente do próximo dia; quatro carreiras são independentes.
+
+**PROPOSTO:**
+- Ao terminar as entregas, objetivo vira **Voltar para casa**; moto/portão/área da garagem reconhecem chegada.
+- Após concluírem suas rotas (ou encerrarem suas tentativas), os três NPCs retornam às casas individuais pelos trajetos da rua; registrar estado e hora de chegada. Falhas de caminho precisam de recuperação segura, não desaparecimento visual que simule chegada.
+- Se não concluir tudo até 21h, pode parar, registrar não entregues e retornar: **não prender o jogador no expediente**. O horário de entrega termina às 21h; definir explicitamente se o relógio continua durante retorno após esse limite (PENDENTE).
+- Na casa aparece resumo: recolhidos, entregues, tentativas, devoluções, reclamações, bônus e ganhos da jornada, tempo, reputação.
+- Salvar checkpoint e avançar para o próximo dia útil da carreira atual. Recarregar os quatro perfis sem contaminação.
+- Economia inicial deve refletir decisões existentes e remuneração por volume sem duplicidade, mas financiamento, oficina, compra avançada de veículos e expansão de garagem são **fora do escopo central** desta Beta, a menos que sejam solicitados.
 
 ## 11. Contratos de engenharia e qualidade
 
@@ -287,22 +305,23 @@ Metas de teste e desempenho:
 
 ## 12. Blocos de implementação e dependências
 
-| Ordem | Entrega | Demonstração mínima e gate |
+| Sequência | Entrega | Demonstração mínima e gate |
 |---|---|---|
-| **Pré-beta** | Integrar/revisar HUD-001 + CTRL-001 + MAP-001 do Opus | PR, regressões de toque, minimapa, tráfego e confirmação de base |
-| **B1-01** | Quatro carreiras + perfil salvo | Criar/alternar/reabrir quatro saves sem cruzar dados |
-| **B1-02** | Quatro casas + partida 11h30 + retorno | Preparar, equipar, sair e voltar para a residência correta |
-| **B1-03** | 12 lojas + atribuição por proximidade | 3 por setor, rotas viáveis, distribuição equilibrada |
-| **B1-09** | Corredor para motos + prevenção de bloqueios por carros | NPCs e jogador passam por corredores fisicamente livres; filas inviáveis não viram teleporte |
-| **B1-04** | Tamanhos + mãos + baú/alforjes/suportes | Inventário físico de ponta a ponta sem perdas |
-| **B1-05** | NPCs na base e prevenção de sobreposição | Postos/fila/rotas e metas sob diferentes demandas |
-| **B1-06** | Campainha + moradores + decisões | Fluxos de entrega, alternativas e custódia auditáveis |
-| **B1-07** | Sons, animações e situações engraçadas | Uma entrega audiovisual completa, sem travamentos |
-| **B1-08** | Resumo, encerramento e próximo dia | Dia completo por quatro perfis e repetição sem regressão |
+| **Pré-requisito publicado** | HUD-001 + CTRL-001/MAP-001 e CTRL-002 | Preservar controles, tráfego, calendário e minimapa da `preview` atual |
+| **B1-00 (preparação)** | Orquestração, gates e aprovação por módulo | Fluxo aprovação/reprovação testado sem publicar nem alterar o jogo |
+| **B1-01** | Personagens e carreiras | Trocar entre quatro perfis e retornar sem alterar dinheiro, inventário ou data dos outros |
+| **B1-02** | Casas e começo do dia | Sair da própria casa às 11h30 e poder retornar sem colisões nem bloqueios |
+| **B1-03** | Lojas e distribuição de coletas | 12 lojas alcançáveis, cargas equilibradas e retorno planejado à base |
+| **B1-04** | Trânsito e corredor de motos | Ultrapassagens sem atravessar veículos e sem espera circular permanente |
+| **B1-05** | Pacotes e capacidade da moto | Volume, posição e posse preservados, mesmo após recarregar o jogo |
+| **B1-06** | Base e separação de encomendas | Operação com demanda alta sem funcionários presos ou pacotes duplicados |
+| **B1-07** | Entregas e escolhas do jogador | Cada escolha mantém localização e estado correto da encomenda |
+| **B1-08** | Sons, animações e humor | Entrega audiovisual completa com áudio sincronizado e fluidez no Android |
+| **B1-09** | Fim de expediente e próximo dia | Terminar e repetir um dia inteiro sem perder saves e sem progresso cruzado |
 
 **Estratégia transversal:** antes de construir todas as casas/lojas, provar um **slice vertical** com 1 personagem, 1 casa, 1 loja, 1 pacote, 1 cliente e retorno à casa. Depois ampliar para quatro personagens e doze lojas. Isso reduz retrabalho e permite testar o ciclo real.
 
-**Regra de entrega:** cada bloco começa com critérios e testes, usa branch de feature isolada, passa em CI/E2E, recebe revisão e só então integra à preview. Não publicar no Pages nem mesclar na main por consequência de outro pedido; cada publicação/estabilização exige decisão clara.
+**Regra de entrega:** cada bloco começa com critérios e testes, usa branch de feature isolada, passa em CI/E2E, recebe revisão e só então integra à `preview`. A publicação automática **ainda não existe**: o B1-00 deverá implantá-la com gates técnicos, mantendo aprovação humana obrigatória antes de liberar o próximo bloco. Até lá, cada deploy segue exigindo autorização explícita. Nunca publicar na `main` por consequência deste plano.
 
 ## 13. Critérios de conclusão da Beta 1.0
 
