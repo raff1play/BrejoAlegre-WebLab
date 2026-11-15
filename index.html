@@ -81,9 +81,18 @@
         <p class="about-text">Escolha o veículo próprio e quitado desta carreira. <strong>A escolha é permanente</strong> até existir garagem no jogo; cada carreira escolhe o seu.</p>
         <div class="pause-actions vehicle-options">
           <button type="button" data-vehicle="moto-antiga" class="primary">Moto antiga<small>ágil, baú traseiro</small></button>
-          <button type="button" data-vehicle="carro-antigo" class="primary">Carro popular antigo<small>porta-malas (em desenvolvimento)</small></button>
+          <button type="button" data-vehicle="carro-antigo" class="primary">Carro popular antigo<small>porta-malas com caixas · coleta pelo carro em desenvolvimento</small></button>
         </div>
       </div>
+    </div>
+    <div id="main-menu" class="main-menu" role="dialog" aria-modal="true" aria-labelledby="main-menu-title" hidden>
+      <header class="menu-header">
+        <h1 id="main-menu-title">Brejo Alegre <small>Escolha a carreira</small></h1>
+        <p class="menu-sub">Quatro entregadores, um setor e uma casa cada. Os outros três trabalham como colegas na cidade.</p>
+      </header>
+      <p id="menu-notice" class="menu-notice" role="alert" hidden></p>
+      <div id="career-cards" class="career-cards" aria-label="Carreiras"></div>
+      <div id="career-detail" class="career-detail" hidden></div>
     </div>
     <div id="fatal" class="fatal" role="alert" hidden></div>
     <div class="portrait-warning" role="group" aria-label="Iniciar jogo na horizontal">

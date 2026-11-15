@@ -1,8 +1,11 @@
 import { LogisticsPanel } from './features/hud/logisticsPanel';
 import { calendarDay,nextWorkday } from './core/delivery/operatingCalendar';
-import { bootCareer, chooseCareerVehicle, commitNextDay, type CareerBoot } from './core/career/careerBoot';
+import { commitNextDay, type CareerBoot } from './core/career/careerBoot';
+import { enterCareer, menuModel } from './core/career/careerMenu';
+import { runMainMenu } from './features/career/mainMenu';
+import { careerLook } from './features/career/characterPresets';
 import { browserStorage } from './core/career/careerStore';
-import { CHARACTERS, isVehicleKind, type VehicleKind } from './core/career/careers';
+import { isVehicleKind, type VehicleKind } from './core/career/careers';
 import { CAR, carFits, carToWorld, isCarStopped } from './core/carPhysics';
 import { PlayerCar } from './features/driving/playerCar';
 import { CarCargoView } from './features/driving/carCargo';
@@ -52,24 +55,27 @@ import { DeliveryGame, trunkSpot, type BikeSpot } from './features/delivery/deli
 type BrowserCareer = { career: CareerBoot; storage: ReturnType<typeof browserStorage>; vehicle: VehicleKind; note: string | null };
 
 /**
- * B1-01 F2: the active career is loaded BEFORE the world, because its own vehicle (decisions 5–6)
- * decides what is built. A career without a vehicle chooses it once (AC-03), and the choice is
- * checkpointed; `?veiculo=moto-antiga|carro-antigo` preselects it only in development/devtime.
+ * B1-01 F3.5: the main menu comes FIRST, before any engine, city, traffic or clock exists. Reading
+ * the four cards never writes; the chosen career is written once, on confirmation (presets and —
+ * only when none is saved — the one-time vehicle, decisions 5–6). The world is then built with
+ * the vehicle and the presets that are actually in that career's save.
+ * `?veiculo=moto-antiga|carro-antigo` still preselects the one-time vehicle, in development only.
  */
 async function bootBrowserCareer(): Promise<BrowserCareer> {
   const params = new URLSearchParams(window.location.search);
   const devTime = import.meta.env.DEV || params.get('devtime') === '1';
   const storage = browserStorage();
-  const career = bootCareer(storage.storage);
-  const owned = career.session.profile.vehicle?.kind ?? null;
-  if (owned) return { career, storage, vehicle: owned, note: null };
+  let entered: CareerBoot | null = null;
   const requested = params.get('veiculo');
-  const kind = devTime && isVehicleKind(requested) ? requested : await askVehicle(document, CHARACTERS[career.session.careerId].name);
-  try { chooseCareerVehicle(career.session, kind); return { career, storage, vehicle: kind, note: null }; }
-  catch (e) {
-    console.warn('[carreira] escolha de veículo não gravada:', (e as Error).message);
-    return { career, storage, vehicle: kind, note: 'Escolha de veículo não gravada: vale só nesta sessão' };
-  }
+  await runMainMenu(document, menuModel(storage.storage, storage.durable), {
+    askVehicle: (name) => (devTime && isVehicleKind(requested) ? Promise.resolve(requested) : askVehicle(document, name)),
+    enter: (careerId, choice) => { entered = enterCareer(storage.storage, careerId, choice); },
+  });
+  const career = entered as CareerBoot | null;
+  if (!career) throw new Error('Carreira não carregada');
+  const vehicle = career.session.profile.vehicle?.kind;
+  if (!vehicle) throw new Error('Carreira sem veículo gravado');
+  return { career, storage, vehicle, note: storage.durable ? null : 'Armazenamento indisponível: progresso desta sessão não será salvo' };
 }
 
 function start(canvas: HTMLCanvasElement, boot: BrowserCareer): void {
@@ -100,8 +106,10 @@ function start(canvas: HTMLCanvasElement, boot: BrowserCareer): void {
   const SPAWN = boot.vehicle === 'carro-antigo' ? carSpawn() : { x: bay.x, z: bay.z, yaw: depotYaw(0) };
 
   // B1-01 F2: only the career's own vehicle exists in the world (no spare motorcycle beside a car).
-  const moto = boot.vehicle === 'moto-antiga' ? new Motorcycle(scene, world.materials, PLAYER_LOOK, SPAWN.x, SPAWN.z, SPAWN.yaw, ground(SPAWN.x, SPAWN.z)) : null;
-  const car = moto ? null : new PlayerCar(scene, world.materials, SPAWN.x, SPAWN.z, SPAWN.yaw, ground(SPAWN.x, SPAWN.z));
+  // B1-01 F3.5: the career's saved presets dress the player on the bike, on foot and in the car.
+  const look = careerLook(boot.career.session.profile.appearance, boot.career.session.profile.equipment);
+  const moto = boot.vehicle === 'moto-antiga' ? new Motorcycle(scene, world.materials, PLAYER_LOOK, SPAWN.x, SPAWN.z, SPAWN.yaw, ground(SPAWN.x, SPAWN.z), { riderLook: look }) : null;
+  const car = moto ? null : new PlayerCar(scene, world.materials, SPAWN.x, SPAWN.z, SPAWN.yaw, ground(SPAWN.x, SPAWN.z), undefined, look);
   car?.setDriven(true);
   const vehicle: PlayerVehicle = moto ? motoVehicle(moto) : carVehicle(car!);
   // B1-01 F3: the car's boot works on the shared parcel list; its 3D boxes only mirror that list.
@@ -111,7 +119,7 @@ function start(canvas: HTMLCanvasElement, boot: BrowserCareer): void {
   const houses = new HouseStreamer(scene, world.materials, profile, profile.name === 'desktop' ? environment.shadows : null);
   houses.update(SPAWN.x, SPAWN.z, true);
 
-  const walker = new Pedestrian(scene, world.materials, PLAYER_LOOK.helmet);
+  const walker = new Pedestrian(scene, world.materials, look.helmet, look);
   for (const mesh of [...world.shadowCasters, ...vehicle.meshes,  ...walker.meshes]) {
     environment.shadows.addShadowCaster(mesh, false);
   }
@@ -525,7 +533,9 @@ function start(canvas: HTMLCanvasElement, boot: BrowserCareer): void {
         camera: { framing: rig.driveFraming, mode: rig.mode, alpha: rig.camera.alpha, beta: rig.camera.beta, radius: rig.camera.radius, target: rig.camera.target.asArray() },
         fadedBuildings: fader.fadedCount,
         clock: { label: clock.label, hour: clock.hour, workday: clock.isWorkday, night: lighting.night, devTime, speed: clock.speedFactor },
-        career: { id: career.session.careerId, sector: delivery.workday.playerSector, home: career.home.id, roster: { ...career.roster }, calendarIndex: career.session.profile.calendarIndex, checkpoint: career.session.save.checkpointSequence, durable: careerStorage.durable, source: career.session.loadSource },
+        /** B1-01 F3.5: presets saved in the career and the looks the player's 3D bodies were built with. */
+        avatar: { appearance: career.session.profile.appearance, equipment: career.session.profile.equipment, walker: { ...walker.body.look }, rider: moto?.rider ? { ...moto.rider.look } : null, driver: car ? { ...car.driver.look } : null },
+        career: { id: career.session.careerId, name: career.session.character.name, sector: delivery.workday.playerSector, home: career.home.id, roster: { ...career.roster }, calendarIndex: career.session.profile.calendarIndex, checkpoint: career.session.save.checkpointSequence, durable: careerStorage.durable, source: career.session.loadSource },
         delivery: {
           depot:{gateOpen:delivery.gateOpen,gateManual:delivery.gateManual,visibleIds:[...delivery.parcelViews.visibleIds],workers:delivery.workday.depot.workers.map(w=>({...w,task:w.task?{id:w.task.id,kind:w.task.kind,stage:w.task.stage}:null})),errors:[...delivery.workday.depot.errors]},
           phase: delivery.workday.phase,
