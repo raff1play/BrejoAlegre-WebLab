@@ -6,11 +6,12 @@ import type {ActorId} from './dailyDemand.ts';
 import {advance,move,type Parcel} from './parcels.ts';
 import type {LogisticsDay} from './logisticsDay.ts';
 type Point={x:number;z:number;yaw:number};
-export type CourierState='waiting'|'to-store'|'parking'|'walk-counter'|'pickup'|'walk-bike'|'stow'|'return-base'|'unload'|'walk-receiving'|'deposit'|'walk-parking'|'waiting-load'|'walk-dock'|'take-load'|'return-load'|'ready'|'to-address'|'park-address'|'take-parcel'|'walk-address'|'handoff'|'return-address'|'complete'|'blocked';
-export const COURIER_LABEL:Record<CourierState,string>={waiting:'aguardando coleta','to-store':'a caminho da loja',parking:'estacionando','walk-counter':'indo ao balcão',pickup:'retirando volumes','walk-bike':'voltando à moto',stow:'guardando no baú','return-base':'retornando à base',unload:'retirando do baú','walk-receiving':'levando ao recebimento',deposit:'descarregando','walk-parking':'voltando à vaga','waiting-load':'aguardando carga','walk-dock':'indo à doca','take-load':'retirando saca','return-load':'levando saca à moto',ready:'pronto para saída','to-address':'a caminho da entrega','park-address':'estacionando na entrega','take-parcel':'retirando encomenda','walk-address':'indo ao destinatário',handoff:'entregando','return-address':'voltando à moto',complete:'rota concluída',blocked:'acesso bloqueado'};
+export type CourierState='waiting'|'to-store'|'parking'|'walk-counter'|'pickup'|'walk-bike'|'stow'|'return-base'|'unload'|'walk-receiving'|'deposit'|'walk-parking'|'waiting-load'|'help-sort'|'walk-dock'|'take-load'|'return-load'|'ready'|'to-address'|'park-address'|'take-parcel'|'walk-address'|'handoff'|'return-address'|'complete'|'blocked';
+export const COURIER_LABEL:Record<CourierState,string>={waiting:'aguardando coleta','to-store':'a caminho da loja',parking:'estacionando','walk-counter':'indo ao balcão',pickup:'retirando volumes','walk-bike':'voltando à moto',stow:'guardando no baú','return-base':'retornando à base',unload:'retirando do baú','walk-receiving':'levando ao recebimento',deposit:'descarregando','walk-parking':'voltando à vaga','waiting-load':'aguardando carga','help-sort':'ajudando na triagem','walk-dock':'indo à doca','take-load':'retirando saca','return-load':'levando saca à moto',ready:'pronto para saída','to-address':'a caminho da entrega','park-address':'estacionando na entrega','take-parcel':'retirando encomenda','walk-address':'indo ao destinatário',handoff:'entregando','return-address':'voltando à moto',complete:'rota concluída',blocked:'acesso bloqueado'};
 export class Courier {
  readonly id:Exclude<ActorId,'jogador'>;readonly name:string;readonly sector:Sector;
- stores:StoreKind[]=[];storeIndex=0;state:CourierState='waiting';bike:Point;person:Point;route:CourierRoutePoint[]=[];private stopTimer=0;stops:string[]=[];timer=0;error:string|null=null;routeLog:{from:{x:number;z:number};to:{x:number;z:number};points:{x:number;z:number}[]}[]=[];
+ stores:StoreKind[]=[];storeIndex=0;state:CourierState='waiting';bike:Point;person:Point;route:CourierRoutePoint[]=[];private stopTimer=0;
+ readonly targetReturnHour=14;readonly latestReturnHour=14+20/60;returnedAt:number|null=null;deadlineReported=false;stops:string[]=[];timer=0;error:string|null=null;routeLog:{from:{x:number;z:number};to:{x:number;z:number};points:{x:number;z:number}[]}[]=[];
  constructor(id:Exclude<ActorId,'jogador'>,name:string,sector:Sector){this.id=id;this.name=name;this.sector=sector;this.bike={...depotWorld(COURIER_BAYS[id].x,COURIER_BAYS[id].z),yaw:depotYaw(0)};this.person={...this.bike};}
  get riding():boolean{return ['waiting','to-store','parking','return-base','ready','to-address','park-address','complete'].includes(this.state);}
  hands(day:LogisticsDay):Parcel[]{return day.parcels.filter(p=>p.holder===this.id&&p.place==='maos');}
@@ -27,7 +28,7 @@ export class Courier {
   else this.route=courierFootRoute(this.person,to,day.options.free??(()=>true));
  }
  private travel(dt:number,day:LogisticsDay,drive:boolean):boolean{
-  const p=drive?this.bike:this.person;let left=dt*(drive?8:1.65);
+  const p=drive?this.bike:this.person;let left=dt*(drive?9.4:2.05);
   while(left>0&&this.route.length){const next=this.route[0]!,dx=next.x-p.x,dz=next.z-p.z,d=Math.hypot(dx,dz),s=Math.min(d,left);
    const local=day.local({x:p.x+dx/(d||1)*s,z:p.z+dz/(d||1)*s});
    if(drive&&Math.abs(local.z+92.3)<2.2&&local.x>98&&local.x<114&&day.gateOpen<.95)return false;
@@ -41,27 +42,41 @@ export class Courier {
  update(day:LogisticsDay,hour:number,dt:number):void{
   if(hour>=21||this.state==='blocked'||this.state==='complete')return;
   this.timer+=dt;
+  if(hour>this.latestReturnHour&&this.returnedAt===null&&!this.deadlineReported){
+    this.deadlineReported=true;day.events.push(`${this.name}: atraso de coleta após 14h20 — verificar trânsito`);
+  }
   const state=(s:CourierState)=>{this.state=s;this.timer=0;};
   const current=this.stores[this.storeIndex],store=current?day.storeOf(current):null;
   const atBike=()=>({x:this.bike.x-Math.sin(this.bike.yaw)*1.25,z:this.bike.z-Math.cos(this.bike.yaw)*1.25});
   const dock=()=>depotWorld(SECTOR_DATA[this.sector].x,-116.7);
   try{switch(this.state){
-   case 'waiting':if(hour>=12&&store){this.drive(store.stop,true);state('to-store');}break;
+   case 'waiting':if(hour>=11&&store){this.drive(store.stop,true);state('to-store');}break;
    case 'to-store':if(this.travel(dt,day,true))state('parking');break;
-   case 'parking':if(this.timer>=1){this.person={...this.bike};this.walk(storeLayout(store!).pickup,day);state('walk-counter');}break;
+   case 'parking':if(this.timer>=.65){this.person={...this.bike};this.walk(storeLayout(store!).pickup,day);state('walk-counter');}break;
    case 'walk-counter':if(this.travel(dt,day,false))state('pickup');break;
-   case 'pickup':if(this.timer>=1.3){const list=day.readyAt(current!).slice(0,4-this.hands(day).length);for(const p of list){advance(p,'COLETADO',this.id,hour);move(p,'maos',this.id,hour);}this.walk(atBike(),day);state('walk-bike');}break;
+   case 'pickup':if(hour>=12&&this.timer>=.9){const list=day.readyAt(current!).slice(0,4-this.hands(day).length);for(const p of list){advance(p,'COLETADO',this.id,hour);move(p,'maos',this.id,hour);}this.walk(atBike(),day);state('walk-bike');}break;
    case 'walk-bike':if(this.travel(dt,day,false))state('stow');break;
-   case 'stow':if(this.timer>=1){for(const p of this.hands(day)){advance(p,'EM_TRANSPORTE',this.id,hour);move(p,'bau',this.id,hour);}
+   case 'stow':if(this.timer>=.65){for(const p of this.hands(day)){advance(p,'EM_TRANSPORTE',this.id,hour);move(p,'bau',this.id,hour);}
     if(day.readyAt(current!).length){this.walk(storeLayout(store!).pickup,day);state('walk-counter');}
     else if(++this.storeIndex<this.stores.length){this.drive(day.storeOf(this.stores[this.storeIndex]!).stop);state('to-store');}
     else{const bay=COURIER_BAYS[this.id];this.drive(depotWorld(bay.x,bay.z),false,true);state('return-base');}}break;
-   case 'return-base':if(this.travel(dt,day,true)){this.bike.yaw=depotYaw(0);this.person={...atBike(),yaw:this.bike.yaw};state('unload');}break;
-   case 'unload':if(this.timer>=1){const list=this.trunk(day).slice(0,4);if(!list.length){state('waiting-load');break;}for(const p of list)move(p,'maos',this.id,hour);this.walk(depotWorld(DEPOT_POINTS.receiving.x,DEPOT_POINTS.receiving.z),day,true);state('walk-receiving');}break;
+   case 'return-base':if(this.travel(dt,day,true)){this.returnedAt=hour;this.bike.yaw=depotYaw(0);this.person={...atBike(),yaw:this.bike.yaw};state('unload');}break;
+   case 'unload':if(this.timer>=.65){const list=this.trunk(day).slice(0,4);if(!list.length){state('help-sort');break;}for(const p of list)move(p,'maos',this.id,hour);this.walk(depotWorld(DEPOT_POINTS.receiving.x,DEPOT_POINTS.receiving.z),day,true);state('walk-receiving');}break;
    case 'walk-receiving':if(this.travel(dt,day,false))state('deposit');break;
-   case 'deposit':if(this.timer>=1){for(const p of this.hands(day))day.depot.receive(p,hour,day.parcels);if(this.hands(day).length)break;this.walk(atBike(),day,true);state('walk-parking');}break;
+   case 'deposit':if(this.timer>=.75){for(const p of this.hands(day))day.depot.receive(p,hour,day.parcels);if(this.hands(day).length)break;this.walk(atBike(),day,true);state('walk-parking');}break;
    case 'walk-parking':if(this.travel(dt,day,false))state('unload');break;
-   case 'waiting-load':if(day.canTakeLoad(this.id,hour)){this.walk(dock(),day,true);state('walk-dock');}break;
+   case 'waiting-load':case 'help-sort':{
+    // An assistant is one of the original couriers, not a duplicate NPC.
+    // Finish any in-flight package before leaving for the sector dock.
+    if(day.canTakeLoad(this.id,hour)&&day.depot.setAssistant(this.id,false)){
+      this.walk(dock(),day,true);state('walk-dock');break;
+    }
+    const at=day.local(this.person);day.depot.setAssistant(this.id,true,at);
+    const worker=day.depot.assistant(this.id),position=depotWorld(worker.x,worker.z);
+    this.person={...position,yaw:depotYaw(worker.yaw)};
+    if(this.state!=='help-sort')state('help-sort');
+    break;
+   }
    case 'walk-dock':if(this.travel(dt,day,false))state('take-load');break;
    case 'take-load':if(this.timer>=1&&day.takeLoad(this.id,hour,this.person)){this.walk(atBike(),day,true);state('return-load');}break;
    case 'return-load':if(this.travel(dt,day,false)){for(const p of this.hands(day))move(p,'bau',this.id,hour);state('ready');}break;
