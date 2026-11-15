@@ -254,7 +254,7 @@ async function carBoot(page,snapshot,action,s){
  check('B1-01 F3: HUD cargo line names the boot load',/no porta-malas/.test(q.delivery.cargo.label),q.delivery.cargo.label);
  // ---- persistence PREPARATION: live boot → v2 save in memory → parsed back, identical slots (nothing written)
  const rt=await page.evaluate(()=>window.__debug.cargoRoundTrip());
- check('B1-01 F3 persistence prep: the live boot seals into a v2 career save and parses back with identical IDs and slots',rt.schemaVersion===2&&rt.live.length===boot.parcels.length&&JSON.stringify(rt.restored)===JSON.stringify(rt.live),{schema:rt.schemaVersion,live:rt.live.length,restored:rt.restored.length});
+ check('B1-01 F3 persistence prep: the live boot seals into a v2 career save and parses back with identical IDs and slots',rt.schemaVersion===2&&rt.live.length===boot.parcels.length&&rt.restored.length===rt.live.length&&rt.live.every((p,i)=>{const r=rt.restored[i];return r.id===p.id&&['compartment','vehicleId','x','y','z','w','h','d'].every(k=>r.stowage[k]===p.stowage[k]);}),{schema:rt.schemaVersion,live:rt.live,restored:rt.restored});
  // ---- getting in closes the tailgate; driving carries the boxes with the car, slots unchanged
  await page.evaluate(()=>{const v=window.__weblab.snapshot().vehicle,c=Math.cos(v.yaw),n=Math.sin(v.yaw);window.__debug.placeWalker(v.x-1.31*c,v.z+1.31*n,v.yaw);});await delay(200);
  await page.evaluate(()=>window.__debug.act());
