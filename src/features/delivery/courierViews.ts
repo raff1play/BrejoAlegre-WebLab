@@ -28,7 +28,10 @@ export class CourierViews {
    a.bike.root.setEnabled(near);a.person.setEnabled(near&&!c.riding);if(!near)continue;
    Object.assign(a.bike.state,c.bike,{speed:c.riding&&c.route.length?8:0});a.bike.setRidden(c.riding);a.bike.setTrunkCargo(c.trunk(day).length);
    if(['stow','unload','take-parcel','return-load'].includes(c.state))a.bike.openTrunk();
-   a.bike.renderCourier(dt,ground(c.bike.x,c.bike.z));a.person.activity=c.hands(day).length?'carry':['pickup','deposit','handoff','take-load'].includes(c.state)?'give':'idle';
+   a.bike.renderCourier(dt,ground(c.bike.x,c.bike.z));
+   const assistant=day.depot.assistant(c.id);
+   a.person.activity=c.state==='help-sort'?(assistant.activity==='carry'?'carry':assistant.task?'give':'idle')
+    :c.hands(day).length?'carry':['pickup','deposit','handoff','take-load'].includes(c.state)?'give':'idle';
    if(!c.riding)a.person.follow(c.person.x,c.person.z,c.person.yaw,dt,ground(c.person.x,c.person.z));
   }
  }
