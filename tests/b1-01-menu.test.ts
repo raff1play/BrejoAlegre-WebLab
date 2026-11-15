@@ -134,3 +134,74 @@ test('B1-01 F3.5 AC-02: presets viram a aparência real do avatar (mesmo mapeame
   assert.notEqual(careerLook('masculino', 'kit-jaqueta').helmet, careerLook('masculino', 'kit-refletivo').helmet);
   for (const id of CAREER_IDS) assert.ok(CHARACTERS[id].defaultAppearance && CHARACTERS[id].defaultEquipment);
 });
+
+// ------------------------------------------------------------------ auditoria F3.5 (comentário 6903050464)
+
+/** Storage that refuses to write one key (disk full, quota, private mode…). */
+class FailingStorage extends MemoryStorage {
+  failKey: string | null = null;
+  override setItem(key: string, value: string): void {
+    if (key === this.failKey) throw new Error(`falha simulada ao gravar ${key}`);
+    super.setItem(key, value);
+  }
+}
+/** Oeste active and saved; Leste saved twice (main + previous copy, car chosen). */
+function oesteActiveLesteSaved(storage: MemoryStorage): void {
+  enterCareer(storage, 'personagem-leste', { appearance: 'masculino', equipment: 'kit-jaqueta', vehicle: 'carro-antigo' });
+  enterCareer(storage, 'personagem-leste', { appearance: 'feminino', equipment: 'kit-jaqueta', vehicle: null });
+  enterCareer(storage, 'personagem-oeste', { appearance: 'feminino', equipment: 'kit-jaqueta', vehicle: 'moto-antiga' });
+  assert.equal(storage.getItem(ACTIVE_CAREER_KEY), 'personagem-oeste');
+  assert.ok(storage.getItem(previousKey('personagem-leste')), 'Leste tem cópia anterior');
+}
+
+test('B1-01 F3.5 auditoria (a): veículo incompatível com o salvo falha SEM trocar a carreira ativa nem tocar em save algum', () => {
+  const storage = new MemoryStorage(); oesteActiveLesteSaved(storage);
+  const before = dump(storage);
+  assert.throws(() => enterCareer(storage, 'personagem-leste', { appearance: 'masculino', equipment: 'kit-refletivo', vehicle: 'moto-antiga' }), /permanece fixo/);
+  assert.deepEqual(dump(storage), before, 'carreira ativa, saves, cópias anteriores e calendário intactos');
+  assert.equal(storage.getItem(ACTIVE_CAREER_KEY), 'personagem-oeste');
+});
+
+test('B1-01 F3.5 auditoria (b): falha ao gravar o save de Leste não troca a carreira ativa nem altera saves/cópias anteriores', () => {
+  const storage = new FailingStorage(); oesteActiveLesteSaved(storage);
+  const before = dump(storage);
+  storage.failKey = saveKey('personagem-leste');
+  assert.throws(() => enterCareer(storage, 'personagem-leste', { appearance: 'masculino', equipment: 'kit-refletivo', vehicle: null }), /falha simulada/);
+  assert.deepEqual(dump(storage), before, 'nada mudou, inclusive a cópia anterior de Leste');
+  assert.equal(storage.getItem(ACTIVE_CAREER_KEY), 'personagem-oeste');
+  // Carreira nova (sem save) que não consegue ser gravada: também nada muda.
+  storage.failKey = saveKey('personagem-sul');
+  assert.throws(() => enterCareer(storage, 'personagem-sul', { appearance: 'masculino', equipment: 'kit-jaqueta', vehicle: 'moto-antiga' }), /falha simulada/);
+  assert.deepEqual(dump(storage), before);
+  // Depois que o armazenamento volta a funcionar, a mesma escolha entra normalmente.
+  storage.failKey = null;
+  const ok = enterCareer(storage, 'personagem-leste', { appearance: 'masculino', equipment: 'kit-refletivo', vehicle: null });
+  assert.equal(ok.session.careerId, 'personagem-leste'); assert.equal(storage.getItem(ACTIVE_CAREER_KEY), 'personagem-leste');
+  assert.equal(new CareerStore(storage).read('personagem-leste').save.profile.equipment, 'kit-refletivo');
+  assert.equal(new CareerStore(storage).read('personagem-leste').save.profile.vehicle!.kind, 'carro-antigo');
+  for (const id of ['personagem-oeste', 'personagem-norte', 'personagem-sul'] as const) {
+    assert.equal(storage.getItem(saveKey(id)), before[saveKey(id)] ?? null); assert.equal(storage.getItem(previousKey(id)), before[previousKey(id)] ?? null);
+  }
+});
+
+test('B1-01 F3.5 auditoria: calendário legado Oeste — falha de gravação não migra nem ativa; sucesso migra sem apagar a chave antiga', () => {
+  const storage = new FailingStorage(); storage.setItem(CALENDAR_STORAGE_KEY, '5');
+  const before = dump(storage);
+  storage.failKey = saveKey('personagem-oeste');
+  assert.throws(() => enterCareer(storage, 'personagem-oeste', { appearance: 'feminino', equipment: 'kit-jaqueta', vehicle: 'moto-antiga' }), /falha simulada/);
+  assert.deepEqual(dump(storage), before, 'só a chave legada continua lá, intacta');
+  storage.failKey = null;
+  const boot = enterCareer(storage, 'personagem-oeste', { appearance: 'feminino', equipment: 'kit-jaqueta', vehicle: 'moto-antiga' });
+  assert.equal(boot.calendarIndex, 5); assert.equal(storage.getItem(CALENDAR_STORAGE_KEY), '5');
+  assert.equal(storage.getItem(ACTIVE_CAREER_KEY), 'personagem-oeste');
+  assert.ok(boot.notes.some((n) => /legado/i.test(n)));
+});
+
+test('B1-01 F3.5 auditoria: falha ao gravar o apontador ativo depois do save deixa a carreira anterior ativa', () => {
+  const storage = new FailingStorage(); oesteActiveLesteSaved(storage);
+  storage.failKey = ACTIVE_CAREER_KEY;
+  assert.throws(() => enterCareer(storage, 'personagem-norte', { appearance: 'feminino', equipment: 'kit-jaqueta', vehicle: 'moto-antiga' }), /falha simulada/);
+  assert.equal(storage.getItem(ACTIVE_CAREER_KEY), 'personagem-oeste');
+  // O perfil de Norte pode ter sido gravado (dado válido da escolha), mas o jogo continua apontando para Oeste.
+  assert.equal(menuModel(storage).active, 'personagem-oeste');
+});
