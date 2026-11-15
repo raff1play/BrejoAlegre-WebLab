@@ -1,25 +1,28 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { VirtualClock, REAL_SECONDS_PER_VIRTUAL_HOUR, WORKDAY_END, WORKDAY_START, activityAt } from '../src/core/city/clock.ts';
+import { VirtualClock, REAL_SECONDS_PER_VIRTUAL_HOUR, WORKDAY_END, WORKDAY_START, COURIER_DEPART_HOUR, COURIER_DEPART_DELAY_VIRTUAL_MINUTES, activityAt } from '../src/core/city/clock.ts';
 import { lightingAt } from '../src/core/city/dayNight.ts';
 
-test('clock runs at 2min30s real per virtual hour, starting at 11:00', () => {
+test('clock runs at 2min30s real per virtual hour, starting at 11:45', () => {
   assert.equal(REAL_SECONDS_PER_VIRTUAL_HOUR, 150);
-  assert.equal(WORKDAY_START, 11);
+  assert.equal(WORKDAY_START, 11.75);
+  assert.equal(COURIER_DEPART_DELAY_VIRTUAL_MINUTES, 2);
+  assert.ok(Math.abs(COURIER_DEPART_HOUR - (11 + 47 / 60)) < 1e-9);
+  assert.equal((COURIER_DEPART_HOUR - WORKDAY_START) * REAL_SECONDS_PER_VIRTUAL_HOUR, 5);
   assert.equal(WORKDAY_END, 21);
   const c = new VirtualClock();
-  assert.equal(c.label, '11:00');
+  assert.equal(c.label, '11:45');
   assert.ok(c.isWorkday);
   c.advance(REAL_SECONDS_PER_VIRTUAL_HOUR);
-  assert.equal(c.label, '12:00');
+  assert.equal(c.label, '12:45');
   for (let i = 0; i < 600; i++) c.advance(2.5); // 25 real minutes = 10 virtual hours
-  assert.equal(c.label, '22:00');
+  assert.equal(c.label, '22:45');
   assert.equal(c.isWorkday, false);
   c.advance(REAL_SECONDS_PER_VIRTUAL_HOUR * 3);
-  assert.equal(c.label, '01:00', 'wraps past midnight');
+  assert.equal(c.label, '01:45', 'wraps past midnight');
   c.advance(Number.NaN);
   c.advance(-5);
-  assert.equal(c.label, '01:00', 'invalid steps are ignored');
+  assert.equal(c.label, '01:45', 'invalid steps are ignored');
 });
 
 test('development hour control jumps without changing the scale', () => {
