@@ -19,6 +19,8 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # gate de modulos usa a BASE do PR
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -29,6 +31,13 @@ jobs:
         run: npm run validate:repo
       - name: Testes unitarios
         run: npm run test:unit
+      - name: Gate de sequencia de modulos (PR)
+        if: github.event_name == 'pull_request'
+        env:
+          BETA1_HEAD: ${{ github.head_ref }}
+          BETA1_BASE: ${{ github.base_ref }}
+          BETA1_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: node scripts/beta1-control.mjs pr
       - name: TypeScript e compilacao de staging
         run: npm run build:staging
 
