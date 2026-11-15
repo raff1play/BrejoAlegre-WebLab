@@ -80,7 +80,7 @@ export class Workday {
       st('separador-1', depotWorld(108, -128), [11, 21]), st('separador-2', depotWorld(113, -131), [11, 21]),
       st('expedidor', S.dispatch, [11, 21.5]), st('supervisor', S.office, [9, 21]),
       st('conferente-2', depotWorld(102.2,-121.1), [10,21]),
-      st('separador-3', depotWorld(112,-129.8), [11,21]),
+      st('separador-3', depotWorld(112,-128.35), [11,21]),
       st('expedidor-2', depotWorld(110.5,-123.8), [11,21]),
     ];
   }
