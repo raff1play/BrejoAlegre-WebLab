@@ -223,7 +223,7 @@ function start(canvas: HTMLCanvasElement): void {
       moto.update(dt, {
         throttle: input.isDown('accelerate') ? 1 : 0,
         brake: input.isDown('brake') ? 1 : 0,
-        steer: input.steer(),
+        steer: input.steer(m.speed),
       }, rideGuard, ground(m.x, m.z));
       const lead = Math.min(0.5, Math.max(0, m.speed) * 0.07);
       cameraTarget.set(m.x + Math.sin(m.yaw) * lead, moto.root.position.y + 0.95, m.z + Math.cos(m.yaw) * lead);

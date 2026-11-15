@@ -1,60 +1,92 @@
-import { stickAxes, ZERO_STICK, type StickAxes } from '../../core/analogStick.ts';
+import { STICK_TUNING, ZERO_STICK, followCenter, stickAxes, type StickAxes } from '../../core/analogStick.ts';
 
 /**
- * One thumb controls the left analog stick. No Babylon objects, physics or
- * per-frame layout reads. Pointer capture allows a finger to slide outside
- * the ring; pointercancel/blur/visibility reset it safely.
+ * CTRL-001 floating stick. The whole lower-left zone (`#movement-stick`) accepts the thumb: the
+ * stick centre is placed where the thumb lands and follows it, within limits, when it goes past
+ * the ring (inspired by the documented "dynamic"/"follow" joystick pattern; no library).
+ *
+ * One thumb, one pointer id; other fingers on the throttle/brake buttons are independent. Pointer
+ * capture lets the thumb slide anywhere; pointerup/cancel/lostpointercapture, blur, page hide and
+ * orientation changes all return it to neutral. One layout read per touch, none per frame.
  */
 export class VirtualJoystick {
+  private readonly zone: HTMLElement | null;
   private readonly base: HTMLElement | null;
   private readonly thumb: HTMLElement | null;
   private pointerId: number | null = null;
-  private centerX = 0;
-  private centerY = 0;
+  private origin = { x: 0, y: 0 };
+  private center = { x: 0, y: 0 };
+  private zoneLeft = 0;
+  private zoneTop = 0;
   private radius = 1;
   private value: StickAxes = ZERO_STICK;
+  private horizontal = 0;
 
   constructor(root: ParentNode) {
-    this.base = root.querySelector<HTMLElement>('#movement-stick');
+    this.zone = root.querySelector<HTMLElement>('#movement-stick');
+    this.base = root.querySelector<HTMLElement>('#movement-stick-base');
     this.thumb = root.querySelector<HTMLElement>('#movement-stick-thumb');
-    if (!this.base || !this.thumb) return;
+    if (!this.zone || !this.base || !this.thumb) return;
+    const zone = this.zone;
 
-    this.base.addEventListener('pointerdown', (event) => {
+    zone.addEventListener('pointerdown', (event) => {
       if (this.pointerId !== null || (event.pointerType === 'mouse' && event.button !== 0)) return;
       event.preventDefault();
-      const rect = this.base!.getBoundingClientRect();
-      this.centerX = rect.left + rect.width / 2;
-      this.centerY = rect.top + rect.height / 2;
-      this.radius = Math.max(1, Math.min(rect.width, rect.height) * 0.36);
+      const rect = zone.getBoundingClientRect();
+      this.zoneLeft = rect.left;
+      this.zoneTop = rect.top;
+      // The ring is 2.7 radii wide (CSS `--stick-r`), so the visual and the logic always agree.
+      this.radius = Math.max(16, (this.base!.offsetWidth || 120) / 2.7);
+      this.origin = { x: event.clientX, y: event.clientY };
+      this.center = { ...this.origin };
       this.pointerId = event.pointerId;
-      this.base!.classList.add('engaged');
-      try { this.base!.setPointerCapture(event.pointerId); } catch { /* fallback to window pointerup */ }
+      zone.classList.add('engaged');
+      this.placeBase();
+      try { zone.setPointerCapture(event.pointerId); } catch { /* fallback to window pointerup */ }
       this.move(event);
     });
-    this.base.addEventListener('pointermove', (event) => this.move(event));
-    const done = (event: PointerEvent) => {
-      if (event.pointerId === this.pointerId) this.reset();
-    };
-    this.base.addEventListener('pointerup', done);
-    this.base.addEventListener('pointercancel', done);
-    this.base.addEventListener('lostpointercapture', done);
+    zone.addEventListener('pointermove', (event) => this.move(event));
+    const done = (event: PointerEvent) => { if (event.pointerId === this.pointerId) this.reset(); };
+    zone.addEventListener('pointerup', done);
+    zone.addEventListener('pointercancel', done);
+    zone.addEventListener('lostpointercapture', done);
     // If capture is unavailable, a released finger must still stop movement.
     window.addEventListener('pointerup', done);
     window.addEventListener('pointercancel', done);
+    window.addEventListener('orientationchange', () => this.reset());
+    window.addEventListener('resize', () => this.reset());
   }
 
+  /** Radial axes with dead zone: 360° walking. */
   get axes(): StickAxes { return this.value; }
+  /** Raw horizontal deflection (−1…1 of the radius), no dead zone: input of the riding curve. */
+  get steerX(): number { return this.horizontal; }
+  get engaged(): boolean { return this.pointerId !== null; }
+
+  /** Read-only state for the browser tests. */
+  debug(): { engaged: boolean; x: number; y: number; steerX: number; center: { x: number; y: number }; origin: { x: number; y: number }; radius: number } {
+    return { engaged: this.engaged, x: this.value.x, y: this.value.y, steerX: this.horizontal, center: { ...this.center }, origin: { ...this.origin }, radius: this.radius };
+  }
+
+  private placeBase(): void {
+    if (!this.base) return;
+    this.base.style.left = `${(this.center.x - this.zoneLeft).toFixed(1)}px`;
+    this.base.style.top = `${(this.center.y - this.zoneTop).toFixed(1)}px`;
+  }
 
   private move(event: PointerEvent): void {
     if (event.pointerId !== this.pointerId) return;
     event.preventDefault();
-    const dx = event.clientX - this.centerX;
-    const dy = event.clientY - this.centerY;
-    this.value = stickAxes(dx, dy, this.radius);
+    const finger = { x: event.clientX, y: event.clientY };
+    const next = followCenter(this.center, finger, this.radius, this.origin, this.radius * STICK_TUNING.followTravel);
+    if (next.x !== this.center.x || next.y !== this.center.y) { this.center = next; this.placeBase(); }
+    const dx = finger.x - this.center.x;
+    const dy = finger.y - this.center.y;
+    this.value = stickAxes(dx, dy, this.radius, STICK_TUNING.walkDeadzone);
+    const h = dx / this.radius;
+    this.horizontal = Number.isFinite(h) ? Math.max(-1, Math.min(1, h)) : 0;
     const length = Math.hypot(dx, dy);
-    const distance = Math.min(1, length / this.radius);
-    const fraction = length > 0 ? distance * this.radius / length : 0;
-    // Visual thumb follows physical finger; game input uses the smooth dead zone.
+    const fraction = length > this.radius ? this.radius / length : 1;
     if (this.thumb) this.thumb.style.transform =
       `translate(-50%, -50%) translate(${(dx * fraction).toFixed(1)}px, ${(dy * fraction).toFixed(1)}px)`;
   }
@@ -62,7 +94,9 @@ export class VirtualJoystick {
   reset(): void {
     this.pointerId = null;
     this.value = ZERO_STICK;
-    this.base?.classList.remove('engaged');
+    this.horizontal = 0;
+    this.zone?.classList.remove('engaged');
+    if (this.base) { this.base.style.left = ''; this.base.style.top = ''; }
     if (this.thumb) this.thumb.style.transform = 'translate(-50%, -50%)';
   }
 }

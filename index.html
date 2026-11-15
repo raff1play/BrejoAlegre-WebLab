@@ -43,9 +43,10 @@
         <button type="button" data-devtime="+1">+1h</button><button type="button" data-devtime="speed">×1</button>
       </div>
       <div id="toast" class="toast" role="status" aria-live="polite"></div>
-      <div id="movement-stick" class="joystick-zone" role="group" aria-label="Analógico virtual de movimento e direção">
-        <div class="joystick-ring" aria-hidden="true"></div>
-        <div id="movement-stick-thumb" class="joystick-thumb" aria-hidden="true"></div>
+      <div id="movement-stick" class="joystick-zone" role="group" aria-label="Analógico flutuante: toque em qualquer ponto do canto inferior esquerdo">
+        <div id="movement-stick-base" class="stick-base" aria-hidden="true">
+          <div id="movement-stick-thumb" class="joystick-thumb"></div>
+        </div>
       </div>
       <div class="pad pad-right" aria-label="Aceleração e ação">
         <button type="button" data-action="mount" class="primary wide">Descer</button>
