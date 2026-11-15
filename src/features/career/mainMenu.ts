@@ -58,7 +58,7 @@ export function runMainMenu(doc: Document, model: MenuModel, actions: MenuAction
     const cardButton = (c: CareerCard): HTMLButtonElement => {
       const b = el(doc, 'button', 'career-card'); b.type = 'button';
       b.dataset.career = c.careerId; b.disabled = c.blocked !== null;
-      if (c.isActive) b.classList.add('active');
+      if (c.isActive) b.classList.add('is-current');
       const head = el(doc, 'span', 'career-head');
       head.innerHTML = avatarSvg(c.appearance, c.equipment);
       const title = el(doc, 'span', 'career-title');

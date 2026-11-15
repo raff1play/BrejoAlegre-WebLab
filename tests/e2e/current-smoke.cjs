@@ -317,17 +317,17 @@ async function mainMenu(page){
   const L=await page.evaluate(menuLayout);
   const overlap=L.cards.some((a,i)=>L.cards.some((b,j)=>j>i&&a.l<b.r-1&&b.l<a.r-1&&a.t<b.b-1&&b.t<a.b-1));
   check(`B1-01 F3.5: menu ${w}×${h} landscape — four cards side by side, inside the screen, no overlap, HUD hidden`,L.cards.length===4&&!overlap&&L.cards.every(c=>c.l>=0&&c.r<=w+1&&c.t>=0&&c.b<=h+1&&c.h>=120)&&L.hud==='none',L);
+  if(process.env.WEBLAB_SHOTS)await page.screenshot({path:`${process.env.WEBLAB_SHOTS}/menu-${w}x${h}.png`});
  }
  await page.locator('.career-card[data-career="personagem-oeste"]').tap();
  for(const [w,h] of [[780,360],[915,412]]){
   await page.setViewportSize({width:w,height:h});await delay(250);
   const L=await page.evaluate(menuLayout);
   check(`B1-01 F3.5: career detail ${w}×${h} — every button on screen and at least 40 px tall for a thumb`,L.buttons.length>=6&&L.buttons.every(b=>b.l>=0&&b.r<=w+1&&b.t>=0&&b.b<=h+1&&b.h>=40),L.buttons);
+  if(process.env.WEBLAB_SHOTS)await page.screenshot({path:`${process.env.WEBLAB_SHOTS}/menu-detail-${w}x${h}.png`});
  }
- if(process.env.WEBLAB_SHOTS)await page.screenshot({path:`${process.env.WEBLAB_SHOTS}/menu-detail-780x360.png`});
  await page.locator('#career-detail [data-menu="voltar"]').tap();
  await page.setViewportSize({width:915,height:412});
- if(process.env.WEBLAB_SHOTS)await page.screenshot({path:`${process.env.WEBLAB_SHOTS}/menu-915x412.png`});
 }
 /**
  * B1-01 F3.5 (AC-01/02/03/16): the four careers, one after the other in the same browser storage.

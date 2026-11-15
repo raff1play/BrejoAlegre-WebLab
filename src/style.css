@@ -266,7 +266,7 @@ body.in-menu #hud { display: none; }
   display: flex; flex-direction: column; gap: 6px; text-align: left; padding: 8px; min-height: 0;
   background: var(--panel); color: #fff; border: 1px solid var(--line); border-radius: 12px; font: inherit; cursor: pointer;
 }
-.career-card.active { border-color: var(--amber); }
+.career-card.is-current { border-color: var(--amber); box-shadow: inset 0 0 0 1px var(--amber); }
 .career-card:disabled { opacity: .5; cursor: not-allowed; }
 .career-card:focus-visible, .option:focus-visible, .menu-actions button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
 .career-head { display: flex; align-items: center; gap: 6px; }
