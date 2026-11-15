@@ -1,4 +1,5 @@
 import {depotWorld,depotYaw,storeLayout,type StoreKind} from '../../world/city/cityPlan.ts';
+import { COURIER_DEPART_HOUR } from '../city/clock.ts';
 import {COURIER_BAYS,COURIER_ENTRY_X,COURIER_EXIT_X,depotPath,DEPOT_POINTS} from '../../world/city/depotPlan.ts';
 import {courierFootRoute,courierRoadRoute,depotDrivingCurve,courierSignalAllows,type CourierRoutePoint} from './courierRoutes.ts';
 import {SECTOR_DATA,type Sector} from './sectors.ts';
@@ -50,7 +51,7 @@ export class Courier {
   const atBike=()=>({x:this.bike.x-Math.sin(this.bike.yaw)*1.25,z:this.bike.z-Math.cos(this.bike.yaw)*1.25});
   const dock=()=>depotWorld(SECTOR_DATA[this.sector].x,-116.7);
   try{switch(this.state){
-   case 'waiting':if(hour>=11&&store){this.drive(store.stop,true);state('to-store');}break;
+   case 'waiting':if(hour>=COURIER_DEPART_HOUR&&store){this.drive(store.stop,true);state('to-store');}break;
    case 'to-store':if(this.travel(dt,day,true))state('parking');break;
    case 'parking':if(this.timer>=.65){this.person={...this.bike};this.walk(storeLayout(store!).pickup,day);state('walk-counter');}break;
    case 'walk-counter':if(this.travel(dt,day,false))state('pickup');break;
