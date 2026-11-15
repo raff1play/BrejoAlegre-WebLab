@@ -4,16 +4,16 @@ export const CALENDAR_STORAGE_KEY = 'brejo-log003-workday-index';
 export type DemandTier = 'alta'|'normal'|'media'|'fraca'|'folga';
 export type DayPlan = Readonly<{
   weekday: number; name: string; tier: DemandTier; storeMin: number; storeMax: number;
-  vanMin: number; vanMax: number; depotTarget: number; depotTolerance: number;
+  vanMin: number; vanMax: number; depotTarget: number;
 }>;
 export const WEEK: readonly DayPlan[] = [
-  {weekday:0,name:'Segunda',tier:'alta',storeMin:4,storeMax:5,vanMin:12,vanMax:15,depotTarget:16,depotTolerance:16},
-  {weekday:1,name:'Terça',tier:'alta',storeMin:4,storeMax:5,vanMin:12,vanMax:15,depotTarget:16,depotTolerance:16},
-  {weekday:2,name:'Quarta',tier:'normal',storeMin:3,storeMax:4,vanMin:8,vanMax:11,depotTarget:15,depotTolerance:16},
-  {weekday:3,name:'Quinta',tier:'media',storeMin:3,storeMax:4,vanMin:8,vanMax:11,depotTarget:15,depotTolerance:16},
-  {weekday:4,name:'Sexta',tier:'media',storeMin:3,storeMax:4,vanMin:8,vanMax:11,depotTarget:15,depotTolerance:16},
-  {weekday:5,name:'Sábado',tier:'fraca',storeMin:2,storeMax:3,vanMin:5,vanMax:7,depotTarget:15,depotTolerance:16},
-  {weekday:6,name:'Domingo',tier:'folga',storeMin:0,storeMax:0,vanMin:0,vanMax:0,depotTarget:0,depotTolerance:0},
+  {weekday:0,name:'Segunda',tier:'alta',storeMin:4,storeMax:5,vanMin:12,vanMax:15,depotTarget:16},
+  {weekday:1,name:'Terça',tier:'alta',storeMin:4,storeMax:5,vanMin:12,vanMax:15,depotTarget:16},
+  {weekday:2,name:'Quarta',tier:'normal',storeMin:3,storeMax:4,vanMin:8,vanMax:11,depotTarget:15},
+  {weekday:3,name:'Quinta',tier:'media',storeMin:3,storeMax:4,vanMin:8,vanMax:11,depotTarget:15},
+  {weekday:4,name:'Sexta',tier:'media',storeMin:3,storeMax:4,vanMin:8,vanMax:11,depotTarget:15},
+  {weekday:5,name:'Sábado',tier:'fraca',storeMin:2,storeMax:3,vanMin:5,vanMax:7,depotTarget:15},
+  {weekday:6,name:'Domingo',tier:'folga',storeMin:0,storeMax:0,vanMin:0,vanMax:0,depotTarget:0},
 ];
 export type CalendarDay = DayPlan & {index:number; date:string; label:string; minParcels:number; maxParcels:number; seed:number};
 export function calendarDay(index:number):CalendarDay {
