@@ -52,13 +52,25 @@
 - O salvamento da linha atual guarda principalmente o índice do calendário em `localStorage`; saves independentes + checkpoints consistentes precisam de estados de jornada, moto/carro, pacotes/custódia e proteção contra duplicação de pagamento.
 - Proibir troca de carreira durante o expediente requer decidir o que fazer após travamento real, fechamento do navegador ou desejo de encerrar cedo; não flexibilizar unilateralmente a decisão 7.
 
-**DECISÕES ESSENCIAIS AINDA ABERTAS (próxima rodada, não aprovadas):**
-- Regra para **encerrar antecipadamente ou cancelar jornada impossível** e quando isso desbloqueia a escolha de outra carreira.
-- Escopo mínimo do **carro dirigível dentro do B1-01**: apenas rodar/estacionar versus participar do ciclo logístico básico, sem antecipar recursos do B1-05.
-- Se a escolha de moto/carro fica fixa ao iniciar uma carreira ou se é possível mudar gratuitamente antes da garagem/progressão.
-- Critérios do **último ponto seguro e backup** (inclusive restauração de falha/corrupção e efeito sobre pacotes e dinheiro).
+**CONFIRMADO — Questionário 3 (4/4 respostas do usuário, 15/11/2026):**
+9. **Carro com ciclo logístico completo e carga visual avançada ainda no B1-01:** não basta dirigir nem apenas simular carga; o carro escolhido pelo jogador deve fazer coleta, acondicionamento visual de encomendas, transporte, descarga na base, retirada de carga, entregas e registro de custódia do começo ao fim **antes do aceite do B1-01**. Isto amplia o B1-01 e cria dependência técnica do modelo de pacotes que seria aprofundado no B1-05; não reclassificar unilateralmente a decisão como recurso futuro.
+10. **Veículo inicial fixo por carreira:** uma vez escolhido moto antiga ou carro popular antigo, permanece até implementação futura de garagem/progressão. **Sem troca gratuita** no B1-01.
+11. **Não há encerramento antecipado:** o expediente **somente pode ser encerrado após concluir todas as entregas e procedimentos**. Isto substitui a antiga hipótese de encerramento antecipado. Ainda precisa esclarecer o que é “concluir” em caso de destinatário ausente, recusa, devolução, prazo 21h ou erro de navegação: a escolha confirmada não autorizou automaticamente considerar esses casos concluídos.
+12. **Checkpoints:** salvar automaticamente **após operações importantes**, **ao pausar** e **quando tecnicamente possível ao sair do navegador**. Manter as decisões anteriores de backup e retomada no último ponto seguro, preservando entregas e inventário. Fechamento abrupto de aba/SO não garante evento de saída; checkpoint anterior deve estar gravado de maneira durável.
 
-**Não decididos:** nome/visual definitivo dos quatro personagens, lista de equipamentos, modelo exato da moto/carro, economia detalhada, migração de saves antigos e implementação técnica do banco local. Não assumir aprovação implícita. **Não iniciar implementação ainda.**
+**Análise crítica e impacto de implementação (constatação/proposta, não nova decisão):**
+- **Escopo ampliado:** o B1-01 deixa de ser apenas perfis/menu/save: inclui carro jogável com ciclo logístico completo e apresentação física da carga. Reutilizar infraestrutura comum de parcelas e custódia, se necessário, mas preservar o B1-05 como ampliação de **formatos, limite das mãos e acondicionamento avançado de moto/alforjes/suportes** e eventual refinamento do sistema compartilhado. Não usar o B1-05 para postergar a parte avançada do **carro** exigida no B1-01.
+- **Risco de travamento permanente:** o código da `preview` contém limite `hour>=21` que interrompe atualização dos motoboys NPC em `src/core/delivery/couriers.ts`, limita retirada/entrega em `src/core/delivery/logisticsDay.ts` e pode marcar o expediente `ENCERRADA` com pendências. A nova regra 11 **entra em tensão** com isso; o agente não deve retirar limite de horário nem criar finalização automática sem decisão do usuário.
+- **Ciclo visual do carro** requer testes de entrada/saída, dirigibilidade/colisão, capacidade/posicionamento de carga, coleta/descarga/entrega, transições de guarda e salvamento. Modelo de carro ambiente em `src/features/city/vehicleModels.ts` não satisfaz esta exigência.
+- **Confiabilidade de checkpoints:** persistir ID do perfil, veículo, relógio, fase, localização segura, IDs/estados/posse/histórico dos pacotes e progresso; checkpoints atômicos, versionados, recuperáveis, sem pagamento duplicado. Salvar ao pausar e tentar salvar na saída sem depender dessa tentativa.
+
+**BLOQUEADORES ESSENCIAIS ANTES DO CONGELAMENTO (ainda não decididos):**
+A. **Definição de entrega/procedimento concluído:** todos os pacotes precisam ser entregues com sucesso, ou um resultado final válido (tentativa frustrada + devolução/conferência) também pode concluir o trabalho daquele pacote? Sem isso, ausência de morador pode tornar o expediente impossível.
+B. **Regra do limite 21h e recuperação de bloqueio real:** depois de 21h pode finalizar procedimentos pendentes ou o trabalho obrigatoriamente precisa esperar o próximo dia? Qual saída segura quando uma rota/cliente fica inacessível, sem violar a proibição de encerrar antecipadamente?
+C. **Escopo/qualidade mínimos da “carga visual avançada” do carro:** disposição visível no porta-malas/interior, física/limites por tamanho, carga manual ou arrumação assistida, e como isso conversa com o B1-05. A exigência de recursos avançados **já está confirmada**, porém os critérios visuais/funcionais específicos não.
+D. **Política do salvamento e backup:** lista exata de pontos seguros, resultado ao restaurar uma jornada após falha, conflito com gravação antiga e como trocar a instalação do navegador sem perder a carreira (exportar/importar). O backup **já está confirmado**; o formato concreto não.
+
+**Não decididos, mas não bloqueadores imediatos do modelo lógico:** nomes/visuais exatos dos quatro personagens, catálogo de equipamentos, modelo comercial exato de moto/carro e custos detalhados da progressão futura. Não assumir aprovação implícita. **Não iniciar implementação ainda.**
 
 ### B1-02 — Casas e começo do dia
 **Fazer:** quatro casas pequenas com quarto/cabide/garagem/portão; equipamento, moto e início 11h30.
