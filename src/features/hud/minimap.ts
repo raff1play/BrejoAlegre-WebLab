@@ -98,7 +98,8 @@ export class Minimap {
   /** Delivery stops still to do (the next one is highlighted). */
   setStops(stops: readonly MapStop[]): void { this.stops = stops; }
   /** The parked bike while the rider is on foot (null while riding). */
-  setBike(bike: { x: number; z: number } | null): void { this.bike = bike; }
+  setBike(bike: { x: number; z: number } | null, label = 'M'): void { this.bike = bike; this.bikeLabel = label; }
+  private bikeLabel = 'M';
 
   constructor(doc: Document) {
     const root = doc.querySelector<HTMLElement>('#minimap');
@@ -346,7 +347,7 @@ export class Minimap {
       }
     }
     this.drawStops(c, proj, inView, r, dpr, expanded);
-    if (this.bike) { const q = proj(this.bike.x, this.bike.z); if (inView(q, r)) disc(q[0], q[1], r * 0.95, COLOR.bike, 'M'); }
+    if (this.bike) { const q = proj(this.bike.x, this.bike.z); if (inView(q, r)) disc(q[0], q[1], r * 0.95, COLOR.bike, this.bikeLabel); }
     this.drawTarget(c, proj, size, r, dpr, now, disc);
     // Player: halo + arrow (up while heading-up, turning with the heading on a north-up map).
     const me = proj(this.x, this.z);
