@@ -309,7 +309,7 @@ async function mainMenu(page){
  await page.waitForSelector('#main-menu:not([hidden]) .career-card',{timeout:120000});
  const pre=await page.evaluate(()=>({weblab:window.__weblab===undefined,saves:Object.keys(localStorage).filter(k=>k.startsWith('brejo-b1:')),inMenu:document.body.classList.contains('in-menu')}));
  check('B1-01 F3.5: a clean URL opens the main menu first — no 3D world/engine probe yet, no save created by looking',pre.weblab&&pre.saves.length===0&&pre.inMenu,pre);
- const cards=await page.locator('.career-card').evaluateAll(es=>es.map(e=>({id:e.dataset.career,text:e.innerText,disabled:e.disabled})));
+ const cards=await page.locator('.career-card').evaluateAll(es=>es.map(e=>({id:e.dataset.career,text:e.textContent,disabled:e.disabled})));
  check('B1-01 F3.5 AC-01: exactly four career cards (Rosa/Norte, Lia/Oeste, Caio/Leste, Davi/Sul) with home, vehicle and real progress',cards.length===4&&cards.map(c=>c.id).join()==='personagem-norte,personagem-oeste,personagem-leste,personagem-sul'
   &&[['Rosa','Norte'],['Lia','Oeste'],['Caio','Leste'],['Davi','Sul']].every(([n,sct],i)=>cards[i].text.includes(n)&&cards[i].text.includes(sct)&&/Casa: /.test(cards[i].text)&&/Veículo: a escolher/.test(cards[i].text)&&/Carreira nova/.test(cards[i].text)&&!/Saldo/.test(cards[i].text))&&cards.every(c=>!c.disabled),cards);
  for(const [w,h] of [[780,360],[915,412]]){
