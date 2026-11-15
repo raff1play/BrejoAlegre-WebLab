@@ -43,7 +43,7 @@ export class LogisticsPanel {
    `Seu setor: OESTE / D02 · jornada até 21h · restam ${Math.max(0,Math.floor((21-hour)*60))} min`,
    `NPCs: retorno ideal 14h · tolerância máxima 14h20 · triagem ${fmt(expected)} (meta)`,
    ...day.assigned.map(id=>{const total=day.parcels.filter(p=>p.origin===id);return `${STORES.find(s=>s.id===id)!.name}: ${total.filter(p=>p.state!=='NA_LOJA').length}/${total.length} coletados`;}),
-   ...day.couriers.map(c=>`${c.name} (${c.sector}): ${COURIER_LABEL[c.state]} · ${c.returnedAt===null?'retorno pendente':`retornou ${fmt(c.returnedAt)}`}${c.deadlineReported?' · ATRASADO':''} · ${c.trunk(day).length} no baú${c.error?' · acesso bloqueado':''}`),
+   ...day.couriers.map(c=>`${c.name} (${c.sector}): ${COURIER_LABEL[c.state]}${c.yieldingToTraffic?' (cedendo passagem ao trânsito)':''} · ${c.returnedAt===null?'retorno pendente':`retornou ${fmt(c.returnedAt)}`}${c.deadlineReported?' · ATRASADO':''} · ${c.trunk(day).length} no baú${c.error?' · acesso bloqueado':''}`),
    `Equipe de base: ${day.depot.workers.length} funcionários · ${day.couriers.filter(c=>c.state==='help-sort').length} motoboys ajudando`,
    `Recebimento/conferência: ${day.parcels.filter(p=>['recebimento','conferencia'].includes(p.place)).length} · triagem/transferência: ${day.parcels.filter(p=>['triagem','transferencia'].includes(p.place)).length}`,
    ...SECTORS.map(s=>{const parcels=day.parcels.filter(p=>p.sector===s);return `${SECTOR_DATA[s].dock} ${s}: ${parcels.filter(p=>p.place==='saca').length} prontos · ${parcels.filter(p=>p.state==='ENTREGUE').length}/${parcels.length} entregues`;}),
