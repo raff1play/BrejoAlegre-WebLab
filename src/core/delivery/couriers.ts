@@ -12,7 +12,7 @@ export const COURIER_LABEL:Record<CourierState,string>={waiting:'aguardando cole
 export class Courier {
  readonly id:Exclude<ActorId,'jogador'>;readonly name:string;readonly sector:Sector;
  stores:StoreKind[]=[];storeIndex=0;state:CourierState='waiting';bike:Point;person:Point;route:CourierRoutePoint[]=[];private stopTimer=0;
- readonly targetReturnHour=14;readonly latestReturnHour=14+20/60;returnedAt:number|null=null;deadlineReported=false;stops:string[]=[];timer=0;error:string|null=null;routeLog:{from:{x:number;z:number};to:{x:number;z:number};points:{x:number;z:number}[]}[]=[];
+ readonly targetReturnHour=14;readonly latestReturnHour=14+20/60;returnedAt:number|null=null;deadlineReported=false;yieldingToTraffic=false;stops:string[]=[];timer=0;error:string|null=null;routeLog:{from:{x:number;z:number};to:{x:number;z:number};points:{x:number;z:number}[]}[]=[];
  constructor(id:Exclude<ActorId,'jogador'>,name:string,sector:Sector){this.id=id;this.name=name;this.sector=sector;this.bike={...depotWorld(COURIER_BAYS[id].x,COURIER_BAYS[id].z),yaw:depotYaw(0)};this.person={...this.bike};}
  get riding():boolean{return ['waiting','to-store','parking','return-base','ready','to-address','park-address','complete'].includes(this.state);}
  hands(day:LogisticsDay):Parcel[]{return day.parcels.filter(p=>p.holder===this.id&&p.place==='maos');}
@@ -35,7 +35,11 @@ export class Courier {
    if(drive&&Math.abs(local.z+92.3)<2.2&&local.x>98&&local.x<114&&day.gateOpen<.95)return false;
    if(drive&&next.control&&d<1.5){this.stopTimer+=dt;if(!courierSignalAllows(next,day.trafficTime)||(next.control.stop&&this.stopTimer<1))return false;}
    const candidate={x:p.x+dx/(d||1)*s,z:p.z+dz/(d||1)*s};
-   if(drive&&day.trafficBlocked?.(this.id,candidate.x,candidate.z,Math.atan2(dx,dz)))return false;
+   if(drive){
+    const blocked=day.trafficBlocked?.(this.id,candidate.x,candidate.z,Math.atan2(dx,dz));
+    if(blocked){this.yieldingToTraffic=blocked==='traffic';return false;}
+    this.yieldingToTraffic=false;
+   }
    if(d>0){p.x+=dx/d*s;p.z+=dz/d*s;p.yaw=Math.atan2(dx,dz);}left-=s;if(d<=s+.001){this.route.shift();this.stopTimer=0;}
   }
   return !this.route.length;
@@ -53,7 +57,7 @@ export class Courier {
   try{switch(this.state){
    case 'waiting':if(hour>=COURIER_DEPART_HOUR&&store){this.drive(store.stop,true);state('to-store');}break;
    case 'to-store':if(this.travel(dt,day,true))state('parking');break;
-   case 'parking':if(this.timer>=.65){this.person={...this.bike};this.walk(storeLayout(store!).pickup,day);state('walk-counter');}break;
+   case 'parking':if(this.timer>=.65){this.yieldingToTraffic=false;this.person={...this.bike};this.walk(storeLayout(store!).pickup,day);state('walk-counter');}break;
    case 'walk-counter':if(this.travel(dt,day,false))state('pickup');break;
    case 'pickup':if(hour>=12&&this.timer>=.9){const list=day.readyAt(current!).slice(0,4-this.hands(day).length);for(const p of list){advance(p,'COLETADO',this.id,hour);move(p,'maos',this.id,hour);}this.walk(atBike(),day);state('walk-bike');}break;
    case 'walk-bike':if(this.travel(dt,day,false))state('stow');break;
@@ -92,4 +96,9 @@ export class Courier {
    for(const [i,p] of this.hands(day).entries()){const at=day.local(this.person),yaw=this.person.yaw-depotYaw(0),sack=this.state==='return-load',side=sack?0:(i%2===0?-.25:.25);p.position={x:at.x+Math.sin(yaw)*.35+Math.cos(yaw)*side,y:sack?1.04:1+Math.floor(i/2)*.3,z:at.z+Math.cos(yaw)*.35-Math.sin(yaw)*side};}
   }catch(e){this.error=String(e);this.state='blocked';day.events.push(`${this.name}: rota bloqueada (${this.error})`);}
  }
+}
+
+/** Street traffic must not stop forever for parked couriers or a rider yielding to a vehicle. */
+export function courierTrafficObstacles(couriers:readonly Courier[]):{x:number;z:number;radius:number}[]{
+ return couriers.filter(c=>c.riding&&!c.yieldingToTraffic).map(c=>({x:c.bike.x,z:c.bike.z,radius:.85}));
 }
