@@ -1,0 +1,35 @@
+name: Dados OSM - importacao manual controlada
+
+# Recorte baseado em OpenStreetMap; nunca atualizar a preview automaticamente.
+# Necessita decisao especifica de atualizar a geografia antes de executar.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: osm-fetch
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    if: github.ref == 'refs/heads/preview'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: preview
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/geo/fetch-osm.mjs
+      - name: Validar tamanho
+        run: |
+          test -s data/osm/brejo-alegre.raw.json
+          test "$(stat -c %s data/osm/brejo-alegre.raw.json)" -lt 20000000
+      - name: Propor dados atualizados em log, sem sobrescrever main
+        run: |
+          git status --short data/osm
+          echo "OSM baixado no runner; sincronizacao ao repositorio requer revisao e PR."
