@@ -28,6 +28,7 @@ import { buildProbe, parkNear } from './world/city/testProbe';
 import { HouseStreamer } from './features/city/houseStreamer';
 import { buildTemporaryWorld } from './world/temporaryWorld';
 import { cameraObstacles } from './world/cameraObstacles';
+import { courierTrafficObstacles } from './core/delivery/couriers';
 import { applyRoofTexture, populateExternalAssets, type ExternalStatus } from './world/externalAssets';
 import { buildStreetFurniture } from './world/props';
 import { BatchSet } from './world/geometry';
