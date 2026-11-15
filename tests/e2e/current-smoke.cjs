@@ -39,6 +39,145 @@ function assertLayout(tag,L){
  check(`${tag}: every HUD panel inside the screen`,L.boxes.every(b=>b.l>=-1&&b.t>=-1&&b.r<=L.w+1&&b.b<=L.h+1),L.boxes);
  if(L.toast)check(`${tag}: toast stays left of the centre`,L.toast.r<=L.w*.5,L.toast);
 }
+/**
+ * B1-01 F2 (AC-03, AC-05): a career that chooses the old popular car. Driving uses real touch
+ * (CDP touch points) and keyboard; teleports/camera use the development-only __debug fixture.
+ */
+async function carCareer(browser){
+ const ctx=await browser.newContext({viewport:{width:915,height:412},isMobile:true,hasTouch:true,deviceScaleFactor:1});
+ const page=await ctx.newPage();page.on('pageerror',e=>errors.push(e.message));
+ await page.goto(url+'?gfx=mobile&trafego=1&dia=0',{waitUntil:'domcontentloaded',timeout:120000});
+ await page.waitForSelector('#vehicle-choice:not([hidden])',{timeout:120000});
+ await page.locator('[data-vehicle="carro-antigo"]').tap();
+ await page.waitForFunction(()=>!!window.__weblab?.snapshot?.().delivery?.logistics,{timeout:120000});
+ const snapshot=()=>page.evaluate(()=>window.__weblab.snapshot());
+ await delay(600);
+ let s=await snapshot();
+ check('B1-01 F2 AC-03: car career owns a paid-off old car, fixed; no motorcycle is built',s.vehicle.kind==='carro-antigo'&&s.vehicle.owned?.kind==='carro-antigo'&&s.vehicle.owned.paidOff&&s.vehicle.owned.vehicleId==='veiculo-personagem-oeste'&&s.moto===null,s.vehicle);
+ check('B1-01 F2 AC-05: the car starts inside a painted depot car bay, driver at the wheel',s.vehicle.bay!==null&&s.mode==='riding'&&s.vehicle.driven&&!s.vehicle.parked,s.vehicle);
+ check('B1-01 F2 AC-05: car chase camera sits further back than the bike framing',s.camera.framing.radius>6.5&&s.camera.radius>6&&s.camera.target[1]-s.vehicle.y>1.05,{camera:s.camera});
+ check('B1-01 F2: HUD names the car (button, map legend) and keeps the same controls',await page.locator('[data-action="mount"]').innerText()==='Sair do carro'&&await page.locator('#legend-vehicle').innerText()==='Seu carro'&&await page.locator('[data-control="accelerate"]').count()===1&&await page.locator('#movement-stick').count()===1);
+ check('B1-01 F2: same three NPC couriers and depot run in the car career',s.delivery.logistics.couriers.length===3&&s.delivery.depot.workers.length===10);
+ for(const [w,h] of [[915,412],[780,360]]){await page.setViewportSize({width:w,height:h});await delay(350);assertLayout(`car base ${w}×${h}`,await page.evaluate(layout));}
+ await page.setViewportSize({width:915,height:412});await delay(300);
+ const hasDebug=await page.evaluate(()=>!!window.__debug);
+ if(!hasDebug){console.log('SKIP car driving fixtures: __debug only exists in development builds');await ctx.close();return;}
+ // Car footprint corners in depot-local coordinates (front fence of the lot is at z = -92.42).
+ const cornersLocal=()=>page.evaluate(()=>{const v=window.__weblab.snapshot().vehicle,hw=1.62/2,hl=3.85/2,c=Math.cos(v.yaw),n=Math.sin(v.yaw);
+  return [[-hw,-hl],[hw,-hl],[hw,hl],[-hw,hl]].map(([r,f])=>window.__debug.depotLocal(v.x+r*c+f*n,v.z-r*n+f*c));});
+
+ // ------------------------------------------------ collision: full throttle into the lot's front fence
+ const x0=s.vehicle.x,z0=s.vehicle.z;
+ await page.keyboard.down('KeyW');
+ let clear=true,maxZ=-1e9,maxSpeed=0;const t0=Date.now();
+ // SwiftShader simulates slowly: sample until the car has moved and been stopped by the fence.
+ while(Date.now()-t0<60000){await delay(250);const r=await page.evaluate(()=>({c:window.__debug.vehicleClear(),v:window.__weblab.snapshot().vehicle}));clear=clear&&r.c;maxSpeed=Math.max(maxSpeed,r.v.speed);maxZ=Math.max(maxZ,...(await cornersLocal()).map(p=>p.z));
+  if(maxSpeed>1&&Math.abs(r.v.speed)<0.05&&Math.hypot(r.v.x-x0,r.v.z-z0)>1.5){await delay(1500);break;}}
+ await page.keyboard.up('KeyW');
+ s=await snapshot();
+ check('B1-01 F2 AC-05: keyboard throttle drives the car forward',Math.hypot(s.vehicle.x-x0,s.vehicle.z-z0)>1.5&&maxSpeed>1,{moved:Math.hypot(s.vehicle.x-x0,s.vehicle.z-z0),maxSpeed});
+ check('B1-01 F2 AC-05: car colliders stop it at the fence, never clipping (body clear every sample)',clear&&maxZ<=-92.42+0.06&&Math.abs(s.vehicle.speed)<0.5,{clear,maxZ,speed:s.vehicle.speed});
+ // ------------------------------------------------ reverse out (brake pedal held after stopping)
+ await page.keyboard.down('KeyS');
+ await page.waitForFunction(()=>window.__weblab.snapshot().vehicle.speed<-0.3,null,{timeout:20000}).catch(()=>{});
+ s=await snapshot();await page.keyboard.up('KeyS');
+ check('B1-01 F2 AC-05: brake pedal reverses the car away from the wall',s.vehicle.speed<-0.3,s.vehicle);
+ await page.keyboard.down('Space');await page.waitForFunction(()=>Math.abs(window.__weblab.snapshot().vehicle.speed)<0.3,null,{timeout:20000}).catch(()=>{});await page.keyboard.up('Space');
+
+ // ------------------------------------------------ touch: floating stick steers, pedal button accelerates
+ const probe=await page.evaluate(()=>window.__debug.probe());
+ const J=probe.junction;
+ await page.evaluate(j=>window.__debug.teleport(j.startX,j.startZ,j.yaw),J);
+ await page.waitForFunction(()=>window.__weblab.snapshot().hud.context==='riding',null,{timeout:10000}).catch(()=>{});
+ await delay(300);
+ for(const [w,h] of [[915,412],[780,360]]){await page.setViewportSize({width:w,height:h});await delay(350);assertLayout(`car riding ${w}×${h}`,await page.evaluate(layout));}
+ await page.setViewportSize({width:915,height:412});await delay(300);
+ s=await snapshot();
+ check('B1-01 F2 AC-05: driving the car on the street uses the riding HUD with speed',s.hud.context==='riding'&&s.mode==='riding'&&await page.locator('.telemetry .speed').isVisible(),s.hud);
+ const cdp=await ctx.newCDPSession(page);
+ const touch=(type,pts)=>cdp.send('Input.dispatchTouchEvent',{type,touchPoints:pts.map(p=>({x:p.x,y:p.y,id:p.id,radiusX:4,radiusY:4,force:1}))});
+ const acc=await page.locator('[data-control="accelerate"]').boundingBox();
+ const B={id:2,x:acc.x+acc.width/2,y:acc.y+acc.height/2},A0={id:1,x:190,y:300};
+ await touch('touchStart',[A0]);
+ await page.waitForFunction(()=>window.__weblab.snapshot().hud.stick.engaged,null,{timeout:10000}).catch(()=>{});
+ const R=(await snapshot()).hud.stick.radius;
+ const A1={...A0,x:A0.x+R*0.5};
+ await touch('touchMove',[A1]);
+ await page.waitForFunction(()=>window.__weblab.snapshot().hud.steer>0.2,null,{timeout:10000}).catch(()=>{});
+ s=await snapshot();
+ check('B1-01 F2: half a stick radius asks for a clear right turn of the steering wheel',s.hud.steer>0.2&&s.hud.steer<1,s.hud);
+ const yaw0=s.vehicle.yaw;
+ await touch('touchStart',[A1,B]);
+ await page.waitForFunction(y=>{const v=window.__weblab.snapshot().vehicle;return v.yaw-y>0.05&&v.speed>0.5;},yaw0,{timeout:20000}).catch(()=>{});
+ s=await snapshot();
+ check('B1-01 F2 AC-05: two fingers — accelerator button + stick turn the car right (multi-touch)',s.hud.accelerate&&s.vehicle.speed>0.5&&s.vehicle.yaw-yaw0>0.05,{hud:s.hud,speed:s.vehicle.speed,yaw0,yaw:s.vehicle.yaw});
+ await touch('touchEnd',[A1]);await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));
+ s=await snapshot();
+ check('B1-01 F2: lifting the steering thumb returns to neutral while the pedal stays',!s.hud.stick.engaged&&s.hud.steer===0&&s.hud.accelerate,s.hud);
+ await touch('touchEnd',[B]);await delay(80);
+ const brake=await page.locator('[data-control="brake"]').boundingBox();
+ const Bk={id:3,x:brake.x+brake.width/2,y:brake.y+brake.height/2};
+ await touch('touchStart',[Bk]);
+ await page.waitForFunction(()=>Math.abs(window.__weblab.snapshot().vehicle.speed)<0.3,null,{timeout:20000}).catch(()=>{});
+ s=await snapshot();await touch('touchEnd',[Bk]);await delay(100);
+ check('B1-01 F2 AC-05: the touch brake button stops the car',Math.abs(s.vehicle.speed)<0.3&&s.vehicle.stopped,s.vehicle);
+ check('B1-01 F2 AC-05: car body still clear of the static world after touch driving',await page.evaluate(()=>window.__debug.vehicleClear()));
+
+ // ------------------------------------------------ get out (touch on the action button), solid body, get back in
+ const action=page.locator('[data-action="mount"]');
+ check('B1-01 F2: stopped car offers "Sair do carro"',await action.innerText()==='Sair do carro'&&!(await action.getAttribute('class')).includes('unavailable'));
+ await action.tap();
+ await page.waitForFunction(()=>window.__weblab.snapshot().mode==='walking',null,{timeout:10000}).catch(()=>{});
+ s=await snapshot();
+ const local=(v,p)=>{const dx=p.x-v.x,dz=p.z-v.z,c=Math.cos(v.yaw),n=Math.sin(v.yaw);return {right:dx*c-dz*n,forward:dx*n+dz*c};};
+ const outside=(v,p,r)=>{const l=local(v,p),dx=Math.max(0,Math.abs(l.right)-0.81),dz=Math.max(0,Math.abs(l.forward)-1.925);return Math.hypot(dx,dz)>=r-1e-6;};
+ check('B1-01 F2 AC-05: driver gets out on the left, beside the car, and the car is parked (handbrake)',s.mode==='walking'&&s.vehicle.parked&&!s.vehicle.driven&&local(s.vehicle,s.walker).right<-0.81&&outside(s.vehicle,s.walker,0.3),{vehicle:s.vehicle,walker:s.walker});
+ check('B1-01 F2: on foot next to the car the button offers "Entrar no carro"',await action.innerText()==='Entrar no carro');
+ // Walk straight at the car body for a few seconds: the parked car is solid.
+ const theta=Math.atan2(s.vehicle.x-s.walker.x,s.vehicle.z-s.walker.z);
+ await page.evaluate(a=>window.__debug.camera(a,1.2,4),-theta-Math.PI/2);await delay(200);
+ const parkedAt={x:s.vehicle.x,z:s.vehicle.z,yaw:s.vehicle.yaw};
+ await page.keyboard.down('KeyW');
+ let solid=true;const t1=Date.now();
+ while(Date.now()-t1<3500){await delay(200);const q=await snapshot();solid=solid&&outside(q.vehicle,q.walker,0.29);}
+ await page.keyboard.up('KeyW');
+ s=await snapshot();
+ check('B1-01 F2 AC-05: walking into the parked car never enters its body; the car does not move',solid&&Math.hypot(s.vehicle.x-parkedAt.x,s.vehicle.z-parkedAt.z)<1e-6&&s.vehicle.yaw===parkedAt.yaw,{walker:s.walker,vehicle:s.vehicle});
+ await page.evaluate(()=>{const v=window.__weblab.snapshot().vehicle,c=Math.cos(v.yaw),n=Math.sin(v.yaw);window.__debug.placeWalker(v.x-1.31*c+.05*n,v.z+1.31*n+.05*c,v.yaw);});
+ await delay(250);
+ await action.tap();
+ await page.waitForFunction(()=>window.__weblab.snapshot().mode==='riding',null,{timeout:10000}).catch(()=>{});
+ s=await snapshot();
+ check('B1-01 F2 AC-05: getting back in by the driver door releases the handbrake',s.mode==='riding'&&s.vehicle.driven&&!s.vehicle.parked,s.vehicle);
+ // Too far from any door: no entry.
+ await page.evaluate(()=>window.__debug.act());await page.waitForFunction(()=>window.__weblab.snapshot().mode==='walking',null,{timeout:10000}).catch(()=>{});
+ await page.evaluate(()=>{const v=window.__weblab.snapshot().vehicle,c=Math.cos(v.yaw),n=Math.sin(v.yaw);window.__debug.placeWalker(v.x+5.5*n,v.z+5.5*c,v.yaw);});
+ await delay(250);
+ await page.evaluate(()=>window.__debug.act());await delay(300);
+ s=await snapshot();
+ check('B1-01 F2 AC-05: no entry from far in front of the car (only at a door)',s.mode==='walking',{mode:s.mode});
+
+ // ------------------------------------------------ parking in a depot bay
+ const bays=await page.evaluate(()=>window.__debug.carBays());
+ const b0=bays[0];
+ await page.evaluate(()=>{const v=window.__weblab.snapshot().vehicle,c=Math.cos(v.yaw),n=Math.sin(v.yaw);window.__debug.placeWalker(v.x-1.31*c,v.z+1.31*n,v.yaw);});await delay(200);
+ await page.evaluate(()=>window.__debug.act());await page.waitForFunction(()=>window.__weblab.snapshot().mode==='riding',null,{timeout:10000}).catch(()=>{});
+ const fits=await page.evaluate(b=>window.__debug.fitsAt(b.x,b.z,b.yaw),b0);
+ await page.evaluate(b=>window.__debug.parkAt(b.x,b.z,b.yaw),b0);await delay(400);
+ await page.evaluate(()=>window.__debug.act());
+ await page.waitForFunction(()=>window.__weblab.snapshot().mode==='walking',null,{timeout:10000}).catch(()=>{});
+ s=await snapshot();
+ check('B1-01 F2 AC-05: car parked inside depot bay 1 is recognised (all four corners in the paint)',fits&&s.vehicle.parked&&s.vehicle.bay===0,{fits,vehicle:s.vehicle});
+
+ // ------------------------------------------------ reload: the choice is permanent, no second dialog
+ await page.reload({waitUntil:'domcontentloaded'});
+ await page.waitForFunction(()=>!!window.__weblab?.snapshot?.().vehicle,{timeout:120000});
+ s=await snapshot();
+ check('B1-01 F2 AC-03: after reloading, the same car is loaded and the choice is not offered again',s.vehicle.kind==='carro-antigo'&&await page.locator('#vehicle-choice').isHidden()&&s.career.calendarIndex===0,{vehicle:s.vehicle,career:s.career});
+ const saved=await page.evaluate(()=>({own:JSON.parse(localStorage.getItem('brejo-b1:carreira:personagem-oeste')).profile.vehicle,others:['norte','leste','sul'].map(k=>localStorage.getItem('brejo-b1:carreira:personagem-'+k))}));
+ check('B1-01 F2 AC-03: only the active career save holds the vehicle; inactive careers untouched',saved.own.kind==='carro-antigo'&&saved.own.paidOff&&saved.others.every(v=>v===null),saved);
+ await ctx.close();
+}
 async function run(){
  if(!process.env.WEBLAB_URL){
   // Own process group, so stopping it also stops Vite (killing npm alone leaves Vite running).
@@ -50,6 +189,10 @@ async function run(){
  const page=await context.newPage();
  page.on('pageerror',e=>errors.push(e.message));
  await page.goto(url+'?gfx=mobile&trafego=1&dia=0',{waitUntil:'domcontentloaded',timeout:120000});
+ // B1-01 F2 (AC-03): a career without a vehicle chooses it once, by touch, before the world starts.
+ await page.waitForSelector('#vehicle-choice:not([hidden])',{timeout:120000});
+ check('B1-01 F2: vehicle choice offers the old motorcycle and the old popular car',await page.locator('#vehicle-choice [data-vehicle]').count()===2&&/permanente/.test(await page.locator('#vehicle-choice').innerText()));
+ await page.locator('[data-vehicle="moto-antiga"]').tap();
  await page.waitForFunction(()=>!!window.__weblab?.snapshot?.().delivery?.logistics,{timeout:120000});
  const snapshot=()=>page.evaluate(()=>window.__weblab.snapshot());
  const sizes=[[915,412],[780,360]];
@@ -59,6 +202,7 @@ async function run(){
  check('three physical NPC couriers and eight functioning stores',s.delivery.logistics.couriers.length===3&&s.delivery.stores.length===8);
  check('one player, four sectors and 10 depot workers',s.delivery.depot.workers.length===10&&Object.keys(s.delivery.logistics.assignments).length===4);
  check('B1-01 F1: active career Oeste, fixed home and legacy NPC roster',s.career?.id==='personagem-oeste'&&s.career.sector==='Oeste'&&s.career.home==='casa-oeste'&&s.career.roster.jogador==='personagem-oeste'&&s.career.roster.npc1==='personagem-norte'&&s.career.roster.npc2==='personagem-leste'&&s.career.roster.npc3==='personagem-sul',s.career);
+ check('B1-01 F2: the motorcycle career owns a paid-off motorcycle and no car is built',s.vehicle.kind==='moto-antiga'&&s.vehicle.owned?.kind==='moto-antiga'&&s.vehicle.owned.paidOff&&s.vehicle.owned.owned&&s.moto!==null&&s.camera.framing.radius===5.6&&s.camera.framing.beta===1.27,{vehicle:s.vehicle,framing:s.camera.framing});
  check('parcels have unique IDs from a single inventory',s.delivery.parcels.length>=21&&s.delivery.parcels.length===new Set(s.delivery.parcels.map(p=>p.id)).size);
  check('landscape control and minimap elements exist',await page.locator('#movement-stick').count()===1&&await page.locator('#minimap').count()===1&&await page.locator('[data-control="accelerate"]').count()===1);
 
@@ -264,17 +408,22 @@ async function run(){
  check('NPC couriers still active and traffic still running',s.delivery.logistics.couriers.some(c=>c.state!=='waiting')&&s.city.vehicles>0);
  check('minimap stays cheap to draw (average ms per redraw, SwiftShader)',s.minimap.drawMs<12,{drawMs:s.minimap.drawMs,draws:s.minimap.draws});
  console.log('Minimap cost:',JSON.stringify({drawMs:s.minimap.drawMs,draws:s.minimap.draws}));
+ // The first page keeps rendering on SwiftShader and starves the next contexts' input: close it.
+ await context.close();
  // B1-01 F1: a legacy calendar index in the real browser storage is migrated into the Oeste career save, not deleted.
  {
   const legacy=await browser.newContext({viewport:{width:915,height:412},isMobile:true,hasTouch:true,deviceScaleFactor:1});
   await legacy.addInitScript(()=>{if(!sessionStorage.getItem('b1-seeded')){sessionStorage.setItem('b1-seeded','1');localStorage.clear();localStorage.setItem('brejo-log003-workday-index','2');}});
   const lp=await legacy.newPage();lp.on('pageerror',e=>errors.push(e.message));
   await lp.goto(url+'?gfx=mobile',{waitUntil:'domcontentloaded',timeout:120000});
+  await lp.waitForSelector('#vehicle-choice:not([hidden])',{timeout:120000});
+  await lp.locator('[data-vehicle="moto-antiga"]').tap();
   await lp.waitForFunction(()=>!!window.__weblab?.snapshot?.().career,{timeout:120000});
   const ls=await lp.evaluate(()=>({career:window.__weblab.snapshot().career,legacy:localStorage.getItem('brejo-log003-workday-index'),save:JSON.parse(localStorage.getItem('brejo-b1:carreira:personagem-oeste')||'null'),others:['norte','leste','sul'].map(k=>localStorage.getItem('brejo-b1:carreira:personagem-'+k))}));
   check('B1-01 F1: legacy calendar migrated to the Oeste career in browser storage, legacy key kept, other careers untouched',ls.career.calendarIndex===2&&ls.career.durable===true&&ls.legacy==='2'&&ls.save?.schemaVersion===1&&ls.save.profile.calendarIndex===2&&ls.others.every(v=>v===null),ls);
   await legacy.close();
  }
+ await carCareer(browser);
  check('no fatal JavaScript errors',errors.length===0,errors);
  console.log('Browser smoke completed:',notes.length,'checks; Chromium emulated mobile/SwiftShader, NOT physical Android.');
 }
