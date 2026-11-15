@@ -4,7 +4,7 @@
 **Status:** especificação de produto para implementação futura; NÃO implementado nem homologado.  
 **Data:** 15/11/2026.  
 **Base técnica:** Web Lab Babylon.js / TypeScript / Vite; baseline LOG-006 consolidada no Git.  
-**Pré-requisito externo em andamento:** HUD-001 + CTRL-001 + MAP-001. Verificar resultado real do Opus/PR antes de começar a Beta 1.0.  
+**Pré-requisito já publicado para teste:** HUD-001 + CTRL-001 + MAP-001 (PR #8) e calibração de direção CTRL-002 (PR #9) na `preview`; ergonomia e desempenho reais continuam sujeitos à avaliação do usuário. A Beta 1.0 não foi implementada.  
 **Cuidado:** este documento não altera gameplay, não publica o site e não revoga o histórico da branch archive/2026-11-15-log006-published.
 
 ### Legenda de decisão
@@ -57,6 +57,7 @@ A Beta 1.0 está definida por um **ciclo diário completo, repetível e divertid
 | Pacotes | Inventário único e interação física simplificada | Formatos diferentes; até seis por viagem nas mãos, sujeitos à capacidade |
 | Moto | Baú com representação visual limitada | Arranjo visível em baú, alforjes e suporte externo seguro |
 | Base | Dez trabalhadores e NPCs; possíveis sobreposições | Postos, filas e deslocamento coordenado sem sobreposição |
+| Corredor de motos | NPC motoboy segue rota de faixa e para quando o bloqueio dinâmico detecta um carro; LOG-006 evita um impasse específico com van | Motoboys e outras motos contornam filas de carros pelo corredor **quando houver espaço real**; sem bloqueio permanente ou colisão falsa |
 | Entregas | Confirmação logística simplificada | Campainha, morador, vizinho, local autorizado, tentativa e ação arriscada |
 | Áudio | Sem catálogo de efeitos de entrega definido | Motor, ações, ambiente, campainhas e falas curtas licenciadas |
 | Animações | Caminhar, carregar, entregar, montar moto, abrir baú já existem | Equipar, tocar campainha, abrir portão, reagir, receber e arremessar |
@@ -217,7 +218,48 @@ A Beta 1.0 está definida por um **ciclo diário completo, repetível e divertid
 - Salvar checkpoint e avançar para o próximo dia útil da carreira atual. Recarregar os quatro perfis sem contaminação.
 - Economia inicial deve refletir decisões existentes e remuneração por volume sem duplicidade, mas financiamento, oficina, compra avançada de veículos e expansão de garagem são **fora do escopo central** desta Beta, a menos que sejam solicitados.
 
-## 10. Contratos de engenharia e qualidade
+## 10. Módulo B1-09 — Corredor de motos e trânsito fluido
+
+**CONFIRMADO pelo usuário:** motos devem conseguir passar pelo corredor entre carros, como na rotina urbana de São Paulo. Trânsito comum de automóveis **não deve deixar motoboys presos indefinidamente**. Esta funcionalidade integra a **Beta 1.0**, não é pedido para alterar agora a versão pública.
+
+### Problema identificado na implementação atual
+
+O jogo já tem grafo de ruas e faixas em `src/core/city/roadGraph.ts`, veículos de tamanhos distintos no `src/core/city/traffic.ts` e roteamento de NPCs em `src/core/delivery/courierRoutes.ts`. Porém o motoboy NPC segue um caminho fixo e `Courier.travel()` em `src/core/delivery/couriers.ts` simplesmente interrompe o avanço quando `trafficBlocked` aponta veículo à frente. O teste LOG-006 verifica que uma van possa prosseguir e liberar a moto; **não implementa corredor de ultrapassagem**. Logo, o comportamento solicitado ainda não existe.
+
+### Comportamento de produto
+
+- **Moto do jogador:** conservar controle manual e física arcade calibrada na CTRL-002. Ao avistar fila de carros, o jogador pode passar entre eles com folga visível. O jogo não deve atrair automaticamente o guidão para o corredor nem impor travamento invisível por estar ao lado de um carro.
+- **Três motoboys NPCs:** ao detectar fila de carros lentos/parados, avaliam um caminho local alternativo no espaço livre entre veículos/faixas, sinalizam visualmente a manobra, reduzem velocidade de maneira confortável, ultrapassam e retornam à trajetória de destino. Evitar ficar parados atrás de automóveis quando existe passagem.
+- **Motos do trânsito ambiente:** comportamento semelhante, mas simplificado, para que a cidade não apresente duas regras contraditórias entre motos genéricas e entregadores.
+- **Carros, vans, ônibus e caminhões:** seguem suas rotas normais, sem frear ou parar artificialmente só porque existe moto próxima. Estabelecer prioridade e ocupação compartilhada para evitar engarrafamentos circulares.
+- **Sem corredor físico:** moto desacelera, espera uma abertura e, quando justificável, procura desvio permitido pelo grafo; **não atravessa carro, muro, calçada, pedestre ou portão**, nem teletransporta para cumprir prazo. O requisito de não ficar permanentemente preso não significa atravessar uma passagem impossível.
+
+### Regras técnicas propostas
+
+1. **Corredor como espaço de manobra, não nova via fictícia.** Calcular a faixa longitudinal disponível entre as caixas de colisão dos veículos e os limites reais da rua. Considerar largura da moto, suporte de carga/alforjes, margem lateral e distância longitudinal. Sem espaço, não autorizar.
+2. **Decisão local em etapas:** `seguir faixa → fila detectada → avaliar passagem → reservar espaço → entrar no corredor → ultrapassar → retornar à rota`. Toda transição observável e reversível.
+3. **Duas motos disputando o mesmo espaço:** reserva/precedência simples para não se atravessarem nem ficarem frente a frente. Cada uma cede passagem de modo determinístico.
+4. **Velocidade moderada conforme folga:** diferença de velocidade em relação aos carros é limitada e diminui com o espaço lateral. Não usar corredor como atalho acelerado em qualquer circunstância.
+5. **Cruzamentos, curvas sem visibilidade, pedestres, semáforos e portões:** interromper ou não iniciar manobra incompatível com a geometria ou regras do cruzamento; não ultrapassar artificialmente filas quando a saída estiver obstruída.
+6. **Recuperação de travamento:** detectar ausência de progresso, classificar bloqueio (carro parado, sem passagem, jogador, semáforo, erro de rota), tentar manobra/desvio seguro e registrar diagnóstico se ainda bloqueado. Evitar `yieldingToTraffic` como estado que permanece indefinidamente sem reavaliação.
+7. **Desempenho Android:** avaliar apenas veículos próximos e atualizar decisões em intervalos limitados; reutilizar rota por faixa, dimensões dos veículos, colisores e estruturas espaciais já existentes; não executar busca global cara a cada frame.
+8. **Logística consistente:** usar o mesmo movimento físico de NPC para coletas, base, entregas e volta à casa. Nunca avançar pacote, horário de chegada ou etapa logística só porque houve bloqueio no trânsito.
+
+**PENDENTE de calibração, não decisão de conceito:** folga lateral mínima, velocidade máxima no corredor, tolerância de desvio e tempo de reavaliação. Valores devem ser definidos com observação da geometria atual e testes no Galaxy S24, não inventados como regra legal.
+
+### Critérios de aceitação B1-09
+
+- Dois carros lentos/parados com corredor realmente livre: um motoboy NPC ultrapassa fisicamente, sem colisão, sem atravessar volumes e sem travar a circulação dos carros.
+- Fila de vários veículos, com duas motos: ambas encontram passagem, negociam precedência e retomam a rota sem sobreposição.
+- Via estreita ou caminhão/ônibus bloqueando totalmente: moto **não atravessa** o obstáculo; espera ou usa caminho alternativo seguro, com diagnóstico de bloqueio real.
+- Cruzamento/semafórico/faixa de pedestres: circulação preserva regras e não atravessa pessoas ou veículos.
+- Moto do jogador: passagem real entre carros sem controle artificial que a segure; colisões estáticas e dinâmicas permanecem válidas.
+- Diferentes demandas, dias e densidades de tráfego: NPCs seguem progredindo na rota e alcançam a base sem esperas circulares permanentes; metas 14h/14h20 são monitoradas, **não garantidas por teleporte**.
+- Testes unitários determinísticos + browser E2E com tráfego ligado + teste manual Android registrando fluidez, colisões, FPS e comportamento de motoboys.
+
+**Ordem recomendada de implementação:** executar B1-09 **após B1-03 (novas lojas e rotas)** e antes de consolidar B1-05 (base), porque a circulação das motos influencia a chegada às lojas, o prazo de 14h20 e o retorno para casa.
+
+## 11. Contratos de engenharia e qualidade
 
 Entidades mínimas propostas:
 - **CareerProfile:** ID do personagem, residência, veículo, setor, dia, equipamentos, dinheiro, reputação e snapshot.
@@ -243,7 +285,7 @@ Metas de teste e desempenho:
 - Objetivo de desempenho **a validar**, não resultado comprovado: jogo jogável de modo estável no Galaxy S24; medir FPS, picos de memória e temperatura no dispositivo. Reduzir partículas, áudio simultâneo, IA visual distante e geometria desnecessária.
 - Verificação Android real **depende de teste no aparelho**; Chromium SwiftShader não comprova FPS real.
 
-## 11. Blocos de implementação e dependências
+## 12. Blocos de implementação e dependências
 
 | Ordem | Entrega | Demonstração mínima e gate |
 |---|---|---|
@@ -251,6 +293,7 @@ Metas de teste e desempenho:
 | **B1-01** | Quatro carreiras + perfil salvo | Criar/alternar/reabrir quatro saves sem cruzar dados |
 | **B1-02** | Quatro casas + partida 11h30 + retorno | Preparar, equipar, sair e voltar para a residência correta |
 | **B1-03** | 12 lojas + atribuição por proximidade | 3 por setor, rotas viáveis, distribuição equilibrada |
+| **B1-09** | Corredor para motos + prevenção de bloqueios por carros | NPCs e jogador passam por corredores fisicamente livres; filas inviáveis não viram teleporte |
 | **B1-04** | Tamanhos + mãos + baú/alforjes/suportes | Inventário físico de ponta a ponta sem perdas |
 | **B1-05** | NPCs na base e prevenção de sobreposição | Postos/fila/rotas e metas sob diferentes demandas |
 | **B1-06** | Campainha + moradores + decisões | Fluxos de entrega, alternativas e custódia auditáveis |
@@ -261,12 +304,13 @@ Metas de teste e desempenho:
 
 **Regra de entrega:** cada bloco começa com critérios e testes, usa branch de feature isolada, passa em CI/E2E, recebe revisão e só então integra à preview. Não publicar no Pages nem mesclar na main por consequência de outro pedido; cada publicação/estabilização exige decisão clara.
 
-## 12. Critérios de conclusão da Beta 1.0
+## 13. Critérios de conclusão da Beta 1.0
 
 A versão só pode ser anunciada **Beta 1.0 jogável** quando, no mínimo:
 - Os quatro perfis funcionam e seus saves são isolados.
 - Cada personagem inicia em casa às 11h30 e retorna à própria casa ao final.
 - Doze lojas são acessíveis, coletas equilibradas e base recebe/triagem/expede sem bloqueios permanentes.
+- Motos do jogador, motoboys NPCs e motos do trânsito ambiente conseguem usar o corredor quando há folga real; carros não geram espera infinita, e colisões/semáforos permanecem coerentes.
 - Pacotes possuem dimensões, transporte até seis condicionado à capacidade, alocação visível e rastreamento fiel em todas as fases.
 - Campainha, morador, vizinho e alternativas de entrega têm feedback visual/sonoro e consequências corretas.
 - Entregas concluídas, pendentes, recusadas, arremessadas ou deixadas em local autorizado não somem do estado do jogo.
@@ -274,7 +318,7 @@ A versão só pode ser anunciada **Beta 1.0 jogável** quando, no mínimo:
 - Os testes automatizados aplicáveis e um ensaio de navegador com trânsito estão aprovados; teste no celular é documentado como aprovado ou pendente, jamais inventado.
 - A HUD/analógico/minimapa não sofrem regressão.
 
-## 13. Questões pendentes (não inventar decisões)
+## 14. Questões pendentes (não inventar decisões)
 
 1. Nomes/aparência/veículos específicos dos quatro personagens; variedade inicial de motos/carros e equipamentos.
 2. Equipar-se é obrigatório uma vez por turno ou oferece atalho automático permanente?
@@ -284,5 +328,6 @@ A versão só pode ser anunciada **Beta 1.0 jogável** quando, no mínimo:
 6. Salvar apenas entre dias ou também checkpoints durante a jornada; política de migração de saves antigos.
 7. Equilíbrio da economia/reputação do início da carreira e tipo de veículo inicial de cada personagem.
 8. Quantidade inicial de falas e assets sonoros, e o limite de desempenho aceitável medido em aparelho.
+9. Valores exatos de folga lateral e velocidade de corredor para motos, calibrados após validação da geometria e do desempenho real.
 
-**Resumo operacional:** a Beta 1.0 deve tornar o dia de motoboy divertido, completo e repetível, com quatro carreiras, casa funcional, mais lojas, carga física, base organizada, escolhas de entrega e identidade audiovisual brasileira. O escopo deve ser construído em blocos auditáveis, não em um único megaprompt de implementação.
+**Resumo operacional:** a Beta 1.0 deve tornar o dia de motoboy divertido, completo e repetível, com quatro carreiras, casa funcional, mais lojas, **motos usando corredor e sem travamentos por carros**, carga física, base organizada, escolhas de entrega e identidade audiovisual brasileira. O escopo deve ser construído em blocos auditáveis, não em um único megaprompt de implementação.
