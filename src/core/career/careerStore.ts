@@ -94,16 +94,22 @@ export class CareerStore {
     const stored = this.storedSequence(id);
     if (valid.checkpointSequence !== stored + 1) throw new SaveError(`Checkpoint ${valid.checkpointSequence} fora da sequência: o gravado é ${stored}, esperado ${stored + 1} (sessão desatualizada?)`);
     const text = canonicalJson(valid);
+    const oldPrevious = this.storage.getItem(previousKey(id));
+    let promoted = false;
     try {
       const current = this.storage.getItem(saveKey(id));
       if (current !== null) {
         let intact = true;
         try { parseSave(JSON.parse(current), id); } catch { intact = false; }
         // Só promove a "anterior" uma cópia íntegra: um principal corrompido nunca apaga o backup bom.
-        if (intact) this.storage.setItem(previousKey(id), current);
+        if (intact) { this.storage.setItem(previousKey(id), current); promoted = true; }
       }
       this.storage.setItem(saveKey(id), text);
     } catch (e) {
+      // F3.5 (auditoria): se o principal não foi gravado, a cópia anterior volta a ser a de antes.
+      if (promoted) {
+        try { if (oldPrevious === null) this.storage.removeItem(previousKey(id)); else this.storage.setItem(previousKey(id), oldPrevious); } catch { /* best effort */ }
+      }
       throw new SaveError(`Falha ao gravar o save de ${id}: ${(e as Error).message}`);
     }
     return valid;

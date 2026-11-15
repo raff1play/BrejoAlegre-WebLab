@@ -1,9 +1,9 @@
 import {
-  APPEARANCE_PRESETS, CAREER_IDS, CHARACTERS, EQUIPMENT_PRESETS, VEHICLE_KINDS, careerHome, isCareerId,
+  APPEARANCE_PRESETS, CAREER_IDS, CHARACTERS, EQUIPMENT_PRESETS, VEHICLE_KINDS, buildRoster, careerHome, isCareerId,
   type AppearancePreset, type CareerId, type EquipmentPresetId, type VehicleKind,
 } from './careers.ts';
-import { bootCareer, type CareerBoot } from './careerBoot.ts';
-import { CareerStore, type KeyValueStorage, type LoadSource } from './careerStore.ts';
+import type { CareerBoot } from './careerBoot.ts';
+import { CareerSession, CareerStore, type KeyValueStorage, type LoadSource } from './careerStore.ts';
 import { SaveError, chooseStartingVehicle, customize } from './snapshot.ts';
 import { calendarDay } from '../delivery/operatingCalendar.ts';
 
@@ -69,11 +69,15 @@ export function menuModel(storage: KeyValueStorage, durable = true): MenuModel {
 export type CareerChoice = Readonly<{ appearance: AppearancePreset; equipment: EquipmentPresetId; vehicle: VehicleKind | null }>;
 
 /**
- * Enters one career after the player confirms it: validates the choice, switches the active career
- * (refused while another career has an open shift, decision 8 / AC-17), loads it (`bootCareer`,
- * which also persists the non-destructive legacy migration for Oeste) and writes the customisation
- * and — only if none is saved yet — the one-time vehicle in ONE checkpoint. Any write error is
- * thrown as `SaveError`; nothing claims to be saved when it was not.
+ * Enters one career after the player confirms it. Order matters (audit of comment 6903050464):
+ * 1. everything is validated WITHOUT writing (presets, vehicle against the saved one, unreadable
+ *    save, another career's open shift — decision 8 / AC-17);
+ * 2. the chosen career's own profile is written through a session bound explicitly to that
+ *    `careerId`, in ONE checkpoint (non-destructive legacy calendar migration for Oeste, presets
+ *    and — only when none is saved — the one-time vehicle);
+ * 3. ONLY THEN does it become the active career.
+ * Any failure throws `SaveError` before the active-career pointer changes, so a failed attempt
+ * never switches careers and never claims to have saved what it did not.
  */
 export function enterCareer(storage: KeyValueStorage, careerId: CareerId, choice: CareerChoice): CareerBoot {
   if (!isCareerId(careerId)) throw new SaveError(`Carreira inválida: ${String(careerId)}`);
@@ -81,22 +85,32 @@ export function enterCareer(storage: KeyValueStorage, careerId: CareerId, choice
   if (!EQUIPMENT_PRESETS.some((e) => e.id === choice.equipment)) throw new SaveError('Equipamento inválido');
   if (choice.vehicle !== null && !(VEHICLE_KINDS as readonly string[]).includes(choice.vehicle)) throw new SaveError('Veículo inválido');
   const store = new CareerStore(storage);
-  const read = store.read(careerId);
-  if (read.problem !== null && !read.persisted) throw new SaveError(`Save inválido de ${CHARACTERS[careerId].name}: ${read.problem}`);
-  store.setActiveCareer(careerId);
-  const boot = bootCareer(storage);
-  if (boot.session.careerId !== careerId) throw new SaveError('Carreira ativa diferente da escolhida');
-  const p = boot.session.profile;
+  const active = store.activeCareer();
+  if (active !== careerId) {
+    const open = store.read(active).save.profile.activeShiftId;
+    if (open !== null) throw new SaveError(`Expediente ${open} aberto: troca de carreira só após finalizar o expediente`);
+  }
+  const session = new CareerSession(store, careerId);
+  if (session.loadProblem !== null && session.loadSource === 'novo') throw new SaveError(`Save inválido de ${CHARACTERS[careerId].name}: ${session.loadProblem}`);
+  const p = session.profile;
   const owned = p.vehicle?.kind ?? null;
   if (owned !== null && choice.vehicle !== null && choice.vehicle !== owned) throw new SaveError('Veículo inicial já escolhido: permanece fixo até a garagem futura');
   if (owned === null && choice.vehicle === null) throw new SaveError('Escolha o veículo inicial da carreira');
-  const changes = p.appearance !== choice.appearance || p.equipment !== choice.equipment || owned === null || boot.session.loadSource === 'novo';
-  if (changes) {
-    boot.session.commit(careerId, (profile, shift) => {
-      let next = customize(profile, { appearance: choice.appearance, equipment: choice.equipment });
-      if (next.vehicle === null) next = chooseStartingVehicle(next, choice.vehicle!);
-      return { profile: next, shift };
-    });
+  // Validate the new profile with the domain rules before any write.
+  let next = customize(p, { appearance: choice.appearance, equipment: choice.equipment });
+  if (next.vehicle === null) next = chooseStartingVehicle(next, choice.vehicle!);
+  const notes: string[] = [];
+  if (session.loadProblem) notes.push(session.loadProblem);
+  const unsaved = session.loadSource === 'novo' || session.loadSource === 'legado';
+  const changed = p.appearance !== next.appearance || p.equipment !== next.equipment || owned === null;
+  if (unsaved || changed) {
+    const finalProfile = next;
+    session.commit(careerId, (_profile, shift) => ({ profile: finalProfile, shift }));
+    if (session.loadSource === 'legado') notes.push('Calendário legado migrado para a carreira Oeste');
   }
-  return Object.freeze({ ...boot, calendarIndex: boot.session.profile.calendarIndex });
+  store.setActiveCareer(careerId);
+  return Object.freeze({
+    session, roster: buildRoster(careerId), home: careerHome(careerId),
+    calendarIndex: session.profile.calendarIndex, notes: Object.freeze(notes),
+  });
 }

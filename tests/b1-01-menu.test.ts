@@ -193,7 +193,8 @@ test('B1-01 F3.5 auditoria: calendário legado Oeste — falha de gravação nã
   storage.failKey = null;
   const boot = enterCareer(storage, 'personagem-oeste', { appearance: 'feminino', equipment: 'kit-jaqueta', vehicle: 'moto-antiga' });
   assert.equal(boot.calendarIndex, 5); assert.equal(storage.getItem(CALENDAR_STORAGE_KEY), '5');
-  assert.equal(storage.getItem(ACTIVE_CAREER_KEY), 'personagem-oeste');
+  // Oeste is the default career: without a stored pointer `activeCareer()` already answers Oeste.
+  assert.equal(new CareerStore(storage).activeCareer(), 'personagem-oeste');
   assert.ok(boot.notes.some((n) => /legado/i.test(n)));
 });
 
