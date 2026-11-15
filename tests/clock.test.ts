@@ -8,7 +8,7 @@ test('clock runs at 2min30s real per virtual hour, starting at 11:45', () => {
   assert.equal(WORKDAY_START, 11.75);
   assert.equal(COURIER_DEPART_DELAY_VIRTUAL_MINUTES, 2);
   assert.ok(Math.abs(COURIER_DEPART_HOUR - (11 + 47 / 60)) < 1e-9);
-  assert.equal((COURIER_DEPART_HOUR - WORKDAY_START) * REAL_SECONDS_PER_VIRTUAL_HOUR, 5);
+  assert.ok(Math.abs((COURIER_DEPART_HOUR - WORKDAY_START) * REAL_SECONDS_PER_VIRTUAL_HOUR - 5) < 1e-9);
   assert.equal(WORKDAY_END, 21);
   const c = new VirtualClock();
   assert.equal(c.label, '11:45');
