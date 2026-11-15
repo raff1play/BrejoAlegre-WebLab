@@ -135,3 +135,12 @@ Em **Build and deployment > Source**, selecionar **GitHub Actions** e salvar. En
 - **LOG-006:** tentativa de resolver espera circular de NPCs e vans: moto estacionada não bloqueia a circulação, moto cedendo passagem aguarda o carro passar, mantendo bloqueio físico pelo jogador/outros NPCs. Indicador de cedência no painel.
 - **Limitações conhecidas:** teste de unidade reproduz o impasse mas não substitui ensaio end-to-end no navegador com trânsito ligado, nem teste real no Galaxy S24. Ainda não há confirmação de que o travamento observado pelo usuário foi eliminado sob todas as circunstâncias.
 - **Disparo autorizado:** esta atualização do arquivo de controle aciona o workflow `.github/workflows/preview.yml`. Declarar a versão publicada somente após o trabalho de deploy concluir com `success`; verificar o endereço https://raff1play.github.io/BrejoAlegre-WebLab/ e registrar o SHA da publicação.
+
+## HUD-001 + CTRL-001 + MAP-001 — publicação experimental autorizada (15/11/2026)
+
+- **Autorização explícita neste chat:** usuário solicitou "Antes vê se você aprova o que o opus fez veja se está tudo na branch correta se estiver tudo certo publique pra eu testar".
+- **Revisão:** Opus implementou em `feat/hud-001-mobile-controls`, PR #8 para `preview`; PR merged com commit `d7a4d0ff0fed2f498bfd1adb4c09d57df630a399`. A `main` permanece intacta.
+- **Escopo:** HUD por contexto (base/pilotando/a pé), analógico flutuante com curva de controle dependente de velocidade sem alterar a física `MOTO`, minimapa heading-up/zoom/rota/conversões por cruzamentos OSM reais e mapa ampliado.
+- **CI de revisão:** execução de PR [43730075034](https://github.com/raff1play/BrejoAlegre-WebLab/actions/runs/43730075034) concluída em `success`: 155/155 unitários, build de staging e verificações de navegador com tráfego ativo (73 checks); testes no Galaxy S24 físico ainda pendentes, assim como jornada inteira percorrida manualmente.
+- **Publicação:** somente GitHub Pages `preview` via este documento; não utilizar `pages.yml`, não fazer merge na `main`, não ativar PWA antiga, não adicionar custos.
+- **Limitações:** roteamento inicial não leva em conta a orientação da moto; desempenho do SwiftShader não equivale a Android físico. Declarar publicado apenas após `Deploy preview` concluir com `success` e confirmar URL do Pages.
