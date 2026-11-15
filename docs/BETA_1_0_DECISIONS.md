@@ -64,13 +64,30 @@
 - **Ciclo visual do carro** requer testes de entrada/saída, dirigibilidade/colisão, capacidade/posicionamento de carga, coleta/descarga/entrega, transições de guarda e salvamento. Modelo de carro ambiente em `src/features/city/vehicleModels.ts` não satisfaz esta exigência.
 - **Confiabilidade de checkpoints:** persistir ID do perfil, veículo, relógio, fase, localização segura, IDs/estados/posse/histórico dos pacotes e progresso; checkpoints atômicos, versionados, recuperáveis, sem pagamento duplicado. Salvar ao pausar e tentar salvar na saída sem depender dessa tentativa.
 
-**BLOQUEADORES ESSENCIAIS ANTES DO CONGELAMENTO (ainda não decididos):**
-A. **Definição de entrega/procedimento concluído:** todos os pacotes precisam ser entregues com sucesso, ou um resultado final válido (tentativa frustrada + devolução/conferência) também pode concluir o trabalho daquele pacote? Sem isso, ausência de morador pode tornar o expediente impossível.
-B. **Regra do limite 21h e recuperação de bloqueio real:** depois de 21h pode finalizar procedimentos pendentes ou o trabalho obrigatoriamente precisa esperar o próximo dia? Qual saída segura quando uma rota/cliente fica inacessível, sem violar a proibição de encerrar antecipadamente?
-C. **Escopo/qualidade mínimos da “carga visual avançada” do carro:** disposição visível no porta-malas/interior, física/limites por tamanho, carga manual ou arrumação assistida, e como isso conversa com o B1-05. A exigência de recursos avançados **já está confirmada**, porém os critérios visuais/funcionais específicos não.
-D. **Política do salvamento e backup:** lista exata de pontos seguros, resultado ao restaurar uma jornada após falha, conflito com gravação antiga e como trocar a instalação do navegador sem perder a carreira (exportar/importar). O backup **já está confirmado**; o formato concreto não.
+**CONFIRMADO — Questionário 4 (4/4 respostas do usuário, 15/11/2026):**
+13. **Entrega frustrada:** registra-se a tentativa, o pacote é **devolvido fisicamente e conferido**; a sequência de devolução/conferência vale como procedimento concluído, **não como entrega paga**. A mera tentativa não conclui a pendência; não marcar como `ENTREGUE`.
+14. **Após as 21h:** o jogador **pode continuar realizando entregas**, com **atraso registrado**. O expediente não é automaticamente encerrado às 21h enquanto houver pacotes/procedimentos pendentes. **A decisão não especifica explicitamente o comportamento dos três NPCs após 21h nem a regra ao atravessar meia-noite.**
+15. **Carga avançada do carro:** **abrir porta-malas, caixas individuais visíveis, limites físicos de capacidade e arrumação automática**. Confirmado para B1-01 (não adiar para B1-05). **Não foi escolhida** a opção de arrumação manual.
+16. **Ponto seguro e recuperação:** retomar da **última operação confirmada em local seguro**, reconstruindo trânsito e NPCs, **sem reverter custódia nem perder entregas/inventário**. Exige versão do estado e transição idempotente; não requer reconstruir a posição exata dos carros de tráfego.
 
-**Não decididos, mas não bloqueadores imediatos do modelo lógico:** nomes/visuais exatos dos quatro personagens, catálogo de equipamentos, modelo comercial exato de moto/carro e custos detalhados da progressão futura. Não assumir aprovação implícita. **Não iniciar implementação ainda.**
+**Compatibilidade com as decisões 1–12:**
+- Q13 esclarece Q11: a jornada exige **resultado final válido para cada pacote** (entregue ou devolvido e conferido), sem encerramento antecipado e sem pagamento por devolução. Ações opcionais do B1-07 terão de respeitar isso.
+- Q14 mantém Q11: 21h passa a ser **marco de atraso, não finalizador automático**. Contraria o comportamento existente da `preview`, portanto há trabalho de código futuro. O relógio atual em `src/core/city/clock.ts` volta a 00h após meia-noite; para registrar horas extras sem perder o mesmo expediente, será preciso controlar tempo decorrido/data de jornada além da hora de 0–24.
+- Q15 concretiza Q9: carro operável com logística completa e **porta-malas físico/visual individualizado com arrumação automática**; regras geométricas detalhadas podem ser parametrizadas e testadas, mas a capacidade deve limitar de verdade a carga.
+- Q16 concretiza Q8/Q12: checkpoint após eventos importantes e na pausa, recuperação em local seguro, dados operacionais preservados; `visibilitychange`/`pagehide` são apenas tentativa de salvamento adicional.
+
+**Diferenças verificadas com o código existente (problemas a corrigir na implementação; NÃO implementados):**
+- `src/core/delivery/logisticsDay.ts`: `canTakeLoad`, `release`, `takeForAddress` e `deliver` estão limitados por `hour<21`; `update` define `ENCERRADA` às 21h. `src/core/delivery/couriers.ts`: motoboys NPC interrompem movimento em `hour>=21`.
+- `src/core/delivery/workday.ts`: `ROUTINE.end=21`, `canTakeSack` e outras transições usam esse limite. `src/core/city/clock.ts` usa minutos do dia com retorno a zero após meia-noite, portanto `hour>=21` não identifica corretamente horas extras depois de 00h.
+- `src/core/delivery/parcels.ts`: fluxo operacional terminal atualmente é só `ENTREGUE`, não existe resultado terminal de `DEVOLVIDO_E_CONFERIDO`, portanto devoluções exigem um fluxo de custódia separado e auditável que **não pague entrega**.
+- Funcionários da base têm turnos com fim próximo a 21h em `workday.ts`; retorno/conferência tardios precisarão de regra operacional coerente, sem surgir funcionário do nada.
+
+**ÚNICO BLOQUEADOR DE PRODUTO CRÍTICO RESTANTE para homologar o fechamento integral:**
+- **Escala das horas extras para a equipe e a base:** a decisão 14 diz continuar entregando após 21h, mas não esclarece se os três motoboys NPCs também seguem trabalhando até resolver seus pacotes nem se haverá uma pessoa/posto de conferência de devoluções depois das 21h. Uma das alternativas precisa ser explicitamente escolhida antes de tornar obrigatória a conclusão conjunta sem possibilidade de travamento. O comportamento da madrugada é consequência técnica deste desenho (relógio monotônico com dia operacional preservado), não uma solicitação de novo horário limite.
+
+**Detalhes técnicos ainda a especificar pelos implementadores, SEM inferir decisões do usuário:** forma do backup (por exemplo arquivo JSON versionado e verificado), limites de dimensão/peso/slots de carga de carro (reais na lógica, sem atravessar colisores), política de recuperação de falha e migração de `localStorage` antigo, escolha do ponto seguro e limites de teste. Manter estes como critérios técnicos verificáveis. Nomes/cores de personagens e veículos continuam em aberto mas não bloqueiam a definição do modelo de carreira.
+
+**Não iniciar implementação nem publicação enquanto houver bloqueador pendente.**
 
 ### B1-02 — Casas e começo do dia
 **Fazer:** quatro casas pequenas com quarto/cabide/garagem/portão; equipamento, moto e início 11h30.
