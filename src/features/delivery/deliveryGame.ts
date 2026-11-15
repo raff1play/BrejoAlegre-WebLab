@@ -1,5 +1,6 @@
 import { CourierViews } from './courierViews';
 import { LogisticsDay } from '../../core/delivery/logisticsDay';
+import type { Roster } from '../../core/career/careers';
 import { SupplierVanView } from './supplierVanView';
 import { DepotParcels } from './depotParcels';
 import { gateLeaves, INBOUND_TRUCK, INBOUND_TAIL, D05_SHUTTER } from '../../world/city/depotPlan';
@@ -62,8 +63,8 @@ export class DeliveryGame {
   private time = 0;
   private waitUntil: number | null = null;
 
-  constructor(scene: Scene, mats: Materials, profile: GraphicsProfile, shadows: ShadowGenerator, private readonly shutters: Map<string, Mesh>, free: (x: number, z: number) => boolean, seed?: number, _perStore=2, dayIndex?:number) {
-    this.workday = new LogisticsDay({ seed, free, dayIndex });
+  constructor(scene: Scene, mats: Materials, profile: GraphicsProfile, shadows: ShadowGenerator, private readonly shutters: Map<string, Mesh>, free: (x: number, z: number) => boolean, seed?: number, _perStore=2, dayIndex?:number, roster?: Roster) {
+    this.workday = new LogisticsDay({ seed, free, dayIndex, roster });
     this.courierViews=new CourierViews(scene,mats,this.workday);
     this.parcelViews = new DepotParcels(scene,mats);
     this.vanView=new SupplierVanView(scene,mats);
@@ -284,9 +285,9 @@ export class DeliveryGame {
       if(!depotVisitAllowed(visit,'receiving'))return {label:'Estacione a moto nas vagas de descarga',available:false,run:null};
       return { label: `Entregar ao conferente (${mine})`, available: true, run: () => `Conferente recebendo ${n(w.handOver(hour,visit))}` };
     }
-    if (close(DEPOT_SPOTS.dispatch, 1.45) && (w.phase === 'SACA' || w.phase === 'TRIAGEM')) {
+    if (close(w.playerDispatch, 1.45) && (w.phase === 'SACA' || w.phase === 'TRIAGEM')) {
       if (hands.length) return { label: 'Mãos cheias', available: false, run: null };
-      if(!depotVisitAllowed(visit,'dispatch'))return {label:'Use as vagas de descarga da base',available:false,run:null};
+      if(!depotVisitAllowed(visit,w.playerDispatchLocal))return {label:'Use as vagas de descarga da base',available:false,run:null};
       if (!w.canTakeSack(hour)) return { label: hour < ROUTINE.sackFrom ? 'Saca às 15h' : 'Triagem em curso', available: false, run: null };
       return { label: 'Retirar a saca', available: true, run: () => `Saca com ${n(w.takeSack(hour,visit))} — guarde no baú da moto` };
     }

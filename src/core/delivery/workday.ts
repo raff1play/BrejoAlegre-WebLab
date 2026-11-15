@@ -41,12 +41,14 @@ export type DepotRole = 'porteiro' | 'conferente' | 'conferente-2' | 'descarrega
 export type DepotStaff = { role: DepotRole; state: string; station: { x: number; z: number }; shift: [number, number]; carrying: boolean };
 
 export type DepotVisit = {player:{x:number;z:number;riding:boolean};bike:{x:number;z:number;yaw:number;moving:boolean}};
-export function depotVisitAllowed(visit:DepotVisit|undefined,at:'receiving'|'dispatch'|'parking'):boolean {
+/** `at`: a named depot point, or (B1-01) an explicit depot-local counter such as the player's sector dock. */
+export function depotVisitAllowed(visit:DepotVisit|undefined,at:'receiving'|'dispatch'|'parking'|{x:number;z:number}):boolean {
  if(!visit||visit.player.riding||visit.bike.moving)return false;
  const b=depotLocal(visit.bike.x,visit.bike.z),p=depotLocal(visit.player.x,visit.player.z);
  if(!validDepotParking({...b,yaw:visit.bike.yaw-depotYaw(0),moving:visit.bike.moving})||!depotFree(p,.25))return false;
  if(at==='parking')return Math.hypot(visit.player.x-(visit.bike.x-Math.sin(visit.bike.yaw)*1.25),visit.player.z-(visit.bike.z-Math.cos(visit.bike.yaw)*1.25))<1.1;
- return Math.hypot(p.x-DEPOT_POINTS[at].x,p.z-DEPOT_POINTS[at].z)<1.45;
+ const q=typeof at==='string'?DEPOT_POINTS[at]:at;
+ return Math.hypot(p.x-q.x,p.z-q.z)<1.45;
 }
 export type WorkdayOptions = Readonly<{ seed?: number; stores?: number; perStore?: number; marketplace?: number; free?: (x: number, z: number) => boolean }>;
 

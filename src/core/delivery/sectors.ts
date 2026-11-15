@@ -4,6 +4,7 @@ import {streetRoute} from '../city/streetRoute.ts';
 export const SECTORS=['Norte','Oeste','Leste','Sul'] as const;
 export type Sector=typeof SECTORS[number];
 export const SECTOR_CENTRE={x:TOWN_CENTRE[0],z:TOWN_CENTRE[1]};
+/** `actor` is the LEGACY default role (player = Oeste). B1-01: the live role comes from the career roster (`src/core/career/careers.ts`). */
 export const SECTOR_DATA={Norte:{dock:'D01',load:'ROTA-N',actor:'npc1',x:96,color:'#4da6de'},Oeste:{dock:'D02',load:'ROTA-O',actor:'jogador',x:104,color:'#e4a949'},Leste:{dock:'D03',load:'ROTA-L',actor:'npc2',x:112,color:'#60ac67'},Sul:{dock:'D04',load:'ROTA-S',actor:'npc3',x:120,color:'#bf7dcb'}} as const;
 /** OSM tangent-plane projection: +x east, +z north. Dominant-axis wedges, deterministic ties. */
 export function sectorOf(p:{x:number;z:number}):Sector{const dx=p.x-SECTOR_CENTRE.x,dz=p.z-SECTOR_CENTRE.z;return Math.abs(dz)>=Math.abs(dx)?(dz>=0?'Norte':'Sul'):(dx<0?'Oeste':'Leste');}

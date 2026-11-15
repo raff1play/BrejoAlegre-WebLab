@@ -3,26 +3,42 @@ import {dailyDemand,type DemandOptions,type ActorId} from './dailyDemand.ts';
 import {Courier,COURIER_LABEL} from './couriers.ts';
 import {SECTOR_DATA,recommendedRoute,type Sector} from './sectors.ts';
 import {depotLocal,depotWorld,type StoreKind} from '../../world/city/cityPlan.ts';
+import {DEPOT_POINTS} from '../../world/city/depotPlan.ts';
 import {advance,move} from './parcels.ts';
 import {depotVisitAllowed} from './workday.ts';
 import {calendarDay,type CalendarDay} from './operatingCalendar.ts';
-/** Four actors share inherited parcels/depot. Actor inventories are queries, never copies. */
+import {CHARACTERS,DEFAULT_CAREER,assertRoster,buildRoster,type Roster} from '../career/careers.ts';
+export type LogisticsDayOptions=WorkdayOptions&DemandOptions&{roster?:Roster};
+/**
+ * Four actors share inherited parcels/depot. Actor inventories are queries, never copies.
+ * B1-01 F1: the `roster` maps each persistent character (careerId) to its role for THIS shift; the
+ * player's sector comes from the active career. Default roster = legacy (player Oeste; Rosa/Caio/Davi).
+ */
 export class LogisticsDay extends Workday {
- readonly couriers=[new Courier('npc1','Rosa','Norte'),new Courier('npc2','Caio','Leste'),new Courier('npc3','Davi','Sul')];
+ readonly roster:Roster;readonly playerSector:Sector;readonly couriers:Courier[];
+ /** The player's own sector counter (depot-local / world). Oeste = the legacy D02 dispatch point. */
+ readonly playerDispatchLocal:{x:number;z:number};readonly playerDispatch:{x:number;z:number};
  assignments:Record<ActorId,StoreKind[]>={jogador:[],npc1:[],npc2:[],npc3:[]};
  readonly demandOptions:DemandOptions;readonly calendar:CalendarDay|null;
  allSortedAt:number|null=null;private readinessWarned=false;
  trafficTime=0;trafficBlocked:((id:string,x:number,z:number,yaw:number)=>'traffic'|'player'|'courier'|null)|null=null;
  gateOpen=1;released=false;releaseHour:number|null=null;private previousHour:number|null=null;
  readonly local=(p:{x:number;z:number})=>depotLocal(p.x,p.z);
- constructor(options:WorkdayOptions&DemandOptions={}){super(options);this.demandOptions=options;this.calendar=options.dayIndex===undefined?null:calendarDay(options.dayIndex);}
+ constructor(options:LogisticsDayOptions={}){
+  super(options);this.demandOptions=options;this.calendar=options.dayIndex===undefined?null:calendarDay(options.dayIndex);
+  this.roster=options.roster??buildRoster(DEFAULT_CAREER);assertRoster(this.roster);
+  this.playerSector=CHARACTERS[this.roster.jogador].sector;
+  this.playerDispatchLocal=Object.freeze({x:SECTOR_DATA[this.playerSector].x,z:DEPOT_POINTS.dispatch.z});
+  this.playerDispatch=Object.freeze(depotWorld(this.playerDispatchLocal.x,this.playerDispatchLocal.z));
+  this.couriers=(['npc1','npc2','npc3'] as const).map(id=>{const c=CHARACTERS[this.roster[id]];return new Courier(id,c.name,c.sector);});
+ }
  override start(hour:number):void{
   if(this.phase!=='ANTES')return;const d=dailyDemand(this.addresses,hour,this.demandOptions);
   this.assignments=d.assignments;this.assigned=d.assignments.jogador;this.parcels.push(...d.parcels);
   for(const c of this.couriers)c.stores=this.assignments[c.id];
   this.phase='COLETA';this.events.push(`Equipe designada: 8 lojas · ${this.calendar?.tier??'demanda padrão'} · 4 setores. Consulte Logística.`);
  }
- actorSector(actor:ActorId):Sector{return actor==='jogador'?'Oeste':this.couriers.find(c=>c.id===actor)!.sector;}
+ actorSector(actor:ActorId):Sector{return actor==='jogador'?this.playerSector:this.couriers.find(c=>c.id===actor)!.sector;}
  load(actor:ActorId){return this.parcels.filter(p=>p.sector===this.actorSector(actor));}
  canTakeLoad(actor:ActorId,hour:number):boolean{
   const list=this.load(actor),s=SECTOR_DATA[this.actorSector(actor)];
@@ -39,7 +55,7 @@ export class LogisticsDay extends Workday {
   return list.length;
  }
  override canTakeSack(hour:number):boolean{return this.canTakeLoad('jogador',hour);}
- override takeSack(hour:number,visit?:DepotVisit):number{return depotVisitAllowed(visit,'dispatch')?this.takeLoad('jogador',hour,visit!.player):0;}
+ override takeSack(hour:number,visit?:DepotVisit):number{return depotVisitAllowed(visit,this.playerDispatchLocal)?this.takeLoad('jogador',hour,visit!.player):0;}
  get playerReady():boolean{return this.load('jogador').length>0&&this.load('jogador').every(p=>p.state==='EM_ROTA'&&p.place==='bau'&&p.holder==='jogador');}
  get teamReady():boolean{return this.playerReady&&this.couriers.every(c=>c.state==='ready');}
  release(hour:number):boolean{if(!this.teamReady||this.released||hour<15||hour>=21)return false;this.released=true;this.releaseHour=hour;this.couriers.forEach(c=>c.timer=0);this.events.push('Equipe liberada — quatro rotas iniciadas');return true;}
@@ -66,13 +82,15 @@ export class LogisticsDay extends Workday {
  }
  override objective(hour:number,bike?:{x:number;z:number}):Objective{
   if(this.phase==='ENTREGAS'&&!this.released){
-   if(this.sackInHands)return {title:'Guardar a saca Oeste no baú',detail:this.cargoLabel(),target:bike?{kind:'moto',id:'moto',...bike,label:'Baú da moto'}:null,waitUntil:null};
+   if(this.sackInHands)return {title:`Guardar a saca ${this.playerSector} no baú`,detail:this.cargoLabel(),target:bike?{kind:'moto',id:'moto',...bike,label:'Baú da moto'}:null,waitUntil:null};
    return {title:this.teamReady?'Equipe pronta — iniciar rota de entregas':'Preparação da equipe para saída conjunta',detail:`${this.couriers.map(c=>`${c.name}: ${COURIER_LABEL[c.state]}`).join(' · ')} · menu Logística · jornada até 21h`,target:null,waitUntil:null};
   }
-  if(this.phase==='ENTREGAS'&&!this.route.length)return {title:'Setor Oeste concluído — acompanhando a equipe',detail:this.couriers.map(c=>`${c.name}: ${COURIER_LABEL[c.state]}`).join(' · '),target:null,waitUntil:null};
-  const objective=super.objective(hour,bike);
+  if(this.phase==='ENTREGAS'&&!this.route.length)return {title:`Setor ${this.playerSector} concluído — acompanhando a equipe`,detail:this.couriers.map(c=>`${c.name}: ${COURIER_LABEL[c.state]}`).join(' · '),target:null,waitUntil:null};
+  const base=super.objective(hour,bike);
+  // The dispatch counter is the player's sector dock (unchanged D02 for the legacy Oeste career).
+  const objective=base.target?.label==='Expedição'?{...base,target:{...base.target,...this.playerDispatch}}:base;
   if(['CONFERENCIA','TRIAGEM'].includes(this.phase)&&this.calendar)return {...objective,detail:`${objective.detail} · meta de separação até ${this.calendar.depotTarget}h`};
-  if(this.phase==='SACA')return {...objective,title:hour<15?'Carga Oeste liberada às 15h':'Retirar a carga Oeste na D02',detail:`${this.load('jogador').length} volumes ML/SHP • somente seu setor`};
+  if(this.phase==='SACA')return {...objective,title:hour<15?`Carga ${this.playerSector} liberada às 15h`:`Retirar a carga ${this.playerSector} na ${SECTOR_DATA[this.playerSector].dock}`,detail:`${this.load('jogador').length} volumes ML/SHP • somente seu setor`};
   return objective;
  }
  override progress(){return {collected:this.parcels.filter(p=>p.collector==='jogador'&&p.state!=='NA_LOJA').length,delivered:this.count('ENTREGUE'),total:this.parcels.length};}
