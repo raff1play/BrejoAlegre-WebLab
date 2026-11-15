@@ -100,6 +100,10 @@ function main(){
   const base=process.env.BETA1_BASE??'';
   const sha=process.env.BETA1_BASE_SHA??'';
   assert.ok(head&&base&&shaOk(sha),'Contexto de PR incompleto');
+  // The first B1-00 PR installs the state file. Other non-Beta PRs remain on normal CI.
+  if(!/^(?:feat|fix)\/beta1-0[1-9]-[a-z0-9-]+$/.test(head)){
+   console.log('B1-00: PR comum/preparacao; CI normal obrigatoria');return;
+  }
   // Read the trusted base branch state, never the manifest controlled by a PR author.
   const raw=execFileSync('git',['show',sha+':'+STATE_PATH],{encoding:'utf8'});
   const baseState=validateState(JSON.parse(raw));
