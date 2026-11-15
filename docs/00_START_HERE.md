@@ -7,7 +7,7 @@
 
 Os nove modulos B1-01 a B1-09 estao descritos em [BETA_1_0_SPEC.md](BETA_1_0_SPEC.md), com decisoes em [BETA_1_0_DECISIONS.md](BETA_1_0_DECISIONS.md). **B1-01 tem 17 decisoes e 26 criterios de aceite congelados, mas nao esta implementado.**
 
-O B1-00 organiza branches, testes, demonstracao publica e aprovacao obrigatoria. Leia [B1_00_RUNBOOK](beta1/B1_00_RUNBOOK.md) e consulte [STATE.json](beta1/STATE.json). A branch de preparacao deve ser aprovada por CI e pelo usuario antes de desbloquear B1-01. Nenhum agente autonomo de programacao foi instalado no GitHub.
+**B1-00 está APROVADO na `preview` (registro oficial em [STATE.json](beta1/STATE.json)).** Ele organiza branches, testes, demonstracao publica e aprovacao obrigatoria. Leia o [manual B1-00](beta1/B1_00_RUNBOOK.md). **B1-01 permanece PENDENTE de autorizacao de implementacao.** O [alinhamento tecnico B1-01](beta1/B1_01_CONTRATOS_INTEGRACAO.md) registra contratos de integracao com pacotes, base, entregas, horario e salvamento sem alterar as 17 decisoes. Nenhum agente autonomo de programacao foi instalado no GitHub.
 
 A `preview` atual tem HUD-001/CTRL-001/MAP-001 e CTRL-002 integrados pelos PRs #8 e #9; a `main` e independente. Nao confundir este estado com as notas historicas LOG-006 abaixo.
 
