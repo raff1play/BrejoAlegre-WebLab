@@ -57,10 +57,16 @@ jobs:
         run: npm run test:e2e
         env:
           CI: true
-      - name: Impedir publicacao de commit ultrapassado
+      - name: Impedir deploy antigo se o codigo do jogo mudou
         run: |
           git fetch origin preview
-          test "$(git rev-parse HEAD)" = "$(git rev-parse origin/preview)"
+          if test "$(git rev-parse HEAD)" = "$(git rev-parse origin/preview)"; then exit 0; fi
+          if git diff --quiet HEAD origin/preview -- src public index.html package.json package-lock.json vite.config.ts; then
+            echo "Commits posteriores sao apenas de documentacao/estado; bundle do jogo permanece valido"
+          else
+            echo "Existe uma atualizacao posterior de jogo; deploy antigo bloqueado"
+            exit 1
+          fi
       - name: Configurar GitHub Pages
         uses: actions/configure-pages@v5
       - name: Publicar artefato estatico
