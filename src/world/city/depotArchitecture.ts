@@ -80,10 +80,11 @@ export function buildDepotArchitecture(scene:Scene,set:BatchSet,flat:BatchSet,ma
   box(mats.ribbed('#a5aca2'),x-1.9,x+1.9,3.4,7.8,-118.3,-118);
   box(steel,x-1.98,x-1.9,0,3.4,-118.4,-117.9);box(steel,x+1.9,x+1.98,0,3.4,-118.4,-117.9);
   box(mats.ribbed('#5d716b'),x-1.88,x+1.88,2.95,3.4,-118.3,-118.1);
-  sign(`dock-${x}`,`${String(DEPOT.docks.indexOf(x)+1).padStart(2,'0')} · ${x===128?'CAMINHÃO':x===104?'RETIRADA ROTA 01':x===96?'ACESSO A PÉ':'RESERVA'}`,x-1.8,x+1.8,-117.85,3.6,.65,x===128?'#8c5735':'#284e4b');
+  sign(`dock-${x}`,`${String(DEPOT.docks.indexOf(x)+1).padStart(2,'0')} · ${x===128?'RECEBIMENTO VAN':x===96?'NORTE':x===104?'OESTE • JOGADOR':x===112?'LESTE':'SUL'}`,x-1.8,x+1.8,-117.85,3.6,.65,x===128?'#8c5735':'#284e4b');
   floor(yellow,x-1.9,x+1.9,-117.5,-117.32);
   for(const dx of [-2.1,2.1])box(mats.paint('#3c4038'),x+dx-.07,x+dx+.07,.4,1,-118,-117.8);
  }
+ for(const [i,x]of [81,84,87,90].entries())sign(`bay-${i}`,i===1?'JOGADOR / OESTE':`MOTO ${i===0?1:i}`,x-.8,x+.8,-113.2,.45,.3);
  // Gatehouse roof, doorway, signage; public walk stays separate from the vehicle gate.
  box(ink,95.7,99.6,2.7,2.85,-98.8,-94.5);
  sign('portaria','PORTARIA · CONTROLE',96,99.3,-94.7,2.12,.5);

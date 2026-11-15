@@ -8,7 +8,10 @@ export const DEPOT_POINTS = {
   shelves:{x:122,z:-134}, dock:{x:128,z:-119}, gatehouse:{x:97.8,z:-96.8}, office:{x:131,z:-138.5},
   entry:{x:106,z:-91}, parking:{x:84,z:-111}, truck:{x:128,z:-119.4},
 } as const;
-export const REGIONAL_CAGES = [rect(119,122,-137,-135.5),rect(124,127,-137,-135.5)];
+export const REGIONAL_CAGES = [113,116.5,120,123.5].map(x=>rect(x,x+2.8,-138,-135.5));
+export const COURIER_BAYS={jogador:{x:84,z:-111},npc1:{x:81,z:-111},npc2:{x:87,z:-111},npc3:{x:90,z:-111}} as const;
+export const DISPATCH_POINTS=[96,104,112,120].map(x=>({x,z:-116.7}));
+export const D05_SHUTTER=rect(126.1,129.9,-118.3,-118.1);
 export const INBOUND_TAIL=rect(127.2,128.8,-118.45,-117.8);
 export const INBOUND_TRUCK=rect(126.75,129.25,-117.8,-109.6);
 export const DISPATCH_DOCK = 'D02';
@@ -36,7 +39,7 @@ export function depotFixtures(): DepotFixture[] {
  add('receiving','table',rect(99.2,103.2,-123,-121.6),.94);
  add('belt','belt',rect(105,117,-130.8,-129.2),.9);
  REGIONAL_CAGES.forEach((r,i)=>add(`region-${i}`,'cage',r,1.65));
- add('dispatch','table',rect(103,105,-120.4,-119.2),.45);
+ for(const [i,x]of [96,104,112,120].entries())add(`dispatch-${i}`,'table',rect(x-1,x+1,-120.4,-119.2),.45);
  add('reserve-rack','rack',rect(129,134,-141.5,-140),3.8);
  for(const x of [78,91])add(`parking-sign-${x}`,'column',rect(x-.045,x+.045,-113.345,-113.255),2.5);
  add('pedestrian-bollard','column',rect(93.31,93.49,-92.5,-92.22),.85);
@@ -52,8 +55,9 @@ export function depotFixtures(): DepotFixture[] {
  add('fence-back','fence',rect(76.4,139.6,-150,-149.8),2.35);
  for(const x of [92.4,94.4,99.8,112.2])add(`gate-post-${x}`,'column',rect(x-.12,x+.12,-92.6,-92.22),2.8);
  // Footway barrier protects the public approach; crosswalk gaps at both ends.
- add('footway-guard','guard',rect(94.8,95,-116,-100),.95);
- add('decoy-bike','parked',rect(86.65,87.35,-112.1,-109.9),1.35);
+ add('footway-guard','guard',rect(94.8,95,-116,-112.8),.95);
+ add('entry-footway-guard','guard',rect(94.8,95,-99,-93.4),.95);
+
  return out;
 }
 export const insideRect=(b:Box2D,p:{x:number;z:number},margin=0)=>p.x>=b.minX+margin&&p.x<=b.maxX-margin&&p.z>=b.minZ+margin&&p.z<=b.maxZ-margin;

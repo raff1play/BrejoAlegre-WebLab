@@ -20,7 +20,7 @@ import { Motorcycle, PLAYER_LOOK } from './features/driving/motorcycle';
 import { Hud, type HudMode } from './features/hud/hud';
 import { Pedestrian } from './features/walking/pedestrian';
 import { setupEnvironment } from './world/environment';
-import { CURB_H, yawOf } from './world/layout';
+import { yawOf } from './world/layout';
 import { STORES, depotWorld, depotYaw, depotLocal } from './world/city/cityPlan';
 import { buildProbe, parkNear } from './world/city/testProbe';
 import { HouseStreamer } from './features/city/houseStreamer';
@@ -51,17 +51,14 @@ function start(canvas: HTMLCanvasElement): void {
   // CORE-015: the shift starts at the motorcycle bays of the depot, on its real block.
   const bay = depotWorld(84, -111);
   const SPAWN = { x: bay.x, z: bay.z, yaw: depotYaw(0) };
-  const propBay = depotWorld(87, -111);
-  const PARKED_PROP = { x: propBay.x, z: propBay.z, yaw: depotYaw(0) };
 
   const moto = new Motorcycle(scene, world.materials, PLAYER_LOOK, SPAWN.x, SPAWN.z, SPAWN.yaw, ground(SPAWN.x, SPAWN.z));
   // CORE-015: detailed houses are streamed by sector around the player; far lots stay low-poly.
   const houses = new HouseStreamer(scene, world.materials, profile, profile.name === 'desktop' ? environment.shadows : null);
   houses.update(SPAWN.x, SPAWN.z, true);
-  const parkedProp = new Motorcycle(scene, world.materials, { paint: '#1f6a45', box: '#d2cdbf', helmet: '#222' },
-    PARKED_PROP.x, PARKED_PROP.z, PARKED_PROP.yaw, CURB_H, { withRider: false, static: true });
+
   const walker = new Pedestrian(scene, world.materials, PLAYER_LOOK.helmet);
-  for (const mesh of [...world.shadowCasters, ...moto.meshes, ...parkedProp.meshes, ...walker.meshes]) {
+  for (const mesh of [...world.shadowCasters, ...moto.meshes,  ...walker.meshes]) {
     environment.shadows.addShadowCaster(mesh, false);
   }
 
