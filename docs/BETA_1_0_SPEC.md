@@ -87,9 +87,9 @@ A Beta 1.0 está definida por um **ciclo diário completo, repetível e divertid
 
 ## 2. Módulo B1-01 — Personagens e carreiras
 
-**Estado: 16 decisões confirmadas; CRITÉRIOS DE ACEITAÇÃO v1.0 CANDIDATOS AO CONGELAMENTO, AINDA NÃO CONGELADOS.** As decisões 13–16 foram respondidas em 15/11/2026. Restou uma decisão de produto sobre o turno dos NPCs/conferência noturna; não implementar nem publicar antes de fechar essa condição.
+**ESTADO: ESCOPO FUNCIONAL E CRITÉRIOS DE ACEITAÇÃO CONGELADOS — B1-01, v1.0, 15/11/2026.** São **17 decisões expressamente confirmadas** pelo usuário. O documento define **o que será exigido**, não significa que o módulo foi implementado, testado ou aprovado no jogo. A implementação exige autorização posterior e B1-00 permanece pendente. Mudanças futuras devem ser explicitamente aprovadas e registradas antes de alterar este contrato.
 
-### Produto confirmado — Questionários 1, 2, 3 e 4
+### Produto confirmado — Questionários 1, 2, 3 e 4, mais decisão 17
 
 1. Quatro **personagens prontos** com personalização básica: opções predefinidas de aparência **masculina/feminina** e equipamentos, sem editor facial/corporal completo definido.
 2. **Uma casa e um setor fixos por personagem**; quatro carreiras independentes. A casa funcional e a rotina das 11h30 serão detalhadas no B1-02.
@@ -104,9 +104,10 @@ A Beta 1.0 está definida por um **ciclo diário completo, repetível e divertid
 11. Checkpoints automáticos **após operações importantes e na pausa**, com tentativa adicional de salvar ao sair do navegador **quando tecnicamente possível**. Não depender do evento de fechamento para integridade.
 12. Backup opcional acessível ao jogador, com restauração verificável sem mistura entre os quatro perfis. Política exata de formato e conflitos permanece pendente.
 13. **Tentativa frustrada:** registrar a tentativa, devolver o pacote e submetê-lo à conferência, constituindo um resultado final válido do procedimento. **Não registrar como entrega remunerada**; não aceitar tentativa isolada como conclusão.
-14. **Após 21h:** permitir **continuar entregando e realizando operações pendentes**, registrando atraso; o relógio não finaliza automaticamente a jornada. O funcionamento de motoboys NPCs/base após 21h ainda depende de decisão específica.
+14. **Após 21h:** permitir **continuar entregando e realizando operações pendentes**, registrando atraso; o relógio não finaliza automaticamente a jornada.
 15. **Carro com carga avançada:** **abrir porta-malas, caixas individualizadas visíveis, limite físico real de capacidade e arrumação automática**. Não exigir colocação manual caixa a caixa, nem aceitar contador decorativo como carga.
 16. **Recuperação:** usar **última operação confirmada em local seguro**, reconstruir tráfego/NPCs; jamais reverter o estado de custódia, as entregas ou inventário já confirmados.
+17. **Equipe e plantão após 21h:** **os quatro entregadores**, jogador e três NPCs, continuam trabalhando até todos os pacotes/procedimentos terminarem, com **plantão mínimo real e disponível na base** para conferência de devoluções e **atraso registrado por entregador**. Nenhum NPC para automaticamente às 21h. Se necessário ultrapassar meia-noite, permanece o mesmo expediente, com tempo acumulado e estados persistentes.
 
 
 ### Responsabilidades técnicas do módulo B1-01
@@ -117,11 +118,11 @@ A Beta 1.0 está definida por um **ciclo diário completo, repetível e divertid
 
 **Ciclo logístico do carro:** em uma jornada compatível com a linha de jogo atual, realizar coleta nas lojas existentes, **abrir porta-malas, organizar automaticamente caixas individuais visíveis segundo tamanho/capacidade física**, transporte, descarga no galpão, triagem/saca já existente, carregamento e entregas com o próprio carro. Um veículo cheio deve recusar carga excedente em vez de atravessar caixas. Reutilizar IDs, estado, custódia, histórico e regras de não duplicação; não confundir renderização da carga com inventário de verdade.
 
-**Divisão com B1-05:** o B1-01 antecipa e conclui a **carga visual avançada do carro**, conforme escolha explícita. B1-05 mantém foco na expansão das dimensões e nos equipamentos de transporte **da moto** (baú, alforjes, suporte externo, limite nas mãos), e na padronização/refinamento compartilhado de pacotes quando necessário. Qualidade visual, capacidade e interação exatas do carro ainda dependem de decisão final.
+**Divisão com B1-05:** o B1-01 inclui e entrega **porta-malas abrível, caixas individuais visíveis, arrumação automática e limites físicos verdadeiros** para o carro, conforme Q9/Q15. B1-05 foca em novos tamanhos e equipamentos de transporte **da moto** (baú, alforjes, suporte externo, limite nas mãos) e refinamento compartilhado. Valores numéricos e algoritmo de encaixe para carro são decisões de engenharia auditáveis, não autorização para adiar a função.
 
 **Salvar/retomar:** persistência durável por carreira (pode usar IndexedDB, sujeito à revisão técnica), snapshots/versionamento, ID estável dos pacotes, alterações atômicas no inventário, **última operação confirmada em ponto seguro**, fase/relógio, veículo, histórico e informações de NPC relevantes para continuidade. Recriar trânsito e NPCs de forma compatível, sem restaurar objetos em colisão nem reverter posse. Salvar depois de eventos importantes e ao pausar, tentar salvar ao sair sem confiar nesse gatilho; exportar/importar backup com validação. Nunca reconstruir um pacote já entregue como se estivesse na loja ou pagar novamente. **Controlar tempo total/identificador do expediente durante a madrugada para não reiniciar o turno ao zerar a hora do relógio.**
 
-### Critérios objetivos de aceite v1.0 — CANDIDATOS AO CONGELAMENTO
+### Critérios objetivos de aceite B1-01 v1.0 — CONGELADOS (obrigatórios)
 
 Os testes abaixo traduzem decisões confirmadas em cenários verificáveis. Os limiares numéricos de capacidade, posicionamento e tempo de checkpoint serão definidos em testes determinísticos; não introduzem escolhas não aprovadas do usuário.
 
@@ -139,7 +140,7 @@ Os testes abaixo traduzem decisões confirmadas em cenários verificáveis. Os l
 | AC-10 | Expedição e entregas pelo carro | Carro recebe carga individual do setor, organiza visualmente e entrega com transições de posse auditáveis |
 | AC-11 | Tentativa frustrada | Tentativa registrada sem entrega; pacote continua fisicamente sob custódia e permanece pendente até devolução e conferência |
 | AC-12 | Devolução conferida | Devolver e conferir fisicamente altera pacote para resultado final válido **não entregue**, sem pagamento de entrega; não misturar com `ENTREGUE` |
-| AC-13 | Trabalho não pode ser encerrado antes da hora | Não permitir concluir expediente/alternar perfil enquanto existir volume ou procedimento sem resultado final válido; não permitir cancelamento antecipado |
+| AC-13 | Trabalho não pode ser encerrado com pendências | Não permitir concluir expediente/alternar perfil enquanto existir volume ou procedimento sem resultado final válido; não permitir cancelamento antecipado |
 | AC-14 | Entregas às 20h59 e 21h01 | Uma entrega válida antes e outra após 21h funcionam, a tardia registra atraso, e não ocorre encerramento automático aos 21h |
 | AC-15 | Continuidade após meia-noite | Se a mesma jornada atravessar 00h, não perder pacote, fase ou ID do expediente, nem transformar horário 00h em novo dia sem autorização |
 | AC-16 | Três NPCs em carreira ativa | Trabalham na simulação e **não** recebem dinheiro, experiência, avanço de calendário nem gravam alterações nos três saves inativos |
@@ -150,18 +151,28 @@ Os testes abaixo traduzem decisões confirmadas em cenários verificáveis. Os l
 | AC-21 | Backup e isolamento | Exportação/restauração reabre carreira correta; backup corrompido/versão inválida é rejeitado sem sobrescrever save íntegro |
 | AC-22 | Integridade financeira | Não pagar por devolução; não pagar duas vezes por ID entregue mesmo após restaurar backup; valores de referência seguem especificação econômica vigente |
 | AC-23 | Regressões do projeto | CI, TypeScript, build, browser E2E com trânsito e toque, preservação HUD/minimapa/controle; desempenho Android físico somente quando o usuário testar |
+| AC-24 | Motoboys NPCs trabalhando após 21h | Com entregas pendentes às 21h, os **três NPCs continuam efetivamente sua logística**, não ficam parados em `hour>=21`; os estados dos pacotes avançam apenas por ações válidas, sem teleporte |
+| AC-25 | Plantão noturno de conferência | Ao devolver pacotes depois das 21h, existe pelo menos **um posto/funcionário disponível de verdade** na base para receber e conferir fisicamente os volumes, inclusive depois de 00h; registro de custódia/resultado não é simulado por encerramento automático |
+| AC-26 | Atrasos individuais e encerramento coletivo | Relatório distingue o horário/atraso de **cada um dos quatro entregadores**; não encerra a jornada nem avança o calendário enquanto restar pacote/procedimento pendente de alguém; ao concluir tudo, permite a etapa de retorno físico à própria casa do B1-09 |
 
 **Validação especial de resultados:** `ENTREGUE` e `DEVOLVIDO_E_CONFERIDO` são estados finais conceitualmente distintos; implementar modelo explícito sem falsificar entregas. No final do turno, o conjunto de volumes deve estar integralmente distribuído entre esses dois resultados (ou outro resultado final formal futuramente aprovado), sem pendência residual, com contabilização de valores correta. A simples marcação de `ENCERRADA` às 21h **não** passa o teste.
 
 **Revisão de código necessária, não executada:** `src/core/delivery/logisticsDay.ts`, `src/core/delivery/workday.ts` e `src/core/delivery/couriers.ts` usam cortes de `hour<21` ou `hour>=21`; `src/core/city/clock.ts` volta a zero na madrugada; `src/core/delivery/parcels.ts` só admite `ENTREGUE` como estado terminal. Ajustar todos os pontos pertinentes, sem desligar colisões, remover limites de capacidade ou transformar entrega frustrada em paga. Revisar também a escala da equipe/base após 21h, pois postos de conferência encerram o turno em horários próximos de 21h.
 
-### Último bloqueador de produto antes do congelamento integral
+### Encerramento da análise de bloqueadores e contrato congelado
 
-**Pendente de escolha do usuário:** a decisão 14 estabelece que o jogador pode continuar entregando após 21h, mas não diz se **os três motoboys NPCs** devem fazer o mesmo nem como deve operar a conferência tardia dos pacotes devolvidos. Uma equipe que para às 21h enquanto o expediente exige concluir tudo pode criar bloqueio permanente. Não presumir uma política definitiva e não marcar B1-01 como congelado até resolver esta escolha.
+**VEREDITO: NENHUM BLOQUEADOR ESSENCIAL DE PRODUTO PARA CONGELAR B1-01.** Q17 resolve o último ponto pendente: **todos os quatro entregadores trabalham após 21h** até completar as operações, um **plantão mínimo na base** recebe e confere devoluções, e há **atrasos individuais**. Está compatível com Q3 (saves de perfis inativos intocados), Q7/Q11 (não trocar carreira nem encerrar antecipadamente), Q13 (pacotes frustrados devem voltar e ser conferidos sem remuneração), Q14 (21h gera atraso sem impedir novas entregas) e Q16 (retomada segura preservando custódia).
 
-**Proposta técnica que não necessita nova escolha de produto:** contador monotônico do expediente atravessando meia-noite, versionamento do arquivo exportado, checksums/validação de backup, slots/dimensões de porta-malas calibrados por testes, gravações atômicas e rollback em falha de persistência. Ainda assim devem ser testados e relatados.
+**Contrato de turno:** 21h é meta operacional, não limite absoluto do motor; o expediente pode atravessar meia-noite sem mudar ID/dia de carreira. Cada pacote deve atingir `ENTREGUE` ou um resultado final válido e auditável de `DEVOLVIDO_E_CONFERIDO`; a remuneração não pode duplicar nem ser paga por devolução. O plantão deve atender tanto retornos do jogador quanto dos NPCs. Ao finalizar todas as operações, o retorno de cada entregador à sua casa continua previsto para B1-09, sem desaparecer do mundo de forma fictícia.
+
+**Pendências de ENGENHARIA, não bloqueadores de produto:** escolher estrutura de armazenamento, versionamento e migração de saves, formato de backup exportável/importável, política de persistência atômica, tolerâncias numéricas e tamanho/volume de caixas no porta-malas, escala/dimensão do plantão (garantindo disponibilidade mínima), restauração dos estados dos NPCs e algoritmo de tempo contínuo com registro de madrugada. Todas são implementáveis dentro do contrato e devem ser verificadas em testes; não podem ser simplificadas para mudar resultados funcionais aprovados.
+
+**Escopo congelado não significa execução autorizada.** B1-00 (orquestrador e gates de publicação/aprovação) ainda não foi implementado; `main` e `preview` permanecem fora desta revisão documental. O desenvolvimento do B1-01 só começa por nova autorização e branch específica baseada na linha válida. Nenhuma publicação decorre do congelamento.
 
 **Não constituem bloqueio imediato para o modelo de carreira:** nomes finais, marcas de veículos, cores de roupas, catálogo completo de equipamentos e economia avançada/financiamento. A preparação B1-00 de orquestração também segue pendente, e esta documentação não integra/implanta o jogo.
+
+
+**Regra de mudança após congelamento:** quaisquer alterações às 17 decisões ou aos testes AC-01–AC-26 exigem adendo versionado, motivo técnico, efeito no escopo e autorização explícita do usuário. Adicionar testes sem relaxar critérios pode ser feito por engenharia; eliminar critérios exige nova aprovação.
 
 ## 3. Módulo B1-02 — Casas e começo do dia
 
