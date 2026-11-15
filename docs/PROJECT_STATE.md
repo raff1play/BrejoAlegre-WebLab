@@ -527,3 +527,11 @@ Implementados: oito lojas distribuídas sem repetição, demanda semeada 21–55
 Validação: 137 unitários aprovados, typecheck e staging build aprovados (aviso de chunk grande); Chromium com fluxo completo e toque emulado. Seeds naturais 674161=21, 357183=55, 2026=43. Android físico/Galaxy S24 não testado. Jornada completa com tráfego ambiente desligado; tráfego normal requer ensaio prolongado. Medições SwiftShader não comprovam 30 FPS em celular.
 
 [Entrega, arquivos, capturas comparáveis, todos os pacotes, custódia, métricas e limitações](evidence/log-003/README.md).
+
+## LOG-004 — Calendário semanal e operação em prazos (15/11/2026)
+
+- Implementados: início de deslocamentos dos NPCs às 11h com coleta a partir de 12h, velocidades moderadamente maiores, registro de retorno real e alerta de atraso após 14h20. Conservação de ID mantida; nenhum teleporte.
+- Base ampliada com três funcionários (segundo conferente, terceiro separador e segundo expedidor). Motoboys após descarregar atuam como auxiliares no controlador físico único; deixam tarefas apenas quando estas estão completas. Gargalo da esteira otimizado sem alterar a sequência de custódia.
+- Calendário integrado ao painel de pausa/Logística, demanda por dia e data persistida em localStorage entre jornadas; início em segunda-feira 16/11/2026, domingo folga e quarta normal como padrões provisórios. Meta de separação 15h ou 16h em segunda/terça.
+- Aceitação simulada com maior carga do dia: segunda 55 pacotes todos separados ~15h47; quinta 43 ~14h58; sábado 31 ~14h28. Três NPCs retornam antes das 14h nos três testes. Sem tráfego ambiente; viagens do jogador são visitas de teste, não direção real.
+- Regressão unitária/typecheck/build: ver CI da última revisão e [relatório](evidence/log-004/README.md). Ainda sem aprovação visual/Galaxy S24 e sem publicação ou merge desta atualização.
