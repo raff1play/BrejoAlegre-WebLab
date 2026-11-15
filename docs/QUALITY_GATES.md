@@ -24,4 +24,4 @@
 - [ ] Publicação só com pedido explícito, verificar GitHub Actions Deploy preview success.
 - [ ] `main` não publica automaticamente no Pages.
 
-**Status:** A LOG-006 tem 145/145 unitários + build e deploy aprovado no commit `f98b652`; os gates B/C acima não foram homologados na totalidade.
+**Status:** A LOG-006 tem 145/145 unitários + build e deploy aprovado no commit `f98b652`. A branch HUD-001 tem 155/155 unitários, build e 73/73 verificações E2E no Chromium com trânsito (gate B parcial: entrega completa no navegador ainda não percorrida); gate C (Android físico) não executado.

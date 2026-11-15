@@ -7,7 +7,9 @@ import { NODES, ROADS, nearestRoad, type CityRoad } from '../../world/city/cityP
  * again only when the player has moved or the objective changed.
  */
 export type XZ = readonly [number, number];
-export type StreetRoute = { points: XZ[]; length: number };
+/** MAP-001: a network node the route passes through; `index` points into `points`. */
+export type RouteJunction = Readonly<{ index: number; node: string }>;
+export type StreetRoute = { points: XZ[]; length: number; junctions: RouteJunction[] };
 
 /** Part of a polyline between two arc lengths (reversed when s1 < s0). */
 function slice(pts: readonly XZ[], s0: number, s1: number): XZ[] {
@@ -37,14 +39,21 @@ const ARCS: Map<string, Arc[]> = (() => {
   return m;
 })();
 
+/** MAP-001: how many street segments meet at each node (≥ 3 is a real junction, 2 a bend/split). */
+export const NODE_DEGREE: ReadonlyMap<string, number> = (() => {
+  const m = new Map<string, number>();
+  for (const r of ROADS) { m.set(r.a, (m.get(r.a) ?? 0) + 1); m.set(r.b, (m.get(r.b) ?? 0) + 1); }
+  return m;
+})();
+
 export function streetRoute(from: { x: number; z: number }, to: { x: number; z: number }): StreetRoute | null {
   const f = nearestRoad(from.x, from.z); const t = nearestRoad(to.x, to.z);
   if (!f || !t) return null;
-  const wrap = (mid: XZ[]): StreetRoute => {
+  const wrap = (mid: XZ[], marks: RouteJunction[] = []): StreetRoute => {
     const points: XZ[] = [[from.x, from.z], ...mid, [to.x, to.z]];
     let length = 0;
     for (let i = 1; i < points.length; i++) length += Math.hypot(points[i]![0] - points[i - 1]![0], points[i]![1] - points[i - 1]![1]);
-    return { points, length };
+    return { points, length, junctions: marks.filter((m) => m.index >= 0).map((m) => ({ index: m.index + 1, node: m.node })) };
   };
   // Same road, reachable in the allowed direction: straight along it.
   if (f.road.id === t.road.id && (!f.road.oneway || t.s >= f.s)) return wrap(slice(f.road.pts, f.s, t.s));
@@ -76,7 +85,11 @@ export function streetRoute(from: { x: number; z: number }, to: { x: number; z: 
   while (via.has(node)) { const v = via.get(node)!; chain.unshift(v.arc); node = v.from; }
   // `node` is now the end of the start road where the route leaves it.
   const mid: XZ[] = [...slice(f.road.pts, f.s, node === f.road.b ? f.road.length : 0)];
-  for (const arc of chain) mid.push(...(arc.forward ? arc.road.pts : [...arc.road.pts].reverse()).slice(1));
+  const marks: RouteJunction[] = [{ index: mid.length - 1, node }];
+  for (const arc of chain) {
+    mid.push(...(arc.forward ? arc.road.pts : [...arc.road.pts].reverse()).slice(1));
+    marks.push({ index: mid.length - 1, node: arc.to });
+  }
   mid.push(...slice(t.road.pts, best.node === t.road.a ? 0 : t.road.length, t.s).slice(1));
-  return wrap(mid);
+  return wrap(mid, marks);
 }

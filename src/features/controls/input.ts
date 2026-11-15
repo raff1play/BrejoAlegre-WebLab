@@ -1,5 +1,5 @@
 import { InputState } from '../../core/inputState';
-import { blendAxis, responsiveMotoSteer } from '../../core/analogStick.ts';
+import { blendAxis, motoTurnFraction, steerForTurn } from '../../core/analogStick.ts';
 import { VirtualJoystick } from './virtualJoystick';
 
 export type Control =
@@ -99,8 +99,13 @@ export class GameInput {
   }
 
   axis(positive: Control, negative: Control): number { return this.state.axis(positive, negative); }
-  /** Proportional steering while riding; keyboard remains fully functional. */
-  steer(): number { return blendAxis(this.axis('right', 'left'), responsiveMotoSteer(this.joystick.axes.x)); }
+  /**
+   * CTRL-001 riding steer: the stick's horizontal deflection asks for a fraction of the turn the
+   * bike can make at `speed` (m/s); keyboard keys keep their full-lock behaviour.
+   */
+  steer(speed = 0): number {
+    return blendAxis(this.axis('right', 'left'), steerForTurn(motoTurnFraction(this.joystick.steerX, speed), speed));
+  }
   /** Full 360-degree movement while on foot. */
   walkingAxes(): { forward: number; right: number } {
     return {

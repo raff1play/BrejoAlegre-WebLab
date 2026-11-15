@@ -20,6 +20,7 @@ import { enableLandscapeButton } from './features/display/landscape';
 import { disableWebLabPwa } from './features/display/disablePwa';
 import { Motorcycle, PLAYER_LOOK } from './features/driving/motorcycle';
 import { Hud, type HudMode } from './features/hud/hud';
+import { baseSummary, hudContext, inDepotLot, progressSummary } from './features/hud/hudContext';
 import { Pedestrian } from './features/walking/pedestrian';
 import { setupEnvironment } from './world/environment';
 import { yawOf } from './world/layout';
@@ -147,6 +148,8 @@ function start(canvas: HTMLCanvasElement): void {
   }
 
   let stopsKey = '';
+  /** Development only: show the player's real stops on the map before the delivery phase. */
+  let stopsPreview = false;
   const bikeSpot = (): BikeSpot => ({ x: moto.state.x, z: moto.state.z, yaw: moto.state.yaw, moving: !isMotoStopped(moto.state) });
   const toggleMount = (): void => {
     if (mode === 'riding') {
@@ -212,6 +215,9 @@ function start(canvas: HTMLCanvasElement): void {
   const cameraTarget = new Vector3();
   const playerCentre = new Vector3();
   const idle = { throttle: 0, brake: 0, steer: 0 };
+  let lastSteer = 0;
+  let summaryTimer = 0;
+  let summary = progressSummary([], 'ANTES');
 
   scene.onBeforeRenderObservable.add(() => {
     // Clamp the step so a hitch or a background tab cannot teleport anything.
@@ -220,10 +226,11 @@ function start(canvas: HTMLCanvasElement): void {
     const m = moto.state;
     insideVehicle = mode === 'riding' ? cityLife.blocks(m.x, m.z, MOTO.bodyRadius) : cityLife.blocks(walker.state.x, walker.state.z, 0.3);
     if (mode === 'riding') {
+      lastSteer = input.steer(m.speed);
       moto.update(dt, {
         throttle: input.isDown('accelerate') ? 1 : 0,
         brake: input.isDown('brake') ? 1 : 0,
-        steer: input.steer(),
+        steer: lastSteer,
       }, rideGuard, ground(m.x, m.z));
       const lead = Math.min(0.5, Math.max(0, m.speed) * 0.07);
       cameraTarget.set(m.x + Math.sin(m.yaw) * lead, moto.root.position.y + 0.95, m.z + Math.cos(m.yaw) * lead);
@@ -254,24 +261,32 @@ function start(canvas: HTMLCanvasElement): void {
     cityLife.update(dt, simTime, clock.hour, lighting.night, player, ground);
     houses.update(player.x, player.z);
     hud.setClock(clock.label, clock.isWorkday, lighting.night > 0.5);
-    minimap.update(player.x, player.z, mode === 'riding' ? m.yaw : walker.state.yaw, performance.now());
+    minimap.update(player.x, player.z, mode === 'riding' ? m.yaw : walker.state.yaw, performance.now(), mode === 'riding', mode === 'riding' ? m.speed : 0);
+    // HUD-001: riding / on foot / at the base (inside the depot lot, riding or not).
+    const context = hudContext(mode, inDepotLot(depotLocal(player.x, player.z)) ? 'base' : 'street');
+    hud.setContext(context, mode);
     // Delivery job: shops, depot staff, customers, objective marker and contextual action.
     const here = mode === 'riding' ? { x: m.x, z: m.z, riding: true } : { x: walker.state.x, z: walker.state.z, riding: false };
     delivery.update(dt, clock.hour, cityLife.crowd, here, ground, (x,z,r)=>cityLife.blocks(x,z,r)||Math.hypot(x-player.x,z-player.z)<r+player.radius, bikeSpot());
     for (const msg of delivery.workday.events.splice(0)) hud.toast(msg);
     logisticsPanel.update(delivery.workday,clock.hour,performance.now()/1000);
     const objective = delivery.workday.objective(clock.hour, m);
-    const progress = delivery.workday.progress();
     const wait = delivery.waiting === null ? delivery.waitOption(clock.hour) : null;
-    hud.setObjective(objective.title, objective.detail,
-      `Coletados ${progress.collected}/${delivery.workday.parcels.filter((p) => p.collector === 'jogador').length} · Entregues ${progress.delivered}/${progress.total}`,
+    // Progress texts (mine vs team) and the base lines change slowly: 4 Hz is plenty.
+    summaryTimer -= dt || 0.016;
+    if (summaryTimer <= 0) {
+      summaryTimer = 0.25;
+      summary = progressSummary(delivery.workday.parcels, delivery.workday.phase);
+      if (context === 'base') hud.setBase(baseSummary(delivery.workday.parcels, day?.depotTarget ?? 15, delivery.workday.allSortedAt));
+    }
+    hud.setObjective(objective.title, objective.detail, summary.mine, summary.team,
       delivery.waiting !== null ? 'Aguardando…' : wait?.label ?? null);
     minimap.setTarget(objective.target);
     minimap.setBike(mode === 'walking' ? m : null);
     const wd = delivery.workday;
     if (wd.phase === 'ENTREGAS') {
       if (stopsKey !== wd.route.join('|')) { stopsKey = wd.route.join('|'); minimap.setStops(wd.route.map((id, i) => ({ ...wd.byAddress.get(id)!.door, next: i === 0 }))); }
-    } else if (stopsKey !== '') { stopsKey = ''; minimap.setStops([]); }
+    } else if (stopsKey !== '' && !stopsPreview) { stopsKey = ''; minimap.setStops([]); }
     hud.setCargo(wd.cargoLabel(), wd.inHands().length > 0);
     const far = objective.target ? Math.hypot(objective.target.x - player.x, objective.target.z - player.z) : 0;
     hud.setDistance(objective.target && far > 12 ? minimap.targetDistance() : null);
@@ -332,6 +347,14 @@ function start(canvas: HTMLCanvasElement): void {
         processDepot:(seconds:number)=>{for(let t=0;t<Math.min(seconds,1);t+=.05)delivery.workday.update(clock.hour,.05)},
         logisticsStep:(seconds:number)=>{for(let t=0;t<Math.min(seconds,1);t+=.05){clock.advance(.05);delivery.workday.update(clock.hour,.05)}},
         minimapBase: () => minimap.baseImage(),
+        /** MAP-001 fixture: draws the player's (Oeste) delivery addresses as map stops. Display only. */
+        previewStops: () => {
+          const wd = delivery.workday;
+          const ids = [...new Set(wd.load('jogador').map((p) => p.destination))];
+          stopsPreview = true; stopsKey = 'preview';
+          minimap.setStops(ids.map((id, i) => ({ ...wd.byAddress.get(id)!.door, next: i === 0 })));
+          return ids.length;
+        },
         /** CORE-015.1: parks the bike at the kerb nearest to a spot (the rider stays where it is). */
         parkNear: (x: number, z: number) => { const p = parkNear(x, z); Object.assign(moto.state, { ...p, speed: 0, steer: 0 }); return p; },
         parkAt: (x: number, z: number, yaw: number) => Object.assign(moto.state, { x, z, yaw, speed: 0, steer: 0 }),
@@ -373,6 +396,7 @@ function start(canvas: HTMLCanvasElement): void {
           waiting: delivery.waiting,
         },
         paused: hud.paused,
+        hud: { context: hud.context, steer: lastSteer, stick: input.joystick.debug(), accelerate: input.isDown('accelerate'), brake: input.isDown('brake') },
         city: cityLife.stats(),
         houses: houses.stats(),
         minimap: { expanded: minimap.isExpanded, arrow: minimap.arrowAt(), ...minimap.state(), distance: minimap.targetDistance() },
