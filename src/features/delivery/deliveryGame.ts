@@ -1,3 +1,5 @@
+import { CourierViews } from './courierViews';
+import { LogisticsDay } from '../../core/delivery/logisticsDay';
 import { SupplierVanView } from './supplierVanView';
 import { DepotParcels } from './depotParcels';
 import { gateLeaves, INBOUND_TRUCK, INBOUND_TAIL, D05_SHUTTER } from '../../world/city/depotPlan';
@@ -10,7 +12,7 @@ import type { Scene } from '@babylonjs/core/scene';
 import type { ShadowGenerator } from '@babylonjs/core/Lights/Shadows/shadowGenerator';
 import type { Crowd, Pedestrian as CrowdPed } from '../../core/city/pedestrians';
 import { STORE_HOURS, STORE_STAFF, createStoreOps, isOpen, joinQueue, stepStore, type StoreOps } from '../../core/delivery/stores';
-import { DEPOT_SPOTS, depotVisitAllowed, HANDS_MAX, ROUTINE, Workday, type DepotRole } from '../../core/delivery/workday';
+import { DEPOT_SPOTS, depotVisitAllowed, HANDS_MAX, ROUTINE, type DepotRole } from '../../core/delivery/workday';
 import type { Address } from '../../core/delivery/addresses';
 import type { GraphicsProfile } from '../../config/graphics';
 import { circleIntersectsPoly, pointInPoly } from '../../core/collision';
@@ -43,12 +45,13 @@ const DEPOT_LOOKS: Record<DepotRole, { shirt: string; trousers: string; skin: st
 };
 
 export class DeliveryGame {
-  readonly workday: Workday;
+  readonly workday: LogisticsDay;
   readonly stores = new Map<StoreKind, { ops: StoreOps; layout: StoreLayout; npc: NpcPerson }>();
   readonly depotStaff = new Map<DepotRole, NpcPerson>();
   private readonly customers = new Map<number, { store: StoreKind; phase: 'in' | 'queue' | 'out'; at: Spot }>();
   private readonly marker: Mesh;
   private readonly ring: Mesh;
+  readonly courierViews:CourierViews;
   readonly parcelViews: DepotParcels;
   private readonly vanView: SupplierVanView;
   gateOpen = 0;
@@ -56,8 +59,9 @@ export class DeliveryGame {
   private time = 0;
   private waitUntil: number | null = null;
 
-  constructor(scene: Scene, mats: Materials, profile: GraphicsProfile, shadows: ShadowGenerator, private readonly shutters: Map<string, Mesh>, free: (x: number, z: number) => boolean, seed?: number, perStore=2) {
-    this.workday = new Workday({ seed, stores: 2, perStore, marketplace: 4, free });
+  constructor(scene: Scene, mats: Materials, profile: GraphicsProfile, shadows: ShadowGenerator, private readonly shutters: Map<string, Mesh>, free: (x: number, z: number) => boolean, seed?: number, _perStore=2) {
+    this.workday = new LogisticsDay({ seed, free });
+    this.courierViews=new CourierViews(scene,mats,this.workday);
     this.parcelViews = new DepotParcels(scene,mats);
     this.vanView=new SupplierVanView(scene,mats);
     const cast = profile.name === 'desktop' ? shadows : undefined;
@@ -87,11 +91,12 @@ export class DeliveryGame {
   update(dt: number, hour: number, crowd: Crowd, player: { x: number; z: number; riding: boolean }, ground: (x: number, z: number) => number, playerNear: (x: number, z: number, r: number) => boolean, bike?:BikeSpot): void {
     this.time += dt;
     const gp=depotWorld(106,-92.3);
-    const want=this.gateManual ?? Math.hypot(player.x-gp.x,player.z-gp.z)<17;
+    const courierNear=this.workday.couriers.some(c=>Math.hypot(c.bike.x-gp.x,c.bike.z-gp.z)<20);
+    const want=this.gateManual ?? (courierNear||Math.hypot(player.x-gp.x,player.z-gp.z)<17);
     // Stop the leaves closing on a person or bike. Same geometry is used by doorBlocked().
     const lp=depotLocal(player.x,player.z);
     const bp=bike?depotLocal(bike.x,bike.z):lp;
-    const safety=[lp,bp].some(p=>p.x>98&&p.x<114&&Math.abs(p.z+92.3)<3);
+    const safety=[lp,bp,...this.workday.couriers.map(c=>depotLocal(c.bike.x,c.bike.z))].some(p=>p.x>98&&p.x<114&&Math.abs(p.z+92.3)<3);
     this.gateOpen=Math.max(0,Math.min(1,this.gateOpen+(want?1:safety?0:-1)*dt*.65));
     const origin=depotWorld(0,0);
     for(const i of [0,1]){
@@ -99,6 +104,7 @@ export class DeliveryGame {
       const shift=depotWorld((i===0?-1:1)*6.15*this.gateOpen,0);
       mesh.position.set(shift.x-origin.x,0,shift.z-origin.z);
     }
+    this.workday.gateOpen=this.gateOpen;
     this.workday.update(hour, dt);
     // Shops: hours, shutter, employee routine, customers in the queue.
     for (const [kind, s] of this.stores) {
@@ -126,6 +132,7 @@ export class DeliveryGame {
       }
       if (near) npc.update(dt, ground(npc.x, npc.z), Math.hypot(player.x - npc.x, player.z - npc.z) < 40);
     }
+    this.courierViews.update(this.workday,dt,player,ground);
     this.updateCustomers(dt, hour, crowd);
     this.updateDepot(dt, hour, player, ground);
     const centre=depotWorld(112,-125),near=Math.hypot(player.x-centre.x,player.z-centre.z)<140;

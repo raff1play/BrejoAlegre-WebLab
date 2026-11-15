@@ -19,7 +19,7 @@ export class DepotOperations {
  readonly errors:string[]=[];
  truckAvailable=false;
  private handoffIndex=0;
- receive(p:Parcel,hour:number):void {
+ receive(p:Parcel,hour:number,_parcels?:readonly Parcel[]):void {
   move(p,'recebimento','recebimento',hour,depotReceivingPosition(this.handoffIndex++));
  }
  private plan(w:DepotWorker,p:Parcel,kind:TaskKind,at:{x:number;z:number},to:{x:number;z:number},destination:ParcelPosition):void {

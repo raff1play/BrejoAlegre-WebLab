@@ -236,6 +236,9 @@ export class Motorcycle {
     this.syncVisuals(dt, groundHeight);
   }
 
+  /** Render an externally simulated courier without running player physics. */
+  renderCourier(dt:number,groundHeight:number):void { this.syncVisuals(dt,groundHeight); }
+
   private child(scene: Scene, name: string, parent: TransformNode): TransformNode {
     const node = new TransformNode(name, scene);
     node.parent = parent;
