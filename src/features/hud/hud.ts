@@ -1,19 +1,29 @@
-/** Thin DOM layer: writes only when a value changes, so the HUD costs nothing per frame. */
-export type HudMode = 'riding' | 'walking';
+import type { HudContext, HudMode } from './hudContext';
+import { formatDistance } from './minimap';
 
+export type { HudMode } from './hudContext';
+
+/** Thin DOM layer: writes only when a value changes, so the HUD costs nothing per frame. */
 const TIPS: Record<HudMode, string> = {
   riding: 'W/S acelerar e frear · A/D virar · F descer (parado)',
   walking: 'WASD andar · F agir/montar perto da moto',
 };
+const CONTEXT_LABEL: Record<HudContext, string> = { riding: 'Pilotando', walking: 'A pé', base: 'Na base' };
 
 /**
- * CORE-014 minimal HUD: objective, parcel progress, speed, clock + minimap and one contextual
- * action button. Instructions, version, FPS and the fictional-area notice live in the pause screen.
+ * HUD-001 adaptive HUD. One set of elements; `data-context` on `#hud` (riding / walking / base)
+ * decides in CSS which of them show, so a context switch is one attribute write:
+ * - riding: objective, distance, clock, speed, minimap (+ next turn) and the pedals;
+ * - walking: objective, the interaction button and what is in the hands and in the top box;
+ * - base: receiving, sorting, the player's load and the schedule.
+ * Instructions, version, FPS, logistics and the calendar live in the pause screen.
  */
 export class Hud {
   private readonly cache = new Map<HTMLElement, string>();
   private readonly els: Record<string, HTMLElement>;
   private toastTimer = 0;
+  private current: HudContext | null = null;
+  private mode: HudMode | null = null;
 
   constructor(private readonly root: ParentNode) {
     const pick = (selector: string): HTMLElement => {
@@ -22,10 +32,12 @@ export class Hud {
       return element;
     };
     this.els = {
+      hud: pick('#hud'),
       speed: pick('#speed'), mode: pick('#mode'), tips: pick('#tips'), fps: pick('#fps'), toast: pick('#toast'),
       action: pick('[data-action="mount"]'), graphics: pick('[data-action="graphics"]'), version: pick('#version'),
       title: pick('#objective-title'), detail: pick('#objective-detail'), progress: pick('#parcel-progress'),
-      wait: pick('#wait-button'), clock: pick('#clock'), clockTag: pick('#clock-tag'), pause: pick('#pause'),
+      team: pick('#team-progress'), base: pick('#base-status'), baseLoad: pick('#base-load'), baseTime: pick('#base-time'),
+      wait: pick('#wait-button'), clock: pick('#clock'), pause: pick('#pause'),
       cargo: pick('#cargo-status'), distance: pick('#objective-distance'),
     };
   }
@@ -34,6 +46,17 @@ export class Hud {
     if (this.cache.get(element) === text) return;
     this.cache.set(element, text);
     element.textContent = text;
+  }
+
+  get context(): HudContext | null { return this.current; }
+
+  /** Presentation switch: two attributes on `#hud` (CSS shows/hides the pieces). */
+  setContext(context: HudContext, mode: HudMode): void {
+    if (mode !== this.mode) { this.mode = mode; this.els.hud!.dataset.mode = mode; }
+    if (context === this.current) return;
+    this.current = context;
+    this.els.hud!.dataset.context = context;
+    this.write(this.els.mode!, CONTEXT_LABEL[context]);
   }
 
   setVersion(version: string, environment: string): void {
@@ -47,20 +70,27 @@ export class Hud {
   /** Contextual action: label and whether it can be used now. */
   update(mode: HudMode, speedKmh: number, fps: number, action: string, actionAvailable: boolean): void {
     this.write(this.els.speed!, String(Math.round(speedKmh)));
-    this.write(this.els.mode!, mode === 'riding' ? 'Pilotando' : 'A pé');
     this.write(this.els.tips!, TIPS[mode]);
     this.write(this.els.fps!, `${Math.round(fps)} FPS`);
     this.write(this.els.action!, action);
     this.els.action!.classList.toggle('unavailable', !actionAvailable);
   }
 
-  setObjective(title: string, detail: string, progress: string, wait: string | null): void {
+  /** `mine`/`team`: the player's progress and the team's, kept apart (see progressSummary). */
+  setObjective(title: string, detail: string, mine: string, team: string, wait: string | null): void {
     this.write(this.els.title!, title);
     this.write(this.els.detail!, detail);
-    this.write(this.els.progress!, progress);
+    this.write(this.els.progress!, mine);
+    this.write(this.els.team!, team);
     const w = this.els.wait!;
     if (wait) this.write(w, wait);
     if (w.hidden === !!wait) w.hidden = !wait;
+  }
+
+  /** Base context lines (receiving/sorting/load, schedule). */
+  setBase(lines: readonly [string, string]): void {
+    this.write(this.els.baseLoad!, lines[0]);
+    this.write(this.els.baseTime!, lines[1]);
   }
 
   /** CORE-015.1: where the parcels are ("2 volumes nas mãos · 4 no baú"); amber while the hands are full. */
@@ -74,14 +104,17 @@ export class Hud {
   /** Distance to the objective along the streets (null hides the chip). */
   setDistance(metres: number | null): void {
     const el = this.els.distance!;
-    if (metres !== null) this.write(el, metres >= 1000 ? `➤ ${(metres / 1000).toFixed(1)} km` : `➤ ${Math.max(10, Math.round(metres / 10) * 10)} m`);
+    if (metres !== null) this.write(el, `➤ ${formatDistance(metres)}`);
     if (el.hidden === (metres !== null)) el.hidden = metres === null;
   }
 
-  /** Virtual clock (1 h = 4 real minutes) and whether the 11h–21h working day is on. */
+  /** Virtual clock (1 h = 150 real seconds) and whether the 11h–21h working day is on. */
   setClock(label: string, workday: boolean, night: boolean): void {
-    this.write(this.els.clock!, `${night ? '☾' : '☀'} ${label}`);
-    this.write(this.els.clockTag!, workday ? 'Em jornada' : 'Fora da jornada');
+    const el = this.els.clock!;
+    this.write(el, `${night ? '☾' : '☀'} ${label}`);
+    el.classList.toggle('off-shift', !workday);
+    const title = workday ? 'Em jornada' : 'Fora da jornada';
+    if (el.title !== title) el.title = title;
   }
 
   get paused(): boolean { return !this.els.pause!.hidden; }

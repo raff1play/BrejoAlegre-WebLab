@@ -6,34 +6,42 @@
     <meta name="theme-color" content="#101b27" />
     <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png" />
     <meta name="description" content="Laboratório visual 3D de direção — Brejo Alegre Delivery Simulator. Protótipo web fictício e experimental." />
-    <title>Brejo Alegre — Laboratório de ruas (experimento)</title>
+    <title>Brejo Alegre — Web Lab</title>
   </head>
   <body>
-    <div class="street-experiment-label">EXPERIMENTO · RUAS E SINALIZAÇÃO</div>
     <canvas id="renderCanvas" aria-label="Mundo 3D de teste"></canvas>
-    <div id="hud" class="hud">
-      <button type="button" data-action="pause" class="pause-button" aria-label="Pausa, ajustes e sobre o jogo">☰</button>
-      <section class="objective" aria-live="polite" aria-label="Objetivo atual">
-        <strong id="objective-title">Preparando a jornada</strong>
-        <span id="objective-detail"></span>
-        <div class="objective-row">
-          <span id="objective-distance" class="chip dist" hidden></span>
-          <span id="cargo-status" class="chip cargo" hidden></span>
-          <span id="parcel-progress" class="chip">Coletados 0/0 · Entregues 0/0</span>
-          <button type="button" data-action="wait" id="wait-button" class="chip-button" hidden>Aguardar</button>
-        </div>
-      </section>
-      <div class="telemetry"><span id="clock" class="clock">☀ 11:00</span><span class="speed"><strong id="speed">0</strong> <span>km/h</span></span></div>
+    <div id="hud" class="hud" data-context="base">
+      <button type="button" data-action="pause" class="pause-button" aria-label="Pausa, logística, calendário e ajustes">☰</button>
+      <div class="left-stack">
+        <section class="objective" aria-live="polite" aria-label="Objetivo atual">
+          <strong id="objective-title">Preparando a jornada</strong>
+          <span id="objective-detail"></span>
+          <div class="objective-row">
+            <span id="objective-distance" class="chip dist" hidden></span>
+            <span id="cargo-status" class="chip cargo" hidden></span>
+            <span id="parcel-progress" class="chip mine" title="Seu progresso">Minha coleta 0/0</span>
+            <span id="team-progress" class="chip team" title="Progresso dos outros três entregadores">Equipe 0/0</span>
+            <button type="button" data-action="wait" id="wait-button" class="chip-button" hidden>Aguardar</button>
+          </div>
+          <div id="base-status" class="base-status" aria-label="Situação da base">
+            <span id="base-load"></span>
+            <span id="base-time"></span>
+          </div>
+        </section>
+        <div id="toast" class="toast" role="status" aria-live="polite"></div>
+      </div>
+      <div class="telemetry"><span id="clock" class="clock" title="Em jornada">☀ 11:45</span><span class="speed"><strong id="speed">0</strong> <span>km/h</span></span></div>
       <div id="minimap" class="minimap" role="button" tabindex="0" aria-expanded="false" aria-label="Minimapa — toque para ampliar">
         <canvas id="minimap-canvas" aria-hidden="true"></canvas>
-        <div class="minimap-bar"><span id="clock-tag">Em jornada</span><span class="minimap-hint">toque: mapa</span></div>
+        <div class="minimap-bar"><span id="nav-turn" class="nav-turn" hidden></span></div>
         <ul class="minimap-legend" aria-label="Legenda">
           <li><i style="background:#ff4d2e;color:#fff">▲</i>Você</li><li><i style="background:#ff5a3c;color:#fff">★</i>Objetivo</li>
-          <li><i class="line"></i>Rota pelas ruas</li><li><i style="background:#ffd84a">M</i>Moto</li>
-          <li><i style="background:#ffd84a">G</i>Galpão</li><li><i style="background:#f2b233">L</i>Lojas</li>
-          <li><i class="sq" style="background:#6fb7ff">⌂</i>Entregas</li><li><i style="background:#7fd06a">P</i>Praça</li>
+          <li><i class="line"></i>Rota pelas ruas</li><li><i class="sq next">1</i>Próxima entrega</li>
+          <li><i class="sq" style="background:#6fb7ff">2</i><span id="legend-stops">0 paradas restantes</span></li>
+          <li><i style="background:#ffd84a">M</i>Moto</li><li><i style="background:#ffd84a">G</i>Galpão</li><li><i style="background:#f2b233">L</i>Lojas</li>
+          <li><i class="sectors"></i>Setores (Oeste: seu)</li><li><i style="background:#7fd06a">P</i>Praça</li>
           <li><i style="background:#8fc1e3">C</i>Campo</li><li><i style="background:#c9c2b2">✝</i>Cemitério</li>
-          <li class="credit">© OpenStreetMap</li>
+          <li class="credit">© OpenStreetMap contributors</li>
         </ul>
       </div>
       <div id="devtime" class="devtime" hidden aria-label="Controle de horário (desenvolvimento)">
@@ -42,7 +50,6 @@
         <button type="button" data-devtime="18">18h</button><button type="button" data-devtime="21">21h</button>
         <button type="button" data-devtime="+1">+1h</button><button type="button" data-devtime="speed">×1</button>
       </div>
-      <div id="toast" class="toast" role="status" aria-live="polite"></div>
       <div id="movement-stick" class="joystick-zone" role="group" aria-label="Analógico flutuante: toque em qualquer ponto do canto inferior esquerdo">
         <div id="movement-stick-base" class="stick-base" aria-hidden="true">
           <div id="movement-stick-thumb" class="joystick-thumb"></div>
