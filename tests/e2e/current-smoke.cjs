@@ -172,6 +172,9 @@ async function carCareer(browser){
  s=await snapshot();
  check('B1-01 F2 AC-05: car parked inside depot bay 1 is recognised (all four corners in the paint)',fits&&s.vehicle.parked&&s.vehicle.bay===0,{fits,vehicle:s.vehicle});
 
+ // ------------------------------------------------ B1-01 F3: the boot (AC-06/AC-07, browser part)
+ await carBoot(page,snapshot,action,s);
+
  // ------------------------------------------------ reload: the choice is permanent, no second dialog
  await page.reload({waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>!!window.__weblab?.snapshot?.().vehicle,{timeout:120000});
@@ -180,6 +183,93 @@ async function carCareer(browser){
  const saved=await page.evaluate(()=>({own:JSON.parse(localStorage.getItem('brejo-b1:carreira:personagem-oeste')).profile.vehicle,others:['norte','leste','sul'].map(k=>localStorage.getItem('brejo-b1:carreira:personagem-'+k))}));
  check('B1-01 F2 AC-03: only the active career save holds the vehicle; inactive careers untouched',saved.own.kind==='carro-antigo'&&saved.own.paidOff&&saved.others.every(v=>v===null),saved);
  await ctx.close();
+}
+/**
+ * B1-01 F3: boot of the parked car. Real parcels reach the hands through the domain's own store
+ * `collect` via the development-only fixture (store pickup BY CAR is F4 and stays off in play);
+ * opening, closing and stowing use the real action button by touch.
+ */
+async function carBoot(page,snapshot,action,s){
+ const label=()=>page.locator('[data-action="mount"]').innerText();
+ const waitLabel=(re)=>page.waitForFunction(src=>new RegExp(src).test(document.querySelector('[data-action="mount"]').textContent),re.source,{timeout:15000}).catch(()=>{});
+ const bootOf=async()=>(await snapshot()).delivery.cargo.carBoot;
+ let boot=await bootOf();
+ check('B1-01 F3 AC-06: the car boot starts closed and empty — no decorative cargo or counter',boot&&!boot.open&&boot.lid<0.05&&boot.parcels.length===0&&boot.drawn.length===0&&boot.problem===null,boot);
+ const allIds=(await snapshot()).delivery.parcels.map(p=>p.id);
+ const rear=await page.evaluate(()=>window.__debug.trunkSpot());
+ await page.evaluate(([p,yaw])=>window.__debug.placeWalker(p.x,p.z,yaw),[rear,s.vehicle.yaw]);
+ await waitLabel(/^Abrir porta-malas$/);
+ check('B1-01 F3 AC-06: behind the parked car the action button offers "Abrir porta-malas"',await label()==='Abrir porta-malas',await label());
+ await action.tap();
+ await page.waitForFunction(()=>window.__weblab.snapshot().delivery.cargo.carBoot.lid>0.95,null,{timeout:15000}).catch(()=>{});
+ boot=await bootOf();await waitLabel(/^Fechar porta-malas$/);
+ check('B1-01 F3 AC-06: touch opens the tailgate (domain open, lid swung up) and offers closing it',boot.open&&boot.lid>0.95&&await label()==='Fechar porta-malas',{open:boot.open,lid:boot.lid,label:await label()});
+ await action.tap();
+ await page.waitForFunction(()=>window.__weblab.snapshot().delivery.cargo.carBoot.lid<0.05,null,{timeout:15000}).catch(()=>{});
+ boot=await bootOf();
+ check('B1-01 F3 AC-06: touch closes the tailgate again',!boot.open&&boot.lid<0.05,{open:boot.open,lid:boot.lid});
+ await waitLabel(/^Abrir porta-malas$/);await action.tap();
+ await page.waitForFunction(()=>window.__weblab.snapshot().delivery.cargo.carBoot.lid>0.95,null,{timeout:15000}).catch(()=>{});
+ // ---- real parcels: domain collect (fixture) → hands → boot (touch), automatic arrangement
+ await page.evaluate(()=>window.__debug.setHour(12.25));await delay(200);
+ let first=true,rounds=0;
+ for(;;){
+  const n=await page.evaluate(()=>window.__debug.fixtureCollect());
+  if(!n)break;rounds++;
+  if(first){
+   first=false;
+   // With parcels in the hands nobody gets in to drive.
+   await page.evaluate(()=>{const v=window.__weblab.snapshot().vehicle,c=Math.cos(v.yaw),n=Math.sin(v.yaw);window.__debug.placeWalker(v.x-1.31*c,v.z+1.31*n,v.yaw);});await delay(200);
+   await page.evaluate(()=>window.__debug.act());await delay(300);
+   const q=await snapshot();
+   check('B1-01 F3: with volumes in the hands the driver cannot get in (they must go into the boot first)',q.mode==='walking'&&q.delivery.cargo.hands===n,{mode:q.mode,hands:q.delivery.cargo.hands});
+   await page.evaluate(([p,yaw])=>window.__debug.placeWalker(p.x,p.z,yaw),[rear,s.vehicle.yaw]);
+  }
+  // The label is redrawn by the next rendered frame: wait for the count of THIS hand-over.
+  await waitLabel(new RegExp(`^Guardar no porta-malas \\(${n}\\)$`));
+  check(`B1-01 F3 AC-06: with ${n} volume(s) in the hands the boot offers "Guardar no porta-malas"`,new RegExp(`^Guardar no porta-malas \\(${n}\\)$`).test(await label()),await label());
+  await action.tap();
+  await page.waitForFunction(()=>window.__weblab.snapshot().delivery.cargo.hands===0,null,{timeout:15000}).catch(()=>{});
+ }
+ const q=await snapshot();boot=q.delivery.cargo.carBoot;
+ const mine=q.delivery.parcels.filter(p=>p.collector==='jogador');
+ const inBoot=new Set(boot.parcels.map(p=>p.id));
+ check('B1-01 F3 AC-06: every collected store parcel of the player went into the boot by touch (hands empty)',rounds>=2&&mine.length>=4&&q.delivery.cargo.hands===0&&mine.every(p=>inBoot.has(p.id))&&inBoot.size===mine.length,{rounds,mine:mine.map(p=>p.id),boot:[...inBoot],hands:q.delivery.cargo.hands});
+ check('B1-01 F3 custody: each boot parcel is in place "porta-malas", EM_TRANSPORTE, held by the player, with its own slot in the history',mine.every(p=>p.place==='porta-malas'&&p.state==='EM_TRANSPORTE'&&p.holder==='jogador'&&p.history.at(-1).operation==='transferência:porta-malas'),mine.map(p=>({id:p.id,place:p.place,state:p.state})));
+ check('B1-01 F3 custody: no parcel lost or duplicated across the whole day (same IDs, unique)',q.delivery.parcels.length===allIds.length&&new Set(q.delivery.parcels.map(p=>p.id)).size===allIds.length&&allIds.every(id=>q.delivery.parcels.some(p=>p.id===id)));
+ // The 3D boxes are exactly the domain parcels, each at its own slot (car-local frame of playerCar.ts).
+ const HALF_W=1.06/2,FLOOR=0.42,SEAT=-3.85/2+0.05+0.64;
+ const drawn=new Map(boot.drawn.map(d=>[d.id,d]));
+ const near=(a,b)=>Math.abs(a-b)<1e-4;
+ const slotOk=boot.parcels.every(p=>{const d=drawn.get(p.id),t=p.stowage;return d&&near(d.centre.x,-HALF_W+t.x+t.w/2)&&near(d.centre.y,FLOOR+t.y+t.h/2)&&near(d.centre.z,SEAT-(t.z+t.d/2))&&near(d.size.w,t.w)&&near(d.size.h,t.h)&&near(d.size.d,t.d);});
+ check('B1-01 F3 AC-06: one individual 3D box per parcel ID, drawn exactly at its domain slot and size (no separate visual list)',boot.drawn.length===boot.parcels.length&&slotOk,{drawn:boot.drawn.map(d=>d.id),parcels:boot.parcels.map(p=>p.id)});
+ const box=(d)=>({x0:d.centre.x-d.size.w/2,x1:d.centre.x+d.size.w/2,y0:d.centre.y-d.size.h/2,y1:d.centre.y+d.size.h/2,z0:d.centre.z-d.size.d/2,z1:d.centre.z+d.size.d/2});
+ const ov=(a0,a1,b0,b1)=>Math.min(a1,b1)-Math.max(a0,b0)>1e-6;
+ const bs=boot.drawn.map(box);let clash=null;
+ for(let i=0;i<bs.length;i++)for(let j=i+1;j<bs.length;j++)if(ov(bs[i].x0,bs[i].x1,bs[j].x0,bs[j].x1)&&ov(bs[i].y0,bs[i].y1,bs[j].y0,bs[j].y1)&&ov(bs[i].z0,bs[i].z1,bs[j].z0,bs[j].z1))clash=[boot.drawn[i].id,boot.drawn[j].id];
+ const inside=bs.every(b=>b.x0>=-HALF_W-1e-6&&b.x1<=HALF_W+1e-6&&b.y0>=FLOOR-1e-6&&b.y1<=FLOOR+0.5+1e-6&&b.z1<=SEAT+1e-6&&b.z0>=SEAT-0.64-1e-6);
+ check('B1-01 F3 AC-07: drawn boxes never interpenetrate and all stay inside the boot volume',clash===null&&inside&&boot.problem===null,{clash,inside,problem:boot.problem});
+ check('B1-01 F3: HUD cargo line names the boot load',/no porta-malas/.test(q.delivery.cargo.label),q.delivery.cargo.label);
+ // ---- persistence PREPARATION: live boot → v2 save in memory → parsed back, identical slots (nothing written)
+ const rt=await page.evaluate(()=>window.__debug.cargoRoundTrip());
+ check('B1-01 F3 persistence prep: the live boot seals into a v2 career save and parses back with identical IDs and slots',rt.schemaVersion===2&&rt.live.length===boot.parcels.length&&JSON.stringify(rt.restored)===JSON.stringify(rt.live),{schema:rt.schemaVersion,live:rt.live.length,restored:rt.restored.length});
+ // ---- getting in closes the tailgate; driving carries the boxes with the car, slots unchanged
+ await page.evaluate(()=>{const v=window.__weblab.snapshot().vehicle,c=Math.cos(v.yaw),n=Math.sin(v.yaw);window.__debug.placeWalker(v.x-1.31*c,v.z+1.31*n,v.yaw);});await delay(200);
+ await page.evaluate(()=>window.__debug.act());
+ await page.waitForFunction(()=>window.__weblab.snapshot().mode==='riding',null,{timeout:10000}).catch(()=>{});
+ await page.waitForFunction(()=>window.__weblab.snapshot().delivery.cargo.carBoot.lid<0.05,null,{timeout:15000}).catch(()=>{});
+ const b0=await snapshot();
+ check('B1-01 F3: getting in closes the tailgate (nobody drives off with it up)',b0.mode==='riding'&&!b0.delivery.cargo.carBoot.open&&b0.delivery.cargo.carBoot.lid<0.05,b0.delivery.cargo.carBoot.open);
+ await page.keyboard.down('KeyS');
+ await page.waitForFunction(v=>{const q=window.__weblab.snapshot().vehicle;return Math.hypot(q.x-v.x,q.z-v.z)>0.6;},b0.vehicle,{timeout:30000}).catch(()=>{});
+ await page.keyboard.up('KeyS');
+ await page.keyboard.down('Space');await page.waitForFunction(()=>Math.abs(window.__weblab.snapshot().vehicle.speed)<0.3,null,{timeout:20000}).catch(()=>{});await page.keyboard.up('Space');
+ const b1=await snapshot();
+ const d0=new Map(b0.delivery.cargo.carBoot.drawn.map(d=>[d.id,d])),moved=Math.hypot(b1.vehicle.x-b0.vehicle.x,b1.vehicle.z-b0.vehicle.z);
+ const follow=b1.delivery.cargo.carBoot.drawn.every(d=>{const o=d0.get(d.id);return o&&near(d.centre.x,o.centre.x)&&near(d.centre.y,o.centre.y)&&near(d.centre.z,o.centre.z)&&Math.hypot(d.world.x-o.world.x,d.world.z-o.world.z)>0.3;});
+ check('B1-01 F3: the boxes travel with the car (world positions follow, boot slots unchanged, same IDs)',moved>0.5&&b1.delivery.cargo.carBoot.drawn.length===b0.delivery.cargo.carBoot.drawn.length&&follow&&b1.delivery.cargo.carBoot.problem===null,{moved});
+ await page.evaluate(()=>window.__debug.act());
+ await page.waitForFunction(()=>window.__weblab.snapshot().mode==='walking',null,{timeout:10000}).catch(()=>{});
 }
 async function run(){
  if(!process.env.WEBLAB_URL){
@@ -423,7 +513,7 @@ async function run(){
   await lp.locator('[data-vehicle="moto-antiga"]').tap();
   await lp.waitForFunction(()=>!!window.__weblab?.snapshot?.().career,{timeout:120000});
   const ls=await lp.evaluate(()=>({career:window.__weblab.snapshot().career,legacy:localStorage.getItem('brejo-log003-workday-index'),save:JSON.parse(localStorage.getItem('brejo-b1:carreira:personagem-oeste')||'null'),others:['norte','leste','sul'].map(k=>localStorage.getItem('brejo-b1:carreira:personagem-'+k))}));
-  check('B1-01 F1: legacy calendar migrated to the Oeste career in browser storage, legacy key kept, other careers untouched',ls.career.calendarIndex===2&&ls.career.durable===true&&ls.legacy==='2'&&ls.save?.schemaVersion===1&&ls.save.profile.calendarIndex===2&&ls.others.every(v=>v===null),ls);
+  check('B1-01 F1/F3: legacy calendar migrated to the Oeste career in browser storage (save schema v2), legacy key kept, other careers untouched',ls.career.calendarIndex===2&&ls.career.durable===true&&ls.legacy==='2'&&ls.save?.schemaVersion===2&&ls.save.profile.calendarIndex===2&&ls.others.every(v=>v===null),ls);
   await legacy.close();
  }
  await carCareer(browser);
