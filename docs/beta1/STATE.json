@@ -5,8 +5,8 @@
     {
       "id": "B1-00",
       "name": "Preparação de execução e aprovação",
-      "status": "AGUARDANDO_APROVACAO",
-      "reviewNote": null,
+      "status": "APROVADO",
+      "reviewNote": "APROVO B1-00 — aprovação explícita do usuário na conversa de 15/11/2026; implantação técnica dos PRs #10 e #11 e publicação de verificação confirmadas.",
       "evidenceUrl": "https://github.com/raff1play/BrejoAlegre-WebLab/actions/runs/43740785819",
       "approvedSha": "84c061f50c2f2544267f2e7517eb7f5aa2dbc744"
     },
@@ -104,6 +104,13 @@
       "to": "AGUARDANDO_APROVACAO",
       "on": "2026-11-15",
       "note": "PR #10 integrado; CI de PR success run 43740286681; redeploy de verificacao success run 43740785819. Usuario ainda precisa aprovar expressamente B1-00."
+    },
+    {
+      "module": "B1-00",
+      "from": "AGUARDANDO_APROVACAO",
+      "to": "APROVADO",
+      "on": "2026-11-15",
+      "note": "APROVO B1-00 — aprovação explícita do usuário na conversa de 15/11/2026; implantação técnica dos PRs #10 e #11 e publicação de verificação confirmadas."
     }
   ]
 }
