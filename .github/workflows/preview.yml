@@ -1,13 +1,20 @@
-name: Preview - Pages (publicacao autorizada)
+name: Preview - Pages (CI + browser antes de publicar)
 
-# Edicoes de codigo nao publicam automaticamente.
-# Somente o arquivo de autorizacao dispara o deploy da branch preview.
+# B1-00: publicar somente mudancas do JOGO na preview e apenas depois de testes.
+# Atualizacoes de documentacao ou do estado de aprovacao nao trocam o site.
+# main continua com publicacao separada e manual (pages.yml).
 on:
   push:
     branches:
       - preview
     paths:
-      - docs/PREVIEW_DEPLOY_TRIGGER.md
+      - 'src/**'
+      - 'public/**'
+      - 'index.html'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'vite.config.ts'
+      - 'docs/PREVIEW_DEPLOY_TRIGGER.md' # gatilho legado manual continua disponivel
 
 permissions:
   contents: read
@@ -21,31 +28,45 @@ concurrency:
 jobs:
   deploy-preview:
     if: github.event_name == 'push' && github.ref == 'refs/heads/preview'
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
     environment:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: npm
-      - name: Install reproducibly
+      - name: Dependencias reproduziveis
         run: npm ci --no-audit --no-fund
-      - name: Validate repository
+      - name: Validacao de estrutura e manifesto Beta
         run: npm run validate:repo
-      - name: Unit tests
+      - name: Testes unitarios
         run: npm run test:unit
-      - name: Build preview
+      - name: Build de staging (inclui TypeScript)
         run: npm run build:staging
-      - name: Configure Pages
+      - name: Instalar Playwright somente no runner
+        run: npm install --no-save --package-lock=false --ignore-scripts playwright@1.55.0
+      - name: Chromium e bibliotecas do runner
+        run: npx playwright install --with-deps chromium
+      - name: Testes de navegador com trafego ligado
+        run: npm run test:e2e
+        env:
+          CI: true
+      - name: Impedir publicacao de commit ultrapassado
+        run: |
+          git fetch origin preview
+          test "$(git rev-parse HEAD)" = "$(git rev-parse origin/preview)"
+      - name: Configurar GitHub Pages
         uses: actions/configure-pages@v5
-      - name: Upload static site
+      - name: Publicar artefato estatico
         uses: actions/upload-pages-artifact@v3
         with:
           path: ./dist
-      - name: Deploy preview
+      - name: Publicar preview
         id: deploy
         uses: actions/deploy-pages@v4
