@@ -231,6 +231,8 @@ async function carBoot(page,snapshot,action,s){
   await action.tap();
   await page.waitForFunction(()=>window.__weblab.snapshot().delivery.cargo.hands===0,null,{timeout:15000}).catch(()=>{});
  }
+ // The boxes are drawn by the next rendered frame after the last hand-over: wait for it.
+ await page.waitForFunction(()=>{const b=window.__weblab.snapshot().delivery.cargo.carBoot;return b.drawn.length===b.parcels.length;},null,{timeout:10000}).catch(()=>{});
  const q=await snapshot();boot=q.delivery.cargo.carBoot;
  const mine=q.delivery.parcels.filter(p=>p.collector==='jogador');
  const inBoot=new Set(boot.parcels.map(p=>p.id));
