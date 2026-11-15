@@ -5,10 +5,10 @@
     {
       "id": "B1-00",
       "name": "Preparação de execução e aprovação",
-      "status": "EM_TESTES",
+      "status": "AGUARDANDO_APROVACAO",
       "reviewNote": null,
-      "evidenceUrl": null,
-      "approvedSha": null
+      "evidenceUrl": "https://github.com/raff1play/BrejoAlegre-WebLab/actions/runs/43740785819",
+      "approvedSha": "84c061f50c2f2544267f2e7517eb7f5aa2dbc744"
     },
     {
       "id": "B1-01",
@@ -97,6 +97,13 @@
       "to": "EM_TESTES",
       "on": "2026-11-15",
       "note": "Arquivos e gates preparados; abrir PR e verificar resultados reais antes de registrar aguardando aprovacao."
+    },
+    {
+      "module": "B1-00",
+      "from": "EM_TESTES",
+      "to": "AGUARDANDO_APROVACAO",
+      "on": "2026-11-15",
+      "note": "PR #10 integrado; CI de PR success run 43740286681; redeploy de verificacao success run 43740785819. Usuario ainda precisa aprovar expressamente B1-00."
     }
   ]
 }
