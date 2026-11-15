@@ -1,4 +1,5 @@
 import {readFileSync, existsSync} from 'node:fs';
+import {execFileSync} from 'node:child_process';
 import assert from 'node:assert/strict';
 const required = [
  'AGENTS.md','README.md','docs/00_START_HERE.md','docs/DECISIONS.md',
@@ -11,7 +12,9 @@ const required = [
  'src/features/hud/hud.ts','src/features/controls/input.ts','src/core/motorcyclePhysics.ts',
  'src/world/geo/brejoAlegreData.ts','src/features/display/disablePwa.ts',
  'tests/log006-traffic-deadlock.test.ts','tests/e2e/current-smoke.cjs',
- 'package-lock.json','.github/workflows/ci.yml',
+ 'package-lock.json','docs/BETA_1_0_SPEC.md','docs/BETA_1_0_DECISIONS.md',
+ 'docs/beta1/STATE.json','docs/beta1/B1_00_RUNBOOK.md','scripts/beta1-control.mjs',
+ 'tests/beta1-control.test.ts','.github/workflows/ci.yml',
  '.github/workflows/preview.yml','.github/workflows/pages.yml'
 ];
 for(const file of required){
@@ -29,4 +32,7 @@ assert.doesNotMatch(html,/<link[^>]+rel=["']manifest["']/);
 for(const wf of ['ci.yml','pages.yml','preview.yml'])assert.match(readFileSync(`.github/workflows/${wf}`,'utf8'),/npm ci/);
 const trigger=readFileSync('.github/workflows/preview.yml','utf8');
 assert.match(trigger,/docs\/PREVIEW_DEPLOY_TRIGGER\.md/);
+const stateCheck=execFileSync(process.execPath,['scripts/beta1-control.mjs','validate'],{encoding:'utf8'});
+assert.match(stateCheck,/B1-00: estado valido/);
+assert.match(trigger,/npm run test:e2e/);
 console.log(`Repository integrity checks passed (${required.length} required files).`);
