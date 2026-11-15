@@ -125,3 +125,13 @@ Em **Build and deployment > Source**, selecionar **GitHub Actions** e salvar. En
 - **Incluído:** calendário semanal, três funcionários extras, motoboys auxiliando a triagem, ajuste de velocidade e monitoramento de retorno até 14h20, metas de separação por demanda.
 - **Limitações:** sem validação em Galaxy S24 físico e sem teste da jornada completa com tráfego ambiente; horário de chegada dos NPCs não é garantido sob bloqueio, apenas monitorado. Publicação experimental, não homologação da produção.
 - **Disparo de deploy:** esta alteração documental aciona exclusivamente `.github/workflows/preview.yml`; só considerar publicado após `Deploy preview` com resultado `success` e verificação do endereço do Pages.
+
+## LOG-005 + LOG-006 — publicação experimental autorizada em 15/11/2026
+
+- **Autorização explícita do usuário:** "Publique", em resposta à proposta de publicar juntas a LOG-005 e a LOG-006 no GitHub Pages de testes.
+- **Branch e ambiente:** somente `preview`, GitHub Pages público gratuito já existente. Não realizar merge nem alterações na `main`.
+- **Commit de código e documentação validado:** `ff5e5390eb55c58a31a5f2e2c90d48f65187877f`. CI concluída com `success` nas execuções [43673303945](https://github.com/raff1play/BrejoAlegre-WebLab/actions/runs/43673303945) e [43673305702](https://github.com/raff1play/BrejoAlegre-WebLab/actions/runs/43673305702): 145 testes unitários aprovados e compilação staging.
+- **LOG-005:** início do relógio às 11h45 e saída dos três motoboys às 11h47 (2 minutos virtuais); início da coleta às 12h e metas de retorno preservados.
+- **LOG-006:** tentativa de resolver espera circular de NPCs e vans: moto estacionada não bloqueia a circulação, moto cedendo passagem aguarda o carro passar, mantendo bloqueio físico pelo jogador/outros NPCs. Indicador de cedência no painel.
+- **Limitações conhecidas:** teste de unidade reproduz o impasse mas não substitui ensaio end-to-end no navegador com trânsito ligado, nem teste real no Galaxy S24. Ainda não há confirmação de que o travamento observado pelo usuário foi eliminado sob todas as circunstâncias.
+- **Disparo autorizado:** esta atualização do arquivo de controle aciona o workflow `.github/workflows/preview.yml`. Declarar a versão publicada somente após o trabalho de deploy concluir com `success`; verificar o endereço https://raff1play.github.io/BrejoAlegre-WebLab/ e registrar o SHA da publicação.
