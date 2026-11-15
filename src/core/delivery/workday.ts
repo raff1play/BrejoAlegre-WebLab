@@ -134,15 +134,18 @@ export class Workday {
   sackInHands = false;
   inHands(): Parcel[] { return this.parcels.filter((p) => p.place === 'maos' && p.holder === 'jogador'); }
   inTrunk(): Parcel[] { return this.parcels.filter((p) => p.place === 'bau' && p.holder === 'jogador'); }
+  /** B1-01 F3: parcels in the boot of the player's own car (slots in `stowage`). */
+  inCarBoot(): Parcel[] { return this.parcels.filter((p) => p.place === 'porta-malas' && p.holder === 'jogador'); }
   /** Trunk parcels still to be handed to the checker / still to be delivered. */
   trunkForDepot(): Parcel[] { return this.inTrunk().filter((p) => p.state === 'EM_TRANSPORTE'); }
   trunkForRoute(): Parcel[] { return this.inTrunk().filter((p) => p.state === 'EM_ROTA'); }
   cargoLabel(): string {
-    const h = this.inHands().length; const t = this.inTrunk().length;
+    const h = this.inHands().length; const t = this.inTrunk().length; const c = this.inCarBoot().length;
     const parts: string[] = [];
     const n = (k: number) => `${k} ${k === 1 ? 'volume' : 'volumes'}`;
     if (h) parts.push(this.sackInHands ? `saca com ${n(h)} nas mãos` : `${n(h)} nas mãos`);
     if (t) parts.push(`${n(t)} no baú`);
+    if (c) parts.push(`${n(c)} no porta-malas`);
     return parts.join(' · ');
   }
 
@@ -197,7 +200,7 @@ export class Workday {
   }
 
   /** Parcels the player still has to bring to the base (in the hands or in the trunk). */
-  carrying(): Parcel[] { return this.parcels.filter((p) => p.holder === 'jogador' && (p.place === 'maos' || p.place === 'bau') && (p.state === 'COLETADO' || p.state === 'EM_TRANSPORTE')); }
+  carrying(): Parcel[] { return this.parcels.filter((p) => p.holder === 'jogador' && (p.place === 'maos' || p.place === 'bau' || p.place === 'porta-malas') && (p.state === 'COLETADO' || p.state === 'EM_TRANSPORTE')); }
 
   /** At the receiving desk: the checker takes the parcels the player has IN THE HANDS. */
   handOver(hour: number,visit?:DepotVisit): number {
