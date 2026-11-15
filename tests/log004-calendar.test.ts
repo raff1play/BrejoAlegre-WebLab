@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {calendarDay,calendarWeek,nextWorkday} from '../src/core/delivery/operatingCalendar.ts';
+import { COURIER_DEPART_HOUR, WORKDAY_START } from '../src/core/city/clock.ts';
 import {dailyDemand} from '../src/core/delivery/dailyDemand.ts';
 import {buildAddresses} from '../src/core/delivery/addresses.ts';
 import {LogisticsDay} from '../src/core/delivery/logisticsDay.ts';
@@ -78,4 +79,20 @@ for(const [index,label] of [[3,'quinta'],[5,'sábado']] as const)test(`LOG004 ${
  assert.ok(day.couriers.every(c=>c.returnedAt!==null&&c.returnedAt<=14+20/60),'NPC ultrapassou a tolerância de 14h20');
  assert.ok(day.allSortedAt!==null&&day.allSortedAt<=15,label+' saiu da meta de 15h: '+day.allSortedAt);
  assert.equal(day.depot.errors.length,0);
+});
+
+
+test('LOG005: all three couriers wait at base until 11:47 virtual, after a 11:45 start',()=>{
+ const day=new LogisticsDay({seed:2026,dayIndex:0,free:(x,z)=>free(x,z,.45)});
+ day.update(WORKDAY_START,.1);
+ assert.equal(day.phase,'COLETA');
+ assert.ok(day.couriers.every(c=>c.state==='waiting'));
+ const origin=day.couriers.map(c=>({...c.bike}));
+ day.update(COURIER_DEPART_HOUR-1/3600,.1);
+ assert.ok(day.couriers.every(c=>c.state==='waiting'),'Nobody departs before two virtual minutes');
+ for(const [i,c] of day.couriers.entries())assert.deepEqual(c.bike,origin[i]);
+ day.update(COURIER_DEPART_HOUR,.1);
+ assert.ok(day.couriers.every(c=>c.state==='to-store'),'All three start their real route at 11:47');
+ assert.ok(day.couriers.every(c=>c.route.length>0));
+ assert.ok(day.parcels.every(p=>p.state==='NA_LOJA'||p.place==='caminhao'),'No parcel is collected before noon');
 });
