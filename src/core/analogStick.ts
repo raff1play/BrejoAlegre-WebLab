@@ -100,3 +100,18 @@ export function followCenter(
   if (o > maxTravel && o > 0) { x = origin.x + (ox / o) * maxTravel; y = origin.y + (oy / o) * maxTravel; }
   return { x, y };
 }
+
+/**
+ * B1-01 F2: car steering from the same floating stick. Separate tuning, so the CTRL-002 motorcycle
+ * curve above stays byte-for-byte the same. A steering wheel wants a calmer, more linear response
+ * than handlebars: axial dead zone, saturation at 75 % of the radius, gentle ease-out. The physical
+ * lock and grip limits live in carPhysics.ts (the lock already shrinks with speed).
+ */
+export const CAR_STICK = Object.freeze({ deadzone: 0.06, saturation: 0.75, ease: 1.6 });
+export function carTurnFraction(x: number): number {
+  if (!Number.isFinite(x)) return 0;
+  const a = Math.min(1, Math.abs(x));
+  if (a <= CAR_STICK.deadzone) return 0;
+  const t = Math.min(1, (a - CAR_STICK.deadzone) / (CAR_STICK.saturation - CAR_STICK.deadzone));
+  return Math.sign(x) * (1 - (1 - t) ** CAR_STICK.ease);
+}
