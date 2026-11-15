@@ -1,5 +1,16 @@
 # Estado atual auditável — Brejo Alegre Web Lab
 
+## Atualização operacional — Beta 1.0 (15/11/2026)
+
+**Linha atual de integração:** `preview`. Os PRs #8 (HUD-001/CTRL-001/MAP-001) e #9 (CTRL-002) já foram integrados, embora a seção histórica abaixo ainda os descreva como "em revisão". **Não implementar novamente.**
+
+**B1-00:** aprovado explicitamente pelo usuário e registrado em [STATE.json](beta1/STATE.json); infraestrutura integrada pelos PRs #10 e #11, com testes de PR e teste de publicação na `preview` confirmados. O GitHub Pages continua com o mesmo jogo, sem funcionalidades Beta 1.0 acrescentadas. `main` não foi alterada.
+
+**B1-01:** 17 decisões e 26 testes de aceitação congelados em [BETA_1_0_SPEC.md](BETA_1_0_SPEC.md); permanece `PENDENTE` para implementação no manifesto. [Contratos técnicos B1-01](beta1/B1_01_CONTRATOS_INTEGRACAO.md) alinham carreiras, moto/carro, pacotes, base, madrugada, retomada e fronteiras dos módulos posteriores. Esse alinhamento é **documental**, não comprova código nem publicação do B1-01.
+
+**Controle de atualização:** para status de aprovação, o manifesto `docs/beta1/STATE.json` é a fonte operacional; descrições LOG-006 e "em revisão" abaixo são registros históricos da baseline original. O agente deve consultar HEAD atual de `preview` antes de qualquer implementação.
+
+
 **Data de consolidação:** 15/11/2026. **Versão pública de partida:** LOG-006, commit Git `f98b652d32dece186ecfa654af7e7688f08254e6`. A antiga árvore completa e as evidências estão preservadas na branch `archive/2026-11-15-log006-published`. Este documento resume somente o estado relevante para próximas mudanças.
 
 ## Implementado na árvore-base
