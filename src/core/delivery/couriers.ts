@@ -32,8 +32,8 @@ export class Courier {
   const p=drive?this.bike:this.person;let left=dt*(drive?9.4:2.05);
   while(left>0&&this.route.length){const next=this.route[0]!,dx=next.x-p.x,dz=next.z-p.z,d=Math.hypot(dx,dz),s=Math.min(d,left);
    const local=day.local({x:p.x+dx/(d||1)*s,z:p.z+dz/(d||1)*s});
-   if(drive&&Math.abs(local.z+92.3)<2.2&&local.x>98&&local.x<114&&day.gateOpen<.95)return false;
-   if(drive&&next.control&&d<1.5){this.stopTimer+=dt;if(!courierSignalAllows(next,day.trafficTime)||(next.control.stop&&this.stopTimer<1))return false;}
+   if(drive&&Math.abs(local.z+92.3)<2.2&&local.x>98&&local.x<114&&day.gateOpen<.95){this.yieldingToTraffic=false;return false;}
+   if(drive&&next.control&&d<1.5){this.stopTimer+=dt;if(!courierSignalAllows(next,day.trafficTime)||(next.control.stop&&this.stopTimer<1)){this.yieldingToTraffic=false;return false;}}
    const candidate={x:p.x+dx/(d||1)*s,z:p.z+dz/(d||1)*s};
    if(drive){
     const blocked=day.trafficBlocked?.(this.id,candidate.x,candidate.z,Math.atan2(dx,dz));
