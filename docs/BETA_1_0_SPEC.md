@@ -28,6 +28,23 @@ Princípios:
 
 A Beta 1.0 está definida por um **ciclo diário completo, repetível e divertido**, não apenas pela quantidade de objetos novos.
 
+### Sequência diária de ponta a ponta (todos os quatro motoboys)
+| Horário virtual | Ação | Regra de jogo |
+|---|---|---|
+| 11h30 | Cada personagem em sua casa | Jogador se equipa; NPCs têm preparações curtas e próprias |
+| 11h30–12h | Sair de casa, montar, alcançar lojas | Saídas variam pela distância real; não exigir espera artificial |
+| 12h–14h | Coletar e guardar pacotes | Planejamento por proximidade e carga equilibrada |
+| Até 14h20 | Retorno e descarga na base | 14h ideal; 20 minutos de tolerância para NPCs |
+| 14h–15h/16h | Conferência, triagem e retirada das sacas | Funcionários e entregadores cooperam sem ocupação dupla |
+| Após liberação | Montar carga do próprio setor e seguir rota | Baú/alforje/suporte com posições físicas |
+| Até 21h | Entregar, negociar alternativas, registrar tentativas | Ação rápida contextual, humor e custódia verificável |
+| Fim da rota/turno | **Cada um dos quatro volta para sua própria casa** | A carreira ativa aguarda chegada do jogador; NPCs também encerram o turno em suas casas |
+| Encerramento | Resumo, checkpoint e próximo dia útil | Só o perfil selecionado recebe progressão de carreira, sem ganho offline dos outros |
+
+**Regra explícita:** o retorno para casa vale tanto para o personagem jogável quanto para os três NPCs. Não basta despawnar os NPCs após a última entrega; a simulação deve manter trajetória, chegada e encerramento lógico. Renderização distante pode ser simplificada, mas as posições/estados continuam rastreáveis.
+
+
+
 ## 1. Situação atual vs. alvo Beta 1.0
 
 | Área | Base conhecida LOG-006 | Meta Beta 1.0 |
@@ -194,6 +211,7 @@ A Beta 1.0 está definida por um **ciclo diário completo, repetível e divertid
 
 **PROPOSTO:**
 - Ao terminar as entregas, objetivo vira **Voltar para casa**; moto/portão/área da garagem reconhecem chegada.
+- Após concluírem suas rotas (ou encerrarem suas tentativas), os três NPCs retornam às casas individuais pelos trajetos da rua; registrar estado e hora de chegada. Falhas de caminho precisam de recuperação segura, não desaparecimento visual que simule chegada.
 - Se não concluir tudo até 21h, pode parar, registrar não entregues e retornar: **não prender o jogador no expediente**. O horário de entrega termina às 21h; definir explicitamente se o relógio continua durante retorno após esse limite (PENDENTE).
 - Na casa aparece resumo: recolhidos, entregues, tentativas, devoluções, reclamações, bônus e ganhos da jornada, tempo, reputação.
 - Salvar checkpoint e avançar para o próximo dia útil da carreira atual. Recarregar os quatro perfis sem contaminação.
