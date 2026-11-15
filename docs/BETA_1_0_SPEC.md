@@ -37,7 +37,7 @@ A Beta 1.0 está definida por um **ciclo diário completo, repetível e divertid
 | Até 14h20 | Retorno e descarga na base | 14h ideal; 20 minutos de tolerância para NPCs |
 | 14h–15h/16h | Conferência, triagem e retirada das sacas | Funcionários e entregadores cooperam sem ocupação dupla |
 | Após liberação | Montar carga do próprio setor e seguir rota | Baú/alforje/suporte com posições físicas |
-| Até 21h | Entregar, negociar alternativas, registrar tentativas | Ação rápida contextual, humor e custódia verificável |
+| Entregas (meta até 21h) | Entregar, negociar alternativas, registrar tentativas | Depois de 21h, continuar com atraso registrado; não encerrar automaticamente |
 | Fim da rota/turno | **Cada um dos quatro volta para sua própria casa** | A carreira ativa aguarda chegada do jogador; NPCs também encerram o turno em suas casas |
 | Encerramento | Resumo, checkpoint e próximo dia útil | Só o perfil selecionado recebe progressão de carreira, sem ganho offline dos outros |
 
@@ -79,7 +79,7 @@ A Beta 1.0 está definida por um **ciclo diário completo, repetível e divertid
 | Entregas | Confirmação logística simplificada | Campainha, morador, vizinho, local autorizado, tentativa e ação arriscada |
 | Áudio | Sem catálogo de efeitos de entrega definido | Motor, ações, ambiente, campainhas e falas curtas licenciadas |
 | Animações | Caminhar, carregar, entregar, montar moto, abrir baú já existem | Equipar, tocar campainha, abrir portão, reagir, receber e arremessar |
-| Fim do dia | Operação logística até 21h | Voltar à própria casa, resumo, salvar e avançar para o próximo dia |
+| Fim do dia | Operação logística com corte automático às 21h | Concluir entregas/devoluções e conferência, inclusive com atraso; voltar à própria casa, resumir, salvar e avançar |
 
 **Limite de escopo:** continuar no navegador Android/desktop. Multiplayer real, mundo persistente em servidor, financiamento/garagem profunda e economia online permanecem expansões posteriores.
 
@@ -334,7 +334,7 @@ O jogo já tem grafo de ruas e faixas em `src/core/city/roadGraph.ts`, veículos
 **PROPOSTO:**
 - Ao terminar as entregas, objetivo vira **Voltar para casa**; moto/portão/área da garagem reconhecem chegada.
 - Após concluírem suas rotas (ou encerrarem suas tentativas), os três NPCs retornam às casas individuais pelos trajetos da rua; registrar estado e hora de chegada. Falhas de caminho precisam de recuperação segura, não desaparecimento visual que simule chegada.
-- Se não concluir tudo até 21h, pode parar, registrar não entregues e retornar: **não prender o jogador no expediente**. O horário de entrega termina às 21h; definir explicitamente se o relógio continua durante retorno após esse limite (PENDENTE).
+- **Decisão B1-01/Q11+Q13+Q14:** não permitir encerramento antecipado. A partir de 21h, entregas seguem possíveis com atraso registrado; todas as encomendas devem ter resultado terminal válido — entrega, ou tentativa frustrada com devolução física e conferência sem pagamento — antes do encerramento. A etapa de retorno à própria casa permanece e será detalhada neste B1-09. A regra da escala noturna dos NPCs/base ainda depende de decisão; não confundir corte de turno atual no código com a regra aprovada.
 - Na casa aparece resumo: recolhidos, entregues, tentativas, devoluções, reclamações, bônus e ganhos da jornada, tempo, reputação.
 - Salvar checkpoint e avançar para o próximo dia útil da carreira atual. Recarregar os quatro perfis sem contaminação.
 - Economia inicial deve refletir decisões existentes e remuneração por volume sem duplicidade, mas financiamento, oficina, compra avançada de veículos e expansão de garagem são **fora do escopo central** desta Beta, a menos que sejam solicitados.
@@ -403,7 +403,7 @@ A versão só pode ser anunciada **Beta 1.0 jogável** quando, no mínimo:
 
 1. **Confirmado:** quatro personagens predefinidos, presets masculino/feminino/equipamentos; casas e setores fixos; moto antiga ou carro antigo próprio/quitado por carreira; **carro com logística completa, porta-malas abrível, caixas individuais visíveis, limites físicos e arrumação automática no B1-01**; veículo inicial fixo até futura garagem. **Pendente:** nomes/aparências/modelos concretos, sem impedir congelar critérios funcionais.
 2. Equipar-se é obrigatório uma vez por turno ou oferece atalho automático permanente?
-3. O relógio continua após 21h durante o retorno à casa ou o encerramento exige estar em casa antes desse horário?
+3. **Confirmado:** após 21h o jogador continua entregando com atraso, sem fechamento automático. **Pendente em B1-09:** condição exata de chegada em casa para encerrar o dia e continuidade da equipe/base após 21h.
 4. Capacidade exata de baú/alforjes/suportes e limite de peso das mãos por classe de volume.
 5. Regras concretas de autorização de vizinho/portaria/porta/caixa, reclamação e resultado de arremesso.
 6. **Confirmado:** checkpoints após operações importantes, na pausa e tentativa ao fechar navegador quando possível; backup e recuperação na última operação confirmada em local seguro, reconstruindo tráfego/NPCs sem reverter custódia. Só trocar carreira após resolver **todas** as entregas/procedimentos, sem encerrar antes. Tentativa frustrada exige devolução e conferência, sem pagamento. **Após 21h:** continuar entregando com atraso registrado. **Última decisão pendente:** escala dos motoboys NPCs e conferência noturna; formato técnico do backup e migração a detalhar.
