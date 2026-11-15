@@ -1,56 +1,35 @@
-# Brejo Alegre Web Lab — simulador 3D experimental
+# Brejo Alegre Delivery Simulator — Web Lab
 
-**Únicas branches vigentes: [`preview`](https://github.com/raff1play/BrejoAlegre-WebLab/tree/preview) e `main`.** **Versão estável:** `main` (consolidação no [PR #6](https://github.com/raff1play/BrejoAlegre-WebLab/pull/6), ainda em revisão; PRs #2–#5 fechados sem merge). **Jogo público:** https://raff1play.github.io/BrejoAlegre-WebLab/
+**Estado atual:** laboratório jogável 3D, single-player, no navegador Android/desktop. Babylon.js 9.35, TypeScript 5.9, Vite 7.3. A implementação final multiplataforma/Godot e multiplayer **não faz parte deste repositório**.
 
-O Web Lab é um protótipo **single-player** no navegador com Babylon.js 9.35.0, TypeScript 5.9.3 e Vite 7.3.0. A versão de jogo definitiva em Godot/Android, com multiplayer e logística, é um projeto futuro distinto. Desde a CORE-015, a malha viária é a **real** de Brejo Alegre/SP em escala 1:1, tirada do OpenStreetMap (© OpenStreetMap contributors, ODbL 1.0; ver `docs/CITY_REFERENCE.md`). Lotes e casas são estimados; lojas, galpão e pessoas são fictícios.
+**Jogo publicado:** https://raff1play.github.io/BrejoAlegre-WebLab/
+**Código de trabalho:** branch `preview` • **Base estável:** branch `main`, apenas após integração e testes.
+**Arquivo de recuperação pré-limpeza:** [snapshot LOG-006 (15/11/2026)](https://github.com/raff1play/BrejoAlegre-WebLab/tree/archive/2026-11-15-log006-published).
 
-![Captura real de gameplay](docs/evidence/02-pilotando-rua.jpg)
+## Funcionalidades presentes
 
-## Estado da experiência
+- Cidade baseada na rede viária OpenStreetMap de Brejo Alegre/SP; lojas, base, pessoas, números e plataformas representadas de forma fictícia. Licença e atribuição em [docs/CITY_REFERENCE.md](docs/CITY_REFERENCE.md).
+- Moto com direção analógica, freio/acelerador, personagem que anda e monta/desmonta, câmera terceira pessoa, perfis gráfico mobile/desktop e minimapa de rotas.
+- Oito lojas, um jogador e três motoboys NPC (Rosa, Caio, Davi); quatro setores/cargas; caminhão/van de abastecimento com chegada assistida; conferência/triagem física e entrega de pacotes com custódia única.
+- Calendário e demanda por dia; começo **11h45**, NPCs iniciam deslocamento às **11h47**, coletas a partir das **12h**; meta de retorno **14h**, tolerância até **14h20**; separação até **15h** (ou **16h** em alta demanda). A jornada dura 150 segundos reais por hora virtual, sem contabilizar pausas e aceleração opcional.
+- LOG-006: correção experimental de espera circular entre motociclistas e trânsito; **ainda exige validação longa com tráfego ativo no celular**.
 
-- W009: moto/entregador articulados, analógico, caminhar/montar/desmontar e cenário urbano.
-- CORE-010: remasterização de luz, vegetação e fachadas.
-- CORE-011: modelos e texturas externos Poly Haven com licença CC0 (veja `public/assets/ASSET_MANIFEST.md`).
-- CORE-012: câmera em terceira pessoa estilo GTA, botão **GTA/ISO** para voltar à isométrica e tecla **C**.
-- O Easter egg W010–W012 pertence ao histórico de um experimento descartado (PR #1 fechado). A branch experimental foi excluída sem incorporar seus recursos à `preview`. O PWA foi suspenso; usar navegador.
-- CI da CORE-012 passou com **56/56 testes unitários** e build staging; os novos cenários E2E de câmera foram adicionados, mas não são executados automaticamente pela CI.
-- FPS, ergonomia e câmera no Galaxy S24 exigem validação no aparelho real. Não inferir isso de um navegador headless.
+## Desenvolver e testar
 
-## Fluxo de trabalho
-
-As mudanças normais são commits na `preview` — **não abrimos uma branch/PR para cada ajuste**. A CI valida os commits, mas **não publica automaticamente**. Só quando o usuário autoriza, o arquivo `docs/PREVIEW_DEPLOY_TRIGGER.md` é atualizado e o workflow da `preview` publica no único site GitHub Pages. Para consolidar uma versão estável, fazemos PR de `preview` para `main`, revisamos e só então integramos.
-
-Leia [`AGENTS.md`](AGENTS.md), [`docs/WORKFLOW.md`](docs/WORKFLOW.md) e [`docs/PROJECT_STATE.md`](docs/PROJECT_STATE.md). Não fazer merge ou deploy sem autorização.
-
-## Rodar localmente
-
-Requer Node.js **22.12+**, npm e acesso inicial ao registro de pacotes.
-
-```bash
+```sh
 npm ci
-npm run validate:repo
-npm run test:unit
-npm run typecheck
+npm run check
 npm run dev
 ```
 
-Abra http://localhost:5173. `npm run build:staging` compila o staging e `npm run preview` serve a compilação local; nenhum desses comandos publica online.
+Node.js 22.12+. O comando `check` executa validação estrutural, testes unitários e compilação. Para testes de navegador, há `npm run test:e2e` com Playwright instalado no ambiente de execução (veja [docs/QUALITY_GATES.md](docs/QUALITY_GATES.md)). Nenhuma dependência de navegador é enviada ao jogador.
 
-## Controles
+## Processo atual
 
-| Ação | Teclado/mouse | Android (navegador) |
-|---|---|---|
-| Acelerar/frear na moto | W / S | Botões à direita |
-| Virar a moto | A / D | Analógico esquerdo horizontal |
-| Caminhar | WASD | Analógico esquerdo 360° |
-| Montar/descer parado | F / Enter | Botão Montar/Descer |
-| Alternar GTA/isométrica | C | Botão GTA/ISO |
-| Girar câmera | Q / E ou arrastar | Botões e arrastar |
-| Zoom | Z / X, roda do mouse | Botões ou pinça |
-| Perfil gráfico | G | Botão Gráficos |
+1. Trabalhar em `preview`, com branch temporária somente para mudanças arriscadas.
+2. CI rápida em cada push. Publicar no único GitHub Pages **somente após autorização explícita**; o gatilho é `docs/PREVIEW_DEPLOY_TRIGGER.md`.
+3. `main` representa uma base revisada; integração por PR com testes aprovados, nunca publicar produção automaticamente.
 
-O jogo mantém dois perfis gráficos. Para forçar um perfil, acrescente `?gfx=mobile` ou `?gfx=desktop` à URL.
+**Não confundir:** teste unitário e build bem-sucedidos não homologam desempenho no Galaxy S24 ou funcionamento integral com trânsito. O navegador é o meio de teste atual; não reativar PWA, antigo Easter egg ou infraestrutura paga.
 
-## Escopo e licenças
-
-Não há servidor, NPCs logísticos, entregas, economia nem multiplayer neste Web Lab. O mapa real e essas mecânicas pertencem ao plano futuro em `docs/product/ORIGINAL_GODOT_SPEC.md`. Os assets externos instalados têm fonte e licença registradas; não adicionar novos sem comprovação. Sem assinatura adicional para o motor.
+Leitura obrigatória: [docs/00_START_HERE.md](docs/00_START_HERE.md), [docs/PROJECT_STATE.md](docs/PROJECT_STATE.md), [docs/ISSUES_AND_RISKS.md](docs/ISSUES_AND_RISKS.md).
