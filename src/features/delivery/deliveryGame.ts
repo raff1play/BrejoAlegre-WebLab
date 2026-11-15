@@ -108,8 +108,12 @@ export class DeliveryGame {
       mesh.position.set(shift.x-origin.x,0,shift.z-origin.z);
     }
     this.workday.trafficBlocked=(id,x,z,yaw)=>{
-      if(playerNear(x+Math.sin(yaw)*2,z+Math.cos(yaw)*2,1.15))return true;
-      return this.workday.couriers.some(c=>c.id!==id&&c.id<id&&Math.hypot(c.bike.x-x,c.bike.z-z)<2.5);
+      const aheadX=x+Math.sin(yaw)*2,aheadZ=z+Math.cos(yaw)*2;
+      // Player remains solid: separate direct player collision from street vehicles.
+      if(Math.hypot(player.x-aheadX,player.z-aheadZ)<1.15+(player.riding?1.1:.45))return 'player';
+      if(this.workday.couriers.some(c=>c.id!==id&&c.id<id&&Math.hypot(c.bike.x-x,c.bike.z-z)<2.5))return 'courier';
+      // A vehicle blocking the route must be free to pass while the NPC yields.
+      return playerNear(aheadX,aheadZ,1.15)?'traffic':null;
     };
     this.workday.gateOpen=this.gateOpen;
     this.workday.update(hour, dt);
