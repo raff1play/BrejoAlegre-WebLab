@@ -65,7 +65,7 @@ test('B1-01 F1 AC-03 (dados): veículo inicial por carreira, próprio, quitado e
 
 test('B1-01 F1 schema: envelope versionado, checksum determinístico e ida/volta exata', () => {
   const save = sealSave({ careerId: 'personagem-leste', checkpointSequence: 4, profile: defaultProfile('personagem-leste', 9), shift: null });
-  assert.equal(save.format, SAVE_FORMAT); assert.equal(save.schemaVersion, SAVE_SCHEMA_VERSION); assert.equal(SAVE_SCHEMA_VERSION, 1);
+  assert.equal(save.format, SAVE_FORMAT); assert.equal(save.schemaVersion, SAVE_SCHEMA_VERSION); assert.equal(SAVE_SCHEMA_VERSION, 2, "F3: v2 acrescenta a posição no porta-malas");
   assert.match(save.checksum, /^fnv1a32:[0-9a-f]{8}$/);
   const back = parseSave(JSON.parse(canonicalJson(save)));
   assert.deepEqual(back, save);
@@ -79,7 +79,7 @@ test('B1-01 F1 schema: envelope versionado, checksum determinístico e ida/volta
 
 test('B1-01 F1 schema: rejeita versão futura/antiga, corrupção e dados de outra carreira', () => {
   const save = sealSave({ careerId: 'personagem-norte', checkpointSequence: 1, profile: defaultProfile('personagem-norte'), shift: null });
-  assert.throws(() => parseSave(tamper(save, (o) => { o.schemaVersion = 2; })), /versão futura/);
+  assert.throws(() => parseSave(tamper(save, (o) => { o.schemaVersion = SAVE_SCHEMA_VERSION + 1; })), /versão futura/);
   assert.throws(() => parseSave(tamper(save, (o) => { o.schemaVersion = 0; })), /não suportada/);
   assert.throws(() => parseSave(tamper(save, (o) => { o.profile.balanceCents = 100000; })), /Checksum inválido/);
   assert.throws(() => parseSave(tamper(save, (o) => { o.format = 'outro'; })), SaveError);
@@ -204,7 +204,7 @@ test('B1-01 F1 AC-21 base: backup reabre a carreira correta; corrompido/versão 
   const backup = store.exportBackup('personagem-leste');
   next(store, 'personagem-leste', { ...defaultProfile('personagem-leste', 6), experience: 9 }, null);
   const intact = storage.getItem(saveKey('personagem-leste'));
-  for (const broken of [backup.slice(0, -5), backup.replace('"experience":7', '"experience":700'), backup.replace('"schemaVersion":1', '"schemaVersion":99'), '[]']) {
+  for (const broken of [backup.slice(0, -5), backup.replace('"experience":7', '"experience":700'), backup.replace('"schemaVersion":2', '"schemaVersion":99'), '[]']) {
     assert.throws(() => store.importBackup(broken), SaveError);
     assert.equal(storage.getItem(saveKey('personagem-leste')), intact, 'save íntegro preservado');
   }

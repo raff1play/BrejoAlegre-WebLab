@@ -1,5 +1,6 @@
 import { ACTORS, type ActorId } from '../delivery/dailyDemand.ts';
-import { PARCEL_FLOW, PLACE_MOVES, type Parcel, type ParcelEvent, type ParcelPlace, type ParcelState } from '../delivery/parcels.ts';
+import { PARCEL_FLOW, PLACE_MOVES, type Parcel, type ParcelEvent, type ParcelPlace, type ParcelState, type Stowage } from '../delivery/parcels.ts';
+import { CAR_TRUNK, STOWABLE, layoutProblem, parcelDims } from '../delivery/carTrunk.ts';
 import { SECTORS, type Sector } from '../delivery/sectors.ts';
 import {
   APPEARANCE_PRESETS, CHARACTERS, EQUIPMENT_PRESETS, VEHICLE_KINDS, buildRoster, isCareerId,
@@ -16,7 +17,11 @@ import {
  * NPCs, trânsito) e o ledger de pagamentos completo são ligados nas etapas F5/F6.
  */
 export const SAVE_FORMAT = 'brejo-alegre-carreira';
-export const SAVE_SCHEMA_VERSION = 1;
+/**
+ * v1: F1/F2. v2 (B1-01 F3): every parcel record carries `stowage` (its slot in the car boot, or
+ * null). v1 saves are migrated on read (`SAVE_MIGRATIONS[1]`), after their own checksum is checked.
+ */
+export const SAVE_SCHEMA_VERSION = 2;
 
 export class SaveError extends Error {
   constructor(message: string) { super(message); this.name = 'SaveError'; }
@@ -54,6 +59,8 @@ export type ParcelRecord = Readonly<{
   id: string; collector: string | null; sector: Sector | null; origin: string; destination: string;
   platform: Parcel['platform']; region: string; state: ParcelState; place: ParcelPlace; holder: string;
   position: { x: number; y: number; z: number } | null; dock: string | null; load: string | null;
+  /** B1-01 F3: slot in the car boot (only while `place === 'porta-malas'`). */
+  stowage: Stowage | null;
   history: readonly ParcelEvent[];
 }>;
 
@@ -127,6 +134,7 @@ export function captureParcels(parcels: readonly Parcel[]): ParcelRecord[] {
     id: p.id, collector: p.collector ?? null, sector: p.sector ?? null, origin: p.origin, destination: p.destination,
     platform: p.platform, region: p.region, state: p.state, place: p.place, holder: p.holder,
     position: p.position ? { ...p.position } : null, dock: p.dock, load: p.load,
+    stowage: p.stowage ? { ...p.stowage } : null,
     history: p.history.map((e) => ({ ...e, position: e.position ? { ...e.position } : null })),
   }));
 }
@@ -214,6 +222,15 @@ function validateParcel(p: unknown): string {
   const pos = (v: unknown) => { if (!isObj(v)) fail('Posição inválida'); const q = v as Obj; finite(q.x, 'x'); finite(q.y, 'y'); finite(q.z, 'z'); return v; };
   nullable(o.position, pos);
   nullable(o.dock, (x) => str(x, 'Doca')); nullable(o.load, (x) => str(x, 'Carga'));
+  // B1-01 F3: a slot exists if and only if the parcel is in the car boot.
+  if ((o.place === 'porta-malas') !== (o.stowage !== null && o.stowage !== undefined)) fail(`Pacote ${id}: posição no porta-malas inconsistente com o local`);
+  if (o.stowage !== null) {
+    if (!isObj(o.stowage)) fail(`Pacote ${id}: posição no porta-malas inválida`);
+    const q = o.stowage as Obj;
+    if (q.compartment !== 'porta-malas') fail(`Pacote ${id}: compartimento inválido`);
+    str(q.vehicleId, 'Veículo da carga');
+    for (const k of ['x', 'y', 'z', 'w', 'h', 'd']) finite(q[k], `Posição ${k} no porta-malas`);
+  }
   if (!Array.isArray(o.history) || !o.history.length) fail(`Histórico do pacote ${id} ausente`);
   for (const e of o.history as unknown[]) {
     if (!isObj(e)) fail('Evento de histórico inválido');
@@ -246,6 +263,19 @@ function validateShift(s: unknown, careerId: CareerId, profile: Obj): void {
   const ids = (o.parcels as unknown[]).map(validateParcel);
   if (new Set(ids).size !== ids.length) fail('ID de pacote duplicado');
   const byId = new Map((o.parcels as Obj[]).map((p) => [p.id as string, p]));
+  // B1-01 F3: the car boot as saved must be physically valid and belong to THIS career's own car.
+  const boot = (o.parcels as Obj[]).filter((p) => p.place === 'porta-malas');
+  if (boot.length) {
+    const vehicle = profile.vehicle as Obj | null;
+    if (!vehicle || vehicle.kind !== 'carro-antigo') fail('Carga no porta-malas sem carro próprio na carreira');
+    for (const p of boot) {
+      if ((p.stowage as Obj).vehicleId !== vehicleIdOf(careerId)) fail(`Pacote ${String(p.id)}: porta-malas de outro veículo`);
+      if (p.holder !== 'jogador') fail(`Pacote ${String(p.id)}: porta-malas sob outra custódia`);
+      if (!(STOWABLE as readonly unknown[]).includes(p.state)) fail(`Pacote ${String(p.id)}: estado ${String(p.state)} não viaja no porta-malas`);
+    }
+    const problem = layoutProblem(CAR_TRUNK, boot.map((p) => { const q = p.stowage as Obj; return { box: { id: p.id as string, dims: parcelDims(p.id as string) }, slot: { x: q.x as number, y: q.y as number, z: q.z as number, w: q.w as number, h: q.h as number, d: q.d as number } }; }));
+    if (problem) fail(`Porta-malas inválido: ${problem}`);
+  }
   if (!Array.isArray(o.payments)) fail('Pagamentos ausentes');
   const events = new Set<string>(), paid = new Set<string>();
   for (const p of o.payments as unknown[]) {
@@ -284,10 +314,17 @@ function validateBody(b: unknown): CareerSaveBody {
 }
 
 /**
- * Migrações por versão: cada função leva um save da versão N para N+1. Hoje só existe a v1; o
- * calendário legado (`brejo-log003-workday-index`) é migrado por `CareerStore`, sem apagá-lo.
+ * Migrações por versão: cada função leva um save da versão N para N+1 sem perder nada. O calendário
+ * legado (`brejo-log003-workday-index`) é migrado por `CareerStore`, sem apagá-lo.
+ * v1 → v2 (F3): nenhum pacote da v1 podia estar no porta-malas, então cada registro ganha `stowage: null`.
  */
-export const SAVE_MIGRATIONS: Readonly<Record<number, (raw: Obj) => Obj>> = Object.freeze({});
+export const SAVE_MIGRATIONS: Readonly<Record<number, (raw: Obj) => Obj>> = Object.freeze({
+  1: (raw: Obj): Obj => {
+    const shift = raw.shift;
+    const parcels = isObj(shift) && Array.isArray(shift.parcels) ? (shift.parcels as unknown[]).map((p) => (isObj(p) ? { ...p, stowage: null } : p)) : null;
+    return { ...raw, schemaVersion: 2, shift: parcels ? { ...(shift as Obj), parcels } : shift };
+  },
+});
 
 /** Valida (e migra, se houver migração) um save bruto. Lança `SaveError`; nunca devolve meio save. */
 export function parseSave(raw: unknown, expectedCareer?: CareerId): CareerSave {
@@ -296,17 +333,21 @@ export function parseSave(raw: unknown, expectedCareer?: CareerId): CareerSave {
   const version = o.schemaVersion;
   if (!Number.isSafeInteger(version) || (version as number) < 1) fail(`Versão de save não suportada: ${String(version)}`);
   if ((version as number) > SAVE_SCHEMA_VERSION) fail(`Save de versão futura (${String(version)}) não pode ser aberto por esta versão do jogo`);
+  const { checksum, ...stored } = o;
+  o = stored;
+  const migrated = (version as number) < SAVE_SCHEMA_VERSION;
+  // O checksum vale para o conteúdo NA VERSÃO EM QUE FOI GRAVADO: um save antigo é conferido antes de migrar.
+  if (migrated && checksum !== checksumOf(stored as unknown as CareerSaveBody)) fail('Checksum inválido: save corrompido ou editado');
   for (let v = version as number; v < SAVE_SCHEMA_VERSION; v++) {
     const step = SAVE_MIGRATIONS[v];
     if (!step) fail(`Sem migração da versão ${v}`);
     o = step!(o);
   }
-  const checksum = o.checksum;
-  const { checksum: _ignored, ...body } = o;
-  const valid = validateBody(body);
-  if (checksum !== checksumOf(valid)) fail('Checksum inválido: save corrompido ou editado');
+  const valid = validateBody(o);
+  if (!migrated && checksum !== checksumOf(valid)) fail('Checksum inválido: save corrompido ou editado');
   if (expectedCareer && valid.careerId !== expectedCareer) fail(`Save da carreira ${valid.careerId}, esperado ${expectedCareer}`);
-  return deepFreeze(JSON.parse(JSON.stringify({ ...valid, checksum })) as CareerSave);
+  // Um save migrado ganha o checksum do conteúdo atual; o original v1 não é reescrito aqui.
+  return deepFreeze(JSON.parse(JSON.stringify({ ...valid, checksum: checksumOf(valid) })) as CareerSave);
 }
 
 export function deepFreeze<T>(value: T): T {
