@@ -79,7 +79,7 @@ test('Auditoria 2: não avança o calendário com expediente aberto, nem depois 
   // 11h45 → 00h30 do dia seguinte: 765 minutos virtuais no MESMO expediente.
   const { profile, shift } = openShift(DEFAULT_CAREER, 0, 765);
   s.commit(DEFAULT_CAREER, () => ({ profile, shift }));
-  assert.throws(() => commitNextDay(s, 1), /expediente .*aberto/);
+  assert.throws(() => commitNextDay(s, 1), /Expediente .*aberto/);
   const saved = store.read(DEFAULT_CAREER).save;
   assert.equal(saved.profile.calendarIndex, 0, 'meia-noite não vira novo dia de carreira');
   assert.equal(saved.shift!.shiftId, 'personagem-oeste/dia-0');
@@ -121,6 +121,12 @@ test('Auditoria 3: pagamento de entrega só para pacote ENTREGUE ao destinatári
   assert.throws(withPayment(parcelUpTo('EM_ROTA')), /não entregue/, 'tentativa frustrada/pendente não paga');
   const delivered = parcelUpTo('ENTREGUE');
   assert.throws(withPayment(delivered, { eventId: 'outro-id' }), /evento de pagamento/, 'eventId determinístico: um por pacote/expediente');
+  const twice = () => {
+    const { profile, shift } = openShift(DEFAULT_CAREER, 7);
+    const pay: PaymentRecord = { eventId: `${shift.shiftId}/${delivered.id}/ENTREGA`, shiftId: shift.shiftId, parcelId: delivered.id, kind: 'ENTREGA', amountCents: 450 };
+    return sealSave({ careerId: DEFAULT_CAREER, checkpointSequence: 0, profile, shift: { ...shift, parcels: captureParcels([delivered]), payments: [pay, { ...pay }] } });
+  };
+  assert.throws(twice, /Pagamento duplicado/, 'o mesmo ID entregue não paga duas vezes (AC-22)');
   assert.throws(withPayment(delivered, { kind: 'COLETA' as 'ENTREGA' }), /Tipo de pagamento/, 'coleta não é evento remunerado aprovado');
   assert.throws(withPayment(delivered, { kind: 'DEVOLUCAO' as 'ENTREGA' }), /Tipo de pagamento/, 'devolução nunca paga');
 });

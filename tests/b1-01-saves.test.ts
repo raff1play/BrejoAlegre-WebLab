@@ -11,6 +11,8 @@ import {
 import { CALENDAR_STORAGE_KEY } from '../src/core/delivery/operatingCalendar.ts';
 import { createParcel, advance, move } from '../src/core/delivery/parcels.ts';
 
+/** Próximo checkpoint baseado no último gravado (uso direto do store, fora de uma sessão). */
+const next = (store: CareerStore, id: CareerId, profile: ReturnType<typeof defaultProfile>, shift: null = null) => store.commit(id, profile, shift, store.baseSequence(id));
 const fresh = () => { const storage = new MemoryStorage(); return { storage, store: new CareerStore(storage) }; };
 const reparse = (s: CareerSave) => JSON.parse(canonicalJson(s)) as Record<string, unknown>;
 const tamper = (s: CareerSave, f: (o: any) => void): any => { const o = reparse(s); f(o); return o; };
@@ -107,11 +109,12 @@ test('B1-01 F1 schema: expediente com ID estável, roster fixo, pacotes íntegro
   assert.throws(reseal((o) => { o.shift.roster.npc1 = 'personagem-oeste'; }), /Roster/);
   assert.throws(reseal((o) => { o.shift.shiftId = 'personagem-oeste/dia-8'; }), /ID do expediente/);
   assert.throws(reseal((o) => { o.profile.activeShiftId = null; }), /não aponta/);
-  const pay = (eventId: string) => ({ eventId, shiftId: shift.shiftId, parcelId: 'J1-001', kind: 'ENTREGA', amountCents: 0 });
-  assert.doesNotThrow(reseal((o) => { o.shift.payments = [pay('a')]; }));
-  assert.throws(reseal((o) => { o.shift.payments = [pay('a'), pay('b')]; }), /Pagamento duplicado/, 'um ID pago no máximo uma vez');
-  assert.throws(reseal((o) => { o.shift.payments = [{ ...pay('a'), kind: 'DEVOLUCAO' }]; }), /Tipo de pagamento/, 'devolução não é pagamento');
-  assert.throws(reseal((o) => { o.shift.payments = [{ ...pay('a'), parcelId: 'X' }]; }), /desconhecido/);
+  // Pacote só COLETADO: nenhum pagamento de entrega é aceito (auditoria F1, item 3).
+  // Os casos remuneráveis (ENTREGUE) e duplicados estão em tests/b1-01-audit-fixes.test.ts.
+  const pay = { eventId: `${shift.shiftId}/J1-001/ENTREGA`, shiftId: shift.shiftId, parcelId: 'J1-001', kind: 'ENTREGA', amountCents: 0 };
+  assert.throws(reseal((o) => { o.shift.payments = [pay]; }), /não entregue/);
+  assert.throws(reseal((o) => { o.shift.payments = [{ ...pay, kind: 'DEVOLUCAO' }]; }), /Tipo de pagamento/, 'devolução não é pagamento');
+  assert.throws(reseal((o) => { o.shift.payments = [{ ...pay, parcelId: 'X' }]; }), /desconhecido/);
   assert.throws(() => sealSave({ careerId: 'personagem-norte', checkpointSequence: 0, profile: defaultProfile('personagem-norte'), shift: emptyShift('personagem-oeste', 1) }), SaveError);
   assert.equal(buildRoster(careerId).jogador, shift.roster.jogador);
 });
@@ -119,7 +122,7 @@ test('B1-01 F1 schema: expediente com ID estável, roster fixo, pacotes íntegro
 test('B1-01 F1 AC-16 base: sessão grava só a carreira ativa; os três saves inativos ficam byte a byte intactos', () => {
   const { storage, store } = fresh();
   // Os quatro perfis já existem e têm progresso próprio.
-  for (const id of CAREER_IDS) store.commit(id, { ...defaultProfile(id, 2), experience: 10 }, null);
+  for (const id of CAREER_IDS) next(store, id, { ...defaultProfile(id, 2), experience: 10 }, null);
   const before = new Map(CAREER_IDS.map((id) => [id, [storage.getItem(saveKey(id)), storage.getItem(previousKey(id))]]));
   const session = new CareerSession(store, 'personagem-leste');
   for (let day = 3; day < 8; day++) session.commit('personagem-leste', (p) => ({ profile: { ...p, calendarIndex: day, experience: p.experience + 5, balanceCents: p.balanceCents + 100 }, shift: null }));
@@ -137,24 +140,24 @@ test('B1-01 F1 AC-16 base: sessão grava só a carreira ativa; os três saves in
 
 test('B1-01 F1 isolamento: uma chave por carreira, sequência monotônica e cópia anterior íntegra', () => {
   const { storage, store } = fresh();
-  const a = store.commit('personagem-norte', defaultProfile('personagem-norte', 1), null);
-  const b = store.commit('personagem-norte', defaultProfile('personagem-norte', 2), null);
+  const a = next(store, 'personagem-norte', defaultProfile('personagem-norte', 1), null);
+  const b = next(store, 'personagem-norte', defaultProfile('personagem-norte', 2), null);
   assert.deepEqual([a.checkpointSequence, b.checkpointSequence], [0, 1]);
   assert.equal(parseSave(JSON.parse(storage.getItem(previousKey('personagem-norte'))!)).profile.calendarIndex, 1);
-  assert.throws(() => store.write(a), /não é mais novo/, 'checkpoint antigo não sobrescreve o novo');
+  assert.throws(() => store.write(a), /fora da sequência/, 'checkpoint antigo não sobrescreve o novo');
   assert.deepEqual(storage.keys().filter((k) => k.includes('personagem-')), [saveKey('personagem-norte'), previousKey('personagem-norte')]);
   // Principal corrompido: lê a cópia anterior, e a próxima gravação não a destrói.
   storage.setItem(saveKey('personagem-norte'), '{"quebrado":');
   const r = store.read('personagem-norte');
   assert.equal(r.source, 'anterior'); assert.match(r.problem!, /rejeitado/); assert.equal(r.save.profile.calendarIndex, 1);
-  store.commit('personagem-norte', defaultProfile('personagem-norte', 3), null);
+  next(store, 'personagem-norte', defaultProfile('personagem-norte', 3), null);
   assert.equal(store.read('personagem-norte').save.profile.calendarIndex, 3);
   assert.equal(parseSave(JSON.parse(storage.getItem(previousKey('personagem-norte'))!)).profile.calendarIndex, 1);
   // Falha do armazenamento vira SaveError (o chamador decide), sem perder o save anterior.
   const full = new MemoryStorage(); const s2 = new CareerStore(full);
-  s2.commit('personagem-sul', defaultProfile('personagem-sul', 4), null);
+  next(s2, 'personagem-sul', defaultProfile('personagem-sul', 4), null);
   const failing = new CareerStore({ getItem: (k) => full.getItem(k), setItem: () => { throw new Error('QuotaExceededError'); }, removeItem: () => {} });
-  assert.throws(() => failing.commit('personagem-sul', defaultProfile('personagem-sul', 5), null), /Falha ao gravar/);
+  assert.throws(() => next(failing, 'personagem-sul', defaultProfile('personagem-sul', 5), null), /Falha ao gravar/);
   assert.equal(s2.read('personagem-sul').save.profile.calendarIndex, 4);
 });
 
@@ -197,9 +200,9 @@ test('B1-01 F1 AC-17 base: troca de carreira bloqueada com expediente aberto', (
 
 test('B1-01 F1 AC-21 base: backup reabre a carreira correta; corrompido/versão inválida não sobrescreve', () => {
   const { storage, store } = fresh();
-  store.commit('personagem-leste', { ...defaultProfile('personagem-leste', 5), experience: 7 }, null);
+  next(store, 'personagem-leste', { ...defaultProfile('personagem-leste', 5), experience: 7 }, null);
   const backup = store.exportBackup('personagem-leste');
-  store.commit('personagem-leste', { ...defaultProfile('personagem-leste', 6), experience: 9 }, null);
+  next(store, 'personagem-leste', { ...defaultProfile('personagem-leste', 6), experience: 9 }, null);
   const intact = storage.getItem(saveKey('personagem-leste'));
   for (const broken of [backup.slice(0, -5), backup.replace('"experience":7', '"experience":700'), backup.replace('"schemaVersion":1', '"schemaVersion":99'), '[]']) {
     assert.throws(() => store.importBackup(broken), SaveError);

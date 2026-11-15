@@ -94,6 +94,8 @@ export type CareerSave = Readonly<{
 export type CareerSaveBody = Omit<CareerSave, 'checksum'>;
 
 export const shiftIdOf = (careerId: CareerId, calendarIndex: number): string => `${careerId}/dia-${calendarIndex}`;
+/** Um evento de pagamento por pacote e expediente: o ID é derivado, nunca livre. */
+export const paymentEventIdOf = (shiftId: string, parcelId: string): string => `${shiftId}/${parcelId}/ENTREGA`;
 export const vehicleIdOf = (careerId: CareerId): string => `veiculo-${careerId}`;
 
 export function defaultProfile(careerId: CareerId, calendarIndex = 0): CareerProfile {
@@ -232,6 +234,8 @@ function validateShift(s: unknown, careerId: CareerId, profile: Obj): void {
   const cal = int(o.calendarIndex, 0, 36500, 'Dia do expediente');
   if (o.shiftId !== shiftIdOf(careerId, cal)) fail('ID do expediente inconsistente');
   if (profile.activeShiftId !== o.shiftId) fail('Perfil não aponta para este expediente');
+  // O dia de carreira só muda com o expediente encerrado: perfil e expediente aberto no mesmo dia.
+  if (profile.calendarIndex !== cal) fail('Perfil e expediente aberto devem estar no mesmo dia de calendário');
   finite(o.elapsedVirtualMinutes, 'Minutos do expediente');
   if ((o.elapsedVirtualMinutes as number) < 0) fail('Minutos do expediente negativos');
   str(o.phase, 'Fase');
@@ -241,15 +245,20 @@ function validateShift(s: unknown, careerId: CareerId, profile: Obj): void {
   if (!Array.isArray(o.parcels)) fail('Pacotes ausentes');
   const ids = (o.parcels as unknown[]).map(validateParcel);
   if (new Set(ids).size !== ids.length) fail('ID de pacote duplicado');
+  const byId = new Map((o.parcels as Obj[]).map((p) => [p.id as string, p]));
   if (!Array.isArray(o.payments)) fail('Pagamentos ausentes');
-  const known = new Set(ids), events = new Set<string>(), paid = new Set<string>();
+  const events = new Set<string>(), paid = new Set<string>();
   for (const p of o.payments as unknown[]) {
     if (!isObj(p)) fail('Pagamento inválido');
     const q = p as Obj;
     const eventId = str(q.eventId, 'Evento de pagamento'), parcelId = str(q.parcelId, 'Pacote pago');
     if (q.shiftId !== o.shiftId) fail('Pagamento de outro expediente');
+    // Único evento remunerado aprovado: entrega. Coleta, tentativa e devolução nunca pagam (AC-22).
     if (q.kind !== 'ENTREGA') fail('Tipo de pagamento inválido');
-    if (!known.has(parcelId)) fail('Pagamento de pacote desconhecido');
+    const parcel = byId.get(parcelId);
+    if (!parcel) fail('Pagamento de pacote desconhecido');
+    if (parcel!.state !== 'ENTREGUE' || parcel!.place !== 'destinatario') fail(`Pagamento de entrega para pacote não entregue (${parcelId}: ${String(parcel!.state)})`);
+    if (eventId !== paymentEventIdOf(o.shiftId as string, parcelId)) fail('ID do evento de pagamento inválido');
     int(q.amountCents, 0, 1e9, 'Valor do pagamento');
     if (events.has(eventId) || paid.has(parcelId)) fail('Pagamento duplicado');
     events.add(eventId); paid.add(parcelId);

@@ -84,13 +84,15 @@ export class CareerStore {
 
   /**
    * Grava um save já selado. Revalida tudo (inclusive checksum) antes de tocar no armazenamento e
-   * recusa retrocesso de sequência. Preserva a cópia íntegra atual em `…:anterior`.
+   * exige EXATAMENTE o checkpoint seguinte ao gravado: nem retrocesso, nem salto (um salto permitiria
+   * a um conteúdo antigo "vencer" um mais novo só por ter número maior). Preserva a cópia íntegra
+   * atual em `…:anterior`.
    */
   write(save: CareerSave): CareerSave {
     const valid = parseSave(JSON.parse(JSON.stringify(save)));
     const id = valid.careerId;
     const stored = this.storedSequence(id);
-    if (valid.checkpointSequence <= stored) throw new SaveError(`Checkpoint ${valid.checkpointSequence} não é mais novo que o gravado (${stored})`);
+    if (valid.checkpointSequence !== stored + 1) throw new SaveError(`Checkpoint ${valid.checkpointSequence} fora da sequência: o gravado é ${stored}, esperado ${stored + 1} (sessão desatualizada?)`);
     const text = canonicalJson(valid);
     try {
       const current = this.storage.getItem(saveKey(id));
@@ -107,11 +109,19 @@ export class CareerStore {
     return valid;
   }
 
-  /** Próximo checkpoint de UMA carreira, a partir do último gravado. */
-  commit(careerId: CareerId, profile: CareerProfile, shift: ShiftSnapshot | null): CareerSave {
-    const next = Math.max(0, this.storedSequence(careerId) + 1);
-    return this.write(sealSave({ careerId, checkpointSequence: next, profile, shift }));
+  /**
+   * Próximo checkpoint de UMA carreira. `baseSequence` é o checkpoint em que os dados do chamador se
+   * basearam (-1 = nada gravado). Se o armazenamento já avançou (outra aba, backup restaurado), a
+   * escrita é recusada como sessão desatualizada: nunca há mescla silenciosa nem "último vence".
+   */
+  commit(careerId: CareerId, profile: CareerProfile, shift: ShiftSnapshot | null, baseSequence: number): CareerSave {
+    const stored = this.storedSequence(careerId);
+    if (baseSequence !== stored) throw new SaveError(`Sessão desatualizada: baseada no checkpoint ${baseSequence}, mas o gravado é ${stored}. Recarregue a carreira.`);
+    return this.write(sealSave({ careerId, checkpointSequence: stored + 1, profile, shift }));
   }
+
+  /** Checkpoint persistido atual de uma carreira (-1 se nenhum): base para a próxima escrita. */
+  baseSequence(careerId: CareerId): number { return this.storedSequence(careerId); }
 
   activeCareer(): CareerId {
     const v = this.storage.getItem(ACTIVE_CAREER_KEY);
@@ -148,7 +158,7 @@ export class CareerStore {
     const backup = parseSave(data, expected);
     const id = backup.careerId;
     if (id === this.activeCareer() && this.read(id).save.profile.activeShiftId !== null) throw new SaveError('Não restaurar backup sobre expediente aberto');
-    return this.commit(id, backup.profile, backup.shift);
+    return this.commit(id, backup.profile, backup.shift, this.storedSequence(id));
   }
 }
 
@@ -156,6 +166,11 @@ export class CareerStore {
  * Sessão da carreira ATIVA. É o único caminho de escrita do jogo: as três carreiras que atuam
  * como NPCs são somente leitura (cópias congeladas), então trabalhar como NPC jamais grava
  * dinheiro, experiência, calendário ou progresso nos saves inativos (decisão 3 / AC-16).
+ *
+ * Política de múltiplas abas/sessões da mesma carreira: cada sessão lembra o checkpoint em que se
+ * baseia. A primeira a gravar vence; qualquer outra sessão que ainda esteja no checkpoint antigo
+ * tem TODA escrita recusada (`SaveError` "Sessão desatualizada") até chamar `reload()`, que
+ * descarta o estado em memória dela e relê o mais novo. Não há mescla automática.
  */
 export class CareerSession {
   readonly careerId: CareerId;
@@ -163,6 +178,8 @@ export class CareerSession {
   readonly loadSource: LoadSource;
   readonly loadProblem: string | null;
   private readonly store: CareerStore;
+  /** Checkpoint persistido em que `current` se baseia (-1 = ainda nada gravado). */
+  private base: number;
 
   constructor(store: CareerStore, careerId: CareerId = store.activeCareer()) {
     this.store = store;
@@ -170,6 +187,14 @@ export class CareerSession {
     this.careerId = careerId;
     const r = store.read(careerId);
     this.current = r.save; this.loadSource = r.source; this.loadProblem = r.problem;
+    this.base = r.persisted ? r.save.checkpointSequence : -1;
+  }
+
+  /** Relê o save mais novo do armazenamento (após ser recusada como desatualizada). */
+  reload(): CareerSave {
+    const r = this.store.read(this.careerId);
+    this.current = r.save; this.base = r.persisted ? r.save.checkpointSequence : -1;
+    return this.current;
   }
 
   get save(): CareerSave { return this.current; }
@@ -186,7 +211,8 @@ export class CareerSession {
     if (careerId !== this.careerId) throw new SaveError(`Escrita recusada: ${careerId} não é a carreira ativa (${this.careerId})`);
     const next = update(this.current.profile, this.current.shift);
     if (next.profile.careerId !== this.careerId || (next.shift && next.shift.careerId !== this.careerId)) throw new SaveError('Escrita recusada: dados de outra carreira');
-    this.current = this.store.commit(this.careerId, next.profile, next.shift);
+    this.current = this.store.commit(this.careerId, next.profile, next.shift, this.base);
+    this.base = this.current.checkpointSequence;
     // Compatibilidade/rollback: builds anteriores leem só o índice legado, que pertence à carreira Oeste.
     if (this.careerId === DEFAULT_CAREER) {
       try { this.store.storage.setItem(CALENDAR_STORAGE_KEY, String(this.current.profile.calendarIndex)); } catch { /* espelho opcional */ }

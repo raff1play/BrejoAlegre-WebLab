@@ -36,5 +36,8 @@ export function bootCareer(storage: KeyValueStorage): CareerBoot {
 export function commitNextDay(session: CareerSession, nextIndex: number): CareerSave {
   if (!Number.isSafeInteger(nextIndex) || nextIndex < 0 || nextIndex > 36500) throw new SaveError('Dia de calendário inválido');
   if (nextIndex <= session.profile.calendarIndex) throw new SaveError('O calendário da carreira não retrocede');
-  return session.commit(session.careerId, (p, s) => ({ profile: { ...p, calendarIndex: nextIndex }, shift: s }));
+  // Decisões 9/14/17: o dia só avança com o expediente encerrado; 00h não encerra nada.
+  const open = session.profile.activeShiftId ?? session.save.shift?.shiftId ?? null;
+  if (open !== null) throw new SaveError(`Expediente ${open} aberto: o calendário só avança após encerrá-lo`);
+  return session.commit(session.careerId, (p) => ({ profile: { ...p, calendarIndex: nextIndex }, shift: null }));
 }
