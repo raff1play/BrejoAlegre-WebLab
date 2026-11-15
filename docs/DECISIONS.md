@@ -169,3 +169,11 @@ Pedido explícito do usuário: manter `feat/art-001-primeira-loja-moto`, sem mer
 - Relógio permanece **150 s reais por hora virtual**; coletas iniciam às 12h mas os NPCs podem se deslocar para lojas desde 11h. A saca permanece disponível só após 15h e triagem real concluída. A liberação conjunta segue obrigatória.
 - Não usar teleporte, despacho fictício ou desaparecimento de pacotes para mascarar atrasos. Casos extremos de tráfego devem registrar atraso e pendências, exigindo testes específicos posteriores.
 - Implementação e medições em [LOG-004](evidence/log-004/README.md). Branch de desenvolvimento isolada, sem merge nem publicação automática.
+
+## LOG-005 — Início visível às 11h45 e saída dos NPCs às 11h47 (15/11/2026)
+
+- **Correção explícita do usuário:** dois minutos significam **minutos do relógio do jogo**, não minutos reais. A partida começa com o relógio virtual em **11h45**; os três motoboys NPCs permanecem na base até **11h47** e só então iniciam o deslocamento às lojas.
+- Com a escala mantida de **150 segundos reais por hora virtual**, dois minutos virtuais equivalem a aproximadamente **5 segundos reais** de jogo ativo, sem contar pausas.
+- As coletas só começam às 12h. Retorno ideal 14h, alerta a partir de 14h20, separação com meta 15h/16h e custódia física dos volumes continuam vigentes.
+- Para compensar as saídas mais tardias sem mascarar a operação, a cadência da máquina de trabalho físico da base foi recalibrada de 240 para **360 segundos de trabalho por hora virtual**. Isso acelera tarefas existentes; não cria nem teletransporta pacotes.
+- A regra anterior de partida/deslocamento às 11h fica superada pelo início 11h45/saída 11h47. Esta implementação é **apenas código em `preview`**, sem autorização para novo deploy neste pedido.
