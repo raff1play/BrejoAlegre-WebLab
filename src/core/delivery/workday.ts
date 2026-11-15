@@ -36,7 +36,7 @@ export const DEPOT_SPOTS = Object.freeze(Object.fromEntries(
   (Object.keys(DEPOT_LOCAL_SPOTS) as SpotName[]).map((k) => [k, depotWorld(DEPOT_LOCAL_SPOTS[k].x, DEPOT_LOCAL_SPOTS[k].z)]),
 ) as Record<SpotName, { x: number; z: number }>);
 
-export type DepotRole = 'porteiro' | 'conferente' | 'descarregador-1' | 'descarregador-2' | 'separador-1' | 'separador-2' | 'expedidor' | 'supervisor';
+export type DepotRole = 'porteiro' | 'conferente' | 'conferente-2' | 'descarregador-1' | 'descarregador-2' | 'separador-1' | 'separador-2' | 'separador-3' | 'expedidor' | 'expedidor-2' | 'supervisor';
 export type DepotStaff = { role: DepotRole; state: string; station: { x: number; z: number }; shift: [number, number]; carrying: boolean };
 
 export type DepotVisit = {player:{x:number;z:number;riding:boolean};bike:{x:number;z:number;yaw:number;moving:boolean}};
@@ -79,6 +79,9 @@ export class Workday {
       st('descarregador-1', depotWorld(104, -121), [10, 21]), st('descarregador-2', depotWorld(120, -121), [10, 21]),
       st('separador-1', depotWorld(108, -128), [11, 21]), st('separador-2', depotWorld(113, -131), [11, 21]),
       st('expedidor', S.dispatch, [11, 21.5]), st('supervisor', S.office, [9, 21]),
+      st('conferente-2', depotWorld(102.2,-121.1), [10,21]),
+      st('separador-3', depotWorld(112,-129.8), [11,21]),
+      st('expedidor-2', depotWorld(110.5,-123.8), [11,21]),
     ];
   }
 
@@ -255,7 +258,7 @@ export class Workday {
     if (this.phase !== 'CONCLUIDA' && this.phase !== 'ANTES' && hour >= ROUTINE.end && this.count('ENTREGUE') < this.parcels.length) {
       this.phase = 'ENCERRADA';
     }
-    if(this.van.update(truckDocked?Math.max(hour,13):hour,dt,this.parcels.some(p=>p.place==='caminhao'),this.depot.workers.some(w=>w.task?.kind==='truck'))&&this.phase!=='ANTES'){
+    if(this.van.update(truckDocked?Math.max(hour,13):hour,dt,this.parcels.some(p=>p.place==='caminhao'),this.depot.allWorkers.some(w=>w.task?.kind==='truck'))&&this.phase!=='ANTES'){
       this.parcels.filter(p=>p.place==='caminhao').forEach((p,i)=>arriveTruck(p,hour,{x:127.25+(i%3)*.55,y:1.25+(Math.floor(i/3)%2)*.32,z:-117.15+Math.floor(i/6)*.85}));
       this.say('Van na D05 — estacionamento assistido; abrindo portas para descarga');
     }
