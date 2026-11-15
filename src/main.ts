@@ -1,3 +1,4 @@
+import { LogisticsPanel } from './features/hud/logisticsPanel';
 import { DEPOT_SPOTS } from './core/delivery/workday';
 import { depotPath, DEPOT_POINTS, depotFixtures, MOTO_PARKING } from './world/city/depotPlan';
 import './style.css';
@@ -96,6 +97,7 @@ function start(canvas: HTMLCanvasElement): void {
   // only the static world blocks so the player can always move away.
   let insideVehicle = false;
   const baseGuard: MotionGuard = (x, z, r) => world.guard(x, z, r) && (insideVehicle || !cityLife.blocks(x, z, r));
+  const logisticsPanel=new LogisticsPanel(document,delivery.workday,()=>clock.hour,()=>{hud.setPaused(false);input.reset()});
   const rideGuard: MotionGuard = (x, z, r) => baseGuard(x, z, r) && !delivery.doorBlocked(x, z, r, true, moto.state);
 
   // On foot, the parked bike is solid too.
@@ -232,14 +234,16 @@ function start(canvas: HTMLCanvasElement): void {
     lightTimer -= dt;
     if (lightTimer <= 0) { lighting = lightingAt(clock.hour); environment.applyLighting(lighting); lightTimer = 0.5; }
     const player = mode === 'riding' ? { x: m.x, z: m.z, radius: 1.1 } : { x: walker.state.x, z: walker.state.z, radius: 0.45 };
+    cityLife.courierObstacles.splice(0,cityLife.courierObstacles.length,...delivery.workday.couriers.map(c=>({...c.bike,radius:.85})));
     cityLife.update(dt, simTime, clock.hour, lighting.night, player, ground);
     houses.update(player.x, player.z);
     hud.setClock(clock.label, clock.isWorkday, lighting.night > 0.5);
     minimap.update(player.x, player.z, mode === 'riding' ? m.yaw : walker.state.yaw, performance.now());
     // Delivery job: shops, depot staff, customers, objective marker and contextual action.
     const here = mode === 'riding' ? { x: m.x, z: m.z, riding: true } : { x: walker.state.x, z: walker.state.z, riding: false };
-    delivery.update(dt, clock.hour, cityLife.crowd, here, ground, () => false, bikeSpot());
+    delivery.update(dt, clock.hour, cityLife.crowd, here, ground, (x,z,r)=>cityLife.blocks(x,z,r)||Math.hypot(x-player.x,z-player.z)<r+player.radius, bikeSpot());
     for (const msg of delivery.workday.events.splice(0)) hud.toast(msg);
+    logisticsPanel.update(delivery.workday,clock.hour,performance.now()/1000);
     const objective = delivery.workday.objective(clock.hour, m);
     const progress = delivery.workday.progress();
     const wait = delivery.waiting === null ? delivery.waitOption(clock.hour) : null;
@@ -310,6 +314,7 @@ function start(canvas: HTMLCanvasElement): void {
         canStand:(x:number,z:number,r=.35,riding=false)=>world.guard(x,z,r)&&!delivery.doorBlocked(x,z,r,riding,{x,z}),
         /** Deterministic test clock: executes real work in bounded steps, never edits parcels. */
         processDepot:(seconds:number)=>{for(let t=0;t<Math.min(seconds,1);t+=.05)delivery.workday.update(clock.hour,.05)},
+        logisticsStep:(seconds:number)=>{for(let t=0;t<Math.min(seconds,1);t+=.05){clock.advance(.05);delivery.workday.update(clock.hour,.05)}},
         minimapBase: () => minimap.baseImage(),
         /** CORE-015.1: parks the bike at the kerb nearest to a spot (the rider stays where it is). */
         parkNear: (x: number, z: number) => { const p = parkNear(x, z); Object.assign(moto.state, { ...p, speed: 0, steer: 0 }); return p; },

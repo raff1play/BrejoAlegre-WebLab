@@ -157,3 +157,7 @@
 - **Nova escala do relógio:** uma hora virtual = **150 segundos reais (2min30s)**, em vez de 240 segundos (4min). A jornada normal 11h–21h dura até 25 minutos reais, sem contar pausas/aceleração e sem exigir permanecer até 21h.
 - O fluxo logístico preserva sua vazão **por hora virtual** na escala mais rápida; acelerar o relógio não pode entregar volumes sem a execução das tarefas.
 - Esta decisão **substitui** a escala e o bloqueio de início de triagem descritos nas seções históricas CORE-013/014. A mudança foi implementada na branch experimental `feat/art-001-primeira-loja-moto`; não se considera integrada à `preview` ou `main` antes de revisão.
+
+### 15/11/2026 — LOG-003 autorizada na branch ART-001
+
+Pedido explícito do usuário: manter `feat/art-001-primeira-loja-moto`, sem merge/publicação; operar com um jogador, três motociclistas NPCs, oito lojas (2–5 volumes), van (5–15), quatro setores/cargas/docas e confirmação conjunta após as cargas estarem guardadas, a partir das 15h. D05 recebe a van, D01 Norte, D02 Oeste/jogador, D03 Leste, D04 Sul. Destino governa setor; coletor/origem não governam o entregador final. Jornada até 21h, 150 segundos reais/hora, processamento imediato. Implementação local com uma fonte de verdade de pacotes, sem serviços novos. Chegada/saída assistidas da van são limitação intermediária explicitada, não percurso real. Arquivos e evidências: `docs/evidence/log-003/README.md`.

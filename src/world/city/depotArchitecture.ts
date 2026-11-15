@@ -94,11 +94,12 @@ export function buildDepotArchitecture(scene:Scene,set:BatchSet,flat:BatchSet,ma
  sign('main','BREJO ALEGRE • CENTRO DE DISTRIBUIÇÃO',98,132,-117.85,5.4,1.45);
  // Floor layout: future cars 3×5.4 m, motorcycles 1.8×3.2 m, protected 1.8 m footway.
  floor(mats.paint('#466653'),92.55,94.3,-120.2,-92.6,FLOOR_PAINT_LAYERS.lane);
+ for(let z=-105;z<-94;z+=2)floor(mats.lineWhite,105.96,106.04,z,z+.8);
  for(let z=-114;z<-99;z+=1.2)floor(mats.lineWhite,94.4,99,z,z+.35);
  for(const r of [...CAR_PARKING,...MOTO_PARKING]){
   floor(mats.lineWhite,r.minX,r.minX+.07,r.minZ,r.maxZ);floor(mats.lineWhite,r.maxX-.07,r.maxX,r.minZ,r.maxZ);floor(mats.lineWhite,r.minX+.07,r.maxX-.07,r.minZ,r.minZ+.07);
  }
- sign('motos','DESCARGA • MOTOS',78,91,-113.3,1.8,.6);
+ // Individual bay labels replace the overhead sign that obscured the riding camera.
  // Paint-only label stands at ground edge have no physical posts in the circulation lane.
  for(const [name,text,x,z,w]of [['receiving','01 • RECEBIMENTO',101,-120.8,7],['sorting','02 • CONFERÊNCIA / TRIAGEM',111,-128.9,11],['regions','03 • TRIAGEM POR SETOR',123,-135.3,10],['dispatch','04 • QUATRO ROTAS / EXPEDIÇÃO',104,-122,7]] as const){
   sign(name,text,x-w/2,x+w/2,z,2.65,.65);

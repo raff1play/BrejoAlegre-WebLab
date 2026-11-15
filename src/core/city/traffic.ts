@@ -44,6 +44,7 @@ export type Obstacle = { x: number; z: number; radius: number };
 export type TrafficContext = Readonly<{
   time: number;
   player: Obstacle;
+  obstacles?:readonly Obstacle[];
   /** True while a pedestrian is on the crosswalk of `road` at `node`. */
   crosswalkBusy: (node: string, road: string) => boolean;
   /** Spawning target for general traffic (0–1 of capacity) and logistics on/off. */
@@ -412,7 +413,7 @@ export class Traffic {
     let seg: Seg = v.seg;
     let offset = -v.s; // distance from the vehicle to the start of `seg`
     let routeAt = 0;
-    const playerNear = Math.hypot(ctx.player.x - v.x, ctx.player.z - v.z) < LOOKAHEAD;
+    const obstacles=[ctx.player,...(ctx.obstacles??[])].filter(p=>Math.hypot(p.x-v.x,p.z-v.z)<LOOKAHEAD);
     for (let depth = 0; depth < 4 && offset < LOOKAHEAD; depth++) {
       const path = this.segPath(seg);
       // Vehicles on this segment ahead of us.
@@ -432,11 +433,11 @@ export class Traffic {
         // Slow down BEFORE a bend of the real street, not in it.
         for (const bend of this.bendsOf(seg.index)) { const d = offset + bend.s; if (d > -1 && d < LOOKAHEAD) limitAt(d, Math.min(bend.v, v.spec.vmax)); }
       }
-      if (playerNear) {
-        const clear = v.spec.width / 2 + ctx.player.radius + 0.5;
+      for(const obstacle of obstacles) {
+        const clear = v.spec.width / 2 + obstacle.radius + 0.5;
         for (let s = Math.max(0, -offset + v.spec.length / 2); s < path.length; s += 1.5) {
           const p = pathPose(path, s);
-          const dp = Math.hypot(p.x - ctx.player.x, p.z - ctx.player.z);
+          const dp = Math.hypot(p.x - obstacle.x, p.z - obstacle.z);
           if (dp < clear) { consider(offset + s - v.spec.length / 2 - 0.4, 0, 'player'); break; }
           // The rider/walker is beside the lane: pass slowly, with room to stop.
           if (dp < clear + 1.5) { limitAt(Math.max(0, offset + s - v.spec.length / 2 - 2), 3.5); break; }

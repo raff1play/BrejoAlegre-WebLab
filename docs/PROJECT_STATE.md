@@ -517,3 +517,13 @@ Na mesma branch ART, removida a sobreposição entre concreto/asfalto/interior, 
 - **HUD:** recebimento e triagem mostram o trabalho já em andamento; não anunciam mais “triagem às 14h” como início. A opção de acelerar o relógio durante o processamento é até as 15h. A retirada real continua condicionada à carga completa e à janela a partir das 15h.
 - **Regressões:** `tests/clock.test.ts` cobre 150 segundos/hora e jornada de 25 minutos; `tests/depotGuidance.test.ts` simula descarga às 12h46 e exige que pelo menos um volume chegue à triagem antes das 14h, com IDs preservados. `tests/delivery.test.ts` e `depotFlow.test.ts` foram adaptados à operação antecipada e à nova escala.
 - **Validação:** CI da branch no commit `886da0d` [workflow 43649484233](https://github.com/raff1play/BrejoAlegre-WebLab/actions/runs/43649484233) finalizou com 114/114 testes unitários, TypeScript e build staging aprovados. Sem teste humano de toda a jornada no Galaxy S24, sem garantia de FPS; não houve merge ou publicação nesta mudança.
+
+## LOG-003 — quatro entregadores e quatro setores (15/11/2026)
+
+Branch autorizada: `feat/art-001-primeira-loja-moto`, base `9805cf3`. Commits A–F: `84d0ec7`, `045f0c6`, `a7d5ebd`, `5558a30`, `8dc2c90`, `c23e7a3`; commit G contém painel, testes e evidências. Sem merge em main/preview, sem publicação ou push.
+
+Implementados: oito lojas distribuídas sem repetição, demanda semeada 21–55 volumes, três motociclistas simultâneos, quatro setores geográficos, quatro gaiolas/cargas/docas, saída conjunta, entregas autônomas e inventário/custódia únicos. Mantidos relógio 150 s/h, processamento imediato, ART-001 e piso corrigido. D05 tem porta vinculada à descarga; antiga porta GLB estática foi removida da implantação. Van amarela usa chegada/saída assistidas: rota e manobra não implementadas.
+
+Validação: 137 unitários aprovados, typecheck e staging build aprovados (aviso de chunk grande); Chromium com fluxo completo e toque emulado. Seeds naturais 674161=21, 357183=55, 2026=43. Android físico/Galaxy S24 não testado. Jornada completa com tráfego ambiente desligado; tráfego normal requer ensaio prolongado. Medições SwiftShader não comprovam 30 FPS em celular.
+
+[Entrega, arquivos, capturas comparáveis, todos os pacotes, custódia, métricas e limitações](evidence/log-003/README.md).

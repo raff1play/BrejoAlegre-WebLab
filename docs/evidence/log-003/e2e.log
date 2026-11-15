@@ -1,0 +1,34 @@
+
+> brejo-alegre-web-lab@0.1.0 test:e2e
+> node scripts/log003/browser.cjs && node scripts/log003/touch.cjs
+
+PASS eight unique shops, two per actor
+PASS closed gate blocks real motorcycle
+PASS partial collection respects four hands
+PASS partial collection respects four hands
+PASS partial collection respects four hands
+PASS unload limits hands to four
+PASS player receipts persist with original IDs
+PASS D05 open while unloading
+PASS no static GLB shutter covers the operational D05
+PASS NPC mixed sack groups exactly the held original IDs
+PASS NPCs collected both assigned shops and parked
+PASS all original IDs received and correctly sorted
+PASS wrong dock refuses player pickup
+PASS four original sector loads ready, player carries only West
+PASS one confirmation releases four actors
+PASS three NPC routes depart after joint release
+PASS player finishes without ending NPC routes
+PASS full four-actor workday conserves and delivers every ID exactly once
+PASS no browser or depot task exceptions
+PASS touch throttle moves the approved motorcycle
+PASS touch brake stops motorcycle
+PASS touch action dismounts after stop
+PASS touch minimap expands
+PASS logistics panel readable without horizontal overflow
+PASS no browser errors
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.2
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.2
+npm notice To update run: npm install -g npm@12.2.2
+npm notice

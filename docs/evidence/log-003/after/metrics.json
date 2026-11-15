@@ -1,0 +1,2018 @@
+{
+  "version": "after",
+  "commit": "LOG-003 working tree",
+  "browser": "156.0.8078.79",
+  "viewport": [
+    960,
+    540
+  ],
+  "profile": "mobile",
+  "gpu": "SwiftShader",
+  "traffic": false,
+  "hour": 11.5,
+  "poses": [
+    [
+      "entry",
+      106,
+      -96,
+      43,
+      0.85,
+      false
+    ],
+    [
+      "parking-floor",
+      86,
+      -108,
+      23,
+      1.02,
+      false
+    ],
+    [
+      "warehouse",
+      111,
+      -124,
+      45,
+      0.8,
+      false
+    ],
+    [
+      "sorting",
+      114,
+      -130,
+      25,
+      0.8,
+      true
+    ],
+    [
+      "five-docks",
+      111,
+      -118,
+      36,
+      1.02,
+      true
+    ]
+  ],
+  "samples": {
+    "entry": [
+      {
+        "drawCalls": 407,
+        "frameMs": 354,
+        "renderMs": 340.5,
+        "triangles": 524485,
+        "memoryMb": 156,
+        "fps": 1.2272448353446515,
+        "activeMeshes": 260,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 407,
+        "frameMs": 354,
+        "renderMs": 340.5,
+        "triangles": 524485,
+        "memoryMb": 157,
+        "fps": 1.2412007730909314,
+        "activeMeshes": 260,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 407,
+        "frameMs": 354,
+        "renderMs": 340.5,
+        "triangles": 524485,
+        "memoryMb": 157,
+        "fps": 1.4133776191655867,
+        "activeMeshes": 260,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 407,
+        "frameMs": 17.3,
+        "renderMs": 6.4,
+        "triangles": 524485,
+        "memoryMb": 159,
+        "fps": 1.5129101667561315,
+        "activeMeshes": 260,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 407,
+        "frameMs": 17.3,
+        "renderMs": 6.4,
+        "triangles": 524485,
+        "memoryMb": 159,
+        "fps": 1.624616184426233,
+        "activeMeshes": 260,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 407,
+        "frameMs": 17.3,
+        "renderMs": 6.4,
+        "triangles": 524485,
+        "memoryMb": 160,
+        "fps": 1.7318198277628498,
+        "activeMeshes": 260,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 407,
+        "frameMs": 17.3,
+        "renderMs": 6.4,
+        "triangles": 524485,
+        "memoryMb": 161,
+        "fps": 1.825317148854821,
+        "activeMeshes": 260,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 407,
+        "frameMs": 17.3,
+        "renderMs": 6.4,
+        "triangles": 524485,
+        "memoryMb": 161,
+        "fps": 1.919272448105193,
+        "activeMeshes": 260,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 407,
+        "frameMs": 13.6,
+        "renderMs": 3.9,
+        "triangles": 524485,
+        "memoryMb": 162,
+        "fps": 2.0032911211275675,
+        "activeMeshes": 260,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 407,
+        "frameMs": 13.6,
+        "renderMs": 3.9,
+        "triangles": 524485,
+        "memoryMb": 163,
+        "fps": 2.085998776213836,
+        "activeMeshes": 260,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 407,
+        "frameMs": 13.6,
+        "renderMs": 3.9,
+        "triangles": 524485,
+        "memoryMb": 164,
+        "fps": 2.1645314465827687,
+        "activeMeshes": 260,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 407,
+        "frameMs": 13.6,
+        "renderMs": 3.9,
+        "triangles": 524485,
+        "memoryMb": 137,
+        "fps": 2.244698550188157,
+        "activeMeshes": 260,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 407,
+        "frameMs": 13.6,
+        "renderMs": 3.9,
+        "triangles": 524485,
+        "memoryMb": 138,
+        "fps": 2.3042654513795604,
+        "activeMeshes": 260,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 407,
+        "frameMs": 11.4,
+        "renderMs": 3.2,
+        "triangles": 524485,
+        "memoryMb": 138,
+        "fps": 2.35737859500214,
+        "activeMeshes": 260,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 407,
+        "frameMs": 11.4,
+        "renderMs": 3.2,
+        "triangles": 524485,
+        "memoryMb": 139,
+        "fps": 2.4243599689677553,
+        "activeMeshes": 260,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 407,
+        "frameMs": 11.4,
+        "renderMs": 3.2,
+        "triangles": 524485,
+        "memoryMb": 140,
+        "fps": 2.4899807915765315,
+        "activeMeshes": 260,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 407,
+        "frameMs": 11.4,
+        "renderMs": 3.2,
+        "triangles": 524485,
+        "memoryMb": 140,
+        "fps": 2.554100492244381,
+        "activeMeshes": 260,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 407,
+        "frameMs": 11.4,
+        "renderMs": 3.2,
+        "triangles": 524485,
+        "memoryMb": 141,
+        "fps": 2.59983948817095,
+        "activeMeshes": 260,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 407,
+        "frameMs": 11.4,
+        "renderMs": 3.2,
+        "triangles": 524485,
+        "memoryMb": 141,
+        "fps": 2.651757894503796,
+        "activeMeshes": 260,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 407,
+        "frameMs": 13,
+        "renderMs": 2.9,
+        "triangles": 524485,
+        "memoryMb": 142,
+        "fps": 2.7083829870209923,
+        "activeMeshes": 260,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 407,
+        "frameMs": 13,
+        "renderMs": 2.9,
+        "triangles": 524485,
+        "memoryMb": 142,
+        "fps": 2.7624015894429395,
+        "activeMeshes": 260,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 407,
+        "frameMs": 13,
+        "renderMs": 2.9,
+        "triangles": 524485,
+        "memoryMb": 143,
+        "fps": 2.8122070617643997,
+        "activeMeshes": 260,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 407,
+        "frameMs": 13,
+        "renderMs": 2.9,
+        "triangles": 524485,
+        "memoryMb": 144,
+        "fps": 2.8588348206083327,
+        "activeMeshes": 260,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 407,
+        "frameMs": 13,
+        "renderMs": 2.9,
+        "triangles": 524485,
+        "memoryMb": 144,
+        "fps": 2.871941135110188,
+        "activeMeshes": 260,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 407,
+        "frameMs": 11,
+        "renderMs": 3.1,
+        "triangles": 524485,
+        "memoryMb": 145,
+        "fps": 2.9175216625985567,
+        "activeMeshes": 260,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 407,
+        "frameMs": 11,
+        "renderMs": 3.1,
+        "triangles": 524485,
+        "memoryMb": 145,
+        "fps": 3.273643893016786,
+        "activeMeshes": 260,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 407,
+        "frameMs": 11,
+        "renderMs": 3.1,
+        "triangles": 524485,
+        "memoryMb": 146,
+        "fps": 3.6379511059361516,
+        "activeMeshes": 260,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 407,
+        "frameMs": 11,
+        "renderMs": 3.1,
+        "triangles": 524485,
+        "memoryMb": 147,
+        "fps": 3.589246617136345,
+        "activeMeshes": 260,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 407,
+        "frameMs": 11,
+        "renderMs": 3.1,
+        "triangles": 524485,
+        "memoryMb": 147,
+        "fps": 3.5133330991102083,
+        "activeMeshes": 260,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 407,
+        "frameMs": 11,
+        "renderMs": 3.1,
+        "triangles": 524485,
+        "memoryMb": 148,
+        "fps": 4.05000405000283,
+        "activeMeshes": 260,
+        "renderSize": [
+          960,
+          540
+        ]
+      }
+    ],
+    "parking-floor": [
+      {
+        "drawCalls": 405,
+        "frameMs": 9.4,
+        "renderMs": 2.9,
+        "triangles": 531849,
+        "memoryMb": 157,
+        "fps": 4.887665162353133,
+        "activeMeshes": 348,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 405,
+        "frameMs": 9.4,
+        "renderMs": 2.9,
+        "triangles": 531849,
+        "memoryMb": 157,
+        "fps": 4.900439406067939,
+        "activeMeshes": 348,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 405,
+        "frameMs": 9.4,
+        "renderMs": 2.9,
+        "triangles": 531849,
+        "memoryMb": 158,
+        "fps": 4.832085044696789,
+        "activeMeshes": 348,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 405,
+        "frameMs": 9.4,
+        "renderMs": 2.9,
+        "triangles": 531849,
+        "memoryMb": 158,
+        "fps": 4.8043046569737955,
+        "activeMeshes": 348,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 405,
+        "frameMs": 9.7,
+        "renderMs": 2.7,
+        "triangles": 531849,
+        "memoryMb": 159,
+        "fps": 4.765384248817726,
+        "activeMeshes": 348,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 405,
+        "frameMs": 9.7,
+        "renderMs": 2.7,
+        "triangles": 531849,
+        "memoryMb": 160,
+        "fps": 4.7883547213154785,
+        "activeMeshes": 348,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 405,
+        "frameMs": 9.7,
+        "renderMs": 2.7,
+        "triangles": 531849,
+        "memoryMb": 160,
+        "fps": 4.79194952479834,
+        "activeMeshes": 348,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 405,
+        "frameMs": 9.7,
+        "renderMs": 2.7,
+        "triangles": 531849,
+        "memoryMb": 161,
+        "fps": 4.747211013529553,
+        "activeMeshes": 348,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 405,
+        "frameMs": 9.7,
+        "renderMs": 2.7,
+        "triangles": 531849,
+        "memoryMb": 161,
+        "fps": 4.710907320750529,
+        "activeMeshes": 348,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 405,
+        "frameMs": 8.7,
+        "renderMs": 2.5,
+        "triangles": 531849,
+        "memoryMb": 162,
+        "fps": 4.701604814442782,
+        "activeMeshes": 348,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 405,
+        "frameMs": 8.7,
+        "renderMs": 2.5,
+        "triangles": 531849,
+        "memoryMb": 138,
+        "fps": 4.647632031478353,
+        "activeMeshes": 348,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 405,
+        "frameMs": 8.7,
+        "renderMs": 2.5,
+        "triangles": 531849,
+        "memoryMb": 138,
+        "fps": 4.680552305172012,
+        "activeMeshes": 348,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 405,
+        "frameMs": 8.7,
+        "renderMs": 2.5,
+        "triangles": 531849,
+        "memoryMb": 139,
+        "fps": 4.638936137312511,
+        "activeMeshes": 348,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 405,
+        "frameMs": 8.7,
+        "renderMs": 2.5,
+        "triangles": 531849,
+        "memoryMb": 140,
+        "fps": 4.6098527920336485,
+        "activeMeshes": 348,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 405,
+        "frameMs": 8.8,
+        "renderMs": 2.2,
+        "triangles": 531849,
+        "memoryMb": 140,
+        "fps": 4.602427013180389,
+        "activeMeshes": 348,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 405,
+        "frameMs": 8.8,
+        "renderMs": 2.2,
+        "triangles": 531849,
+        "memoryMb": 141,
+        "fps": 4.589541963710977,
+        "activeMeshes": 348,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 405,
+        "frameMs": 8.8,
+        "renderMs": 2.2,
+        "triangles": 531849,
+        "memoryMb": 141,
+        "fps": 4.565654106046999,
+        "activeMeshes": 348,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 405,
+        "frameMs": 8.8,
+        "renderMs": 2.2,
+        "triangles": 531849,
+        "memoryMb": 142,
+        "fps": 4.5375482114497485,
+        "activeMeshes": 348,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 405,
+        "frameMs": 8.8,
+        "renderMs": 2.2,
+        "triangles": 531849,
+        "memoryMb": 142,
+        "fps": 4.42321302194011,
+        "activeMeshes": 348,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 405,
+        "frameMs": 8.2,
+        "renderMs": 2.4,
+        "triangles": 531849,
+        "memoryMb": 143,
+        "fps": 4.370438354968902,
+        "activeMeshes": 348,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 405,
+        "frameMs": 8.2,
+        "renderMs": 2.4,
+        "triangles": 531849,
+        "memoryMb": 144,
+        "fps": 4.487256192412548,
+        "activeMeshes": 348,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 405,
+        "frameMs": 8.2,
+        "renderMs": 2.4,
+        "triangles": 531849,
+        "memoryMb": 144,
+        "fps": 4.49545958581933,
+        "activeMeshes": 348,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 405,
+        "frameMs": 8.2,
+        "renderMs": 2.4,
+        "triangles": 531849,
+        "memoryMb": 145,
+        "fps": 4.485176491695451,
+        "activeMeshes": 348,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 405,
+        "frameMs": 8.2,
+        "renderMs": 2.4,
+        "triangles": 531849,
+        "memoryMb": 146,
+        "fps": 4.469739861139589,
+        "activeMeshes": 348,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 405,
+        "frameMs": 9,
+        "renderMs": 2.8,
+        "triangles": 531849,
+        "memoryMb": 146,
+        "fps": 4.4581160001803015,
+        "activeMeshes": 348,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 405,
+        "frameMs": 9,
+        "renderMs": 2.8,
+        "triangles": 531849,
+        "memoryMb": 147,
+        "fps": 4.461231894832907,
+        "activeMeshes": 348,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 405,
+        "frameMs": 9,
+        "renderMs": 2.8,
+        "triangles": 531849,
+        "memoryMb": 147,
+        "fps": 4.470739013158382,
+        "activeMeshes": 348,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 405,
+        "frameMs": 9,
+        "renderMs": 2.8,
+        "triangles": 531849,
+        "memoryMb": 148,
+        "fps": 4.509989627024871,
+        "activeMeshes": 348,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 405,
+        "frameMs": 9,
+        "renderMs": 2.8,
+        "triangles": 531849,
+        "memoryMb": 148,
+        "fps": 4.535558780842824,
+        "activeMeshes": 348,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 405,
+        "frameMs": 8.1,
+        "renderMs": 2.1,
+        "triangles": 531849,
+        "memoryMb": 149,
+        "fps": 4.5383032796815295,
+        "activeMeshes": 348,
+        "renderSize": [
+          960,
+          540
+        ]
+      }
+    ],
+    "warehouse": [
+      {
+        "drawCalls": 377,
+        "frameMs": 7.8,
+        "renderMs": 2.4,
+        "triangles": 516085,
+        "memoryMb": 156,
+        "fps": 4.78377344049043,
+        "activeMeshes": 227,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 377,
+        "frameMs": 7.8,
+        "renderMs": 2.4,
+        "triangles": 516085,
+        "memoryMb": 156,
+        "fps": 4.833097048586418,
+        "activeMeshes": 227,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 377,
+        "frameMs": 7.8,
+        "renderMs": 2.4,
+        "triangles": 516085,
+        "memoryMb": 157,
+        "fps": 4.8527984471045,
+        "activeMeshes": 227,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 377,
+        "frameMs": 7.3,
+        "renderMs": 1.9,
+        "triangles": 516085,
+        "memoryMb": 157,
+        "fps": 4.901320088876678,
+        "activeMeshes": 227,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 377,
+        "frameMs": 7.3,
+        "renderMs": 1.9,
+        "triangles": 516085,
+        "memoryMb": 158,
+        "fps": 4.92667465882718,
+        "activeMeshes": 227,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 377,
+        "frameMs": 7.3,
+        "renderMs": 1.9,
+        "triangles": 516085,
+        "memoryMb": 158,
+        "fps": 4.9228749589760445,
+        "activeMeshes": 227,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 377,
+        "frameMs": 7.3,
+        "renderMs": 1.9,
+        "triangles": 516085,
+        "memoryMb": 159,
+        "fps": 4.971496751953617,
+        "activeMeshes": 227,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 377,
+        "frameMs": 7.3,
+        "renderMs": 1.9,
+        "triangles": 516085,
+        "memoryMb": 159,
+        "fps": 4.966229638457873,
+        "activeMeshes": 227,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 377,
+        "frameMs": 7.3,
+        "renderMs": 1.9,
+        "triangles": 516085,
+        "memoryMb": 160,
+        "fps": 4.9795837068008835,
+        "activeMeshes": 227,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 377,
+        "frameMs": 9.1,
+        "renderMs": 3.4,
+        "triangles": 516085,
+        "memoryMb": 160,
+        "fps": 4.984216647283605,
+        "activeMeshes": 227,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 377,
+        "frameMs": 9.1,
+        "renderMs": 3.4,
+        "triangles": 516085,
+        "memoryMb": 161,
+        "fps": 5.013787916771125,
+        "activeMeshes": 227,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 377,
+        "frameMs": 9.1,
+        "renderMs": 3.4,
+        "triangles": 516085,
+        "memoryMb": 161,
+        "fps": 5.0262201149303944,
+        "activeMeshes": 227,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 377,
+        "frameMs": 9.1,
+        "renderMs": 3.4,
+        "triangles": 516085,
+        "memoryMb": 135,
+        "fps": 5.00333555703803,
+        "activeMeshes": 227,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 377,
+        "frameMs": 9.1,
+        "renderMs": 3.4,
+        "triangles": 516085,
+        "memoryMb": 134,
+        "fps": 5.018232912917561,
+        "activeMeshes": 227,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 377,
+        "frameMs": 9.1,
+        "renderMs": 3.4,
+        "triangles": 516085,
+        "memoryMb": 135,
+        "fps": 5.036683847354276,
+        "activeMeshes": 227,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 377,
+        "frameMs": 7.2,
+        "renderMs": 1.8,
+        "triangles": 516085,
+        "memoryMb": 135,
+        "fps": 5.04838031131679,
+        "activeMeshes": 227,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 377,
+        "frameMs": 7.2,
+        "renderMs": 1.8,
+        "triangles": 516085,
+        "memoryMb": 134,
+        "fps": 5.09346508429814,
+        "activeMeshes": 227,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 377,
+        "frameMs": 7.2,
+        "renderMs": 1.8,
+        "triangles": 516085,
+        "memoryMb": 135,
+        "fps": 5.066711704104041,
+        "activeMeshes": 227,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 377,
+        "frameMs": 7.2,
+        "renderMs": 1.8,
+        "triangles": 516085,
+        "memoryMb": 134,
+        "fps": 5.043542584311856,
+        "activeMeshes": 227,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 377,
+        "frameMs": 7.2,
+        "renderMs": 1.8,
+        "triangles": 516085,
+        "memoryMb": 135,
+        "fps": 5.0236950951996535,
+        "activeMeshes": 227,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 377,
+        "frameMs": 9.5,
+        "renderMs": 2.3,
+        "triangles": 516085,
+        "memoryMb": 135,
+        "fps": 5.089662894663522,
+        "activeMeshes": 227,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 377,
+        "frameMs": 9.5,
+        "renderMs": 2.3,
+        "triangles": 516085,
+        "memoryMb": 135,
+        "fps": 5.093032731221758,
+        "activeMeshes": 227,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 377,
+        "frameMs": 9.5,
+        "renderMs": 2.3,
+        "triangles": 516085,
+        "memoryMb": 134,
+        "fps": 5.05424893860963,
+        "activeMeshes": 227,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 377,
+        "frameMs": 9.5,
+        "renderMs": 2.3,
+        "triangles": 516085,
+        "memoryMb": 135,
+        "fps": 5.060814116295605,
+        "activeMeshes": 227,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 377,
+        "frameMs": 9.5,
+        "renderMs": 2.3,
+        "triangles": 516085,
+        "memoryMb": 134,
+        "fps": 5.018736616701109,
+        "activeMeshes": 227,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 377,
+        "frameMs": 8.2,
+        "renderMs": 2.2,
+        "triangles": 516085,
+        "memoryMb": 135,
+        "fps": 5.02697811588798,
+        "activeMeshes": 227,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 377,
+        "frameMs": 8.2,
+        "renderMs": 2.2,
+        "triangles": 516085,
+        "memoryMb": 135,
+        "fps": 5.02176096417811,
+        "activeMeshes": 227,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 377,
+        "frameMs": 8.2,
+        "renderMs": 2.2,
+        "triangles": 516085,
+        "memoryMb": 135,
+        "fps": 4.962697060430948,
+        "activeMeshes": 227,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 377,
+        "frameMs": 8.2,
+        "renderMs": 2.2,
+        "triangles": 516085,
+        "memoryMb": 135,
+        "fps": 4.945109286914031,
+        "activeMeshes": 227,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 377,
+        "frameMs": 8.2,
+        "renderMs": 2.2,
+        "triangles": 516085,
+        "memoryMb": 135,
+        "fps": 4.964421644878376,
+        "activeMeshes": 227,
+        "renderSize": [
+          960,
+          540
+        ]
+      }
+    ],
+    "sorting": [
+      {
+        "drawCalls": 252,
+        "frameMs": 6.7,
+        "renderMs": 1.1,
+        "triangles": 453805,
+        "memoryMb": 135,
+        "fps": 5.067995607737144,
+        "activeMeshes": 103,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 252,
+        "frameMs": 6.7,
+        "renderMs": 1.1,
+        "triangles": 453805,
+        "memoryMb": 134,
+        "fps": 5.049399962970438,
+        "activeMeshes": 103,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 252,
+        "frameMs": 6.7,
+        "renderMs": 1.1,
+        "triangles": 453805,
+        "memoryMb": 135,
+        "fps": 5.080096183152483,
+        "activeMeshes": 103,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 252,
+        "frameMs": 6.7,
+        "renderMs": 1.1,
+        "triangles": 453805,
+        "memoryMb": 135,
+        "fps": 5.164933544523056,
+        "activeMeshes": 103,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 252,
+        "frameMs": 6.7,
+        "renderMs": 1.2,
+        "triangles": 453805,
+        "memoryMb": 135,
+        "fps": 5.222750300306792,
+        "activeMeshes": 103,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 252,
+        "frameMs": 6.7,
+        "renderMs": 1.2,
+        "triangles": 453805,
+        "memoryMb": 135,
+        "fps": 5.283457494583074,
+        "activeMeshes": 103,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 252,
+        "frameMs": 6.7,
+        "renderMs": 1.2,
+        "triangles": 453805,
+        "memoryMb": 135,
+        "fps": 5.28960592435864,
+        "activeMeshes": 103,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 252,
+        "frameMs": 6.7,
+        "renderMs": 1.2,
+        "triangles": 453805,
+        "memoryMb": 135,
+        "fps": 5.369319707192388,
+        "activeMeshes": 103,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 252,
+        "frameMs": 6.7,
+        "renderMs": 1.2,
+        "triangles": 453805,
+        "memoryMb": 135,
+        "fps": 5.4794520547945265,
+        "activeMeshes": 103,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 252,
+        "frameMs": 6.7,
+        "renderMs": 1.2,
+        "triangles": 453805,
+        "memoryMb": 135,
+        "fps": 5.5434421079893115,
+        "activeMeshes": 103,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 252,
+        "frameMs": 6.7,
+        "renderMs": 1.2,
+        "triangles": 453805,
+        "memoryMb": 135,
+        "fps": 5.5857600357480965,
+        "activeMeshes": 103,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 252,
+        "frameMs": 6.3,
+        "renderMs": 0.9,
+        "triangles": 453805,
+        "memoryMb": 135,
+        "fps": 5.623875224952659,
+        "activeMeshes": 103,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 252,
+        "frameMs": 6.3,
+        "renderMs": 0.9,
+        "triangles": 453805,
+        "memoryMb": 135,
+        "fps": 5.678806693419362,
+        "activeMeshes": 103,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 252,
+        "frameMs": 6.3,
+        "renderMs": 0.9,
+        "triangles": 453805,
+        "memoryMb": 135,
+        "fps": 5.80259569447233,
+        "activeMeshes": 103,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 252,
+        "frameMs": 6.3,
+        "renderMs": 0.9,
+        "triangles": 453805,
+        "memoryMb": 135,
+        "fps": 5.878088445638345,
+        "activeMeshes": 103,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 252,
+        "frameMs": 6.3,
+        "renderMs": 0.9,
+        "triangles": 453805,
+        "memoryMb": 135,
+        "fps": 5.896110532417062,
+        "activeMeshes": 103,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 252,
+        "frameMs": 6.3,
+        "renderMs": 0.9,
+        "triangles": 453805,
+        "memoryMb": 135,
+        "fps": 5.735479677282051,
+        "activeMeshes": 103,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 252,
+        "frameMs": 6.3,
+        "renderMs": 0.9,
+        "triangles": 453805,
+        "memoryMb": 135,
+        "fps": 5.784916793615122,
+        "activeMeshes": 103,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 252,
+        "frameMs": 7.6,
+        "renderMs": 1,
+        "triangles": 453805,
+        "memoryMb": 135,
+        "fps": 5.615769079577804,
+        "activeMeshes": 103,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 252,
+        "frameMs": 7.6,
+        "renderMs": 1,
+        "triangles": 453805,
+        "memoryMb": 136,
+        "fps": 6.0465585004535,
+        "activeMeshes": 103,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 252,
+        "frameMs": 7.6,
+        "renderMs": 1,
+        "triangles": 453805,
+        "memoryMb": 135,
+        "fps": 6.093226363359407,
+        "activeMeshes": 103,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 252,
+        "frameMs": 7.6,
+        "renderMs": 1,
+        "triangles": 453805,
+        "memoryMb": 135,
+        "fps": 6.123698714023278,
+        "activeMeshes": 103,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 252,
+        "frameMs": 7.6,
+        "renderMs": 1,
+        "triangles": 453805,
+        "memoryMb": 135,
+        "fps": 6.18939550237261,
+        "activeMeshes": 103,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 252,
+        "frameMs": 7.6,
+        "renderMs": 1,
+        "triangles": 453805,
+        "memoryMb": 136,
+        "fps": 6.262525050102157,
+        "activeMeshes": 103,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 252,
+        "frameMs": 7.6,
+        "renderMs": 1,
+        "triangles": 453805,
+        "memoryMb": 135,
+        "fps": 6.238043749481139,
+        "activeMeshes": 103,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 252,
+        "frameMs": 7.1,
+        "renderMs": 1.1,
+        "triangles": 453805,
+        "memoryMb": 135,
+        "fps": 6.229753301767332,
+        "activeMeshes": 103,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 252,
+        "frameMs": 7.1,
+        "renderMs": 1.1,
+        "triangles": 453805,
+        "memoryMb": 136,
+        "fps": 6.220323871531509,
+        "activeMeshes": 103,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 252,
+        "frameMs": 7.1,
+        "renderMs": 1.1,
+        "triangles": 453805,
+        "memoryMb": 136,
+        "fps": 6.242846738112589,
+        "activeMeshes": 103,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 252,
+        "frameMs": 7.1,
+        "renderMs": 1.1,
+        "triangles": 453805,
+        "memoryMb": 135,
+        "fps": 6.24297665126927,
+        "activeMeshes": 103,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 252,
+        "frameMs": 7.1,
+        "renderMs": 1.1,
+        "triangles": 453805,
+        "memoryMb": 135,
+        "fps": 6.185056902525413,
+        "activeMeshes": 103,
+        "renderSize": [
+          960,
+          540
+        ]
+      }
+    ],
+    "five-docks": [
+      {
+        "drawCalls": 411,
+        "frameMs": 8.5,
+        "renderMs": 2.3,
+        "triangles": 536295,
+        "memoryMb": 135,
+        "fps": 5.753739930955128,
+        "activeMeshes": 361,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 411,
+        "frameMs": 8.5,
+        "renderMs": 2.3,
+        "triangles": 536295,
+        "memoryMb": 136,
+        "fps": 5.670755911762247,
+        "activeMeshes": 361,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 411,
+        "frameMs": 7.4,
+        "renderMs": 2.1,
+        "triangles": 536295,
+        "memoryMb": 136,
+        "fps": 5.603915268802703,
+        "activeMeshes": 361,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 411,
+        "frameMs": 7.4,
+        "renderMs": 2.1,
+        "triangles": 536295,
+        "memoryMb": 135,
+        "fps": 5.56658564191934,
+        "activeMeshes": 361,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 411,
+        "frameMs": 7.4,
+        "renderMs": 2.1,
+        "triangles": 536295,
+        "memoryMb": 135,
+        "fps": 5.52547242789411,
+        "activeMeshes": 361,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 411,
+        "frameMs": 7.4,
+        "renderMs": 2.1,
+        "triangles": 536295,
+        "memoryMb": 136,
+        "fps": 5.490985631920938,
+        "activeMeshes": 361,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 411,
+        "frameMs": 7.4,
+        "renderMs": 2.1,
+        "triangles": 536295,
+        "memoryMb": 136,
+        "fps": 5.470559273507507,
+        "activeMeshes": 361,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 411,
+        "frameMs": 7.7,
+        "renderMs": 2.1,
+        "triangles": 536295,
+        "memoryMb": 135,
+        "fps": 5.440795081522725,
+        "activeMeshes": 361,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 411,
+        "frameMs": 7.7,
+        "renderMs": 2.1,
+        "triangles": 536295,
+        "memoryMb": 135,
+        "fps": 5.380490342020564,
+        "activeMeshes": 361,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 411,
+        "frameMs": 7.7,
+        "renderMs": 2.1,
+        "triangles": 536295,
+        "memoryMb": 136,
+        "fps": 5.311614730878196,
+        "activeMeshes": 361,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 411,
+        "frameMs": 7.7,
+        "renderMs": 2.1,
+        "triangles": 536295,
+        "memoryMb": 136,
+        "fps": 5.230946278180373,
+        "activeMeshes": 361,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 411,
+        "frameMs": 7.7,
+        "renderMs": 2.1,
+        "triangles": 536295,
+        "memoryMb": 135,
+        "fps": 5.221023320570842,
+        "activeMeshes": 361,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 411,
+        "frameMs": 8,
+        "renderMs": 2.2,
+        "triangles": 536295,
+        "memoryMb": 135,
+        "fps": 5.187529179850309,
+        "activeMeshes": 361,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 411,
+        "frameMs": 8,
+        "renderMs": 2.2,
+        "triangles": 536295,
+        "memoryMb": 136,
+        "fps": 5.138042063437046,
+        "activeMeshes": 361,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 411,
+        "frameMs": 8,
+        "renderMs": 2.2,
+        "triangles": 536295,
+        "memoryMb": 136,
+        "fps": 5.093984004889589,
+        "activeMeshes": 361,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 411,
+        "frameMs": 8,
+        "renderMs": 2.2,
+        "triangles": 536295,
+        "memoryMb": 135,
+        "fps": 5.03930659141366,
+        "activeMeshes": 361,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 411,
+        "frameMs": 8,
+        "renderMs": 2.2,
+        "triangles": 536295,
+        "memoryMb": 135,
+        "fps": 5.013368983957227,
+        "activeMeshes": 361,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 411,
+        "frameMs": 8.4,
+        "renderMs": 2.4,
+        "triangles": 536295,
+        "memoryMb": 136,
+        "fps": 4.987199521227001,
+        "activeMeshes": 361,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 411,
+        "frameMs": 8.4,
+        "renderMs": 2.4,
+        "triangles": 536295,
+        "memoryMb": 136,
+        "fps": 4.821368304327084,
+        "activeMeshes": 361,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 411,
+        "frameMs": 8.4,
+        "renderMs": 2.4,
+        "triangles": 536295,
+        "memoryMb": 135,
+        "fps": 4.750142504274015,
+        "activeMeshes": 361,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 411,
+        "frameMs": 8.4,
+        "renderMs": 2.4,
+        "triangles": 536295,
+        "memoryMb": 135,
+        "fps": 4.586875420464632,
+        "activeMeshes": 361,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 411,
+        "frameMs": 8.6,
+        "renderMs": 2.3,
+        "triangles": 536295,
+        "memoryMb": 136,
+        "fps": 4.648568240980712,
+        "activeMeshes": 361,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 411,
+        "frameMs": 8.6,
+        "renderMs": 2.3,
+        "triangles": 536295,
+        "memoryMb": 136,
+        "fps": 4.7783635697555855,
+        "activeMeshes": 361,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 411,
+        "frameMs": 8.6,
+        "renderMs": 2.3,
+        "triangles": 536295,
+        "memoryMb": 135,
+        "fps": 4.738513054605146,
+        "activeMeshes": 361,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 411,
+        "frameMs": 8.6,
+        "renderMs": 2.3,
+        "triangles": 536295,
+        "memoryMb": 135,
+        "fps": 4.70536568533707,
+        "activeMeshes": 361,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 411,
+        "frameMs": 8.6,
+        "renderMs": 2.3,
+        "triangles": 536295,
+        "memoryMb": 136,
+        "fps": 4.743682995478256,
+        "activeMeshes": 361,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 411,
+        "frameMs": 8.6,
+        "renderMs": 2.3,
+        "triangles": 536295,
+        "memoryMb": 136,
+        "fps": 4.7790486507135705,
+        "activeMeshes": 361,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 411,
+        "frameMs": 7.4,
+        "renderMs": 2,
+        "triangles": 536295,
+        "memoryMb": 135,
+        "fps": 4.770082045411755,
+        "activeMeshes": 361,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 411,
+        "frameMs": 7.4,
+        "renderMs": 2,
+        "triangles": 536295,
+        "memoryMb": 135,
+        "fps": 4.771599440132906,
+        "activeMeshes": 361,
+        "renderSize": [
+          960,
+          540
+        ]
+      },
+      {
+        "drawCalls": 411,
+        "frameMs": 7.4,
+        "renderMs": 2,
+        "triangles": 536295,
+        "memoryMb": 136,
+        "fps": 4.783392062758681,
+        "activeMeshes": 361,
+        "renderSize": [
+          960,
+          540
+        ]
+      }
+    ]
+  },
+  "errors": []
+}

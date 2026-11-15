@@ -16,7 +16,8 @@
     "build:production": "npm run typecheck && vite build --mode production",
     "check": "npm run validate:repo && npm run test:unit && npm run build:staging",
     "preview": "vite preview --host 0.0.0.0",
-    "test:e2e": "node tests/e2e/play.cjs"
+    "test:e2e": "node scripts/log003/browser.cjs && node scripts/log003/touch.cjs",
+    "test:e2e:legacy": "node tests/e2e/play.cjs"
   },
   "dependencies": {
     "@babylonjs/core": "9.35.0",

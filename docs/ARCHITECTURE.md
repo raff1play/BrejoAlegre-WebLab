@@ -115,3 +115,11 @@ Nova feature → pasta `src/features/<name>/` com controlador e API clara; regra
 - **Sólidos:** `solidPolygons()` em `cityLayout.ts` reúne cidade, árvores e mobiliário; é o que o jogo e os testes usam.
 - **Rota:** `src/core/city/streetRoute.ts`; o minimapa (`features/hud/minimap.ts`) a recalcula a cada 15 m.
 - **Quadras:** `simplify()` em `geoCity.ts` (Douglas–Peucker + tampa nas pontas sem saída).
+
+## LOG-003 — atores e inventário logístico único
+
+`LogisticsDay extends Workday` é o controlador utilizado por DeliveryGame: herda um array de Parcel e uma DepotOperations. Inventários por entregador consultam place/holder; não existem quatro Workdays ou registros duplicados. `dailyDemand.ts` semeia atribuições, quantidades e destinos. `sectors.ts` usa +x leste/+z norte da projeção, centro geográfico existente e cunhas por eixo dominante; contém associação de carga/doca e recomendação por distância viária com 2-opt limitado.
+
+Cada Courier mantém sua tarefa, posição a pé/moto e caminho. `courierRoutes.ts` concatena faixas e movimentos do grafo, com conexões de estacionamento, caminhos a pé e curvas locais da base. Os três atores avançam independentemente. A apresentação CourierViews lê o controlador. DepotParcels usa instancing e atlas de IDs, incluindo volumes nas mãos dos NPCs. DepotOperations reserva espaços de recebimento, processa IDs reais e encaminha por setor às quatro gaiolas/docas; não cria inventário paralelo.
+
+SupplierVan contém estado/abertura; SupplierVanView desenha carroceria/folhas e porta D05. A antiga implantação GLB fixa da D05 foi desativada para não cobrir a porta operacional. A chegada/saída da van é assistida e não integra ainda sua condução ao grafo. Obstáculos de motos são expostos ao tráfego e proximidade de veículos limita motociclistas. Não há reserva completa de cruzamentos compartilhada entre ambos os controladores. Ver limites/testes em `evidence/log-003/README.md`.

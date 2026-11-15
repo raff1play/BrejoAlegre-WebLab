@@ -104,6 +104,10 @@ export class DeliveryGame {
       const shift=depotWorld((i===0?-1:1)*6.15*this.gateOpen,0);
       mesh.position.set(shift.x-origin.x,0,shift.z-origin.z);
     }
+    this.workday.trafficBlocked=(id,x,z,yaw)=>{
+      if(playerNear(x+Math.sin(yaw)*2,z+Math.cos(yaw)*2,1.15))return true;
+      return this.workday.couriers.some(c=>c.id!==id&&c.id<id&&Math.hypot(c.bike.x-x,c.bike.z-z)<2.5);
+    };
     this.workday.gateOpen=this.gateOpen;
     this.workday.update(hour, dt);
     // Shops: hours, shutter, employee routine, customers in the queue.
@@ -136,7 +140,7 @@ export class DeliveryGame {
     this.updateCustomers(dt, hour, crowd);
     this.updateDepot(dt, hour, player, ground);
     const centre=depotWorld(112,-125),near=Math.hypot(player.x-centre.x,player.z-centre.z)<140;
-    this.parcelViews.update(this.workday.parcels,near||this.workday.couriers.some(c=>!c.riding&&Math.hypot(player.x-c.person.x,player.z-c.person.z)<80));
+    this.parcelViews.update(this.workday.parcels,near||this.workday.couriers.some(c=>!c.riding&&Math.hypot(player.x-c.person.x,player.z-c.person.z)<80),this.courierViews.groupedIds);
     this.vanView.update(this.workday.van,near);
     // Marker over the target.
     const o = this.workday.objective(hour);
@@ -150,7 +154,7 @@ export class DeliveryGame {
       this.ring.scaling.setAll(1 + 0.08 * Math.sin(this.time * 3));
     }
     if (this.waitUntil !== null && hour >= this.waitUntil) this.waitUntil = null;
-    void playerNear;
+
   }
 
   /** Crowd shoppers who reach an open shop queue at its counter, are served and walk out. */
@@ -207,8 +211,9 @@ export class DeliveryGame {
    * while it is down — except from the inside, so nobody is locked in at closing time.
    */
   doorBlocked(x: number, z: number, r: number, riding: boolean, from: { x: number; z: number }): boolean {
-    if(this.workday.van.door<.9&&circleIntersectsPoly(x,z,r,depotPoly(D05_SHUTTER)))return true;
+    if(this.workday.van.door*3.4<(riding?2.15:1.9)&&circleIntersectsPoly(x,z,r,depotPoly(D05_SHUTTER)))return true;
     if(this.workday.van.present&&[INBOUND_TRUCK,INBOUND_TAIL].some(b=>circleIntersectsPoly(x,z,r,depotPoly(b))))return true;
+    for(const c of this.workday.couriers){if(Math.hypot(from.x-c.bike.x,from.z-c.bike.z)>1.5&&Math.hypot(x-c.bike.x,z-c.bike.z)<r+.65)return true;}
     if(gateLeaves(this.gateOpen).some(b=>circleIntersectsPoly(x,z,r,depotPoly(b))))return true;
     for (const s of this.stores.values()) {
       if (!circleIntersectsPoly(x, z, r, s.layout.doorway)) continue;

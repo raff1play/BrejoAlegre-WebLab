@@ -14,7 +14,6 @@ import { GLTFFileLoaderMetadata } from '@babylonjs/loaders/glTF/glTFFileLoader.m
 import { registerGLTFExtension } from '@babylonjs/loaders/glTF/2.0/glTFLoaderExtensionRegistry';
 import '@babylonjs/core/Meshes/instancedMesh';
 import { CURB_H } from './layout';
-import { depotWorld, depotYaw } from './city/cityPlan';
 import { shopFurniture } from './city/cityLayout';
 
 /**
@@ -128,17 +127,16 @@ async function loadModel(scene: Scene, id: ExternalModelId): Promise<Mesh[]> {
 /**
  * Where each model goes. CORE-015: the Poly Haven (CC0) models of CORE-011 are kept and moved to the
  * real town — colonial lamps and planters flank each (fictional) shop on its real street, the
- * roll-up door closes the last dock of the depot.
+ * D05 now uses the stateful LOG-003 door; no static model may close that opening.
  */
 export function externalPlacements(): Record<ExternalModelId, Placement[]> {
   const f = shopFurniture();
   const lamps: Placement[] = f.lamps.map((l) => ({ x: l.x, y: CURB_H, z: l.z, yaw: l.yaw, scale: [1.08, 1.08, 1.08] }));
   const planters: Placement[] = f.planters.map((q) => ({ x: q.x, y: CURB_H, z: q.z, yaw: q.yaw, scale: [1.1, 1.05, 1.05] }));
-  const dock = depotWorld(128, -118.02);
   return {
     street_lamp_01: lamps,
     planter_box_02: planters,
-    rollershutter_door: [{ x: dock.x, y: CURB_H, z: dock.z, yaw: depotYaw(0), scale: [2.9, 3.2, 1] }],
+    rollershutter_door: [], // The animated door and its collider are owned by SupplierVanView/DeliveryGame.
   };
 }
 

@@ -202,10 +202,10 @@ export class Workday {
       if(p.state==='COLETADO')advance(p,'EM_TRANSPORTE','jogador',hour);
       if(this.depot.receive(p,hour,this.parcels))deposited++;
     }
-    if(list.length){
+    if(deposited){
       if(hour>ROUTINE.returnBy)this.late=true;
       if(!this.carrying().length&&this.assigned.every(s=>!this.readyAt(s).length))this.phase='CONFERENCIA';
-      this.say(`${list.length} volume(s) depositados no recebimento`);
+      this.say(`${deposited} volume(s) depositados no recebimento`);
     }
     return deposited;
   }

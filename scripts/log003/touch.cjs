@@ -1,0 +1,13 @@
+/** Touch browser emulation only: no physical Android/Galaxy claim. */
+const {chromium}=require('playwright'),fs=require('node:fs');
+(async()=>{const b=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']});const context=await b.newContext({viewport:{width:915,height:412},isMobile:true,hasTouch:true,deviceScaleFactor:1});const p=await context.newPage(),errors=[],checks=[];p.on('pageerror',e=>errors.push(e.message));
+await p.goto('http://localhost:5173/?gfx=mobile&trafego=0&seed=2026');await p.waitForFunction(()=>window.__debug);await p.evaluate(()=>__scene.getEngine().setHardwareScalingLevel(3));
+const check=(name,pass)=>{checks.push({name,pass:!!pass});console.log(pass?'PASS':'FAIL',name);if(!pass)throw Error(name);},snap=()=>p.evaluate(()=>__weblab.snapshot());
+const cdp=await context.newCDPSession(p);const touch=async(selector,ms)=>{const r=await p.locator(selector).boundingBox();await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{id:1,x:r.x+r.width/2,y:r.y+r.height/2}]});await p.waitForTimeout(ms);await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});};
+const initial=await snap();await touch('[data-control="accelerate"]',1300);let s=await snap();check('touch throttle moves the approved motorcycle',s.moto.speed>0&&Math.hypot(s.moto.x-initial.moto.x,s.moto.z-initial.moto.z)>.2);
+await touch('[data-control="brake"]',1600);s=await snap();check('touch brake stops motorcycle',Math.abs(s.moto.speed)<.3);
+await p.locator('[data-action="mount"]').tap();await p.waitForTimeout(700);check('touch action dismounts after stop',(await snap()).mode==='walking');
+await p.locator('#minimap').tap();await p.waitForTimeout(200);check('touch minimap expands',(await snap()).minimap.expanded);
+await p.locator('.pause-button').tap();await p.waitForTimeout(500);check('logistics panel readable without horizontal overflow',await p.locator('#logistics-panel').isVisible()&&await p.evaluate(()=>{const el=document.querySelector('.pause-card');return el.scrollWidth<=el.clientWidth+1}));
+await p.locator('#logistics-panel details summary').tap();await p.locator('#sector-map').scrollIntoViewIfNeeded();await p.evaluate(()=>__scene.getEngine().setHardwareScalingLevel(1));await p.screenshot({path:'docs/evidence/log-003/touch-sector-map.jpg',quality:88});
+check('no browser errors',!errors.length);fs.writeFileSync('docs/evidence/log-003/touch-browser.json',JSON.stringify({method:'Chromium touch emulation, 915x412, CDP touch events, SwiftShader; no Android hardware',checks,errors},null,2));await b.close();})().catch(e=>{console.error(e);process.exit(1)});

@@ -41,13 +41,13 @@ export class DepotParcels {
   this.boxes.thinInstanceSetBuffer('matrix',this.matrices,16,false);
   this.boxes.metadata={ids:this.ids,capacity:parcels.length};
  }
- update(parcels:readonly Parcel[],near=true):void{
+ update(parcels:readonly Parcel[],near=true,grouped:ReadonlySet<string>=new Set()):void{
   this.boxes.setEnabled(near);this.labels.setEnabled(near);if(!near){this.visibleIds.length=0;return;}
   if(!parcels.length)return;if(this.ids.length!==parcels.length)this.initialize(parcels);
   this.visibleIds.length=0;
   for(let i=0;i<parcels.length;i++){
    const p=parcels[i]!,pos=p.position;
-   const visible=!!pos&&!['bau','loja','destinatario'].includes(p.place)&&!(p.place==='maos'&&p.holder==='jogador');
+   const visible=!!pos&&!['bau','loja','destinatario'].includes(p.place)&&!(p.place==='maos'&&p.holder==='jogador')&&!grouped.has(p.id);
    if(visible)this.visibleIds.push(p.id);
    const at=visible?depotWorld(pos!.x,pos!.z):{x:0,z:0},y=visible?pos!.y+.15:-100;
    const matrix=Matrix.Translation(at.x,y,at.z);matrix.copyToArray(this.matrices,i*16);

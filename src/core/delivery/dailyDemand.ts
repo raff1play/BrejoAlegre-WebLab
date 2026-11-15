@@ -11,7 +11,7 @@ export function dailyDemand(addresses:readonly Address[],hour:number,options:Dem
  const random=rng(options.seed??2026),stores=STORES.map(s=>s.id),assignments={} as Record<ActorId,StoreKind[]>;
  for(let i=stores.length-1;i>0;i--){const j=Math.floor(random()*(i+1));[stores[i],stores[j]]=[stores[j]!,stores[i]!];}
  ACTORS.forEach((a,i)=>assignments[a]=stores.slice(i*2,i*2+2));
- const pools=SECTORS.map(s=>addresses.filter(a=>sectorOf(a.door)===s));
+ const pools=SECTORS.map(s=>{const pool=addresses.filter(a=>sectorOf(a.door)===s);for(let i=pool.length-1;i>0;i--){const j=Math.floor(random()*(i+1));[pool[i],pool[j]]=[pool[j]!,pool[i]!];}return pool.slice(0,5);});
  if(pools.some(p=>!p.length))throw new Error('Setor sem endereço acessível');
  const count=(min:number,max:number)=>options.boundary==='minimum'?min:options.boundary==='maximum'?max:min+Math.floor(random()*(max-min+1));
  const parcels:Parcel[]=[],sectorCount=[0,0,0,0];let serial=0;

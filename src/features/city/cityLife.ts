@@ -62,11 +62,13 @@ function hex(c: string): [number, number, number] { const k = Color3.FromHexStri
 export type CityLife = {
   traffic: Traffic; crowd: Crowd; graph: RoadGraph; plans: Map<string, SignalPlan>;
   update(dt: number, time: number, hour: number, night: number, player: { x: number; z: number; radius: number }, ground: (x: number, z: number) => number): void;
+  courierObstacles:{x:number;z:number;radius:number}[];
   blocks(x: number, z: number, r: number): boolean;
   stats(): { vehicles: number; moving: number; pedestrians: number; visiblePedestrians: number; byKind: Record<string, number>; signals: Record<string, string>; vehicleIds: number[]; fingerprint: number };
 };
 
 export function buildCityLife(scene: Scene, mats: Materials, profile: GraphicsProfile, shadows: ShadowGenerator, free: (x: number, z: number) => boolean, traffic0 = true): CityLife {
+  const courierObstacles:{x:number;z:number;radius:number}[]=[];
   const graph = buildRoadGraph();
   const plans = buildSignalPlans(graph);
   const light = profile.name === 'mobile';
@@ -224,11 +226,11 @@ export function buildCityLife(scene: Scene, mats: Materials, profile: GraphicsPr
   let lastTime = 0;
 
   return {
-    traffic, crowd, graph, plans,
+    traffic, crowd, graph, plans,courierObstacles,
     update(dt, time, hour, night, player, ground) {
       lastTime = time;
       const act = activityAt(hour);
-      const tctx = { time, player, crosswalkBusy: (n: string, r: string) => crowd.crosswalkBusy(n, r), density: act.traffic, logistics: act.logistics > 0.5 };
+      const tctx = { time, player,obstacles:courierObstacles, crosswalkBusy: (n: string, r: string) => crowd.crosswalkBusy(n, r), density: act.traffic, logistics: act.logistics > 0.5 };
       const pctx = {
         time, hour, people: act.people, commerceOpen: act.commerceOpen, player,
         pedAspect: (n: string) => { const p = plans.get(n); return p ? signalState(p, time).ped : null; },

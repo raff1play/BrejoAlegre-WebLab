@@ -1,0 +1,30 @@
+{
+  "method": "Chromium touch emulation, 915x412, CDP touch events, SwiftShader; no Android hardware",
+  "checks": [
+    {
+      "name": "touch throttle moves the approved motorcycle",
+      "pass": true
+    },
+    {
+      "name": "touch brake stops motorcycle",
+      "pass": true
+    },
+    {
+      "name": "touch action dismounts after stop",
+      "pass": true
+    },
+    {
+      "name": "touch minimap expands",
+      "pass": true
+    },
+    {
+      "name": "logistics panel readable without horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "no browser errors",
+      "pass": true
+    }
+  ],
+  "errors": []
+}

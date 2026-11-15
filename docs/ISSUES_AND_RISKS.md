@@ -149,3 +149,12 @@ Não marcar bloqueio como corrigido sem evidência de execução, timestamp e, q
 - Acabamento industrial simplificado e iluminação emissiva; não atinge referência fotográfica nem substitui arte profissional. Uma carga/entregador local, sem operação simultânea de múltiplas rotas.
 - O caminhão de recebimento é estacionado na doca 05 pela chegada programada (fallback 13h), com pacotes rastreados. Não foi implementada nova IA global de caminhões navegando pela portaria.
 - Contagens de geometria/draw calls medidas no SwiftShader. Android físico, temperatura, bateria, ergonomia e 30 FPS real não comprovados. Testes headless usam fixtures e escala reduzida de render; comparativos visuais usam 1280×720 nativo. Método exato nos logs e README da evidência.
+
+## LOG-003 (15/11/2026)
+
+- Van amarela com carga/portas/recebimento reais, porém chegada e saída assistidas. Percurso viário e manobra completos pendentes.
+- Movimento NPC cinemático, animações de manuseio simples e desvio entre funcionários limitado. Tráfego reconhece motos e motociclistas aguardam veículos próximos; falta ensaio prolongado de operação com tráfego normal e coordenação completa de cruzamentos.
+- Seed natural de 55 volumes conclui perto das 21h no replay sem viagens do jogador. Desempenho humano e tráfego podem produzir pendências legítimas ao encerrar o turno.
+- Medições antes/depois são cenas paradas de Chromium/SwiftShader. Sem prova de 30 FPS, toque, temperatura ou conforto no Galaxy S24/Android físico.
+- Build staging permanece com aviso de chunk principal grande; nenhuma dependência nova foi adicionada.
+- Relatório e capturas reais: `evidence/log-003/README.md`.

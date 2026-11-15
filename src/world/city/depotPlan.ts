@@ -9,6 +9,7 @@ export const DEPOT_POINTS = {
   entry:{x:106,z:-91}, parking:{x:84,z:-111}, truck:{x:128,z:-119.4},
 } as const;
 export const REGIONAL_CAGES = [113,116.5,120,123.5].map(x=>rect(x,x+2.8,-138,-135.5));
+export const COURIER_ENTRY_X=103.5,COURIER_EXIT_X=108.5;
 export const COURIER_BAYS={jogador:{x:84,z:-111},npc1:{x:81,z:-111},npc2:{x:87,z:-111},npc3:{x:90,z:-111}} as const;
 export const DISPATCH_POINTS=[96,104,112,120].map(x=>({x,z:-116.7}));
 export const D05_SHUTTER=rect(126.1,129.9,-118.3,-118.1);

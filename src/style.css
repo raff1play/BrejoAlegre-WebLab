@@ -237,3 +237,9 @@ button.pressed { transform: scale(.97); filter: brightness(1.12); }
 
 /* Only the isolated street-preview branch uses this identifier. */
 .street-experiment-label { position: fixed; top: max(5px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); z-index: 45; pointer-events: none; padding: 4px 8px; border-radius: 0 0 7px 7px; background: rgba(8, 22, 31, .86); color: #f8d98d; border: 1px solid rgba(248, 217, 141, .4); font: 700 9px/1.1 system-ui, sans-serif; white-space: nowrap; letter-spacing: .7px; }
+
+#logistics-panel { border:1px solid #4c6265; border-radius:8px; padding:10px; font-size:13px; }
+#logistics-panel summary { padding:6px 0; cursor:pointer; font-weight:700; }
+.logistics-lines p { margin:7px 0; line-height:1.4; }
+#release-team { min-height:48px; margin:8px 0; padding:10px; font-size:13px; }
+#release-team:disabled { opacity:.55; }
