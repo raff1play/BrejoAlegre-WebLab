@@ -30,4 +30,4 @@
 4. Teste real no Galaxy S24 para calibrar ergonomia; Chromium não substitui hardware.
 5. PR para `preview` após CI. Não mesclar na `main` nem publicar Pages sem solicitação explícita.
 
-**Status:** ESPECIFICAÇÃO ATUALIZADA, implementação e testes da HUD-001/CTRL-001 **não iniciados**.
+**Status:** HUD-001 + CTRL-001 + MAP-001 **implementados** na branch `feat/hud-001-mobile-controls` (PR para `preview`), com `npm run check` e E2E Chromium com trânsito aprovados; ver [`evidence/hud-001`](evidence/hud-001/README.md). **Pendente:** aceite do usuário, gate 4 (Galaxy S24 físico) e decisão de publicação. Não mesclar na `main` nem publicar sem pedido explícito.

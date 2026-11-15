@@ -2,6 +2,13 @@
 
 Histórico anterior a 15/11/2026 arquivado no [snapshot LOG-006](https://github.com/raff1play/BrejoAlegre-WebLab/blob/archive/2026-11-15-log006-published/docs/CHANGELOG.md).
 
+## 15/11/2026 — HUD-001 + CTRL-001 + MAP-001 (PR para `preview`)
+
+- HUD por contexto (pilotando, a pé, na base), progresso meu × equipe, avisos sob o objetivo, CSS consolidado, rótulo de experimento removido e relógio HTML 11h45.
+- Analógico flutuante com acompanhamento limitado; direção da moto normalizada pela curva disponível em cada velocidade (física inalterada): 10 km/h com 25 % do polegar passa de 28 % para 53 % da curva possível; 40 km/h com 25 % cai de 75 % para 42 %.
+- Minimapa com direção da moto para cima, zoom 55–115 m por velocidade, rota destacada, seta de conversão só em cruzamentos reais, recálculo ao sair da rota; ampliado com setores e paradas numeradas.
+- 155 unitários; E2E com multitoque CDP, contextos e resoluções 915×412/780×360. Sem teste em Android físico.
+
 ## 15/11/2026 — ponto de partida LOG-006
 
 - Versão publicada em Pages: `f98b652`; CI e deploy bem-sucedidos, 145 testes unitários na baseline; novo teste LOG-006 reproduz espera por van e retomada em simulação.

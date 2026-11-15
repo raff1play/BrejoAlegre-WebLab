@@ -18,10 +18,17 @@
 - Há testes de simulação de segunda 55, quinta 43 e sábado 31 pacotes; os testes reposicionam o jogador artificialmente entre tarefas e desligam tráfego ambiente. São testes de invariantes, não de uma sessão humana completa.
 - Não houve teste físico de desempenho/FPS/temperatura no Galaxy S24 pela automação. Trânsito intenso prolongado, travamentos de rota e UI ainda dependem de homologação.
 
+## Em revisão (branch `feat/hud-001-mobile-controls`, PR para `preview`)
+
+- **HUD-001:** HUD por contexto (pilotando / a pé / na base), progresso meu × equipe separado, avisos fora do centro, CSS consolidado, rótulo de experimento removido, relógio HTML 11h45.
+- **CTRL-001:** analógico flutuante (centro no primeiro toque, acompanhamento limitado), eixo X axial para a moto e curva normalizada pela guinada disponível na velocidade; física `MOTO` inalterada.
+- **MAP-001:** minimapa com direção da moto para cima, zoom por velocidade, rota de alto contraste, próxima conversão apenas em cruzamentos reais, recálculo ao sair da rota; mapa ampliado com setores e paradas numeradas. Sem ETA.
+- Evidências: [`docs/evidence/hud-001`](evidence/hud-001/README.md). Não validado em Android físico.
+
 ## Prioridade futura
 
 1. Revisar testes E2E com navegador e tráfego ativo.
-2. HUD-001 — compactar objetivos, mostrar informações contextuais, reorganizar minimapa e botões mantendo física/controles.
+2. HUD-001/CTRL-001/MAP-001 — implementados em PR; falta aceite do usuário e calibração no Galaxy S24.
 3. Só depois planejar recursos novos com critérios de aceitação.
 
 **O que não existe:** multiplayer real, backend, economia persistente, garagem/financiamento CORE-016, scanner virtual completo ou lançamento do jogo Godot. A versão web é o protótipo.

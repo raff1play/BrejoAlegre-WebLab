@@ -11,4 +11,4 @@ Para decisões históricas, veja [arquivo integral da versão LOG-006](https://g
 7. **Controle:** manter moto responsiva no Android, analógico, botões de acelerar/frear, descer/montar, câmera e minimapa; PWA anterior permanece desativada.
 8. **LOG-006:** tentativa de impedir bloqueio circular entre veículo e moto estacionada; comportamento só é considerado homologado após teste com trânsito ativo.
 9. **Qualidade:** regressões são obrigatórias; para mudar a `main`, revisar PR. Publicar preview **apenas com autorização explícita**.
-10. **Próxima iniciativa:** HUD-001 foi escolhida para análise, **não implementada ainda**. Fazer mudanças visuais sem alterar física, roteamento ou custódia de pacotes.
+10. **HUD-001/CTRL-001/MAP-001:** implementados em PR para `preview` sem alterar física (`MOTO`), roteamento NPC ou custódia de pacotes. O analógico normaliza o polegar pela curva disponível em cada velocidade; o minimapa não mostra ETA nem instruções sem cruzamento real no grafo OSM. Aceite final depende do usuário e de teste no Galaxy S24.
