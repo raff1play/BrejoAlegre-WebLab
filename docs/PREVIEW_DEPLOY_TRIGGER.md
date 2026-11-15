@@ -152,3 +152,12 @@ Em **Build and deployment > Source**, selecionar **GitHub Actions** e salvar. En
 - **Correção:** moto mais ágil em baixa/média velocidade (`maxSteerAngle` 0,67→0,82 rad, `maxLateralAccel` 8→9,5 m/s², `steerSpeedRef` 7,5→8, entrada/recentralização 5/8→9/12/s); polegar alcança curva máxima a 62% do raio em vez de 72%; preserves joystick a pé, frenagem, NPC, pacotes e minimapa.
 - **Evidência:** CI em [43731798649](https://github.com/raff1play/BrejoAlegre-WebLab/actions/runs/43731798649) `success`: 157 testes unitários e 75 verificações E2E em Chromium com trânsito; teste físico da nova sensibilidade no Galaxy S24 ainda pendente.
 - **Gatilho intencional:** esta edição aciona `.github/workflows/preview.yml` e recompila a HEAD da `preview`. Só declarar publicação concluída após `Deploy preview` success e URL confirmada.
+
+
+## B1-00 — smoke de publicacao do workflow novo (15/11/2026)
+
+- **Autorizacao:** pedido do usuario nesta conversa: "Execute o b1 00 ou mande o prompt nao sei como vai ser". O B1-00 e a infraestrutura de testes/publicacao/aprovacao, nao uma nova versao de gameplay.
+- **Integracao:** PR #10, commit de merge b012be69aff667200bfae1229ea3eb1ca49be7db, apenas 14 arquivos de automacao, testes e documentacao. Nenhum arquivo de gameplay foi alterado.
+- **Objetivo desta edicao:** disparar o novo workflow de Pages para testar os gates de validate + unitarios + build + Chromium E2E antes de republicar a MESMA versao do jogo ja existente na preview.
+- **Nao autoriza:** iniciar B1-01, alterar main, adicionar servicos, declarar homologacao Android, marcar B1-00 APROVADO sem decisao expressa.
+- **Evidencia de deploy:** verificar no GitHub Actions; esta nota nao afirma sucesso antecipado.
