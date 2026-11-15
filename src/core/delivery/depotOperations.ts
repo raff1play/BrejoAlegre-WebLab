@@ -76,7 +76,7 @@ export class DepotOperations {
  }
  private walk(w:DepotWorker,dt:number):boolean {
   const t=w.task!.route[0];if(!t)return true;
-  const dx=t.x-w.x,dz=t.z-w.z,d=Math.hypot(dx,dz),s=Math.min(d,1.85*dt);
+  const dx=t.x-w.x,dz=t.z-w.z,d=Math.hypot(dx,dz),s=Math.min(d,2.05*dt);
   if(d>1e-8){w.x+=dx/d*s;w.z+=dz/d*s;w.yaw=Math.atan2(dx,dz);}
   if(d<=s+.001)w.task!.route.shift();return w.task!.route.length===0;
  }
@@ -111,7 +111,7 @@ export class DepotOperations {
     case 'process':
      w.activity='work';t.timer+=dt;
      if(t.kind==='check'){if(t.timer<2.4)break;advance(p,'RECEBIDO_BASE',w.role,hour);}
-     else {p.position=mix(t.origin,t.destination,Math.min(1,t.timer/16));if(t.timer<16)break;advance(p,'TRIADO',w.role,hour);}
+     else {p.position=mix(t.origin,t.destination,Math.min(1,t.timer/13));if(t.timer<13)break;advance(p,'TRIADO',w.role,hour);}
      w.task=null;w.parcel=null;break;
    }
   }
