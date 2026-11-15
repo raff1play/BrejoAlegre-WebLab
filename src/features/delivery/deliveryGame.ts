@@ -62,8 +62,8 @@ export class DeliveryGame {
   private time = 0;
   private waitUntil: number | null = null;
 
-  constructor(scene: Scene, mats: Materials, profile: GraphicsProfile, shadows: ShadowGenerator, private readonly shutters: Map<string, Mesh>, free: (x: number, z: number) => boolean, seed?: number, _perStore=2) {
-    this.workday = new LogisticsDay({ seed, free });
+  constructor(scene: Scene, mats: Materials, profile: GraphicsProfile, shadows: ShadowGenerator, private readonly shutters: Map<string, Mesh>, free: (x: number, z: number) => boolean, seed?: number, _perStore=2, dayIndex?:number) {
+    this.workday = new LogisticsDay({ seed, free, dayIndex });
     this.courierViews=new CourierViews(scene,mats,this.workday);
     this.parcelViews = new DepotParcels(scene,mats);
     this.vanView=new SupplierVanView(scene,mats);
