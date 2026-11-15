@@ -161,3 +161,11 @@
 ### 15/11/2026 — LOG-003 autorizada na branch ART-001
 
 Pedido explícito do usuário: manter `feat/art-001-primeira-loja-moto`, sem merge/publicação; operar com um jogador, três motociclistas NPCs, oito lojas (2–5 volumes), van (5–15), quatro setores/cargas/docas e confirmação conjunta após as cargas estarem guardadas, a partir das 15h. D05 recebe a van, D01 Norte, D02 Oeste/jogador, D03 Leste, D04 Sul. Destino governa setor; coletor/origem não governam o entregador final. Jornada até 21h, 150 segundos reais/hora, processamento imediato. Implementação local com uma fonte de verdade de pacotes, sem serviços novos. Chegada/saída assistidas da van são limitação intermediária explicitada, não percurso real. Arquivos e evidências: `docs/evidence/log-003/README.md`.
+
+## LOG-004 — Calendário e metas de operação (15/11/2026)
+
+- Decisão do usuário: entregadores NPCs um pouco mais rápidos, retorno ideal à base até **14h** e tolerância máxima de **14h20**; três novos funcionários na base; após descarregar os próprios volumes, três motociclistas também ajudam **fisicamente** na separação; cargas prontas até **15h** nos dias comuns, ou até **16h** com alta demanda.
+- Semana solicitada: segunda/terça alta, quinta/sexta média e sábado fraca. Defaults provisórios não especificados: quarta normal, domingo folga (o calendário ignora domingo ao avançar). Todos os intervalos numéricos são parâmetros da simulação e não alteram volumes já criados.
+- Relógio permanece **150 s reais por hora virtual**; coletas iniciam às 12h mas os NPCs podem se deslocar para lojas desde 11h. A saca permanece disponível só após 15h e triagem real concluída. A liberação conjunta segue obrigatória.
+- Não usar teleporte, despacho fictício ou desaparecimento de pacotes para mascarar atrasos. Casos extremos de tráfego devem registrar atraso e pendências, exigindo testes específicos posteriores.
+- Implementação e medições em [LOG-004](evidence/log-004/README.md). Branch de desenvolvimento isolada, sem merge nem publicação automática.
