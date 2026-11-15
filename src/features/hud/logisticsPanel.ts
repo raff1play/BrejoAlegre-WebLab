@@ -2,10 +2,12 @@ import {COURIER_LABEL} from '../../core/delivery/couriers';
 import type {LogisticsDay} from '../../core/delivery/logisticsDay';
 import {SECTORS,SECTOR_DATA,SECTOR_CENTRE,sectorOf} from '../../core/delivery/sectors';
 import {ROADS,STORES} from '../../world/city/cityPlan';
+import {calendarWeek,type CalendarDay} from '../../core/delivery/operatingCalendar';
 /** Consultation lives in the pause screen, leaving the driving HUD and touch controls clear. */
 export class LogisticsPanel {
- private readonly lines:HTMLDivElement;private readonly button:HTMLButtonElement;private last=-1;
- constructor(doc:Document,day:LogisticsDay,hour:()=>number,resume:()=>void){
+ private readonly lines:HTMLDivElement;private readonly button:HTMLButtonElement;
+ private readonly nextButton:HTMLButtonElement;private readonly calendarStatus:HTMLParagraphElement;private last=-1;
+ constructor(doc:Document,day:LogisticsDay,hour:()=>number,resume:()=>void,selected:CalendarDay|null,nextDay:()=>void){
   const panel=doc.createElement('details');panel.id='logistics-panel';panel.open=true;
   const title=doc.createElement('summary');title.textContent='Logística — equipe e quatro setores';panel.append(title);
   this.lines=doc.createElement('div');this.lines.className='logistics-lines';panel.append(this.lines);
@@ -13,11 +15,41 @@ export class LogisticsPanel {
   this.button.onclick=()=>{if(day.release(hour()))resume();};
   const mapToggle=doc.createElement('details'),mapTitle=doc.createElement('summary');mapTitle.textContent='Mapa dos setores • norte geográfico ↑';mapToggle.append(mapTitle);
   const canvas=doc.createElement('canvas');canvas.width=480;canvas.height=400;canvas.style.width='100%';canvas.id='sector-map';mapToggle.append(canvas);panel.append(mapToggle);
+  const schedule=doc.createElement('details');schedule.id='game-calendar';
+  const calendarTitle=doc.createElement('summary');calendarTitle.textContent='Calendário de trabalho · demanda semanal';schedule.append(calendarTitle);
+  this.calendarStatus=doc.createElement('p');this.calendarStatus.className='calendar-current';schedule.append(this.calendarStatus);
+  const grid=doc.createElement('div');grid.className='calendar-week';schedule.append(grid);
+  for(const entry of calendarWeek(selected?.index??0)){
+    const tile=doc.createElement('div');tile.className='calendar-day'+(entry.index===selected?.index?' selected':'');
+    const name=doc.createElement('strong');name.textContent=entry.name.slice(0,3);
+    const date=doc.createElement('small');date.textContent=entry.date.slice(8,10)+'/'+entry.date.slice(5,7);
+    const tier=doc.createElement('span');tier.textContent=entry.tier==='folga'?'Folga':entry.tier.toUpperCase();
+    const volumes=doc.createElement('small');volumes.textContent=entry.tier==='folga'?'Sem coleta':entry.minParcels+'–'+entry.maxParcels+' vol.';
+    tile.append(name,date,tier,volumes);grid.append(tile);
+  }
+  this.nextButton=doc.createElement('button');this.nextButton.id='next-workday';this.nextButton.textContent='Encerrar e iniciar próximo dia útil';this.nextButton.onclick=nextDay;this.nextButton.disabled=true;schedule.append(this.nextButton);
+  const note=doc.createElement('p');note.className='calendar-note';note.textContent='Quarta: normal; domingo: folga (configuração inicial). A demanda é sorteada por dia e permanece fixa durante a jornada.';schedule.append(note);
+  panel.append(schedule);
   doc.querySelector('.pause-actions')!.after(panel);this.map(canvas,day);
  }
  update(day:LogisticsDay,hour:number,time:number):void{
   if(time-this.last<.5)return;this.last=time;
-  const list:string[]=[`Seu setor: OESTE / D02 • jornada até 21h • restam ${Math.max(0,Math.floor((21-hour)*60))} min`,...day.assigned.map(id=>{const total=day.parcels.filter(p=>p.origin===id);return `${STORES.find(s=>s.id===id)!.name}: ${total.filter(p=>p.state!=='NA_LOJA').length}/${total.length} coletados`;}),...day.couriers.map(c=>`${c.name} (${c.sector}): ${COURIER_LABEL[c.state]} • ${c.trunk(day).length} no baú${c.error?' • acesso bloqueado':''}`),`Recebimento/conferência: ${day.parcels.filter(p=>['recebimento','conferencia'].includes(p.place)).length} • triagem/transferência: ${day.parcels.filter(p=>['triagem','transferencia'].includes(p.place)).length}`, ...SECTORS.map(s=>{const parcels=day.parcels.filter(p=>p.sector===s);return `${SECTOR_DATA[s].dock} ${s}: ${parcels.filter(p=>p.place==='saca').length} prontos • ${parcels.filter(p=>p.state==='ENTREGUE').length}/${parcels.length} entregues`;}),`Van: ${({scheduled:'prevista às 13h',opening:'abrindo portas',unloading:'descarregando',closing:'fechando portas',departed:'saída assistida concluída'})[day.van.state]} • chegada com estacionamento assistido`];
+  const fmt=(h:number)=>`${String(Math.floor(h)).padStart(2,'0')}:${String(Math.floor((h%1)*60)).padStart(2,'0')}`;
+  const status=day.calendar?.tier.toUpperCase()??'CENÁRIO DE TESTE';
+  const expected=day.calendar?.depotTarget??15;
+  this.calendarStatus.textContent=day.calendar?`${day.calendar.label} · demanda ${status} (${day.calendar.minParcels}–${day.calendar.maxParcels} pacotes) · meta de separação ${fmt(expected)}`:'Cenário de testes: seed fixa sem sazonalidade. O calendário semanal continua disponível.';
+  this.nextButton.disabled=!day.calendar||!['CONCLUIDA','ENCERRADA'].includes(day.phase);
+  const list:string[]=[
+   `Seu setor: OESTE / D02 · jornada até 21h · restam ${Math.max(0,Math.floor((21-hour)*60))} min`,
+   `NPCs: retorno ideal 14h · tolerância máxima 14h20 · triagem ${fmt(expected)} (meta)`,
+   ...day.assigned.map(id=>{const total=day.parcels.filter(p=>p.origin===id);return `${STORES.find(s=>s.id===id)!.name}: ${total.filter(p=>p.state!=='NA_LOJA').length}/${total.length} coletados`;}),
+   ...day.couriers.map(c=>`${c.name} (${c.sector}): ${COURIER_LABEL[c.state]} · ${c.returnedAt===null?'retorno pendente':`retornou ${fmt(c.returnedAt)}`}${c.deadlineReported?' · ATRASADO':''} · ${c.trunk(day).length} no baú${c.error?' · acesso bloqueado':''}`),
+   `Equipe de base: ${day.depot.workers.length} funcionários · ${day.couriers.filter(c=>c.state==='help-sort').length} motoboys ajudando`,
+   `Recebimento/conferência: ${day.parcels.filter(p=>['recebimento','conferencia'].includes(p.place)).length} · triagem/transferência: ${day.parcels.filter(p=>['triagem','transferencia'].includes(p.place)).length}`,
+   ...SECTORS.map(s=>{const parcels=day.parcels.filter(p=>p.sector===s);return `${SECTOR_DATA[s].dock} ${s}: ${parcels.filter(p=>p.place==='saca').length} prontos · ${parcels.filter(p=>p.state==='ENTREGUE').length}/${parcels.length} entregues`;}),
+   `Separação de todas as cargas: ${day.allSortedAt===null?'em andamento':fmt(day.allSortedAt)} · meta ${fmt(expected)}${day.allSortedAt!==null&&day.allSortedAt>expected?' · FORA DA META':''}`,
+   `Van: ${({scheduled:'prevista às 13h',opening:'abrindo portas',unloading:'descarregando',closing:'fechando portas',departed:'saída assistida concluída'})[day.van.state]}`
+  ];
   this.lines.replaceChildren(...list.map(s=>{const p=document.createElement('p');p.textContent=s;return p;}));
   this.button.disabled=!day.teamReady||day.released||hour<15||hour>=21;
   this.button.textContent=day.released?'Equipe em rota':day.teamReady?'Equipe pronta — iniciar rota de entregas':'Aguardando quatro cargas guardadas nos baús';
