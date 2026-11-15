@@ -542,3 +542,11 @@ Validação: 137 unitários aprovados, typecheck e staging build aprovados (avis
 - Código: `src/core/city/clock.ts`, `src/core/delivery/couriers.ts`, `src/core/delivery/workday.ts`; regressões em `tests/clock.test.ts` e `tests/log004-calendar.test.ts`.
 - A primeira validação com saída atrasada não atendeu às metas de triagem de segunda/quinta. A base foi recalibrada para 360 segundos de trabalho por hora virtual, sem pular etapas de pacote. Verificar CI da HEAD para resultado definitivo, antes de publicar.
 - Pendente: comprovação com tráfego ativo, bloqueios entre NPCs e teste no Android físico; teste unitário isolado não equivale a validação da partida completa. Publicação GitHub Pages não acionada por LOG-005; `main` preservada.
+
+## LOG-006 — Espera circular da moto roxa (15/11/2026)
+
+- O usuário apresentou capturas da versão pública LOG-004 às 12h33 e 15h18, ambas mostrando moto roxa e vans amarelas praticamente imóveis. Evidência de travamento visual, não captura de estado de NPC.
+- Inspeção encontrou possibilidade concreta de impasse: tráfego interrompido por uma moto NPC estacionada e, depois, motociclista esperando o mesmo veículo avançar.
+- Correção experimental na preview: motoboys parados para coleta não bloqueiam o trânsito; quando um motoboy cede passagem a veículo, a van pode liberar a via; bloqueios de jogador e outro motoboy continuam sólidos. Arquivos: src/core/delivery/couriers.ts, logisticsDay.ts, src/features/delivery/deliveryGame.ts, src/main.ts, src/features/hud/logisticsPanel.ts.
+- Testes: tests/log006-traffic-deadlock.test.ts cobre paradas, retomada e preservação de colisão com o jogador. A CI de código até bd19fd3 aprovou 145/145 testes e compilação de staging: https://github.com/raff1play/BrejoAlegre-WebLab/actions/runs/43673145025. Usar a execução da HEAD para confirmação final.
+- Sem novo deploy: a versão pública permanece LOG-004; LOG-005 e LOG-006 são mudanças não publicadas. Ainda faltam teste de trânsito ambiente prolongado, navegador real e ensaio no Galaxy S24.
