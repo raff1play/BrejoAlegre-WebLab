@@ -1,29 +1,54 @@
-name: CI - validar prototype
+name: CI - validar jogo
+
 on:
   push:
-    branches: [main, preview, 'feat/**', 'fix/**', 'setup/**', 'docs/**']
+    branches: [main, preview, 'feat/**', 'fix/**', 'chore/**']
   pull_request:
-    branches: [main]
+    branches: [main, preview]
+
 permissions:
   contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: npm
-      - name: Install (lockfile reproduzível)
+      - name: Instalar dependencias reproduziveis
         run: npm ci --no-audit --no-fund
-      - run: npm run validate:repo
-      - run: npm run test:unit
-      - run: npm run build:staging
-      - name: Stage-only build artifact (never deploy from CI)
-        uses: actions/upload-artifact@v4
+      - name: Validar estrutura
+        run: npm run validate:repo
+      - name: Testes unitarios
+        run: npm run test:unit
+      - name: TypeScript e compilacao de staging
+        run: npm run build:staging
+
+  browser-smoke:
+    if: github.event_name == 'pull_request' && github.base_ref == 'preview'
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          name: weblab-staging-${{ github.sha }}
-          path: dist/
-          if-no-files-found: error
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Playwright apenas no runner (nao integra bundle do jogo)
+        run: npm install --no-save --package-lock=false --ignore-scripts playwright@1.55.0
+      - name: Instalar Chromium e bibliotecas do SO
+        run: npx playwright install --with-deps chromium
+      - name: Testar partida atual em navegador com trafego
+        run: npm run test:e2e
+        env:
+          CI: true

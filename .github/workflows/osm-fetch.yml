@@ -1,15 +1,9 @@
-name: Dados OSM - recorte de Brejo Alegre (execucao manual/isolada)
+name: Dados OSM - importacao manual controlada
 
-# CORE-015: o proxy da sessao de desenvolvimento bloqueia o Overpass; este job roda num runner do
-# GitHub, baixa SOMENTE o recorte da sede urbana (±2 km) e grava data/osm/ na preview.
-# Nao publica nada: o deploy continua restrito a docs/PREVIEW_DEPLOY_TRIGGER.md.
+# Recorte baseado em OpenStreetMap; nunca atualizar a preview automaticamente.
+# Necessita decisao especifica de atualizar a geografia antes de executar.
 on:
   workflow_dispatch:
-  push:
-    branches: [preview]
-    paths:
-      - .github/workflows/osm-fetch.yml
-      - scripts/geo/fetch-osm.mjs
 
 permissions:
   contents: write
@@ -20,6 +14,7 @@ concurrency:
 
 jobs:
   fetch:
+    if: github.ref == 'refs/heads/preview'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -29,18 +24,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Baixar recorte OSM (Overpass)
-        run: node scripts/geo/fetch-osm.mjs
-      - name: Conferir tamanho do recorte
+      - run: node scripts/geo/fetch-osm.mjs
+      - name: Validar tamanho
         run: |
-          ls -la data/osm
-          size=$(stat -c %s data/osm/brejo-alegre.raw.json)
-          test "$size" -lt 20000000
-      - name: Gravar dados na preview
+          test -s data/osm/brejo-alegre.raw.json
+          test "$(stat -c %s data/osm/brejo-alegre.raw.json)" -lt 20000000
+      - name: Propor dados atualizados em log, sem sobrescrever main
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/osm
-          git commit -m "data(osm): recorte OpenStreetMap da sede de Brejo Alegre (ODbL, © OpenStreetMap contributors)" || exit 0
-          git pull --rebase origin preview
-          git push origin HEAD:preview
+          git status --short data/osm
+          echo "OSM baixado no runner; sincronizacao ao repositorio requer revisao e PR."
