@@ -1,3 +1,4 @@
+import { SupplierVan } from './supplierVan.ts';
 import { DepotOperations } from './depotOperations.ts';
 /** Keep depot throughput per virtual hour after shortening the real-time clock. */
 const DEPOT_OPERATION_SECONDS_PER_VIRTUAL_HOUR = 240;
@@ -61,7 +62,7 @@ export class Workday {
   private readonly random: () => number;
   readonly depot = new DepotOperations();
   private lastHour: number | null = null;
-  private truckArrived = false;
+  readonly van = new SupplierVan();
   late = false;
 
   readonly options: WorkdayOptions;
@@ -253,11 +254,11 @@ export class Workday {
     if (this.phase !== 'CONCLUIDA' && this.phase !== 'ANTES' && hour >= ROUTINE.end && this.count('ENTREGUE') < this.parcels.length) {
       this.phase = 'ENCERRADA';
     }
-    if(!this.truckArrived&&(truckDocked||hour>=13)&&this.phase!=='ANTES'){
-      this.truckArrived=true;this.depot.truckAvailable=true;
-      this.parcels.filter(p=>p.place==='caminhao').forEach((p,i)=>arriveTruck(p,hour,{x:127.55+(i%2)*.8,y:1.1+Math.floor(i/2)*.3,z:-117.4}));
-      this.say('Caminhão recebido na doca 05: descarga física iniciada');
+    if(this.van.update(truckDocked?Math.max(hour,13):hour,dt,this.parcels.some(p=>p.place==='caminhao'),this.depot.workers.some(w=>w.task?.kind==='truck'))&&this.phase!=='ANTES'){
+      this.parcels.filter(p=>p.place==='caminhao').forEach((p,i)=>arriveTruck(p,hour,{x:127.25+(i%3)*.55,y:1.25+(Math.floor(i/3)%2)*.32,z:-117.15+Math.floor(i/6)*.85}));
+      this.say('Van na D05 — estacionamento assistido; abrindo portas para descarga');
     }
+    this.depot.truckAvailable=this.van.unloading;
     const dh=this.lastHour===null?0:Math.max(0,hour-this.lastHour);this.lastHour=hour;
     // Clock acceleration speeds work up, but even a clock jump cannot consume a whole job in one frame.
     const factor=dt>0?Math.max(1,Math.min(8,dh*DEPOT_OPERATION_SECONDS_PER_VIRTUAL_HOUR/dt)):1;

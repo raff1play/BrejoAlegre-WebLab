@@ -13,7 +13,7 @@ export const COURIER_BAYS={jogador:{x:84,z:-111},npc1:{x:81,z:-111},npc2:{x:87,z
 export const DISPATCH_POINTS=[96,104,112,120].map(x=>({x,z:-116.7}));
 export const D05_SHUTTER=rect(126.1,129.9,-118.3,-118.1);
 export const INBOUND_TAIL=rect(127.2,128.8,-118.45,-117.8);
-export const INBOUND_TRUCK=rect(126.75,129.25,-117.8,-109.6);
+export const INBOUND_TRUCK=rect(126.6,129.4,-117.8,-110.95);
 export const DISPATCH_DOCK = 'D02';
 export const MIXED_LOAD = 'ROTA-01';
 export const MOTO_PARKING = [81,84,87,90].map(x=>({...rect(x-.9,x+.9,-112.6,-109.4),x,z:-111}));

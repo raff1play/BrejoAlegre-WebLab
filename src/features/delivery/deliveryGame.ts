@@ -1,7 +1,6 @@
-import { BatchSet } from '../../world/geometry';
-import { rodPart } from '../../world/modelParts';
+import { SupplierVanView } from './supplierVanView';
 import { DepotParcels } from './depotParcels';
-import { gateLeaves, INBOUND_TRUCK, INBOUND_TAIL } from '../../world/city/depotPlan';
+import { gateLeaves, INBOUND_TRUCK, INBOUND_TAIL, D05_SHUTTER } from '../../world/city/depotPlan';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { CreateCylinder } from '@babylonjs/core/Meshes/Builders/cylinderBuilder';
 import { CreateTorus } from '@babylonjs/core/Meshes/Builders/torusBuilder';
@@ -51,7 +50,7 @@ export class DeliveryGame {
   private readonly marker: Mesh;
   private readonly ring: Mesh;
   readonly parcelViews: DepotParcels;
-  private readonly inboundTruck: Mesh[];
+  private readonly vanView: SupplierVanView;
   gateOpen = 0;
   gateManual: boolean | null = null;
   private time = 0;
@@ -60,16 +59,7 @@ export class DeliveryGame {
   constructor(scene: Scene, mats: Materials, profile: GraphicsProfile, shadows: ShadowGenerator, private readonly shutters: Map<string, Mesh>, free: (x: number, z: number) => boolean, seed?: number, perStore=2) {
     this.workday = new Workday({ seed, stores: 2, perStore, marketplace: 4, free });
     this.parcelViews = new DepotParcels(scene,mats);
-    const truck=new BatchSet();truck.setTransform(p=>{const q=depotWorld(p[0],p[2]);return[q.x,p[1]+.15,q.z]});
-    const t=INBOUND_TRUCK;
-    truck.box(mats.paint('#45584e'),t.minX,t.maxX,.7,1.03,t.minZ,t.maxZ);
-    truck.box(mats.paint('#b9bba9'),t.minX,t.maxX,1.03,1.15,t.minZ,t.maxZ-2);
-    for(const x of [t.minX,t.maxX-.05])truck.box(mats.paint('#536a60'),x,x+.05,1.15,1.6,t.minZ,t.maxZ-2);
-    truck.box(mats.paint('#e3dcc4'),t.minX,t.maxX,1.03,3,t.maxZ-2,t.maxZ);
-    truck.box(mats.paint('#29463e',.3),t.minX+.1,t.maxX-.1,1.8,2.7,t.maxZ-.08,t.maxZ+.01);
-    for(const x of [t.minX+.12,t.maxX-.12])for(const z of [-116.3,-111.4])truck.absorb(mats.paint('#202822'),rodPart(scene,[x-.12,.5,z],[x+.12,.5,z],.9,.9,12));
-    truck.box(mats.paint('#777f73'),INBOUND_TAIL.minX,INBOUND_TAIL.maxX,.1,.17,INBOUND_TAIL.minZ,INBOUND_TAIL.maxZ);
-    this.inboundTruck=truck.build('art002-inbound-truck',scene);this.inboundTruck.forEach(m=>m.setEnabled(false));
+    this.vanView=new SupplierVanView(scene,mats);
     const cast = profile.name === 'desktop' ? shadows : undefined;
     for (const s of STORES) {
       const look = STORE_STAFF[s.id];
@@ -140,7 +130,7 @@ export class DeliveryGame {
     this.updateDepot(dt, hour, player, ground);
     const centre=depotWorld(112,-125),near=Math.hypot(player.x-centre.x,player.z-centre.z)<140;
     this.parcelViews.update(this.workday.parcels,near);
-    this.inboundTruck.forEach(m=>m.setEnabled(this.workday.depot.truckAvailable&&near));
+    this.vanView.update(this.workday.van,near);
     // Marker over the target.
     const o = this.workday.objective(hour);
     const t = o.target;
@@ -210,7 +200,8 @@ export class DeliveryGame {
    * while it is down — except from the inside, so nobody is locked in at closing time.
    */
   doorBlocked(x: number, z: number, r: number, riding: boolean, from: { x: number; z: number }): boolean {
-    if(this.workday.depot.truckAvailable&&[INBOUND_TRUCK,INBOUND_TAIL].some(b=>circleIntersectsPoly(x,z,r,depotPoly(b))))return true;
+    if(this.workday.van.door<.9&&circleIntersectsPoly(x,z,r,depotPoly(D05_SHUTTER)))return true;
+    if(this.workday.van.present&&[INBOUND_TRUCK,INBOUND_TAIL].some(b=>circleIntersectsPoly(x,z,r,depotPoly(b))))return true;
     if(gateLeaves(this.gateOpen).some(b=>circleIntersectsPoly(x,z,r,depotPoly(b))))return true;
     for (const s of this.stores.values()) {
       if (!circleIntersectsPoly(x, z, r, s.layout.doorway)) continue;
