@@ -42,6 +42,9 @@ const DEPOT_LOOKS: Record<DepotRole, { shirt: string; trousers: string; skin: st
   'separador-2': { shirt: '#1f8a5b', trousers: '#3d3f44', skin: '#f0c8a0', hair: '#a5642c', vest: '#f2c230', longHair: true },
   expedidor: { shirt: '#c9302c', trousers: '#2d3a55', skin: '#b67f5a', hair: '#2a1d16', vest: '#f2c230' },
   supervisor: { shirt: '#eef0ea', trousers: '#3b3f46', skin: '#c99a76', hair: '#8a8580' },
+  'conferente-2': { shirt:'#fff2df', trousers:'#303744', skin:'#9f6948', hair:'#34241e', vest:'#f2c230' },
+  'separador-3': { shirt:'#245f97', trousers:'#2d3a55', skin:'#d6aa86', hair:'#332d29', vest:'#f2c230' },
+  'expedidor-2': { shirt:'#a34138', trousers:'#2d3a55', skin:'#b87d5a', hair:'#26221c', vest:'#f2c230' },
 };
 
 export class DeliveryGame {
