@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "policy": "B1-00 preparo; B1-01 a B1-09 dependem da aprovação expressa do módulo anterior. Nenhum estado é aprovação automática.",
+  "modules": [
+    {
+      "id": "B1-00",
+      "name": "Preparação de execução e aprovação",
+      "status": "EM_DESENVOLVIMENTO",
+      "reviewNote": null,
+      "evidenceUrl": null,
+      "approvedSha": null
+    },
+    {
+      "id": "B1-01",
+      "name": "Personagens e carreiras",
+      "status": "PENDENTE",
+      "reviewNote": null,
+      "evidenceUrl": null,
+      "approvedSha": null
+    },
+    {
+      "id": "B1-02",
+      "name": "Casas e começo do dia",
+      "status": "PENDENTE",
+      "reviewNote": null,
+      "evidenceUrl": null,
+      "approvedSha": null
+    },
+    {
+      "id": "B1-03",
+      "name": "Lojas e distribuição de coletas",
+      "status": "PENDENTE",
+      "reviewNote": null,
+      "evidenceUrl": null,
+      "approvedSha": null
+    },
+    {
+      "id": "B1-04",
+      "name": "Trânsito e corredor de motos",
+      "status": "PENDENTE",
+      "reviewNote": null,
+      "evidenceUrl": null,
+      "approvedSha": null
+    },
+    {
+      "id": "B1-05",
+      "name": "Pacotes e capacidade da moto",
+      "status": "PENDENTE",
+      "reviewNote": null,
+      "evidenceUrl": null,
+      "approvedSha": null
+    },
+    {
+      "id": "B1-06",
+      "name": "Base e separação de encomendas",
+      "status": "PENDENTE",
+      "reviewNote": null,
+      "evidenceUrl": null,
+      "approvedSha": null
+    },
+    {
+      "id": "B1-07",
+      "name": "Entregas e escolhas do jogador",
+      "status": "PENDENTE",
+      "reviewNote": null,
+      "evidenceUrl": null,
+      "approvedSha": null
+    },
+    {
+      "id": "B1-08",
+      "name": "Sons, animações e humor",
+      "status": "PENDENTE",
+      "reviewNote": null,
+      "evidenceUrl": null,
+      "approvedSha": null
+    },
+    {
+      "id": "B1-09",
+      "name": "Fim de expediente e próximo dia",
+      "status": "PENDENTE",
+      "reviewNote": null,
+      "evidenceUrl": null,
+      "approvedSha": null
+    }
+  ],
+  "history": [
+    {
+      "module": "B1-00",
+      "from": "PENDENTE",
+      "to": "EM_DESENVOLVIMENTO",
+      "on": "2026-11-15",
+      "note": "Usuário pediu execução do B1-00; nenhuma aprovação técnica ou final presumida."
+    }
+  ]
+}
