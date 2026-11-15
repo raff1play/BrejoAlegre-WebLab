@@ -535,3 +535,10 @@ Validação: 137 unitários aprovados, typecheck e staging build aprovados (avis
 - Calendário integrado ao painel de pausa/Logística, demanda por dia e data persistida em localStorage entre jornadas; início em segunda-feira 16/11/2026, domingo folga e quarta normal como padrões provisórios. Meta de separação 15h ou 16h em segunda/terça.
 - Aceitação simulada com maior carga do dia: segunda 55 pacotes todos separados ~15h47; quinta 43 ~14h58; sábado 31 ~14h28. Três NPCs retornam antes das 14h nos três testes. Sem tráfego ambiente; viagens do jogador são visitas de teste, não direção real.
 - Regressão unitária/typecheck/build: ver CI da última revisão e [relatório](evidence/log-004/README.md). Ainda sem aprovação visual/Galaxy S24 e sem publicação ou merge desta atualização.
+
+## LOG-005 — Alteração de horário inicial (15/11/2026)
+
+- Mudança solicitada: relógio abre a jornada em **11h45** e os três motociclistas aguardam até **11h47 virtual** para iniciar suas rotas. São 2 minutos de jogo = 5 segundos reais na velocidade normal. A coleta continua a partir de 12h.
+- Código: `src/core/city/clock.ts`, `src/core/delivery/couriers.ts`, `src/core/delivery/workday.ts`; regressões em `tests/clock.test.ts` e `tests/log004-calendar.test.ts`.
+- A primeira validação com saída atrasada não atendeu às metas de triagem de segunda/quinta. A base foi recalibrada para 360 segundos de trabalho por hora virtual, sem pular etapas de pacote. Verificar CI da HEAD para resultado definitivo, antes de publicar.
+- Pendente: comprovação com tráfego ativo, bloqueios entre NPCs e teste no Android físico; teste unitário isolado não equivale a validação da partida completa. Publicação GitHub Pages não acionada por LOG-005; `main` preservada.
