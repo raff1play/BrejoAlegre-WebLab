@@ -13,4 +13,6 @@ A única fonte de verdade da execução atual é esta árvore, especialmente `do
 
 - **Beta 1.0:** cumprir `docs/BETA_1_0_SPEC.md` e `docs/BETA_1_0_DECISIONS.md`; B1-01 possui 17 decisoes e 26 criterios congelados. Usar `docs/beta1/STATE.json` e `docs/beta1/B1_00_RUNBOOK.md`. So iniciar modulo seguinte com APROVADO explicito. O CI nao instala um agente de programacao autonomo.
 
+- **Transferência para executor de programação (Claude Code/Codex):** seguir `docs/beta1/B1_01_HANDOFF_AGENT.md`. Este documento não inicia o B1-01: só desenvolver após status `EM_DESENVOLVIMENTO` validado na `preview`, com autorização do usuário; usar branch `feat/beta1-01-carreiras` e PR draft para `preview`. Nenhum executor pode reduzir as 17 decisões ou AC-01–AC-26, nem mesclar/publicar a `main`.
+
 Ao concluir, relatar commits e arquivos, CI/testes, navegador/Android, riscos, deploy/main e próximos passos.
