@@ -14,6 +14,32 @@ const url=process.env.WEBLAB_URL || `http://127.0.0.1:${port}/`;
 let server=null, browser=null;
 const notes=[],errors=[];
 function check(label,ok,detail){ assert.ok(ok,detail?`${label} — ${JSON.stringify(detail)}`:label);notes.push(label);console.log('PASS',label); }
+/**
+ * B1-01 F3.5: every session starts at the main menu. Taps the career card, sets the presets by touch
+ * and starts it; when the career has no vehicle yet, the one-time vehicle dialog is answered by touch.
+ * Returns once the 3D world (the read-only probe) exists.
+ */
+async function enterFromMenu(page,careerId,{appearance=null,equipment=null,vehicle=null}={}){
+ await page.waitForSelector('#main-menu:not([hidden]) .career-card',{timeout:120000});
+ await page.locator(`.career-card[data-career="${careerId}"]`).tap();
+ await page.waitForSelector(`#career-detail[data-career="${careerId}"]:not([hidden])`,{timeout:10000});
+ if(appearance)await page.locator(`#career-detail [data-appearance="${appearance}"]`).tap();
+ if(equipment)await page.locator(`#career-detail [data-equipment="${equipment}"]`).tap();
+ await page.locator('#career-detail [data-menu="iniciar"]').tap();
+ if(vehicle){
+  await page.waitForSelector('#vehicle-choice:not([hidden])',{timeout:20000});
+  await page.locator(`[data-vehicle="${vehicle}"]`).tap();
+ }
+ await page.waitForFunction(()=>!!window.__weblab?.snapshot?.().delivery?.logistics,{timeout:120000});
+}
+/** Bounding boxes of the menu pieces (cards or detail), for layout checks at phone sizes. */
+function menuLayout(){
+ const r=(e)=>{const b=e.getBoundingClientRect();return {l:b.left,t:b.top,r:b.right,b:b.bottom,w:b.width,h:b.height};};
+ return {w:innerWidth,h:innerHeight,cards:[...document.querySelectorAll('#career-cards:not([hidden]) .career-card')].map(r),
+  buttons:[...document.querySelectorAll('#main-menu:not([hidden]) button')].filter(b=>b.offsetParent).map(b=>({...r(b),text:b.textContent.trim().slice(0,30)})),
+  scroll:document.querySelector('#main-menu').scrollHeight>document.querySelector('#main-menu').clientHeight+1,
+  hud:getComputedStyle(document.querySelector('#hud')).display};
+}
 async function waitReady(){
  for(let i=0;i<180;i++){
   if(server&&server.exitCode!==null)throw Error(`Vite exited with code ${server.exitCode}`);
@@ -47,9 +73,7 @@ async function carCareer(browser){
  const ctx=await browser.newContext({viewport:{width:915,height:412},isMobile:true,hasTouch:true,deviceScaleFactor:1});
  const page=await ctx.newPage();page.on('pageerror',e=>errors.push(e.message));
  await page.goto(url+'?gfx=mobile&trafego=1&dia=0',{waitUntil:'domcontentloaded',timeout:120000});
- await page.waitForSelector('#vehicle-choice:not([hidden])',{timeout:120000});
- await page.locator('[data-vehicle="carro-antigo"]').tap();
- await page.waitForFunction(()=>!!window.__weblab?.snapshot?.().delivery?.logistics,{timeout:120000});
+ await enterFromMenu(page,'personagem-oeste',{vehicle:'carro-antigo'});
  const snapshot=()=>page.evaluate(()=>window.__weblab.snapshot());
  await delay(600);
  let s=await snapshot();
@@ -177,9 +201,16 @@ async function carCareer(browser){
 
  // ------------------------------------------------ reload: the choice is permanent, no second dialog
  await page.reload({waitUntil:'domcontentloaded'});
+ // B1-01 F3.5: the menu again; the card and the detail show the SAVED car, with no new choice.
+ await page.waitForSelector('#main-menu:not([hidden]) .career-card',{timeout:120000});
+ const savedCard=await page.locator('.career-card[data-career="personagem-oeste"]').innerText();
+ await page.locator('.career-card[data-career="personagem-oeste"]').tap();
+ const savedDetail=await page.locator('#career-detail').innerText();
+ check('B1-01 F3.5 AC-03: after reloading the menu shows the saved car as fixed and offers "Continuar carreira"',/Carro popular antigo \(próprio\)/.test(savedCard)&&/fixo/.test(savedDetail)&&/Continuar carreira/.test(savedDetail),{savedCard,savedDetail});
+ await page.locator('#career-detail [data-menu="iniciar"]').tap();
  await page.waitForFunction(()=>!!window.__weblab?.snapshot?.().vehicle,{timeout:120000});
  s=await snapshot();
- check('B1-01 F2 AC-03: after reloading, the same car is loaded and the choice is not offered again',s.vehicle.kind==='carro-antigo'&&await page.locator('#vehicle-choice').isHidden()&&s.career.calendarIndex===0,{vehicle:s.vehicle,career:s.career});
+ check('B1-01 F2/F3.5 AC-03: after reloading, the same car is loaded and the vehicle choice is not offered again',s.vehicle.kind==='carro-antigo'&&await page.locator('#vehicle-choice').isHidden()&&s.career.calendarIndex===0,{vehicle:s.vehicle,career:s.career});
  const saved=await page.evaluate(()=>({own:JSON.parse(localStorage.getItem('brejo-b1:carreira:personagem-oeste')).profile.vehicle,others:['norte','leste','sul'].map(k=>localStorage.getItem('brejo-b1:carreira:personagem-'+k))}));
  check('B1-01 F2 AC-03: only the active career save holds the vehicle; inactive careers untouched',saved.own.kind==='carro-antigo'&&saved.own.paidOff&&saved.others.every(v=>v===null),saved);
  await ctx.close();
@@ -273,6 +304,100 @@ async function carBoot(page,snapshot,action,s){
  await page.evaluate(()=>window.__debug.act());
  await page.waitForFunction(()=>window.__weblab.snapshot().mode==='walking',null,{timeout:10000}).catch(()=>{});
 }
+/** B1-01 F3.5: the menu before the world, at both phone landscape sizes. */
+async function mainMenu(page){
+ await page.waitForSelector('#main-menu:not([hidden]) .career-card',{timeout:120000});
+ const pre=await page.evaluate(()=>({weblab:window.__weblab===undefined,saves:Object.keys(localStorage).filter(k=>k.startsWith('brejo-b1:')),inMenu:document.body.classList.contains('in-menu')}));
+ check('B1-01 F3.5: a clean URL opens the main menu first — no 3D world/engine probe yet, no save created by looking',pre.weblab&&pre.saves.length===0&&pre.inMenu,pre);
+ const cards=await page.locator('.career-card').evaluateAll(es=>es.map(e=>({id:e.dataset.career,text:e.innerText,disabled:e.disabled})));
+ check('B1-01 F3.5 AC-01: exactly four career cards (Rosa/Norte, Lia/Oeste, Caio/Leste, Davi/Sul) with home, vehicle and real progress',cards.length===4&&cards.map(c=>c.id).join()==='personagem-norte,personagem-oeste,personagem-leste,personagem-sul'
+  &&[['Rosa','Norte'],['Lia','Oeste'],['Caio','Leste'],['Davi','Sul']].every(([n,sct],i)=>cards[i].text.includes(n)&&cards[i].text.includes(sct)&&/Casa: /.test(cards[i].text)&&/Veículo: a escolher/.test(cards[i].text)&&/Carreira nova/.test(cards[i].text)&&!/Saldo/.test(cards[i].text))&&cards.every(c=>!c.disabled),cards);
+ for(const [w,h] of [[780,360],[915,412]]){
+  await page.setViewportSize({width:w,height:h});await delay(250);
+  const L=await page.evaluate(menuLayout);
+  const overlap=L.cards.some((a,i)=>L.cards.some((b,j)=>j>i&&a.l<b.r-1&&b.l<a.r-1&&a.t<b.b-1&&b.t<a.b-1));
+  check(`B1-01 F3.5: menu ${w}×${h} landscape — four cards side by side, inside the screen, no overlap, HUD hidden`,L.cards.length===4&&!overlap&&L.cards.every(c=>c.l>=0&&c.r<=w+1&&c.t>=0&&c.b<=h+1&&c.h>=120)&&L.hud==='none',L);
+ }
+ await page.locator('.career-card[data-career="personagem-oeste"]').tap();
+ for(const [w,h] of [[780,360],[915,412]]){
+  await page.setViewportSize({width:w,height:h});await delay(250);
+  const L=await page.evaluate(menuLayout);
+  check(`B1-01 F3.5: career detail ${w}×${h} — every button on screen and at least 40 px tall for a thumb`,L.buttons.length>=6&&L.buttons.every(b=>b.l>=0&&b.r<=w+1&&b.t>=0&&b.b<=h+1&&b.h>=40),L.buttons);
+ }
+ if(process.env.WEBLAB_SHOTS)await page.screenshot({path:`${process.env.WEBLAB_SHOTS}/menu-detail-780x360.png`});
+ await page.locator('#career-detail [data-menu="voltar"]').tap();
+ await page.setViewportSize({width:915,height:412});
+ if(process.env.WEBLAB_SHOTS)await page.screenshot({path:`${process.env.WEBLAB_SHOTS}/menu-915x412.png`});
+}
+/**
+ * B1-01 F3.5 (AC-01/02/03/16): the four careers, one after the other in the same browser storage.
+ * Each one: presets by touch, one-time vehicle, the world built for THAT character (name, sector,
+ * home, three NPC colleagues, avatar look, vehicle); the other three saves stay byte for byte.
+ */
+async function fourCareers(browser){
+ const ctx=await browser.newContext({viewport:{width:780,height:360},isMobile:true,hasTouch:true,deviceScaleFactor:1});
+ const page=await ctx.newPage();page.on('pageerror',e=>errors.push(e.message));
+ const plan=[
+  {id:'personagem-norte',name:'Rosa',sector:'Norte',home:'casa-norte',appearance:'masculino',equipment:'kit-refletivo',vehicle:'carro-antigo'},
+  {id:'personagem-oeste',name:'Lia',sector:'Oeste',home:'casa-oeste',appearance:'feminino',equipment:'kit-refletivo',vehicle:'moto-antiga'},
+  {id:'personagem-leste',name:'Caio',sector:'Leste',home:'casa-leste',appearance:'feminino',equipment:'kit-jaqueta',vehicle:'carro-antigo'},
+  {id:'personagem-sul',name:'Davi',sector:'Sul',home:'casa-sul',appearance:'masculino',equipment:'kit-jaqueta',vehicle:'moto-antiga'},
+ ];
+ const saves=()=>page.evaluate(()=>Object.fromEntries(Object.keys(localStorage).filter(k=>k.startsWith('brejo-b1:carreira:')).map(k=>[k,localStorage.getItem(k)])));
+ await page.goto(url+'?gfx=mobile&trafego=0',{waitUntil:'domcontentloaded',timeout:120000});
+ for(const c of plan){
+  await page.waitForSelector('#main-menu:not([hidden]) .career-card',{timeout:120000});
+  const before=await saves();
+  await enterFromMenu(page,c.id,{appearance:c.appearance,equipment:c.equipment,vehicle:c.vehicle});
+  await delay(400);
+  const s=await page.evaluate(()=>window.__weblab.snapshot());
+  const npcs=s.delivery.logistics.couriers.map(x=>x.name);
+  check(`B1-01 F3.5 AC-01/16: ${c.name} — the world is ${c.name}'s (sector ${c.sector}, ${c.home}) with exactly the other three as NPC couriers`,s.career.id===c.id&&s.career.name===c.name&&s.career.sector===c.sector&&s.career.home===c.home&&s.career.roster.jogador===c.id&&npcs.length===3&&!npcs.includes(c.name)&&plan.filter(o=>o.id!==c.id).every(o=>npcs.includes(o.name)),{career:s.career,npcs});
+  const body=c.vehicle==='moto-antiga'?s.avatar.rider:s.avatar.driver;
+  const vest=c.equipment==='kit-refletivo';
+  check(`B1-01 F3.5 AC-02: ${c.name} — ${c.appearance}/${c.equipment} saved AND worn by the 3D character on foot and ${c.vehicle==='moto-antiga'?'on the bike':'at the wheel'}`,s.avatar.appearance===c.appearance&&s.avatar.equipment===c.equipment&&[s.avatar.walker,body].every(l=>l&&l.figure===c.appearance&&(vest?!!l.vest:!l.vest))&&s.avatar.walker.helmet===body.helmet,s.avatar);
+  check(`B1-01 F3.5 AC-03: ${c.name} — the world has the vehicle saved for this career (${c.vehicle})`,s.vehicle.kind===c.vehicle&&s.vehicle.owned?.kind===c.vehicle&&s.vehicle.owned.vehicleId===`veiculo-${c.id}`,s.vehicle);
+  const after=await saves();
+  const others=Object.keys(before).filter(k=>k!==`brejo-b1:carreira:${c.id}`&&k!==`brejo-b1:carreira:${c.id}:anterior`);
+  check(`B1-01 F3.5 AC-16: entering ${c.name} left the other careers' saves byte for byte intact`,others.every(k=>after[k]===before[k])&&JSON.parse(after[`brejo-b1:carreira:${c.id}`]).profile.appearance===c.appearance,{others});
+  if(process.env.WEBLAB_SHOTS){await page.evaluate(()=>{const v=window.__weblab.snapshot().vehicle;if(window.__debug){window.__debug.placeWalker(v.x+Math.cos(v.yaw)*1.6,v.z-Math.sin(v.yaw)*1.6,v.yaw+Math.PI);}});await delay(900);await page.screenshot({path:`${process.env.WEBLAB_SHOTS}/world-${c.id}.png`});}
+  await page.reload({waitUntil:'domcontentloaded'});
+ }
+ await page.waitForSelector('#main-menu:not([hidden]) .career-card',{timeout:120000});
+ const cards=await page.locator('.career-card').evaluateAll(es=>es.map(e=>({id:e.dataset.career,text:e.innerText,svg:e.querySelector('svg')?.dataset.figure,kit:e.querySelector('svg')?.dataset.equipment})));
+ check('B1-01 F3.5: after the four careers the menu reads back each one\'s own presets, vehicle and saved checkpoint',plan.every((c,i)=>cards[i].id===c.id&&cards[i].svg===c.appearance&&cards[i].kit===c.equipment&&cards[i].text.includes(c.vehicle==='moto-antiga'?'Moto antiga (próprio)':'Carro popular antigo (próprio)')&&/checkpoint \d+/.test(cards[i].text)&&/Saldo R\$ 0,00/.test(cards[i].text)),cards);
+ // Second entry into a career with a vehicle: no vehicle dialog, vehicle unchanged.
+ await page.locator('.career-card[data-career="personagem-leste"]').tap();
+ await page.locator('#career-detail [data-menu="iniciar"]').tap();
+ await page.waitForFunction(()=>!!window.__weblab?.snapshot?.().vehicle,{timeout:120000});
+ const again=await page.evaluate(()=>({kind:window.__weblab.snapshot().vehicle.kind,dialog:!document.querySelector('#vehicle-choice').hidden}));
+ check('B1-01 F3.5 AC-03: re-entering Caio keeps the saved car, without offering a new vehicle choice',again.kind==='carro-antigo'&&!again.dialog,again);
+ await ctx.close();
+}
+/** B1-01 F3.5 (AC-17): a career with an open shift locks the others; an invalid save shows its error. */
+async function lockedMenu(browser){
+ const {execFileSync}=require('node:child_process');
+ const seeded=JSON.parse(execFileSync(process.execPath,['--experimental-strip-types','--no-warnings',require('node:path').join(__dirname,'fixtures','locked-save.ts')],{encoding:'utf8'}));
+ const ctx=await browser.newContext({viewport:{width:780,height:360},isMobile:true,hasTouch:true,deviceScaleFactor:1});
+ await ctx.addInitScript(seed=>{if(!sessionStorage.getItem('b1-lock')){sessionStorage.setItem('b1-lock','1');localStorage.clear();for(const [k,v] of Object.entries(seed))localStorage.setItem(k,v);localStorage.setItem('brejo-b1:carreira:personagem-sul','{"corrompido":');}},seeded);
+ const page=await ctx.newPage();page.on('pageerror',e=>errors.push(e.message));
+ await page.goto(url+'?gfx=mobile&trafego=0',{waitUntil:'domcontentloaded',timeout:120000});
+ await page.waitForSelector('#main-menu:not([hidden]) .career-card',{timeout:120000});
+ const before=await page.evaluate(()=>JSON.stringify(Object.fromEntries(Object.keys(localStorage).sort().map(k=>[k,localStorage.getItem(k)]))));
+ const cards=await page.locator('.career-card').evaluateAll(es=>es.map(e=>({id:e.dataset.career,text:e.innerText,disabled:e.disabled})));
+ const norte=cards[0],others=cards.slice(1);
+ check('B1-01 F3.5 AC-17: with Rosa\'s shift open only Rosa can be entered ("Expediente aberto — continuar"); the others show why',!norte.disabled&&/Expediente aberto — continuar/.test(norte.text)&&others.every(c=>c.disabled)&&others.filter(c=>c.id!=='personagem-sul').every(c=>/Expediente aberto de Rosa/.test(c.text)),cards);
+ check('B1-01 F3.5: an invalid save is shown with its real error, not reset',/JSON inválido/.test(others[2].text)&&others[2].disabled,others[2]);
+ await page.locator('.career-card[data-career="personagem-leste"]').tap({force:true}).catch(()=>{});
+ await delay(300);
+ const after=await page.evaluate(()=>({store:JSON.stringify(Object.fromEntries(Object.keys(localStorage).sort().map(k=>[k,localStorage.getItem(k)]))),detail:!document.querySelector('#career-detail').hidden}));
+ check('B1-01 F3.5 AC-17: tapping a locked career changes nothing (no detail, storage byte for byte unchanged)',!after.detail&&after.store===before,{detail:after.detail});
+ await enterFromMenu(page,'personagem-norte');
+ const s=await page.evaluate(()=>window.__weblab.snapshot());
+ const store=await page.evaluate(()=>({sul:localStorage.getItem('brejo-b1:carreira:personagem-sul'),norte:JSON.parse(localStorage.getItem('brejo-b1:carreira:personagem-norte'))}));
+ check('B1-01 F3.5 AC-17: continuing Rosa keeps her day and open shift; the invalid Sul save is left as it was',s.career.id==='personagem-norte'&&s.career.calendarIndex===3&&store.norte.profile.activeShiftId==='personagem-norte/dia-3'&&store.norte.shift.elapsedVirtualMinutes===200&&store.sul==='{"corrompido":',{career:s.career,sul:store.sul});
+ await ctx.close();
+}
 async function run(){
  if(!process.env.WEBLAB_URL){
   // Own process group, so stopping it also stops Vite (killing npm alone leaves Vite running).
@@ -284,11 +409,16 @@ async function run(){
  const page=await context.newPage();
  page.on('pageerror',e=>errors.push(e.message));
  await page.goto(url+'?gfx=mobile&trafego=1&dia=0',{waitUntil:'domcontentloaded',timeout:120000});
+ await mainMenu(page);
  // B1-01 F2 (AC-03): a career without a vehicle chooses it once, by touch, before the world starts.
+ await page.locator('.career-card[data-career="personagem-oeste"]').tap();
+ await page.locator('#career-detail [data-menu="iniciar"]').tap();
  await page.waitForSelector('#vehicle-choice:not([hidden])',{timeout:120000});
  check('B1-01 F2: vehicle choice offers the old motorcycle and the old popular car',await page.locator('#vehicle-choice [data-vehicle]').count()===2&&/permanente/.test(await page.locator('#vehicle-choice').innerText()));
+ check('B1-01 F3.5: still no 3D world while the vehicle is being chosen',await page.evaluate(()=>window.__weblab===undefined));
  await page.locator('[data-vehicle="moto-antiga"]').tap();
  await page.waitForFunction(()=>!!window.__weblab?.snapshot?.().delivery?.logistics,{timeout:120000});
+ check('B1-01 F3.5: once the game starts the menu is gone and the HUD is shown (menu never intercepts play)',await page.locator('#main-menu').isHidden()&&await page.evaluate(()=>getComputedStyle(document.querySelector('#hud')).display!=='none'&&!document.body.classList.contains('in-menu')));
  const snapshot=()=>page.evaluate(()=>window.__weblab.snapshot());
  const sizes=[[915,412],[780,360]];
  let s=await snapshot();
@@ -511,14 +641,18 @@ async function run(){
   await legacy.addInitScript(()=>{if(!sessionStorage.getItem('b1-seeded')){sessionStorage.setItem('b1-seeded','1');localStorage.clear();localStorage.setItem('brejo-log003-workday-index','2');}});
   const lp=await legacy.newPage();lp.on('pageerror',e=>errors.push(e.message));
   await lp.goto(url+'?gfx=mobile',{waitUntil:'domcontentloaded',timeout:120000});
-  await lp.waitForSelector('#vehicle-choice:not([hidden])',{timeout:120000});
-  await lp.locator('[data-vehicle="moto-antiga"]').tap();
-  await lp.waitForFunction(()=>!!window.__weblab?.snapshot?.().career,{timeout:120000});
+  await lp.waitForSelector('#main-menu:not([hidden]) .career-card',{timeout:120000});
+  const legacyCard=await lp.locator('.career-card[data-career="personagem-oeste"]').innerText();
+  const untouched=await lp.evaluate(()=>Object.keys(localStorage).filter(k=>k.startsWith('brejo-b1:')).length===0&&localStorage.getItem('brejo-log003-workday-index')==='2');
+  check('B1-01 F3.5: the Oeste card shows the legacy calendar day by reading only (nothing written by the menu)',/18\/11\/2026/.test(legacyCard)&&/Carreira nova/.test(legacyCard)&&untouched,{legacyCard,untouched});
+  await enterFromMenu(lp,'personagem-oeste',{vehicle:'moto-antiga'});
   const ls=await lp.evaluate(()=>({career:window.__weblab.snapshot().career,legacy:localStorage.getItem('brejo-log003-workday-index'),save:JSON.parse(localStorage.getItem('brejo-b1:carreira:personagem-oeste')||'null'),others:['norte','leste','sul'].map(k=>localStorage.getItem('brejo-b1:carreira:personagem-'+k))}));
   check('B1-01 F1/F3: legacy calendar migrated to the Oeste career in browser storage (save schema v2), legacy key kept, other careers untouched',ls.career.calendarIndex===2&&ls.career.durable===true&&ls.legacy==='2'&&ls.save?.schemaVersion===2&&ls.save.profile.calendarIndex===2&&ls.others.every(v=>v===null),ls);
   await legacy.close();
  }
  await carCareer(browser);
+ await fourCareers(browser);
+ await lockedMenu(browser);
  check('no fatal JavaScript errors',errors.length===0,errors);
  console.log('Browser smoke completed:',notes.length,'checks; Chromium emulated mobile/SwiftShader, NOT physical Android.');
 }
