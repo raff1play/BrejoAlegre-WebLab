@@ -47,7 +47,7 @@ export class DepotParcels {
   this.visibleIds.length=0;
   for(let i=0;i<parcels.length;i++){
    const p=parcels[i]!,pos=p.position;
-   const visible=!!pos&&!['maos','bau','loja','destinatario'].includes(p.place);
+   const visible=!!pos&&!['bau','loja','destinatario'].includes(p.place)&&!(p.place==='maos'&&p.holder==='jogador');
    if(visible)this.visibleIds.push(p.id);
    const at=visible?depotWorld(pos!.x,pos!.z):{x:0,z:0},y=visible?pos!.y+.15:-100;
    const matrix=Matrix.Translation(at.x,y,at.z);matrix.copyToArray(this.matrices,i*16);

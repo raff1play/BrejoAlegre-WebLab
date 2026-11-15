@@ -136,7 +136,7 @@ export class DeliveryGame {
     this.updateCustomers(dt, hour, crowd);
     this.updateDepot(dt, hour, player, ground);
     const centre=depotWorld(112,-125),near=Math.hypot(player.x-centre.x,player.z-centre.z)<140;
-    this.parcelViews.update(this.workday.parcels,near);
+    this.parcelViews.update(this.workday.parcels,near||this.workday.couriers.some(c=>!c.riding&&Math.hypot(player.x-c.person.x,player.z-c.person.z)<80));
     this.vanView.update(this.workday.van,near);
     // Marker over the target.
     const o = this.workday.objective(hour);

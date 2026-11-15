@@ -85,6 +85,7 @@ export function buildDepotArchitecture(scene:Scene,set:BatchSet,flat:BatchSet,ma
   for(const dx of [-2.1,2.1])box(mats.paint('#3c4038'),x+dx-.07,x+dx+.07,.4,1,-118,-117.8);
  }
  for(const [i,x]of [81,84,87,90].entries())sign(`bay-${i}`,i===1?'JOGADOR / OESTE':`MOTO ${i===0?1:i}`,x-.8,x+.8,-113.2,.45,.3);
+ for(const [i,x]of [114.4,117.9,121.4,124.9].entries())sign(`sector-${i}`,['NORTE · D01','OESTE · D02','LESTE · D03','SUL · D04'][i]!,x-1.3,x+1.3,-135.35,1.75,.42);
  // Gatehouse roof, doorway, signage; public walk stays separate from the vehicle gate.
  box(ink,95.7,99.6,2.7,2.85,-98.8,-94.5);
  sign('portaria','PORTARIA · CONTROLE',96,99.3,-94.7,2.12,.5);
@@ -99,7 +100,7 @@ export function buildDepotArchitecture(scene:Scene,set:BatchSet,flat:BatchSet,ma
  }
  sign('motos','DESCARGA • MOTOS',78,91,-113.3,1.8,.6);
  // Paint-only label stands at ground edge have no physical posts in the circulation lane.
- for(const [name,text,x,z,w]of [['receiving','01 • RECEBIMENTO',101,-120.8,7],['sorting','02 • CONFERÊNCIA / TRIAGEM',111,-128.9,11],['regions','03 • CENTRO / BREJO ALEGRE',123,-135.3,10],['dispatch','04 • EXPEDIÇÃO / ROTA 01',104,-122,7]] as const){
+ for(const [name,text,x,z,w]of [['receiving','01 • RECEBIMENTO',101,-120.8,7],['sorting','02 • CONFERÊNCIA / TRIAGEM',111,-128.9,11],['regions','03 • TRIAGEM POR SETOR',123,-135.3,10],['dispatch','04 • QUATRO ROTAS / EXPEDIÇÃO',104,-122,7]] as const){
   sign(name,text,x-w/2,x+w/2,z,2.65,.65);
   for(const dx of [-w/2+.2,w/2-.2])line([x+dx,3.3,z],[x+dx,6.5,z],.015);
  }

@@ -197,16 +197,17 @@ export class Workday {
   handOver(hour: number,visit?:DepotVisit): number {
     if(!depotVisitAllowed(visit,'receiving'))return 0;
     const list = this.inHands().filter(p=>p.state==='COLETADO'||p.state==='EM_TRANSPORTE');
+    let deposited=0;
     for(const p of list){
       if(p.state==='COLETADO')advance(p,'EM_TRANSPORTE','jogador',hour);
-      this.depot.receive(p,hour);
+      if(this.depot.receive(p,hour,this.parcels))deposited++;
     }
     if(list.length){
       if(hour>ROUTINE.returnBy)this.late=true;
       if(!this.carrying().length&&this.assigned.every(s=>!this.readyAt(s).length))this.phase='CONFERENCIA';
       this.say(`${list.length} volume(s) depositados no recebimento`);
     }
-    return list.length;
+    return deposited;
   }
   canTakeSack(hour:number):boolean {
     return hour>=ROUTINE.sackFrom&&hour<ROUTINE.end&&!this.inHands().length&&this.parcels.length>0&&this.parcels.every(p=>p.state==='NA_SACA'&&p.place==='saca'&&p.dock===DISPATCH_DOCK&&p.load===MIXED_LOAD&&p.position!==null);

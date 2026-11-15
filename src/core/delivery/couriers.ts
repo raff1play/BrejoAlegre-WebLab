@@ -68,6 +68,8 @@ export class Courier {
    case 'walk-address':if(this.travel(dt,day,false))state('handoff');break;
    case 'handoff':if(this.timer>=1.3){for(const p of this.hands(day)){advance(p,'ENTREGUE','destinatario',hour);move(p,'destinatario','destinatario',hour);}this.walk(atBike(),day);state('return-address');}break;
    case 'return-address':if(this.travel(dt,day,false)){if(this.trunk(day).some(p=>p.destination===this.stops[0])){state('take-parcel');break;}this.stops.shift();const next=day.byAddress.get(this.stops[0]!);if(next){this.drive(next.stop);state('to-address');}else state('complete');}break;
-  }}catch(e){this.error=String(e);this.state='blocked';day.events.push(`${this.name}: rota bloqueada (${this.error})`);}
+  }
+   for(const p of this.hands(day)){const at=day.local(this.person);p.position={x:at.x+Math.sin(this.person.yaw)*.35,y:1+(this.hands(day).indexOf(p))*.3,z:at.z+Math.cos(this.person.yaw)*.35};}
+  }catch(e){this.error=String(e);this.state='blocked';day.events.push(`${this.name}: rota bloqueada (${this.error})`);}
  }
 }
