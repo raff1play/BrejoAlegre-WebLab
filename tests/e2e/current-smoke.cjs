@@ -125,6 +125,7 @@ async function carCareer(browser){
 
  // ------------------------------------------------ get out (touch on the action button), solid body, get back in
  const action=page.locator('[data-action="mount"]');
+ await page.waitForFunction(()=>document.querySelector('[data-action="mount"]').textContent==='Sair do carro',null,{timeout:10000}).catch(()=>{});
  check('B1-01 F2: stopped car offers "Sair do carro"',await action.innerText()==='Sair do carro'&&!(await action.getAttribute('class')).includes('unavailable'));
  await action.tap();
  await page.waitForFunction(()=>window.__weblab.snapshot().mode==='walking',null,{timeout:10000}).catch(()=>{});
@@ -132,7 +133,9 @@ async function carCareer(browser){
  const local=(v,p)=>{const dx=p.x-v.x,dz=p.z-v.z,c=Math.cos(v.yaw),n=Math.sin(v.yaw);return {right:dx*c-dz*n,forward:dx*n+dz*c};};
  const outside=(v,p,r)=>{const l=local(v,p),dx=Math.max(0,Math.abs(l.right)-0.81),dz=Math.max(0,Math.abs(l.forward)-1.925);return Math.hypot(dx,dz)>=r-1e-6;};
  check('B1-01 F2 AC-05: driver gets out on the left, beside the car, and the car is parked (handbrake)',s.mode==='walking'&&s.vehicle.parked&&!s.vehicle.driven&&local(s.vehicle,s.walker).right<-0.81&&outside(s.vehicle,s.walker,0.3),{vehicle:s.vehicle,walker:s.walker});
- check('B1-01 F2: on foot next to the car the button offers "Entrar no carro"',await action.innerText()==='Entrar no carro');
+ // The HUD label is written by the next rendered frame, not by the touch handler: wait for it.
+ await page.waitForFunction(()=>document.querySelector('[data-action="mount"]').textContent==='Entrar no carro',null,{timeout:10000}).catch(()=>{});
+ check('B1-01 F2: on foot next to the car the button offers "Entrar no carro"',await action.innerText()==='Entrar no carro',await action.innerText());
  // Walk straight at the car body for a few seconds: the parked car is solid.
  const theta=Math.atan2(s.vehicle.x-s.walker.x,s.vehicle.z-s.walker.z);
  await page.evaluate(a=>window.__debug.camera(a,1.2,4),-theta-Math.PI/2);await delay(200);
