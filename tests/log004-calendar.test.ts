@@ -50,6 +50,7 @@ test('LOG004 high Monday: NPCs return by 14h20 and all 55 volumes sorted by 16h'
   for(const courier of day.couriers)assert.notEqual(courier.state,'blocked',courier.id+': '+courier.error);
   if(day.allSortedAt!==null&&day.couriers.every(c=>c.returnedAt!==null))break;
  }
+ console.log('LOG004 segunda/55: retornos',day.couriers.map(c=>[c.id,c.returnedAt]),'triagem',day.allSortedAt);
  for(const courier of day.couriers){
   assert.ok(courier.returnedAt!==null&&courier.returnedAt<=14+20/60,courier.id+' chegou '+courier.returnedAt);
  }
@@ -57,4 +58,24 @@ test('LOG004 high Monday: NPCs return by 14h20 and all 55 volumes sorted by 16h'
  assert.ok(day.allSortedAt!==null&&day.allSortedAt<=16,'55 packets ready by 16h; actual '+day.allSortedAt);
  assert.deepEqual(day.depot.errors,[]);
  assert.equal(new Set(day.parcels.map(p=>p.id)).size,55);
+});
+
+for(const [index,label] of [[3,'quinta'],[5,'sábado']] as const)test(`LOG004 ${label}: carga máxima do dia pronta até 15h`,()=>{
+ const plan=calendarDay(index);
+ const day=new LogisticsDay({seed:2026,dayIndex:index,boundary:'maximum',free:(x,z)=>free(x,z,.45)});
+ day.start(11);assert.equal(day.parcels.length,plan.maxParcels);
+ for(let t=0;t<150;t+=.1)day.update(11+t/150,.1);
+ for(const store of day.assigned)while(day.readyAt(store).length){assert.ok(day.collect(store,12)>0);day.stow(12);}
+ for(let t=0;t<450;t+=.1){
+  const hour=12+t/150;
+  if(day.trunkForDepot().length&&!day.inHands().length)day.unloadForDepot(hour,false,parking);
+  if(day.inHands().some(p=>p.state==='EM_TRANSPORTE'))day.handOver(hour,receiving);
+  day.update(hour,.1);
+  for(const courier of day.couriers)assert.notEqual(courier.state,'blocked',courier.id+': '+courier.error);
+  if(day.allSortedAt!==null&&day.couriers.every(c=>c.returnedAt!==null))break;
+ }
+ console.log('LOG004',label,'volume',day.parcels.length,'retornos',day.couriers.map(c=>[c.id,c.returnedAt]),'triagem',day.allSortedAt);
+ assert.ok(day.couriers.every(c=>c.returnedAt!==null&&c.returnedAt<=14+20/60),'NPC ultrapassou a tolerância de 14h20');
+ assert.ok(day.allSortedAt!==null&&day.allSortedAt<=15,label+' saiu da meta de 15h: '+day.allSortedAt);
+ assert.equal(day.depot.errors.length,0);
 });
