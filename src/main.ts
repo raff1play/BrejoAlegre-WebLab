@@ -250,7 +250,7 @@ function start(canvas: HTMLCanvasElement): void {
     lightTimer -= dt;
     if (lightTimer <= 0) { lighting = lightingAt(clock.hour); environment.applyLighting(lighting); lightTimer = 0.5; }
     const player = mode === 'riding' ? { x: m.x, z: m.z, radius: 1.1 } : { x: walker.state.x, z: walker.state.z, radius: 0.45 };
-    cityLife.courierObstacles.splice(0,cityLife.courierObstacles.length,...delivery.workday.couriers.map(c=>({...c.bike,radius:.85})));
+    cityLife.courierObstacles.splice(0,cityLife.courierObstacles.length,...courierTrafficObstacles(delivery.workday.couriers));
     cityLife.update(dt, simTime, clock.hour, lighting.night, player, ground);
     houses.update(player.x, player.z);
     hud.setClock(clock.label, clock.isWorkday, lighting.night > 0.5);
