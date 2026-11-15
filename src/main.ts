@@ -1,4 +1,5 @@
 import { LogisticsPanel } from './features/hud/logisticsPanel';
+import { CALENDAR_STORAGE_KEY,calendarDay,nextWorkday } from './core/delivery/operatingCalendar';
 import { DEPOT_SPOTS } from './core/delivery/workday';
 import { depotPath, DEPOT_POINTS, depotFixtures, MOTO_PARKING } from './world/city/depotPlan';
 import './style.css';
@@ -89,15 +90,29 @@ function start(canvas: HTMLCanvasElement): void {
   environment.applyLighting(lighting);
   let lightTimer = 0;
   let devSpeed = 1;
+  // The game calendar is independent from the phone's local clock. An explicit dev seed
+  // preserves the LOG-003 regression scenario unless a test also selects ?dia=N.
+  const savedDay=(()=>{try{const n=Number(window.localStorage.getItem(CALENDAR_STORAGE_KEY)??0);return Number.isSafeInteger(n)&&n>=0&&n<=36500?n:0;}catch{return 0;}})();
+  const queryDay=Number(params.get('dia'));
+  const dayIndex=import.meta.env.DEV&&params.has('seed')&&!params.has('dia')?undefined:
+   devTime&&params.has('dia')&&Number.isSafeInteger(queryDay)&&queryDay>=0&&queryDay<=36500?queryDay:savedDay;
+  const day=dayIndex===undefined?null:calendarDay(dayIndex);
   /** Development only: a fixed overview camera for map comparisons (see __debug.view). */
   let freeView = false;
-  const delivery = new DeliveryGame(scene, world.materials, profile, environment.shadows, world.shutters, (x, z) => world.guard(x, z, 0.45), import.meta.env.DEV&&params.has('seed')?Number(params.get('seed')):undefined, import.meta.env.DEV && params.get('depotTest')==='partial'?3:2);
+  const delivery = new DeliveryGame(scene, world.materials, profile, environment.shadows, world.shutters, (x, z) => world.guard(x, z, 0.45), import.meta.env.DEV&&params.has('seed')?Number(params.get('seed')):undefined, import.meta.env.DEV && params.get('depotTest')==='partial'?3:2,dayIndex);
   let simTime = 0;
   // NPC vehicles are solid for the player; if one already overlaps (e.g. it was spawned there),
   // only the static world blocks so the player can always move away.
   let insideVehicle = false;
   const baseGuard: MotionGuard = (x, z, r) => world.guard(x, z, r) && (insideVehicle || !cityLife.blocks(x, z, r));
-  const logisticsPanel=new LogisticsPanel(document,delivery.workday,()=>clock.hour,()=>{hud.setPaused(false);input.reset()});
+  const logisticsPanel=new LogisticsPanel(document,delivery.workday,()=>clock.hour,()=>{hud.setPaused(false);input.reset()},day,()=>{
+    if(!['CONCLUIDA','ENCERRADA'].includes(delivery.workday.phase))return;
+    const next=nextWorkday(dayIndex??savedDay);
+    try{window.localStorage.setItem(CALENDAR_STORAGE_KEY,String(next.index));}catch{/* storage may be disabled */}
+    const url=new URL(window.location.href);
+    for(const key of ['seed','dia','hora','devtime','trafego'])url.searchParams.delete(key);
+    window.location.assign(url.toString());
+  });
   const rideGuard: MotionGuard = (x, z, r) => baseGuard(x, z, r) && !delivery.doorBlocked(x, z, r, true, moto.state);
 
   // On foot, the parked bike is solid too.
@@ -343,7 +358,7 @@ function start(canvas: HTMLCanvasElement): void {
         delivery: {
           depot:{gateOpen:delivery.gateOpen,gateManual:delivery.gateManual,visibleIds:[...delivery.parcelViews.visibleIds],workers:delivery.workday.depot.workers.map(w=>({...w,task:w.task?{id:w.task.id,kind:w.task.kind,stage:w.task.stage}:null})),errors:[...delivery.workday.depot.errors]},
           phase: delivery.workday.phase,
-          logistics:{seed:delivery.workday.options.seed??2026,assignments:delivery.workday.assignments,teamReady:delivery.workday.teamReady,released:delivery.workday.released,releaseHour:delivery.workday.releaseHour,van:{state:delivery.workday.van.state,door:delivery.workday.van.door,approach:'assisted-D05'},couriers:delivery.workday.couriers.map(c=>({id:c.id,name:c.name,sector:c.sector,state:c.state,bike:{...c.bike},person:{...c.person},riding:c.riding,error:c.error,stops:[...c.stops],route:c.route.map(p=>({...p})),trunk:c.trunk(delivery.workday).map(p=>p.id),hands:c.hands(delivery.workday).map(p=>p.id)}))},
+          logistics:{seed:delivery.workday.options.seed??day?.seed??2026,calendar:day?{date:day.date,index:day.index,tier:day.tier,target:day.depotTarget}:null,sortedAt:delivery.workday.allSortedAt,assignments:delivery.workday.assignments,teamReady:delivery.workday.teamReady,released:delivery.workday.released,releaseHour:delivery.workday.releaseHour,van:{state:delivery.workday.van.state,door:delivery.workday.van.door,approach:'assisted-D05'},couriers:delivery.workday.couriers.map(c=>({id:c.id,name:c.name,sector:c.sector,state:c.state,bike:{...c.bike},person:{...c.person},riding:c.riding,error:c.error,stops:[...c.stops],route:c.route.map(p=>({...p})),trunk:c.trunk(delivery.workday).map(p=>p.id),hands:c.hands(delivery.workday).map(p=>p.id)}))},
           objective: delivery.workday.objective(clock.hour, moto.state),
           cargo: { visualHands:walker.displayedLoad, hands: delivery.workday.inHands().length, trunk: delivery.workday.inTrunk().length, sack: delivery.workday.sackInHands, label: delivery.workday.cargoLabel(), trunkOpen: moto.trunkOpen, trunkSpot: trunkSpot(bikeSpot()) },
           progress: delivery.workday.progress(),
