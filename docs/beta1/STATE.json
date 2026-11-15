@@ -5,7 +5,7 @@
     {
       "id": "B1-00",
       "name": "Preparação de execução e aprovação",
-      "status": "EM_DESENVOLVIMENTO",
+      "status": "EM_TESTES",
       "reviewNote": null,
       "evidenceUrl": null,
       "approvedSha": null
@@ -90,6 +90,13 @@
       "to": "EM_DESENVOLVIMENTO",
       "on": "2026-11-15",
       "note": "Usuário pediu execução do B1-00; nenhuma aprovação técnica ou final presumida."
+    },
+    {
+      "module": "B1-00",
+      "from": "EM_DESENVOLVIMENTO",
+      "to": "EM_TESTES",
+      "on": "2026-11-15",
+      "note": "Arquivos e gates preparados; abrir PR e verificar resultados reais antes de registrar aguardando aprovacao."
     }
   ]
 }
