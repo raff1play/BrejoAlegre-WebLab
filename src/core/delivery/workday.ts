@@ -1,7 +1,8 @@
 import { SupplierVan } from './supplierVan.ts';
 import { DepotOperations } from './depotOperations.ts';
 /** Keep depot throughput per virtual hour after shortening the real-time clock. */
-const DEPOT_OPERATION_SECONDS_PER_VIRTUAL_HOUR = 240;
+/** Calibrated for the later 11:47 courier departure while keeping real physical parcel tasks. */
+const DEPOT_OPERATION_SECONDS_PER_VIRTUAL_HOUR = 360;
 import { DEPOT_POINTS, validDepotParking, depotFree, DISPATCH_DOCK, MIXED_LOAD } from '../../world/city/depotPlan.ts';
 import { DEPOT, STORES, depotWorld, depotYaw, depotLocal, type StoreKind } from '../../world/city/cityPlan.ts';
 import { yawOf } from '../../world/layout.ts';
