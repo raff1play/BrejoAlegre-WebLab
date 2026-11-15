@@ -32,3 +32,11 @@
 - **Resultado `DEVOLVIDO_E_CONFERIDO`, 21h/00h, plantão, atrasos** (F5): a estrutura do snapshot já reserva `lateByActor` e `payments`, mas os cortes `hour<21`/`hour>=21` continuam no código.
 - **Checkpoints durante o expediente, retomada no ponto seguro, reconstrução de NPCs/trânsito, política de conflito de backup com o ledger** (F6). Hoje só o avanço de dia é gravado, como no legado.
 - Teste em Galaxy S24 físico: somente pelo usuário.
+
+## Correções da auditoria F1 (PR #15, comentário 6899479417)
+
+| # | Defeito | Correção | Teste |
+|---|---|---|---|
+| 1 | Sessão desatualizada (outra aba, backup restaurado) podia gravar checkpoint **maior** com dados **mais antigos** | `CareerStore.commit` exige `baseSequence` igual ao checkpoint gravado; `write` aceita só `gravado + 1` (sem salto). `CareerSession` guarda sua base e recusa toda escrita depois que o armazenamento avança, até `reload()`. Política de múltiplas abas: a primeira gravação vence, as demais sessões são recusadas como desatualizadas, sem mescla automática | `tests/b1-01-audit-fixes.test.ts` (Auditoria 1) |
+| 2 | Perfil e expediente aberto podiam estar em dias diferentes; `commitNextDay` avançava com expediente aberto | Schema exige `profile.calendarIndex === shift.calendarIndex` com expediente aberto; `commitNextDay` recusa enquanto houver `activeShiftId`/`shift` e grava o novo dia com `shift: null`. Cruzar 00h mantém o mesmo `shiftId` e não avança o dia | Auditoria 2 |
+| 3 | Schema aceitava pagamento de `ENTREGA` para pacote não entregue | Pagamento só para pacote `ENTREGUE` em `destinatario`; `eventId` derivado (`<shiftId>/<parcelId>/ENTREGA`), logo no máximo um por pacote e expediente; `COLETA`/`DEVOLUCAO` e qualquer outro tipo são recusados (nenhum outro evento remunerado foi aprovado). `DEVOLVIDO_E_CONFERIDO` ainda não existe no fluxo (F5): um save com esse estado é rejeitado por inteiro | Auditoria 3 |
