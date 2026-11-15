@@ -177,3 +177,11 @@ Pedido explícito do usuário: manter `feat/art-001-primeira-loja-moto`, sem mer
 - As coletas só começam às 12h. Retorno ideal 14h, alerta a partir de 14h20, separação com meta 15h/16h e custódia física dos volumes continuam vigentes.
 - Para compensar as saídas mais tardias sem mascarar a operação, a cadência da máquina de trabalho físico da base foi recalibrada de 240 para **360 segundos de trabalho por hora virtual**. Isso acelera tarefas existentes; não cria nem teletransporta pacotes.
 - A regra anterior de partida/deslocamento às 11h fica superada pelo início 11h45/saída 11h47. Esta implementação é **apenas código em `preview`**, sem autorização para novo deploy neste pedido.
+
+## LOG-006 — Evitar impasse entre NPC e tráfego (15/11/2026)
+
+- Relato visual do usuário: motoboy roxo perto da loja às 12h33 e montado, ainda no local, às 15h18; duas vans também parecem estacionárias. Essas imagens não registram estado interno da simulação.
+- Código anterior: veículos tratavam todas as motos NPC como obstáculos, inclusive as paradas para coleta. Quando um motoboy montava e encontrava um veículo parado por causa de sua moto, ambos podiam esperar indefinidamente.
+- Correção experimental: somente motos NPC circulando e que não estejam cedendo passagem são obstáculos para o trânsito. O motoboy parado para a coleta não bloqueia as vans; se o motoboy encontra uma van, ele aguarda, mas o veículo recebe a passagem para liberar a via. Bloqueio causado pelo jogador ou por outro motoboy não permite essa exceção.
+- Nenhum pacote é alterado, ninguém é teletransportado, o painel passa a sinalizar "cedendo passagem ao trânsito". Validar com cenário real no navegador e Galaxy S24 antes de aprovação final.
+- Implementação somente em preview, sem merge na main e sem publicação automática.
