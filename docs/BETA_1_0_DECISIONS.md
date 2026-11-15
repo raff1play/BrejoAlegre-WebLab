@@ -29,7 +29,8 @@
 ## Novo índice oficial e decisões a investigar
 
 ### B1-01 — Personagens e carreiras
-**Fazer:** menu de quatro perfis, identidade visual, progresso, economia e saves separados.
+**ESTADO: ESCOPO FUNCIONAL CONGELADO EM 15/11/2026 — 17 decisões confirmadas.** Critérios objetivos em `docs/BETA_1_0_SPEC.md`, seção B1-01. Congelamento de requisitos ≠ implementação ou aceite do jogo.
+**Fazer:** menu de quatro perfis, identidade visual, progresso, economia e saves separados, **carro jogável com logística completa e carga visual avançada**, salvamentos seguros e jornada que continua após 21h para toda a equipe.
 
 **CONFIRMADO — Questionário 1 (4/4 respostas do usuário, 15/11/2026):**
 1. **Personagens prontos e personalização básica:** quatro personagens predefinidos. O alcance exato da personalização básica (roupa, cabelo, gênero etc.) **não foi decidido**.
@@ -82,12 +83,24 @@
 - `src/core/delivery/parcels.ts`: fluxo operacional terminal atualmente é só `ENTREGUE`, não existe resultado terminal de `DEVOLVIDO_E_CONFERIDO`, portanto devoluções exigem um fluxo de custódia separado e auditável que **não pague entrega**.
 - Funcionários da base têm turnos com fim próximo a 21h em `workday.ts`; retorno/conferência tardios precisarão de regra operacional coerente, sem surgir funcionário do nada.
 
-**ÚNICO BLOQUEADOR DE PRODUTO CRÍTICO RESTANTE para homologar o fechamento integral:**
-- **Escala das horas extras para a equipe e a base:** a decisão 14 diz continuar entregando após 21h, mas não esclarece se os três motoboys NPCs também seguem trabalhando até resolver seus pacotes nem se haverá uma pessoa/posto de conferência de devoluções depois das 21h. Uma das alternativas precisa ser explicitamente escolhida antes de tornar obrigatória a conclusão conjunta sem possibilidade de travamento. O comportamento da madrugada é consequência técnica deste desenho (relógio monotônico com dia operacional preservado), não uma solicitação de novo horário limite.
+**CONFIRMADO — Decisão 17 (15/11/2026):**
+17. **Horas extras de toda a equipe:** os **quatro entregadores (jogador e três NPCs)** continuam trabalhando **após 21h** até concluir todos os pacotes e procedimentos, com **plantão mínimo na base** para receber/conferir devoluções e **atrasos individuais registrados**. Não interromper NPCs às 21h, não encerrar jornada automaticamente, não retirar pacote do inventário nem pagar devolução como entrega.
 
-**Detalhes técnicos ainda a especificar pelos implementadores, SEM inferir decisões do usuário:** forma do backup (por exemplo arquivo JSON versionado e verificado), limites de dimensão/peso/slots de carga de carro (reais na lógica, sem atravessar colisores), política de recuperação de falha e migração de `localStorage` antigo, escolha do ponto seguro e limites de teste. Manter estes como critérios técnicos verificáveis. Nomes/cores de personagens e veículos continuam em aberto mas não bloqueiam a definição do modelo de carreira.
+**VERIFICAÇÃO DE COMPATIBILIDADE — decisões 1 a 16:**
+- **Q3/Q7 (quatro carreiras e troca):** o jogador permanece na própria jornada até resolução total; os três NPCs trabalham só na simulação corrente, **sem alterar saves de carreiras inativas**. Não há pagamento ou progressão offline.
+- **Q9/Q15 (carro e carga):** veículo escolhido permanece fixo; o ciclo completo do carro continua obrigatório, com porta-malas abrível, pacotes visíveis individualmente, limites físicos e organização automática, inclusive depois das 21h.
+- **Q11/Q13 (conclusão e tentativa frustrada):** cada pacote exige resultado final válido: `ENTREGUE` ou tentativa registrada seguida de **devolução física + conferência**. A equipe não sai do turno com pendências não resolvidas; **devolução não paga**.
+- **Q14/Q17 (horário):** 21h é marco de prazo e atraso, **não bloqueio de novas entregas**. Todos os quatro seguem; a base mantém plantão mínimo e registra atraso de cada um individualmente. Se cruzar meia-noite, continuar **o mesmo expediente** e seu identificador/ledger; não avançar automaticamente o calendário.
+- **Q4/Q8/Q12/Q16 (persistência):** operações noturnas também geram checkpoints; reconstruir tráfego e NPCs em local seguro, sem reverter custódia, entrega, devolução ou valores. Salvar na pausa e tentar na saída; backup preserva isolamento entre carreiras.
+- **B1-09 (fim do dia):** retorno físico de cada entregador à própria casa continua previsto para detalhamento posterior. Não converter `complete` em desaparecimento, nem trocar carreira com jornada aberta.
 
-**Não iniciar implementação nem publicação enquanto houver bloqueador pendente.**
+**BLOQUEADORES DE PRODUTO:** nenhum bloqueador essencial pendente para **congelar os requisitos funcionais do B1-01**. As 17 decisões são suficientes para escopo e critérios observáveis; mudanças posteriores exigem decisão explícita registrada, sem edição silenciosa.
+
+**GATES TÉCNICOS OBRIGATÓRIOS (não são novas escolhas de produto):** contador monotônico/ID do expediente após meia-noite; substituir cortes `hour<21`/`hour>=21`; manter no mínimo um trabalhador/posto de conferência disponível para devoluções tardias enquanto necessário, sem criar trabalhadores fictícios instantâneos; permitir saída da equipe e início de outro dia somente com estados finais/custódia consistentes; registrar atrasos por entregador; backups exportáveis/restauráveis, checkpoints atômicos, versionamento/migração e pagamentos idempotentes. Detalhes algorítmicos e quantitativos devem ser escolhidos e testados tecnicamente, sem inventar regras de gameplay. Falhas técnicas não autorizam teleporte ou encerramento forçado contrário a Q11/Q13/Q17.
+
+**FORA DO ESCOPO CONGELADO:** nomes/cores/modelos comerciais específicos, editor facial profundo, economia/garagem/financiamento avançados e detalhamento dos alforjes da moto no B1-05. Casas completas no B1-02 e retorno doméstico integral no B1-09 continuam previstos, mas a vinculação casa/setor é obrigatória no B1-01.
+
+**STATUS DE EXECUÇÃO:** documentação congelada **somente na branch `docs/beta-1-0-blueprint`**. B1-00 ainda por implementar; nenhum PR, merge, deploy ou código de B1-01 foi realizado. **Não iniciar implementação sem autorização posterior.**
 
 ### B1-02 — Casas e começo do dia
 **Fazer:** quatro casas pequenas com quarto/cabide/garagem/portão; equipamento, moto e início 11h30.
