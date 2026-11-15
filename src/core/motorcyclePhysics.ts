@@ -31,17 +31,17 @@ export const MOTO = Object.freeze({
   reverseSpeed: 1.8,
   reverseAcceleration: 2.5,
   wheelbase: 1.32,
-  maxSteerAngle: 0.67,     // rad, ~38° at walking pace for tighter low-speed turns
-  maxLateralAccel: 8.0,    // m/s², agile arcade grip limit; still caps high-speed turning
-  steerInRate: 5.0,        // quicker response to finger input (1/s)
-  steerOutRate: 8.0,       // recentres promptly when thumb is released (1/s)
+  maxSteerAngle: 0.82,     // CTRL-002: ~47° maximum lock for compact low-speed arcade turns
+  maxLateralAccel: 9.5,    // CTRL-002: 19% more lateral grip, with a speed-dependent cap
+  steerInRate: 9.0,        // CTRL-002: reach full steer in ~0.11 s; lighter short thumb input
+  steerOutRate: 12.0,      // CTRL-002: recenter promptly after release (1/s)
   maxLean: 0.42,           // ~24°, a moderate visual lean
   bodyRadius: 0.42,
   bodyOffset: 0.55,        // front/rear collision circles along the bike
   stopSpeed: 0.3,          // below this the bike counts as stopped
-  // CORE-015.1 handling refinements (small, reversible: set steerSpeedRef to Infinity and the
-  // rise rates to a large number to get the CORE-015 behaviour back).
-  steerSpeedRef: 7.5,      // m/s: steering lock shrinks as 1 / (1 + (v / ref)²) → precise at speed
+  // CTRL-002: central, reversible arcade calibration after real Galaxy S24 feedback;
+  // keep the speed falloff, do not remove grip/collision limits.
+  steerSpeedRef: 8.0,      // m/s: steering lock shrinks as 1 / (1 + (v / ref)²)
   throttleRise: 7,         // 1/s: full throttle 0.14 s after the press (was instantaneous)
   throttleFall: 14,
   brakeRise: 12,           // 1/s: full braking 0.08 s after the press

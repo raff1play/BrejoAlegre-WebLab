@@ -2,6 +2,13 @@
 
 Histórico anterior a 15/11/2026 arquivado no [snapshot LOG-006](https://github.com/raff1play/BrejoAlegre-WebLab/blob/archive/2026-11-15-log006-published/docs/CHANGELOG.md).
 
+## 15/11/2026 — CTRL-002 (calibração arcade da moto, aguarda revisão)
+
+- Feedback de teste físico no Galaxy S24: analógico da CTRL-001 ainda parece pesado, "moto parece um caminhão virando".
+- Calibração proposta, **não publicada**: `MOTO.maxSteerAngle` 0,67→0,82 rad; `steerSpeedRef` 7,5→8,0 m/s; `maxLateralAccel` 8,0→9,5 m/s²; `steerInRate` 5→9/s; `steerOutRate` 8→12/s. Centro flutuante mantido, saturação do polegar 0,72→0,62 e curvas 2,2/1,6→2,5/1,9; zona morta 0,06 preservada.
+- Objetivo: moto mais ágil em curvas urbanas sem perder aderência limitada por velocidade, freio, colisões ou controle a pé. Testes automatizados adicionais com guinada em 10/25/40 km/h; calibração final de conforto ainda precisa de teste humano em Android.
+- Não altera NPCs, horários, logística, pacotes, HUD nem minimapa. Rollback: reverter os commits CTRL-002 na branch isolada.
+
 ## 15/11/2026 — HUD-001 + CTRL-001 + MAP-001 (PR para `preview`)
 
 - HUD por contexto (pilotando, a pé, na base), progresso meu × equipe, avisos sob o objetivo, CSS consolidado, rótulo de experimento removido e relógio HTML 11h45.

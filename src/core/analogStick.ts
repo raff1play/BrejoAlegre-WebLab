@@ -18,11 +18,11 @@ export const STICK_TUNING = Object.freeze({
   /** Riding: dead zone on the horizontal axis only, so vertical thumb drift never eats steering. */
   motoDeadzone: 0.06,
   /** Riding: horizontal deflection that already asks for the whole available turn. */
-  motoSaturation: 0.72,
+  motoSaturation: 0.62,
   /** Riding: ease-out exponent; > 1 gives more turn for short thumb moves, smooth at the centre.
    * Agile up to `motoEaseLowKmh`, calmer from `motoEaseHighKmh`, interpolated in between. */
-  motoEaseLow: 2.2,
-  motoEaseHigh: 1.6,
+  motoEaseLow: 2.5,
+  motoEaseHigh: 1.9,
   motoEaseLowKmh: 25,
   motoEaseHighKmh: 40,
   /** Floating stick: how far (× radius) the centre may follow the thumb from the first touch. */
@@ -49,8 +49,9 @@ export function blendAxis(keyboard: number, analog: number): number {
 /**
  * CTRL-001 riding curve: horizontal deflection (−1…1 of the radius) → fraction of the turn the
  * bike can make at its current speed `speed` (m/s) (−1…1). Axial dead zone, ease-out, full turn
- * at `motoSaturation`. Up to 25 km/h: 25 % deflection ≈ 53 %, 50 % ≈ 91 %; from 40 km/h: 42 % and
- * 83 %; ≥ 72 % deflection always asks for the whole turn.
+ * at `motoSaturation`. CTRL-002: after real Android feedback, 25 % deflection asks for ~64 %
+ * of available turn at low speed, ~55 % from 40 km/h; ≥ 62 % asks for full turn.
+ * The physical yaw cap and speed response remain in motorcyclePhysics.ts.
  */
 export function motoTurnFraction(x: number, speed = 0): number {
   if (!Number.isFinite(x)) return 0;
