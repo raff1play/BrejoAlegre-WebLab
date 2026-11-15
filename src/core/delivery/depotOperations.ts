@@ -17,7 +17,7 @@ export class DepotOperations {
   {role:'conferente',x:101,z:-120.7},{role:'descarregador-1',x:128,z:-119.4},
   {role:'descarregador-2',x:104,z:-125},{role:'separador-1',x:110,z:-128.35},
   {role:'separador-2',x:120,z:-133},{role:'expedidor',x:104,z:-121.3},{role:'supervisor',x:124,z:-133},
-  {role:'conferente-2',x:102.2,z:-121.1},{role:'separador-3',x:112,z:-129.8},{role:'expedidor-2',x:110.5,z:-123.8},
+  {role:'conferente-2',x:102.2,z:-121.1},{role:'separador-3',x:112,z:-128.35},{role:'expedidor-2',x:110.5,z:-123.8},
  ].map(w=>({...w,role:w.role as WorkerRole,yaw:Math.PI,activity:'idle',parcel:null,task:null,active:true}));
  /** Couriers assist in the SAME parcel controller, and never acquire a duplicate visual body. */
  private readonly assistants:DepotWorker[]=['npc1','npc2','npc3'].map((id,i)=>({
