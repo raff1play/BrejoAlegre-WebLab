@@ -1,5 +1,7 @@
 import { LogisticsPanel } from './features/hud/logisticsPanel';
-import { CALENDAR_STORAGE_KEY,calendarDay,nextWorkday } from './core/delivery/operatingCalendar';
+import { calendarDay,nextWorkday } from './core/delivery/operatingCalendar';
+import { bootCareer, commitNextDay } from './core/career/careerBoot';
+import { browserStorage } from './core/career/careerStore';
 import { DEPOT_SPOTS } from './core/delivery/workday';
 import { depotPath, DEPOT_POINTS, depotFixtures, MOTO_PARKING } from './world/city/depotPlan';
 import './style.css';
@@ -94,14 +96,19 @@ function start(canvas: HTMLCanvasElement): void {
   let devSpeed = 1;
   // The game calendar is independent from the phone's local clock. An explicit dev seed
   // preserves the LOG-003 regression scenario unless a test also selects ?dia=N.
-  const savedDay=(()=>{try{const n=Number(window.localStorage.getItem(CALENDAR_STORAGE_KEY)??0);return Number.isSafeInteger(n)&&n>=0&&n<=36500?n:0;}catch{return 0;}})();
+  // B1-01 F1: the day comes from the ACTIVE career's own save (legacy index migrated, never deleted).
+  const careerStorage=browserStorage();
+  const career=bootCareer(careerStorage.storage);
+  for(const note of career.notes)console.info(`[carreira] ${note}`);
+  if(!careerStorage.durable)console.warn('[carreira] armazenamento local indisponível: progresso não será persistido');
+  const savedDay=career.calendarIndex;
   const queryDay=Number(params.get('dia'));
   const dayIndex=import.meta.env.DEV&&params.has('seed')&&!params.has('dia')?undefined:
    devTime&&params.has('dia')&&Number.isSafeInteger(queryDay)&&queryDay>=0&&queryDay<=36500?queryDay:savedDay;
   const day=dayIndex===undefined?null:calendarDay(dayIndex);
   /** Development only: a fixed overview camera for map comparisons (see __debug.view). */
   let freeView = false;
-  const delivery = new DeliveryGame(scene, world.materials, profile, environment.shadows, world.shutters, (x, z) => world.guard(x, z, 0.45), import.meta.env.DEV&&params.has('seed')?Number(params.get('seed')):undefined, import.meta.env.DEV && params.get('depotTest')==='partial'?3:2,dayIndex);
+  const delivery = new DeliveryGame(scene, world.materials, profile, environment.shadows, world.shutters, (x, z) => world.guard(x, z, 0.45), import.meta.env.DEV&&params.has('seed')?Number(params.get('seed')):undefined, import.meta.env.DEV && params.get('depotTest')==='partial'?3:2,dayIndex,career.roster);
   let simTime = 0;
   // NPC vehicles are solid for the player; if one already overlaps (e.g. it was spawned there),
   // only the static world blocks so the player can always move away.
@@ -110,7 +117,7 @@ function start(canvas: HTMLCanvasElement): void {
   const logisticsPanel=new LogisticsPanel(document,delivery.workday,()=>clock.hour,()=>{hud.setPaused(false);input.reset()},day,()=>{
     if(!['CONCLUIDA','ENCERRADA'].includes(delivery.workday.phase))return;
     const next=nextWorkday(dayIndex??savedDay);
-    try{window.localStorage.setItem(CALENDAR_STORAGE_KEY,String(next.index));}catch{/* storage may be disabled */}
+    try{commitNextDay(career.session,next.index);}catch(e){console.warn('[carreira] avanço de dia não gravado:',(e as Error).message);}
     const url=new URL(window.location.href);
     for(const key of ['seed','dia','hora','devtime','trafego'])url.searchParams.delete(key);
     window.location.assign(url.toString());
@@ -132,6 +139,7 @@ function start(canvas: HTMLCanvasElement): void {
   hud.setVersion(currentEnvironment.version, currentEnvironment.name);
   hud.setGraphics(profile.name);
   const minimap = new Minimap(document);
+  minimap.playerSector = delivery.workday.playerSector;
   let mode: HudMode = 'riding';
   if (devTime) {
     const panel = document.querySelector<HTMLElement>('#devtime');
@@ -276,8 +284,8 @@ function start(canvas: HTMLCanvasElement): void {
     summaryTimer -= dt || 0.016;
     if (summaryTimer <= 0) {
       summaryTimer = 0.25;
-      summary = progressSummary(delivery.workday.parcels, delivery.workday.phase);
-      if (context === 'base') hud.setBase(baseSummary(delivery.workday.parcels, day?.depotTarget ?? 15, delivery.workday.allSortedAt));
+      summary = progressSummary(delivery.workday.parcels, delivery.workday.phase, delivery.workday.playerSector);
+      if (context === 'base') hud.setBase(baseSummary(delivery.workday.parcels, day?.depotTarget ?? 15, delivery.workday.allSortedAt, delivery.workday.playerSector));
     }
     hud.setObjective(objective.title, objective.detail, summary.mine, summary.team,
       delivery.waiting !== null ? 'Aguardando…' : wait?.label ?? null);
@@ -379,6 +387,7 @@ function start(canvas: HTMLCanvasElement): void {
         camera: { mode: rig.mode, alpha: rig.camera.alpha, beta: rig.camera.beta, radius: rig.camera.radius, target: rig.camera.target.asArray() },
         fadedBuildings: fader.fadedCount,
         clock: { label: clock.label, hour: clock.hour, workday: clock.isWorkday, night: lighting.night, devTime, speed: clock.speedFactor },
+        career: { id: career.session.careerId, sector: delivery.workday.playerSector, home: career.home.id, roster: { ...career.roster }, calendarIndex: career.session.profile.calendarIndex, checkpoint: career.session.save.checkpointSequence, durable: careerStorage.durable, source: career.session.loadSource },
         delivery: {
           depot:{gateOpen:delivery.gateOpen,gateManual:delivery.gateManual,visibleIds:[...delivery.parcelViews.visibleIds],workers:delivery.workday.depot.workers.map(w=>({...w,task:w.task?{id:w.task.id,kind:w.task.kind,stage:w.task.stage}:null})),errors:[...delivery.workday.depot.errors]},
           phase: delivery.workday.phase,
