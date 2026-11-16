@@ -173,7 +173,7 @@ function start(canvas: HTMLCanvasElement, boot: BrowserCareer): void {
   let insideVehicle = false;
   const baseGuard: MotionGuard = (x, z, r) => world.guard(x, z, r) && (insideVehicle || !cityLife.blocks(x, z, r));
   const logisticsPanel=new LogisticsPanel(document,delivery.workday,()=>clock.shiftHour,()=>{hud.setPaused(false);input.reset()},day,()=>{
-    if(!['CONCLUIDA','ENCERRADA'].includes(delivery.workday.phase))return;
+    if(delivery.workday.phase!=='CONCLUIDA')return;
     const next=nextWorkday(dayIndex??savedDay);
     try{commitNextDay(career.session,next.index);}catch(e){console.warn('[carreira] avanço de dia não gravado:',(e as Error).message);}
     const url=new URL(window.location.href);
@@ -401,7 +401,7 @@ function start(canvas: HTMLCanvasElement, boot: BrowserCareer): void {
     cityLife.courierObstacles.splice(0,cityLife.courierObstacles.length,...courierTrafficObstacles(delivery.workday.couriers));
     cityLife.update(dt, simTime, clock.hour, lighting.night, player, ground);
     houses.update(player.x, player.z);
-    hud.setClock(clock.label, clock.isWorkday, lighting.night > 0.5);
+    hud.setClock(clock.daysCrossed ? `${clock.label} (+1)` : clock.label, clock.isWorkday, lighting.night > 0.5);
     minimap.update(player.x, player.z, mode === 'riding' ? m.yaw : walker.state.yaw, performance.now(), mode === 'riding', mode === 'riding' ? m.speed : 0);
     // HUD-001: riding / on foot / at the base (inside the depot lot, riding or not).
     const context = hudContext(mode, inDepotLot(depotLocal(player.x, player.z)) ? 'base' : 'street');

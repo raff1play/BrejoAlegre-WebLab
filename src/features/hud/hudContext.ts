@@ -39,7 +39,9 @@ export function progressSummary(parcels: readonly ParcelView[], phase: string, p
   const mine = parcels.filter((p) => p.sector === playerSector);
   const team = parcels.filter((p) => p.sector !== undefined && p.sector !== playerSector);
   const done = (list: readonly ParcelView[]) => list.filter((p) => p.state === 'ENTREGUE').length;
-  return { mine: `Minhas entregas ${done(mine)}/${mine.length}`, team: `Equipe ${done(team)}/${team.length}` };
+  // B1-01 F5: returned-and-checked parcels are resolved but NOT deliveries: shown apart.
+  const back = (list: readonly ParcelView[]) => { const n = list.filter((p) => p.state === 'DEVOLVIDO_E_CONFERIDO').length; return n ? ` · ${n} devolv.` : ''; };
+  return { mine: `Minhas entregas ${done(mine)}/${mine.length}${back(mine)}`, team: `Equipe ${done(team)}/${team.length}${back(team)}` };
 }
 
 const hh = (h: number) => `${String(Math.floor(h)).padStart(2, '0')}h${String(Math.floor((h % 1) * 60 + 1e-6)).padStart(2, '0')}`;

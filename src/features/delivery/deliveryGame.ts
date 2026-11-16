@@ -257,6 +257,14 @@ export class DeliveryGame {
         return { label: w.sackInHands ? 'Guardar a saca no baú' : `Guardar no baú (${hands.length})`, available: true, trunk: true, run: () => `${n(w.stow(hour))} no baú` };
       }
       if (atTrunk && !hands.length) {
+        // B1-01 F5: on the route, a failed-attempt return in the box does not block the next stop.
+        if (w.released && w.trunkForRoute().length) {
+          const stop = this.nearestStop(bike, w.trunkForRoute());
+          if (stop && stop.d < 60) {
+            const a = stop.address;
+            return { label: `Retirar pacote · nº ${a.number}`, available: true, trunk: true, run: () => (w.takeForAddress(a.id, hour) ? `Pacote de ${a.street}, ${a.number} nas mãos` : null) };
+          }
+        }
         if(w.trunkForDepot().length){
           if(!depotVisitAllowed(visit,'parking'))return {label:'Estacione nas vagas de descarga e pare a moto',available:false,run:null};
           return {label:`Retirar do baú (${Math.min(w.trunkForDepot().length,HANDS_MAX)})`,available:true,trunk:true,run:()=>`${n(w.unloadForDepot(hour,false,visit))} nas mãos — leve ao recebimento`};
@@ -282,11 +290,13 @@ export class DeliveryGame {
       if (can === 'cheio') return { label: `Mãos cheias: guarde no ${box}`, available: false, run: null };
       return { label: `Retirar com ${name}`, available: true, run: () => `${name} conferiu e entregou ${n(w.collect(kind, hour))} — guarde no ${box}` };
     }
-    if (close(DEPOT_SPOTS.receiving, 1.45) && w.carrying().length) {
-      const mine = hands.filter((p) => p.state === 'COLETADO' || p.state === 'EM_TRANSPORTE').length;
-      if (!mine) return { label: car ? 'Volumes no porta-malas: retire no carro' : 'Volumes no baú: retire na moto', available: false, run: null };
+    if (close(DEPOT_SPOTS.receiving, 1.45) && (w.carrying().length || w.returnsPending().length)) {
+      const mine = hands.filter((p) => p.state === 'COLETADO' || p.state === 'EM_TRANSPORTE' || p.state === 'TENTATIVA_FRUSTRADA');
+      if (!mine.length) return { label: car ? 'Volumes no porta-malas: retire no carro' : 'Volumes no baú: retire na moto', available: false, run: null };
       if(!depotVisitAllowed(visit,'receiving'))return {label:car?'Estacione o carro numa vaga de carro da base':'Estacione a moto nas vagas de descarga',available:false,run:null};
-      return { label: `Entregar ao conferente (${mine})`, available: true, run: () => `Conferente recebendo ${n(w.handOver(hour,visit))}` };
+      // B1-01 F5 (AC-12/25): failed attempts are handed back to the on-duty checker at the same desk.
+      const returns = mine.every((p) => p.state === 'TENTATIVA_FRUSTRADA');
+      return { label: returns ? `Devolver ao conferente (${mine.length})` : `Entregar ao conferente (${mine.length})`, available: true, run: () => `${returns ? 'Conferente de plantão recebendo a devolução de' : 'Conferente recebendo'} ${n(w.handOver(hour,visit))}` };
     }
     if (close(w.playerDispatch, 1.45) && (w.phase === 'SACA' || w.phase === 'TRIAGEM')) {
       if (hands.length) return { label: 'Mãos cheias', available: false, run: null };
@@ -298,7 +308,11 @@ export class DeliveryGame {
       for (const id of w.route) {
         const a = w.byAddress.get(id)!;
         if (!close(a.door, 2.4)) continue;
-        if (hands.some((p) => p.destination === id)) return { label: `Entregar nº ${a.number}`, available: true, run: () => (w.deliver(id, hour) ? `Entregue em ${a.street}, ${a.number}` : null) };
+        if (hands.some((p) => p.destination === id && p.state === 'EM_ROTA')) {
+          // B1-01 F5 (AC-11): nobody at home — the attempt is recorded, never a delivery.
+          if (w.recipientAbsent(id)) return { label: `Ninguém atende · registrar tentativa nº ${a.number}`, available: true, run: () => (w.registerAttempt(id, hour) ? `Tentativa registrada em ${a.street}, ${a.number} — guarde e devolva na base` : null) };
+          return { label: `Entregar nº ${a.number}`, available: true, run: () => (w.deliver(id, hour) ? `Entregue em ${a.street}, ${a.number}` : null) };
+        }
         return { label: hands.length ? 'Pacote de outro endereço' : car ? 'Pacote no porta-malas: retire no carro' : 'Pacote no baú: retire na moto', available: false, run: null };
       }
     }

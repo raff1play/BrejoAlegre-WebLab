@@ -7,12 +7,13 @@ import {calendarWeek,type CalendarDay} from '../../core/delivery/operatingCalend
 export class LogisticsPanel {
  private readonly lines:HTMLDivElement;private readonly button:HTMLButtonElement;
  private readonly nextButton:HTMLButtonElement;private readonly calendarStatus:HTMLParagraphElement;private last=-1;
- constructor(doc:Document,day:LogisticsDay,hour:()=>number,resume:()=>void,selected:CalendarDay|null,nextDay:()=>void){
+ constructor(doc:Document,day:LogisticsDay,_hour:()=>number,resume:()=>void,selected:CalendarDay|null,nextDay:()=>void){
   const panel=doc.createElement('details');panel.id='logistics-panel';panel.open=true;
   const title=doc.createElement('summary');title.textContent='Logística — equipe e quatro setores';panel.append(title);
   this.lines=doc.createElement('div');this.lines.className='logistics-lines';panel.append(this.lines);
   this.button=doc.createElement('button');this.button.id='release-team';this.button.className='primary wide';panel.append(this.button);
-  this.button.onclick=()=>{if(day.release(hour()))resume();};
+  // B1-01 F5 (F4 audit): the release is done beside the vehicle at the base, not from this menu.
+  this.button.onclick=()=>{resume();};
   const mapToggle=doc.createElement('details'),mapTitle=doc.createElement('summary');mapTitle.textContent='Mapa dos setores • norte geográfico ↑';mapToggle.append(mapTitle);
   const canvas=doc.createElement('canvas');canvas.width=480;canvas.height=400;canvas.style.width='100%';canvas.id='sector-map';mapToggle.append(canvas);panel.append(mapToggle);
   const schedule=doc.createElement('details');schedule.id='game-calendar';
@@ -38,9 +39,14 @@ export class LogisticsPanel {
   const status=day.calendar?.tier.toUpperCase()??'CENÁRIO DE TESTE';
   const expected=day.calendar?.depotTarget??15;
   this.calendarStatus.textContent=day.calendar?`${day.calendar.label} · demanda ${status} (${day.calendar.minParcels}–${day.calendar.maxParcels} pacotes) · meta de separação ${fmt(expected)}`:'Cenário de testes: seed fixa sem sazonalidade. O calendário semanal continua disponível.';
-  this.nextButton.disabled=!day.calendar||!['CONCLUIDA','ENCERRADA'].includes(day.phase);
+  // B1-01 F5 (AC-13): only with every parcel resolved (delivered or returned and checked) by all four.
+  this.nextButton.disabled=!day.calendar||day.phase!=='CONCLUIDA';
+  const pending=day.parcels.filter(p=>p.state!=='ENTREGUE'&&p.state!=='DEVOLVIDO_E_CONFERIDO').length;
+  const who=(a:string)=>a==='jogador'?'Você':day.couriers.find(c=>c.id===a)?.name??a;
   const list:string[]=[
-   `Seu setor: OESTE / D02 · jornada até 21h · restam ${Math.max(0,Math.floor((21-hour)*60))} min`,
+   `Seu setor: ${day.playerSector.toUpperCase()} · prazo 21h${hour<21?` · restam ${Math.floor((21-hour)*60)} min`:` · ATRASO ${Math.round((hour-21)*60)} min (o expediente continua)`}${hour>=24?' · madrugada, mesmo expediente':''}`,
+   `Pendências do dia: ${pending}${pending?' — o expediente só termina com todos entregues ou devolvidos e conferidos':' — tudo resolvido'}`,
+   ...day.report(hour).map(r=>`${who(r.actor)}: ${r.delivered} entregues · ${r.returned} devolvidos e conferidos · ${r.pending} pendentes${r.finishedAt!==null?` · concluiu ${fmt(r.finishedAt%24)}`:''}${r.lateMinutes?` · atraso ${r.lateMinutes} min`:''}`),
    `NPCs: retorno ideal 14h · tolerância máxima 14h20 · triagem ${fmt(expected)} (meta)`,
    ...day.assigned.map(id=>{const total=day.parcels.filter(p=>p.origin===id);return `${STORES.find(s=>s.id===id)!.name}: ${total.filter(p=>p.state!=='NA_LOJA').length}/${total.length} coletados`;}),
    ...day.couriers.map(c=>`${c.name} (${c.sector}): ${COURIER_LABEL[c.state]}${c.yieldingToTraffic?' (cedendo passagem ao trânsito)':''} · ${c.returnedAt===null?'retorno pendente':`retornou ${fmt(c.returnedAt)}`}${c.deadlineReported?' · ATRASADO':''} · ${c.trunk(day).length} no baú${c.error?' · acesso bloqueado':''}`),
@@ -51,8 +57,8 @@ export class LogisticsPanel {
    `Van: ${({scheduled:'prevista às 13h',opening:'abrindo portas',unloading:'descarregando',closing:'fechando portas',departed:'saída assistida concluída'})[day.van.state]}`
   ];
   this.lines.replaceChildren(...list.map(s=>{const p=document.createElement('p');p.textContent=s;return p;}));
-  this.button.disabled=!day.teamReady||day.released||hour<15||hour>=21;
-  this.button.textContent=day.released?'Equipe em rota':day.teamReady?'Equipe pronta — iniciar rota de entregas':'Aguardando quatro cargas guardadas nos baús';
+  this.button.disabled=true;
+  this.button.textContent=day.released?'Equipe em rota':day.teamReady?'Equipe pronta — libere junto ao seu veículo, na base':'Aguardando as quatro cargas nos veículos';
  }
  private map(canvas:HTMLCanvasElement,day:LogisticsDay):void{
   const c=canvas.getContext('2d')!,points=ROADS.flatMap(r=>r.pts),xs=points.map(p=>p[0]),zs=points.map(p=>p[1]);
