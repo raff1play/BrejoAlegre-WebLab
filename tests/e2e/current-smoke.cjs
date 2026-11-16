@@ -630,12 +630,15 @@ async function carLogistics(browser){
  const pendingPanel=await page.evaluate(()=>window.__weblab.snapshot().delivery.objective.title);
  check('B1-01 F5 AC-13: with the failed attempt in the boot the objective is to return it — the shift is not over',/Devolver \d+ volume\(s\) na base/.test(pendingPanel)&&(await snap()).delivery.phase!=='CONCLUIDA',pendingPanel);
  await page.evaluate(b=>window.__debug.parkAt(b.x,b.z,b.yaw),bays[0]);await delay(300);
- await toBoot();await openBoot();
- await tapWhen(/^Retirar do porta-malas \(\d\)$/,'retirar a devolução do porta-malas na vaga da base');
- await until(()=>window.__weblab.snapshot().delivery.cargo.hands>0);
- await walkTo(receiving,Math.PI/2);
- await tapWhen(/^Devolver ao conferente \(\d\)$/,'devolver ao conferente de plantão');
- await until(()=>window.__weblab.snapshot().delivery.cargo.hands===0);
+ let backTrips=0;
+ while((await snap()).delivery.cargo.carBoot.parcels.length&&backTrips++<4){
+  await toBoot();await openBoot();
+  await tapWhen(/^Retirar do porta-malas \(\d\)$/,'retirar a devolução do porta-malas na vaga da base');
+  await until(()=>window.__weblab.snapshot().delivery.cargo.hands>0);
+  await walkTo(receiving,Math.PI/2);
+  await tapWhen(/^Devolver ao conferente \(\d\)$/,'devolver ao conferente de plantão');
+  await until(()=>window.__weblab.snapshot().delivery.cargo.hands===0);
+ }
  await toBoot();
  // Everyone works on: the on-duty checker, Rosa's return, the other two NPCs (whole-world fixture, same calls as the game loop).
  for(let i=0;i<120&&!(await snap()).delivery.logistics.allResolved&&(await snap()).clock.shiftHour<34;i++)await page.evaluate(()=>{for(let k=0;k<4;k++)window.__debug.worldStep(5);});
