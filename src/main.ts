@@ -13,7 +13,7 @@ import { CarTrunk, type Arrangement } from './core/delivery/carTrunk';
 import { canonicalJson, captureParcels, emptyShift, parseSave, sealSave, shiftIdOf, vehicleIdOf } from './core/career/snapshot';
 import { carVehicle, motoVehicle, type PlayerVehicle } from './features/driving/playerVehicle';
 import { askVehicle } from './features/career/vehicleChoice';
-import { DEPOT_SPOTS } from './core/delivery/workday';
+import { DEPOT_SPOTS, HANDS_MAX, depotVisitAllowed } from './core/delivery/workday';
 import { depotPath, DEPOT_POINTS, depotFixtures, MOTO_PARKING, CAR_PARKING, depotCarBay } from './world/city/depotPlan';
 import './style.css';
 import { Engine } from '@babylonjs/core/Engines/engine';
@@ -212,7 +212,9 @@ function start(canvas: HTMLCanvasElement, boot: BrowserCareer): void {
   let stopsKey = '';
   /** Development only: show the player's real stops on the map before the delivery phase. */
   let stopsPreview = false;
-  const bikeSpot = (): BikeSpot => ({ x: vehicle.view.x, z: vehicle.view.z, yaw: vehicle.view.yaw, moving: !vehicle.stopped() });
+  const bikeSpot = (): BikeSpot => ({ x: vehicle.view.x, z: vehicle.view.z, yaw: vehicle.view.yaw, moving: !vehicle.stopped(), kind: car ? 'carro' : 'moto' });
+  // B1-01 F4: the delivery domain words its objectives for the career's own vehicle.
+  delivery.workday.vehicleKind = vehicle.kind;
   /** B1-01 F2: depot car bay the parked car occupies (its four corners inside the paint), or null. */
   const carBay = (): number | null => {
     if (!car) return null;
@@ -247,7 +249,24 @@ function start(canvas: HTMLCanvasElement, boot: BrowserCareer): void {
     if (!trunkParked()) return { label: 'Estacione o carro para abrir o porta-malas', available: false, run: null };
     const hands = delivery.workday.inHands().length;
     if (!trunk.open) return { label: 'Abrir porta-malas', available: true, run: () => { trunk.setOpen(true); car.setTrunkOpen(true); return null; } };
-    if (!hands) return { label: 'Fechar porta-malas', available: true, run: closeTrunk };
+    const wd = delivery.workday;
+    if (!hands) {
+      // B1-01 F4 (AC-09): at the base, collected volumes come out of the boot towards the desk.
+      const visit = { player: { x: here.x, z: here.z, riding: false }, bike: { ...bikeSpot() }, car: true };
+      const forDepot = wd.carForDepot().length;
+      if (forDepot && depotVisitAllowed(visit, 'parking') && !wd.sackInHands) {
+        return { label: `Retirar do porta-malas (${Math.min(forDepot, HANDS_MAX)})`, available: true, trunk: true, run: () => `${wd.unloadCarForDepot(trunk, clock.hour, visit)} nas mãos — leve ao recebimento` };
+      }
+      // B1-01 F4 (AC-10): on the route, the parcels of the nearest stop come out of the boot.
+      if (wd.released && wd.carForRoute().length) {
+        const stop = delivery.nearestStop(car.state, wd.carForRoute());
+        if (stop && stop.d < 60) {
+          const a = stop.address;
+          return { label: `Retirar pacote · nº ${a.number}`, available: true, trunk: true, run: () => (wd.takeFromCarForAddress(trunk, a.id, clock.hour, trunkParked()) ? `Pacote de ${a.street}, ${a.number} nas mãos` : 'Pacote não retirado') };
+        }
+      }
+      return { label: 'Fechar porta-malas', available: true, run: closeTrunk };
+    }
     const fit = trunkPlan().accepted.length;
     if (!fit) return { label: 'Fechar porta-malas (cheio)', available: true, run: () => `${closeTrunk()} · sem espaço: ${hands} ${hands === 1 ? 'volume continua' : 'volumes continuam'} nas mãos` };
     return {
@@ -263,16 +282,14 @@ function start(canvas: HTMLCanvasElement, boot: BrowserCareer): void {
     };
   };
   /**
-   * B1-01 F2/F3: coleta, base e entrega pelo carro são da F4. Until then a car career never takes
-   * parcels at a store counter or a depot desk: those interactions stay visible but unavailable,
-   * with an explicit reason (the boot and the depot gate control work).
+   * B1-01 F4: the car does the whole cycle through the SAME delivery domain as the motorcycle
+   * (store counter, depot desks, sector dock, customer's gate); only its compartment differs (the
+   * boot at the tailgate, above, instead of the top box).
    */
   const jobAt = (here: { x: number; z: number; riding: boolean }) => {
     const atBoot = trunkJob(here);
     if (atBoot) return atBoot;
-    const job = delivery.action(clock.hour, here, moto ? bikeSpot() : undefined);
-    if (moto || !job || /port[ãa]o/i.test(job.label)) return job;
-    return { label: 'Carga pelo carro: coleta/base/entrega na próxima etapa (F4)', available: false, run: null };
+    return delivery.action(clock.hour, here, bikeSpot());
   };
   const toggleMount = (): void => {
     if (mode === 'riding') {
@@ -330,7 +347,7 @@ function start(canvas: HTMLCanvasElement, boot: BrowserCareer): void {
   const rig = new IsometricCameraRig(scene, canvas, startFocus, narrow ? 15 : 18, cameraObstacles());
   rig.setDriveFraming(vehicle.camera.radius, vehicle.camera.beta);
   rig.resetBehind(SPAWN.yaw, true);
-  if (car) window.setTimeout(() => hud.toast('Carro próprio: dirigir, estacionar e porta-malas ativos; coleta/base/entrega pelo carro na etapa F4'), 1200);
+  if (car) window.setTimeout(() => hud.toast('Carro próprio: colete nas lojas, guarde no porta-malas e descarregue numa vaga de carro da base'), 1200);
   if (boot.note) window.setTimeout(() => hud.toast(boot.note!), 4200);
   const fader = new OcclusionFader(world.occluders);
   const cameraTarget = new Vector3();
@@ -394,7 +411,7 @@ function start(canvas: HTMLCanvasElement, boot: BrowserCareer): void {
     delivery.update(dt, clock.hour, cityLife.crowd, here, ground, (x,z,r)=>cityLife.blocks(x,z,r)||Math.hypot(x-player.x,z-player.z)<r+player.radius, bikeSpot());
     for (const msg of delivery.workday.events.splice(0)) hud.toast(msg);
     logisticsPanel.update(delivery.workday,clock.hour,performance.now()/1000);
-    const objective = delivery.workday.objective(clock.hour, moto?.state);
+    const objective = delivery.workday.objective(clock.hour, vehicle.view);
     const wait = delivery.waiting === null ? delivery.waitOption(clock.hour) : null;
     // Progress texts (mine vs team) and the base lines change slowly: 4 Hz is plenty.
     summaryTimer -= dt || 0.016;
@@ -542,7 +559,7 @@ function start(canvas: HTMLCanvasElement, boot: BrowserCareer): void {
           depot:{gateOpen:delivery.gateOpen,gateManual:delivery.gateManual,visibleIds:[...delivery.parcelViews.visibleIds],workers:delivery.workday.depot.workers.map(w=>({...w,task:w.task?{id:w.task.id,kind:w.task.kind,stage:w.task.stage}:null})),errors:[...delivery.workday.depot.errors]},
           phase: delivery.workday.phase,
           logistics:{seed:delivery.workday.options.seed??day?.seed??2026,calendar:day?{date:day.date,index:day.index,tier:day.tier,target:day.depotTarget}:null,sortedAt:delivery.workday.allSortedAt,assignments:delivery.workday.assignments,teamReady:delivery.workday.teamReady,released:delivery.workday.released,releaseHour:delivery.workday.releaseHour,van:{state:delivery.workday.van.state,door:delivery.workday.van.door,approach:'assisted-D05'},couriers:delivery.workday.couriers.map(c=>({id:c.id,name:c.name,sector:c.sector,state:c.state,bike:{...c.bike},person:{...c.person},riding:c.riding,error:c.error,stops:[...c.stops],route:c.route.map(p=>({...p})),trunk:c.trunk(delivery.workday).map(p=>p.id),hands:c.hands(delivery.workday).map(p=>p.id)}))},
-          objective: delivery.workday.objective(clock.hour, moto?.state),
+          objective: delivery.workday.objective(clock.hour, vehicle.view),
           cargo: { visualHands:walker.displayedLoad, hands: delivery.workday.inHands().length, trunk: delivery.workday.inTrunk().length, sack: delivery.workday.sackInHands, label: delivery.workday.cargoLabel(), trunkOpen: moto?.trunkOpen ?? 0, trunkSpot: moto ? trunkSpot(bikeSpot()) : null,
             /** B1-01 F3: the car boot — domain (open flag, parcels with slots) and what is drawn. */
             carBoot: car && trunk && cargoView ? { open: trunk.open, lid: car.trunk01, vehicleId: trunk.vehicleId, problem: trunk.problem(delivery.workday.parcels), parcels: trunk.contents(delivery.workday.parcels).map((p) => ({ id: p.id, state: p.state, holder: p.holder, stowage: { ...p.stowage! } })), drawn: cargoView.drawn() } : null },

@@ -27,8 +27,8 @@ import { NpcPerson, civilianLook } from '../city/npcPerson';
  * (parcels, routine, store state machines) live in core/delivery.
  */
 export type ContextAction = Readonly<{ label: string; available: boolean; run: (() => string | null) | null; /** Opens the top box (animation). */ trunk?: boolean }>;
-/** The parked bike, as the cargo interactions see it. */
-export type BikeSpot = Readonly<{ x: number; z: number; yaw: number; moving: boolean }>;
+/** The player's parked vehicle, as the cargo interactions see it (`kind` 'carro' = B1-01 F4 car). */
+export type BikeSpot = Readonly<{ x: number; z: number; yaw: number; moving: boolean; kind?: 'moto' | 'carro' }>;
 /** Where the rider stands to use the top box: behind the bike. */
 export const TRUNK_REACH = 1.05;
 export const trunkSpot = (b: BikeSpot): { x: number; z: number } => ({ x: b.x - Math.sin(b.yaw) * 1.25, z: b.z - Math.cos(b.yaw) * 1.25 });
@@ -240,14 +240,17 @@ export class DeliveryGame {
     const w = this.workday;
     if(w.teamReady&&!w.released&&bike&&!bike.moving){const p=depotLocal(bike.x,bike.z);if(p.x>76.4&&p.x<139.6&&p.z<-92.5&&p.z>-149.8)return {label:'Equipe pronta — iniciar rota de entregas',available:true,run:()=>w.release(hour)?'Quatro rotas liberadas':null};}
     if (player.riding) return null;
-    const visit=bike?{player,bike}:undefined;
+    const car = bike?.kind === 'carro';
+    const box = car ? 'porta-malas' : 'baú';
+    const visit=bike?{player,bike,car}:undefined;
     const close = (p: Spot, r: number) => Math.hypot(player.x - p.x, player.z - p.z) < r;
     const control=depotWorld(95,-97.1);
     if(close(control,1.6))return {label:this.gateManual===false?'Abrir portão de veículos':'Fechar portão de veículos',available:true,run:()=>{this.gateManual=this.gateManual===false;return this.gateManual?'Portão abrindo':'Portão fechando'}};
     const hands = w.inHands();
     const n = (k: number) => `${k} ${k === 1 ? 'volume' : 'volumes'}`;
-    // Top box: behind the bike (with the hands full, anywhere within reach of the bike).
-    if (bike && !bike.moving) {
+    // Top box: behind the bike (with the hands full, anywhere within reach of the bike). The car's
+    // boot is handled by the car presentation (open/close tailgate, CarTrunk), not here.
+    if (bike && !bike.moving && !car) {
       const atTrunk = close(trunkSpot(bike), TRUNK_REACH);
       const nearBike = Math.hypot(player.x - bike.x, player.z - bike.z) < 2.2;
       if (hands.length && (atTrunk || nearBike)) {
@@ -259,7 +262,7 @@ export class DeliveryGame {
           return {label:`Retirar do baú (${Math.min(w.trunkForDepot().length,HANDS_MAX)})`,available:true,trunk:true,run:()=>`${n(w.unloadForDepot(hour,false,visit))} nas mãos — leve ao recebimento`};
         }
         if (w.trunkForRoute().length) {
-          const stop = this.nearestStop(bike);
+          const stop = this.nearestStop(bike, w.trunkForRoute());
           if (stop && stop.d < 60) {
             const a = stop.address;
             return { label: `Retirar pacote · nº ${a.number}`, available: true, trunk: true, run: () => (w.takeForAddress(a.id, hour) ? `Pacote de ${a.street}, ${a.number} nas mãos` : null) };
@@ -276,37 +279,37 @@ export class DeliveryGame {
       const name = STORE_STAFF[kind].name;
       if (!isOpen(kind, hour)) return { label: `Fechado (abre ${STORE_HOURS[kind].open}h)`, available: false, run: null };
       if (can === 'cedo') return { label: 'Volumes às 12h', available: false, run: null };
-      if (can === 'cheio') return { label: 'Mãos cheias: guarde no baú', available: false, run: null };
-      return { label: `Retirar com ${name}`, available: true, run: () => `${name} conferiu e entregou ${n(w.collect(kind, hour))} — guarde no baú` };
+      if (can === 'cheio') return { label: `Mãos cheias: guarde no ${box}`, available: false, run: null };
+      return { label: `Retirar com ${name}`, available: true, run: () => `${name} conferiu e entregou ${n(w.collect(kind, hour))} — guarde no ${box}` };
     }
     if (close(DEPOT_SPOTS.receiving, 1.45) && w.carrying().length) {
       const mine = hands.filter((p) => p.state === 'COLETADO' || p.state === 'EM_TRANSPORTE').length;
-      if (!mine) return { label: 'Volumes no baú: retire na moto', available: false, run: null };
-      if(!depotVisitAllowed(visit,'receiving'))return {label:'Estacione a moto nas vagas de descarga',available:false,run:null};
+      if (!mine) return { label: car ? 'Volumes no porta-malas: retire no carro' : 'Volumes no baú: retire na moto', available: false, run: null };
+      if(!depotVisitAllowed(visit,'receiving'))return {label:car?'Estacione o carro numa vaga de carro da base':'Estacione a moto nas vagas de descarga',available:false,run:null};
       return { label: `Entregar ao conferente (${mine})`, available: true, run: () => `Conferente recebendo ${n(w.handOver(hour,visit))}` };
     }
     if (close(w.playerDispatch, 1.45) && (w.phase === 'SACA' || w.phase === 'TRIAGEM')) {
       if (hands.length) return { label: 'Mãos cheias', available: false, run: null };
       if(!depotVisitAllowed(visit,w.playerDispatchLocal))return {label:'Use as vagas de descarga da base',available:false,run:null};
       if (!w.canTakeSack(hour)) return { label: hour < ROUTINE.sackFrom ? 'Saca às 15h' : 'Triagem em curso', available: false, run: null };
-      return { label: 'Retirar a saca', available: true, run: () => `Saca com ${n(w.takeSack(hour,visit))} — guarde no baú da moto` };
+      return { label: 'Retirar a saca', available: true, run: () => `Saca com ${n(w.takeSack(hour,visit))} — guarde no ${car ? 'porta-malas do carro' : 'baú da moto'}` };
     }
     if (w.phase === 'ENTREGAS') {
       for (const id of w.route) {
         const a = w.byAddress.get(id)!;
         if (!close(a.door, 2.4)) continue;
         if (hands.some((p) => p.destination === id)) return { label: `Entregar nº ${a.number}`, available: true, run: () => (w.deliver(id, hour) ? `Entregue em ${a.street}, ${a.number}` : null) };
-        return { label: hands.length ? 'Pacote de outro endereço' : 'Pacote no baú: retire na moto', available: false, run: null };
+        return { label: hands.length ? 'Pacote de outro endereço' : car ? 'Pacote no porta-malas: retire no carro' : 'Pacote no baú: retire na moto', available: false, run: null };
       }
     }
     return null;
   }
 
-  /** The route stop closest to the parked bike that still has a parcel in the top box. */
-  private nearestStop(bike: BikeSpot): { address: Address; d: number } | null {
+  /** The route stop closest to the parked vehicle that still has a parcel in its compartment. */
+  nearestStop(bike: { x: number; z: number }, inVehicle: readonly { destination: string }[]): { address: Address; d: number } | null {
     const w = this.workday;
     let best: { address: Address; d: number } | null = null;
-    for (const id of new Set(w.trunkForRoute().map((p) => p.destination))) {
+    for (const id of new Set(inVehicle.map((p) => p.destination))) {
       const a = w.byAddress.get(id)!;
       const d = Math.hypot(a.door.x - bike.x, a.door.z - bike.z);
       if (!best || d < best.d) best = { address: a, d };
