@@ -571,13 +571,12 @@ async function carLogistics(browser){
  check(`B1-01 F4 AC-10: the whole ${sector} load (${load.length} IDs) went from the sector dock into the boot, arranged, one box per ID, ready to leave`,boot.parcels.length===load.length&&load.every(id=>boot.parcels.some(p=>p.id===id&&p.state==='EM_ROTA'))&&boot.drawn.length===load.length&&boot.problem===null&&s.delivery.logistics.playerReady,{boot:boot.parcels.length,load:load.length,ready:s.delivery.logistics.playerReady});
  // Team release from the car (same action as the bike), once the three NPCs are ready.
  for(let i=0;i<80&&!(await snap()).delivery.logistics.teamReady&&(await snap()).clock.hour<20.5;i++)await page.evaluate(()=>{for(let k=0;k<4;k++)window.__debug.worldStep(5);});
+ // Same release action as with the bike: offered beside the stopped vehicle inside the base.
  await page.evaluate(()=>{const v=window.__weblab.snapshot().vehicle,c=Math.cos(v.yaw),n=Math.sin(v.yaw);window.__debug.placeWalker(v.x-1.31*c,v.z+1.31*n,v.yaw);});await delay(200);
- await tapWhen(/^Entrar no carro$/,'entrar no carro');
- await until(()=>window.__weblab.snapshot().mode==='riding');
  await tapWhen(/^Equipe pronta — iniciar rota de entregas$/,'liberar a equipe');
  await until(()=>window.__weblab.snapshot().delivery.logistics.released);
  s=await snap();
- check('B1-01 F4 AC-10: from the driver\'s seat the team is released (four routes) and the tailgate closed itself',s.delivery.logistics.released&&!s.delivery.cargo.carBoot.open&&s.delivery.route.length>0,{released:s.delivery.logistics.released,route:s.delivery.route.length});
+ check('B1-01 F4 AC-10: with the load in the parked car the team is released (four routes), same action as with the bike',s.delivery.logistics.released&&s.delivery.route.length>0&&s.delivery.cargo.carBoot.parcels.length===load.length,{released:s.delivery.logistics.released,route:s.delivery.route.length});
  // ---------------------------------------------------------------- route: boot → hands → customer, stop by stop
  let stops=0;
  while((await snap()).delivery.cargo.carBoot.parcels.length&&stops++<20){
