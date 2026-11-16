@@ -345,8 +345,8 @@ async function mainMenu(page){
  // Opções: the real graphics setting and the controls help; save management shown as unavailable (F6).
  await page.locator('[data-menu-home="opcoes"]').tap();
  await page.waitForSelector('#menu-options:not([hidden])',{timeout:10000});
- const opt=await page.evaluate(()=>({checked:document.querySelector('[data-gfx][aria-checked="true"]')?.dataset.gfx,info:document.querySelector('#menu-gfx-info').textContent,help:document.querySelector('.controls-help').textContent,f6:document.querySelector('[data-indisponivel="gerenciar-saves"]').textContent,sliders:document.querySelectorAll('#main-menu input[type=range]').length}));
- check('B1-01 F3.5.1: "Opções" shows the real graphics profile (here forced by ?gfx=mobile), touch/keyboard help, and save management as unavailable until F6 — no invented settings',opt.checked==='mobile'&&/endereço/.test(opt.info)&&/analógico/.test(opt.help)&&/Teclado/.test(opt.help)&&/indisponível/.test(opt.f6)&&/F6/.test(opt.f6)&&opt.sliders===0,opt);
+ const opt=await page.evaluate(()=>({checked:document.querySelector('[data-gfx][aria-checked="true"]')?.dataset.gfx,info:document.querySelector('#menu-gfx-info').textContent,help:document.querySelector('.controls-help').textContent,f6:document.querySelector('[data-menu="gerenciar-saves"]')?.textContent??'',sliders:document.querySelectorAll('#main-menu input[type=range]').length}));
+ check('B1-01 F3.5.1/F6: "Opções" shows the real graphics profile (here forced by ?gfx=mobile), touch/keyboard help, and (F6) the save management entry — no invented settings',opt.checked==='mobile'&&/endereço/.test(opt.info)&&/analógico/.test(opt.help)&&/Teclado/.test(opt.help)&&/Gerenciar saves/.test(opt.f6)&&/backup/.test(opt.f6)&&opt.sliders===0,opt);
  for(const [w,h] of [[780,360],[915,412]]){
   await page.setViewportSize({width:w,height:h});await delay(250);
   const L=await page.evaluate(menuLayout);
@@ -381,28 +381,35 @@ async function mainMenu(page){
  await page.setViewportSize({width:915,height:412});
 }
 /**
- * B1-01 F3.5 (AC-01/02/03/16): the four careers, one after the other in the same browser storage.
- * Each one: presets by touch, one-time vehicle, the world built for THAT character (name, sector,
- * home, three NPC colleagues, avatar look, vehicle); the other three saves stay byte for byte.
+ * B1-01 F3.5 (AC-01/02/03/16) + F6 (AC-17): the four careers. F6 opens the shift as soon as a career
+ * enters the world, which (decision 8) locks every other career until it is closed at home — so the
+ * careers can no longer be entered one after the other in the same storage. Each career is entered
+ * in its own browser storage, next to CLOSED saves of the other three (built by the real domain
+ * functions, fixtures/closed-careers.ts) that must stay byte for byte; then the lock is checked.
  */
 async function fourCareers(browser){
- const ctx=await browser.newContext({viewport:{width:780,height:360},isMobile:true,hasTouch:true,deviceScaleFactor:1});
- const page=await ctx.newPage();page.on('pageerror',e=>errors.push(e.message));
+ const {execFileSync}=require('node:child_process');
  const plan=[
   {id:'personagem-norte',name:'Rosa',sector:'Norte',home:'casa-norte',appearance:'masculino',equipment:'kit-refletivo',vehicle:'carro-antigo'},
   {id:'personagem-oeste',name:'Lia',sector:'Oeste',home:'casa-oeste',appearance:'feminino',equipment:'kit-refletivo',vehicle:'moto-antiga'},
   {id:'personagem-leste',name:'Caio',sector:'Leste',home:'casa-leste',appearance:'feminino',equipment:'kit-jaqueta',vehicle:'carro-antigo'},
   {id:'personagem-sul',name:'Davi',sector:'Sul',home:'casa-sul',appearance:'masculino',equipment:'kit-jaqueta',vehicle:'moto-antiga'},
  ];
- const saves=()=>page.evaluate(()=>Object.fromEntries(Object.keys(localStorage).filter(k=>k.startsWith('brejo-b1:carreira:')).map(k=>[k,localStorage.getItem(k)])));
- await page.goto(url+'?trafego=0',{waitUntil:'domcontentloaded',timeout:120000});
- // Opções (no ?gfx in the URL): the light profile chosen in the menu is saved and used by the game.
- await page.waitForSelector('#menu-home:not([hidden])',{timeout:120000});
- await page.locator('[data-menu-home="opcoes"]').tap();
- await page.locator('[data-gfx="mobile"]').tap();
- check('B1-01 F3.5.1: choosing "Leve (celular)" in Opções saves the existing graphics preference',await page.evaluate(()=>localStorage.getItem('brejo-weblab-gfx'))==='mobile'&&await page.locator('[data-gfx="mobile"]').getAttribute('aria-checked')==='true');
- await page.locator('#menu-options [data-menu="voltar-inicio"]').tap();
+ const closed=(list)=>JSON.parse(execFileSync(process.execPath,['--experimental-strip-types','--no-warnings',require('node:path').join(__dirname,'fixtures','closed-careers.ts'),JSON.stringify(list.map(({id,appearance,equipment,vehicle})=>({id,appearance,equipment,vehicle})))],{encoding:'utf8'}));
  for(const c of plan){
+  const ctx=await browser.newContext({viewport:{width:780,height:360},isMobile:true,hasTouch:true,deviceScaleFactor:1});
+  await ctx.addInitScript(seed=>{if(!sessionStorage.getItem('b1-four')){sessionStorage.setItem('b1-four','1');localStorage.clear();for(const [k,v] of Object.entries(seed))localStorage.setItem(k,v);}},closed(plan.filter(o=>o.id!==c.id)));
+  const page=await ctx.newPage();page.on('pageerror',e=>errors.push(e.message));
+  const saves=()=>page.evaluate(()=>Object.fromEntries(Object.keys(localStorage).filter(k=>k.startsWith('brejo-b1:carreira:')).map(k=>[k,localStorage.getItem(k)])));
+  await page.goto(url+'?trafego=0',{waitUntil:'domcontentloaded',timeout:120000});
+  await page.waitForSelector('#menu-home:not([hidden])',{timeout:120000});
+  if(c===plan[0]){
+   // Opções (no ?gfx in the URL): the light profile chosen in the menu is saved and used by the game.
+   await page.locator('[data-menu-home="opcoes"]').tap();
+   await page.locator('[data-gfx="mobile"]').tap();
+   check('B1-01 F3.5.1: choosing "Leve (celular)" in Opções saves the existing graphics preference',await page.evaluate(()=>localStorage.getItem('brejo-weblab-gfx'))==='mobile'&&await page.locator('[data-gfx="mobile"]').getAttribute('aria-checked')==='true');
+   await page.locator('#menu-options [data-menu="voltar-inicio"]').tap();
+  } else await page.evaluate(()=>localStorage.setItem('brejo-weblab-gfx','mobile'));
   const before=await saves();
   await enterFromMenu(page,c.id,{appearance:c.appearance,equipment:c.equipment,vehicle:c.vehicle});
   await delay(400);
@@ -414,34 +421,192 @@ async function fourCareers(browser){
   const vest=c.equipment==='kit-refletivo';
   check(`B1-01 F3.5 AC-02: ${c.name} — ${c.appearance}/${c.equipment} saved AND worn by the 3D character on foot and ${c.vehicle==='moto-antiga'?'on the bike':'at the wheel'}`,s.avatar.appearance===c.appearance&&s.avatar.equipment===c.equipment&&[s.avatar.walker,body].every(l=>l&&l.figure===c.appearance&&(vest?!!l.vest:!l.vest))&&s.avatar.walker.helmet===body.helmet,s.avatar);
   check(`B1-01 F3.5 AC-03: ${c.name} — the world has the vehicle saved for this career (${c.vehicle})`,s.vehicle.kind===c.vehicle&&s.vehicle.owned?.kind===c.vehicle&&s.vehicle.owned.vehicleId===`veiculo-${c.id}`,s.vehicle);
+  await page.waitForFunction(()=>window.__weblab.snapshot().save.status.writes>0,null,{timeout:20000}).catch(()=>{});
   const after=await saves();
   const others=Object.keys(before).filter(k=>k!==`brejo-b1:carreira:${c.id}`&&k!==`brejo-b1:carreira:${c.id}:anterior`);
-  check(`B1-01 F3.5 AC-16: entering ${c.name} left the other careers' saves byte for byte intact`,others.every(k=>after[k]===before[k])&&JSON.parse(after[`brejo-b1:carreira:${c.id}`]).profile.appearance===c.appearance,{others});
+  const own=JSON.parse(after[`brejo-b1:carreira:${c.id}`]);
+  check(`B1-01 F3.5 AC-16: entering ${c.name} left the other careers' saves byte for byte intact`,others.length===3&&others.every(k=>after[k]===before[k])&&own.profile.appearance===c.appearance,{others});
+  check(`B1-01 F6 AC-17: ${c.name} — entering the world opened the shift in the save (${c.id}/dia-0) with its world checkpoint`,own.profile.activeShiftId===`${c.id}/dia-0`&&own.shift?.shiftId===`${c.id}/dia-0`&&own.shift.world!==null&&own.schemaVersion===3,{active:own.profile.activeShiftId});
   if(process.env.WEBLAB_SHOTS){await page.evaluate(()=>{const v=window.__weblab.snapshot().vehicle;if(window.__debug){window.__debug.placeWalker(v.x+Math.cos(v.yaw)*1.6,v.z-Math.sin(v.yaw)*1.6,v.yaw+Math.PI);}});await delay(900);await page.screenshot({path:`${process.env.WEBLAB_SHOTS}/world-${c.id}.png`});}
   await page.reload({waitUntil:'domcontentloaded'});
+  await page.waitForSelector('#menu-home:not([hidden])',{timeout:120000});
+  const full=await page.evaluate(()=>({novo:document.querySelector('[data-menu-home="novo"]').disabled,info:document.querySelector('#menu-new-info').textContent,cont:document.querySelector('#menu-continue-info').textContent}));
+  check(`B1-01 F3.5.1/F6: with the four characters saved "Novo jogo" is unavailable — no slot is overwritten; "Continuar" offers ${c.name} with the open shift`,full.novo&&new RegExp(`^${c.name} · Setor ${c.sector}.*expediente aberto`).test(full.cont),full);
+  await openList(page,'carregar');
+  const cards=await page.locator('.career-card').evaluateAll(es=>es.map(e=>({id:e.dataset.career,text:e.innerText,svg:e.querySelector('svg')?.dataset.figure,kit:e.querySelector('svg')?.dataset.kit,disabled:e.disabled})));
+  check(`B1-01 F3.5: ${c.name}'s storage — the menu reads back each career's own presets, vehicle and saved checkpoint`,plan.every((o,i)=>cards[i].id===o.id&&cards[i].svg===o.appearance&&cards[i].kit===o.equipment&&cards[i].text.includes(o.vehicle==='moto-antiga'?'Moto antiga (próprio)':'Carro popular antigo (próprio)')&&/checkpoint \d+/.test(cards[i].text)&&/Saldo R\$ 0,00/.test(cards[i].text)&&/Carreira salva/.test(cards[i].text)),cards);
+  check(`B1-01 F6 AC-17: during ${c.name}'s shift only ${c.name} can be loaded; the other three are locked with the reason`,cards.every(x=>x.id===c.id?!x.disabled&&/Expediente aberto — continuar/.test(x.text):x.disabled&&new RegExp(`Expediente aberto de ${c.name}`).test(x.text)),cards.map(x=>[x.id,x.disabled]));
+  await page.locator('#menu-list [data-menu="voltar-inicio"]').tap();
+  if(c.id==='personagem-leste'){
+   // Opções → "Completo" and then "Continuar": the active career with the desktop profile, nothing else changed.
+   const savesBefore=await saves();
+   await page.locator('[data-menu-home="opcoes"]').tap();await page.locator('[data-gfx="desktop"]').tap();
+   await page.locator('#menu-options [data-menu="voltar-inicio"]').tap();
+   await page.locator('[data-menu-home="continuar"]').tap();
+   await page.waitForFunction(()=>!!window.__weblab?.snapshot?.().vehicle,{timeout:120000});
+   const cont=await page.evaluate(()=>{const s=window.__weblab.snapshot();return {id:s.career.id,graphics:s.graphics,kind:s.vehicle.kind,dialog:!document.querySelector('#vehicle-choice').hidden,resumed:s.save.resumed};});
+   check('B1-01 F3.5.1/F6: "Continuar" enters the active career exactly as saved (car kept, no vehicle dialog, shift resumed), with the graphics profile chosen in Opções (desktop), writing no save',cont.id==='personagem-leste'&&cont.kind==='carro-antigo'&&!cont.dialog&&cont.resumed&&cont.graphics==='desktop'&&JSON.stringify(await saves())===JSON.stringify(savesBefore),cont);
+  } else {
+   await page.locator('[data-menu-home="continuar"]').tap();
+   await page.waitForFunction(()=>!!window.__weblab?.snapshot?.().vehicle,{timeout:120000});
+   const again=await page.evaluate(()=>({kind:window.__weblab.snapshot().vehicle.kind,dialog:!document.querySelector('#vehicle-choice').hidden,resumed:window.__weblab.snapshot().save.resumed}));
+   check(`B1-01 F3.5 AC-03/F6: re-entering ${c.name} keeps the saved ${c.vehicle} and resumes the open shift, without offering a new vehicle choice`,again.kind===c.vehicle&&!again.dialog&&again.resumed,again);
+  }
+  await ctx.close();
  }
+}
+/**
+ * B1-01 F6 with the MOTORCYCLE (Oeste, 915×412, touch, traffic on): store pickup and top box by
+ * the real action button, checkpoint on the custody action, reload → "Continuar" resumes it; a
+ * write failure (QuotaExceeded) keeps the save and is retried; a second tab of the same browser
+ * gets the menu read-only until the first one is closed (Web Locks).
+ */
+async function persistenceMoto(browser){
+ const ctx=await browser.newContext({viewport:{width:915,height:412},isMobile:true,hasTouch:true,deviceScaleFactor:1});
+ const page=await ctx.newPage();page.on('pageerror',e=>errors.push(e.message));
+ await page.goto(url+'?gfx=mobile&trafego=1&dia=0',{waitUntil:'domcontentloaded',timeout:120000});
+ await enterFromMenu(page,'personagem-oeste',{vehicle:'moto-antiga'});
+ if(!(await page.evaluate(()=>!!window.__debug))){console.log('SKIP F6 moto: __debug only exists in development builds');await ctx.close();return;}
+ const snap=()=>page.evaluate(()=>window.__weblab.snapshot());
+ const label=()=>page.evaluate(()=>document.querySelector('[data-action="mount"]').textContent);
+ const tapWhen=async(re,what)=>{
+  const ok=await page.waitForFunction(src=>new RegExp(src).test(document.querySelector('[data-action="mount"]').textContent),re.source,{timeout:20000}).then(()=>true).catch(()=>false);
+  if(!ok)throw new Error(`${what}: o botão mostra "${await label()}"`);
+  await page.locator('[data-action="mount"]').tap();
+ };
+ const saved=()=>page.evaluate(()=>JSON.parse(localStorage.getItem('brejo-b1:carreira:personagem-oeste')));
+ await page.waitForFunction(()=>window.__weblab.snapshot().save.status.writes>0,null,{timeout:20000}).catch(()=>{});
+ let s=await snap();let sv=await saved();
+ check('B1-01 F6 AC-17/18: the moto career opens its shift in the save as soon as the day starts (web-locks single writer)',s.save.persistent&&s.save.lock==='web-locks'&&sv.profile.activeShiftId==='personagem-oeste/dia-0'&&sv.shift.world.player.vehicle&&s.save.status.error===null,{save:s.save});
+ await page.evaluate(()=>window.__debug.setHour(12.05));await delay(300);
+ s=await snap();
+ const kind=s.delivery.assigned[0];const st=s.delivery.stores.find(x=>x.id===kind);
+ await page.evaluate(p=>window.__debug.parkNear(p.x,p.z),st.pickup);await delay(200);
+ await page.evaluate(([p,y])=>window.__debug.placeWalker(p.x,p.z,y),[st.pickup,st.facing+Math.PI]);await delay(200);
+ await tapWhen(/^Retirar com /,'coleta na loja');
+ await page.waitForFunction(()=>window.__weblab.snapshot().delivery.cargo.hands>0,null,{timeout:10000});
+ sv=await saved();
+ check('B1-01 F6 AC-18: the store pickup (counter → hands) was checkpointed at once',sv.shift.parcels.filter(p=>p.place==='maos'&&p.holder==='jogador').length===(await snap()).delivery.cargo.hands,(await snap()).save.status);
+ await page.evaluate(()=>{const m=window.__weblab.snapshot().moto;window.__debug.placeWalker(m.x-Math.sin(m.yaw)*1.25,m.z-Math.cos(m.yaw)*1.25,m.yaw);});await delay(200);
+ await tapWhen(/^Guardar no baú \(\d\)$/,'guardar no baú');
+ await page.waitForFunction(()=>window.__weblab.snapshot().delivery.cargo.trunk>0&&window.__weblab.snapshot().delivery.cargo.hands===0,null,{timeout:10000});
+ sv=await saved();
+ const inBox=sv.shift.parcels.filter(p=>p.place==='bau').map(p=>p.id);
+ check('B1-01 F6 AC-18: stowing in the top box (hands → baú, EM_TRANSPORTE) was checkpointed at once',inBox.length>0&&inBox.length===(await snap()).delivery.cargo.trunk&&sv.shift.parcels.filter(p=>p.place==='bau').every(p=>p.state==='EM_TRANSPORTE'),inBox);
+ // ---- QuotaExceeded on the next write: the save stays, the toast says it, the retry writes.
+ const intact=await page.evaluate(()=>localStorage.getItem('brejo-b1:carreira:personagem-oeste'));
+ await page.evaluate(()=>{const orig=Storage.prototype.setItem;window.__origSet=orig;Storage.prototype.setItem=function(k,v){if(String(k).startsWith('brejo-b1:carreira:')){const e=new Error('The quota has been exceeded.');e.name='QuotaExceededError';throw e;}return orig.call(this,k,v);};});
+ await page.locator('.pause-button').tap();await delay(300);
+ s=await snap();
+ const toast=await page.locator('.toast').textContent().catch(()=>'');
+ check('B1-01 F6 AC-18: a failed write (QuotaExceeded) keeps the previous save byte for byte, is reported to the player and the game goes on',s.save.status.error!==null&&/quota/i.test(s.save.status.error)&&await page.evaluate(()=>localStorage.getItem('brejo-b1:carreira:personagem-oeste'))===intact&&/NÃO gravado/.test(toast),{status:s.save.status,toast});
+ await page.locator('#pause [data-action="pause"]').tap();
+ await page.evaluate(()=>{Storage.prototype.setItem=window.__origSet;});
+ await page.waitForFunction(()=>{const st=window.__weblab.snapshot().save.status;return st.error===null;},null,{timeout:20000}).catch(()=>{});
+ s=await snap();
+ check('B1-01 F6: once storage works again the retry writes the next checkpoint (sequence continues, no gap)',s.save.status.error===null&&(await saved()).checkpointSequence===JSON.parse(intact).checkpointSequence+1,s.save.status);
+ // ---- second tab of the same browser: read-only menu while this one is open.
+ const tab2=await ctx.newPage();tab2.on('pageerror',e=>errors.push(e.message));
+ await tab2.goto(url+'?gfx=mobile&trafego=0',{waitUntil:'domcontentloaded',timeout:120000});
+ await tab2.waitForSelector('#menu-home:not([hidden])',{timeout:120000});
+ const before2=await tab2.evaluate(()=>localStorage.getItem('brejo-b1:carreira:personagem-oeste'));
+ await tab2.locator('[data-menu-home="continuar"]').tap();await delay(600);
+ const t2=await tab2.evaluate(()=>({lock:!document.querySelector('#menu-lock').hidden,notice:document.querySelector('#menu-notice').textContent,world:window.__weblab!==undefined}));
+ check('B1-01 F6 (two tabs): a second tab gets the menu READ-ONLY — banner, "Continuar" refused with the reason, no world, nothing written',t2.lock&&/outra aba/.test(t2.notice)&&!t2.world,t2);
+ await tab2.locator('[data-menu-home="opcoes"]').tap();await tab2.locator('[data-menu="gerenciar-saves"]').tap();
+ const mg=await tab2.locator('#saves-rows button').evaluateAll(bs=>bs.map(b=>b.disabled));
+ check('B1-01 F6 (two tabs): save management is disabled in the second tab',mg.length===12&&mg.every(Boolean),mg);
+ // The first tab keeps writing.
+ await page.evaluate(()=>window.__debug.checkpoint());
+ check('B1-01 F6 (two tabs): the game tab keeps writing; the second tab wrote nothing',(await saved()).checkpointSequence>JSON.parse(before2).checkpointSequence&&(await page.evaluate(()=>window.__weblab.snapshot().save.status.stale))===false);
+ const last=await saved();
+ await page.close();
+ // (After the rendering page closes, CDP touch input to the remaining page of this context can stall on
+ // SwiftShader — the same starvation noted before the second context in run(); these two buttons are
+ // pressed with a DOM click. Everything they do is the same handler.)
+ await tab2.evaluate(()=>document.querySelector('[data-menu="tentar-novamente"]').click());
+ await tab2.waitForFunction(()=>document.querySelector('#menu-lock').hidden,null,{timeout:15000}).catch(()=>{});
+ const freed=await tab2.evaluate(()=>document.querySelector('#menu-lock').hidden&&[...document.querySelectorAll('#saves-rows [data-save="importar"]')].some(b=>!b.disabled));
+ check('B1-01 F6 (two tabs): once the game tab is closed, "Tentar novamente" takes the lock — the menu is writable again',freed);
+ await tab2.evaluate(()=>{document.querySelector('#menu-saves [data-menu="voltar-opcoes"]').click();document.querySelector('#menu-options [data-menu="voltar-inicio"]').click();});
+ await tab2.waitForSelector('#menu-home:not([hidden])',{timeout:10000});
+ await tab2.evaluate(()=>document.querySelector('[data-menu-home="continuar"]').click());
+ await tab2.waitForFunction(()=>!!window.__weblab?.snapshot?.().delivery?.logistics,{timeout:120000});
+ s=await tab2.evaluate(()=>window.__weblab.snapshot());
+ const view=(list)=>JSON.stringify(list.map(p=>[p.id,p.state,p.place,p.holder,p.history.length]));
+ check('B1-01 F6 AC-19 (moto): after the game tab closed, the other tab takes over and "Continuar" resumes the last checkpoint — the parcels in the top box, same IDs and custody',view(s.delivery.parcels)===view(last.shift.parcels)&&s.delivery.cargo.trunk===inBox.length&&s.save.resumed&&s.vehicle.kind==='moto-antiga',{trunk:s.delivery.cargo.trunk});
+ check('B1-01 F6 AC-04/20 (moto): resumed riding/on foot as saved, the bike where it was, no street vehicle on it',Math.hypot(s.vehicle.x-last.shift.world.player.vehicle.x,s.vehicle.z-last.shift.world.player.vehicle.z)<0.05&&s.mode===(last.shift.world.player.mode==='riding'?'riding':'walking')&&!(await tab2.evaluate(()=>window.__debug.overlaps())).player,{mode:s.mode});
+ await ctx.close();
+}
+/**
+ * B1-01 F6: "Opções → Gerenciar saves" with valid saves built by the real domain functions
+ * (fixtures/backups.ts): export (download), refusals that change nothing (corrupt file, older
+ * checkpoint of the same career, other career's file), replacing another incarnation only after
+ * confirming, and deleting only after an explicit second confirmation.
+ */
+async function savesMenu(browser){
+ const {execFileSync}=require('node:child_process');
+ const fx=JSON.parse(execFileSync(process.execPath,['--experimental-strip-types','--no-warnings',require('node:path').join(__dirname,'fixtures','backups.ts')],{encoding:'utf8'}));
+ const ctx=await browser.newContext({viewport:{width:780,height:360},isMobile:true,hasTouch:true,deviceScaleFactor:1,acceptDownloads:true});
+ await ctx.addInitScript(seed=>{if(!sessionStorage.getItem('b1-saves')){sessionStorage.setItem('b1-saves','1');localStorage.clear();for(const [k,v] of Object.entries(seed))localStorage.setItem(k,v);}},fx.storage);
+ const page=await ctx.newPage();page.on('pageerror',e=>errors.push(e.message));
+ await page.goto(url+'?gfx=mobile&trafego=0',{waitUntil:'domcontentloaded',timeout:120000});
  await page.waitForSelector('#menu-home:not([hidden])',{timeout:120000});
- const full=await page.evaluate(()=>({novo:document.querySelector('[data-menu-home="novo"]').disabled,info:document.querySelector('#menu-new-info').textContent,cont:document.querySelector('#menu-continue-info').textContent}));
- check('B1-01 F3.5.1: with the four characters saved, "Novo jogo" is unavailable ("não há personagem livre") — no slot is overwritten; "Continuar" offers the last career (Davi)',full.novo&&/não há personagem livre/.test(full.info)&&/^Davi · Setor Sul/.test(full.cont),full);
- await openList(page,'carregar');
- const cards=await page.locator('.career-card').evaluateAll(es=>es.map(e=>({id:e.dataset.career,text:e.innerText,svg:e.querySelector('svg')?.dataset.figure,kit:e.querySelector('svg')?.dataset.kit,disabled:e.disabled})));
- check('B1-01 F3.5: after the four careers the menu reads back each one\'s own presets, vehicle and saved checkpoint',plan.every((c,i)=>cards[i].id===c.id&&cards[i].svg===c.appearance&&cards[i].kit===c.equipment&&cards[i].text.includes(c.vehicle==='moto-antiga'?'Moto antiga (próprio)':'Carro popular antigo (próprio)')&&/checkpoint \d+/.test(cards[i].text)&&/Saldo R\$ 0,00/.test(cards[i].text)&&/Carreira salva/.test(cards[i].text)&&!cards[i].disabled),cards);
- // Second entry into a career with a vehicle: no vehicle dialog, vehicle unchanged.
- await page.locator('.career-card[data-career="personagem-leste"]').tap();
- await page.locator('#career-detail [data-menu="iniciar"]').tap();
- await page.waitForFunction(()=>!!window.__weblab?.snapshot?.().vehicle,{timeout:120000});
- const again=await page.evaluate(()=>({kind:window.__weblab.snapshot().vehicle.kind,dialog:!document.querySelector('#vehicle-choice').hidden}));
- check('B1-01 F3.5 AC-03: re-entering Caio keeps the saved car, without offering a new vehicle choice',again.kind==='carro-antigo'&&!again.dialog,again);
- // Opções → "Completo" and then "Continuar": the active career (Caio) with the desktop profile, nothing else changed.
- await page.reload({waitUntil:'domcontentloaded'});
- await page.waitForSelector('#menu-home:not([hidden])',{timeout:120000});
- const savesBefore=await saves();
- await page.locator('[data-menu-home="opcoes"]').tap();await page.locator('[data-gfx="desktop"]').tap();
- await page.locator('#menu-options [data-menu="voltar-inicio"]').tap();
- await page.locator('[data-menu-home="continuar"]').tap();
- await page.waitForFunction(()=>!!window.__weblab?.snapshot?.().vehicle,{timeout:120000});
- const cont=await page.evaluate(()=>{const s=window.__weblab.snapshot();return {id:s.career.id,graphics:s.graphics,kind:s.vehicle.kind};});
- check('B1-01 F3.5.1: "Continuar" enters the active career exactly as saved, with the graphics profile chosen in Opções (desktop), writing no save',cont.id==='personagem-leste'&&cont.kind==='carro-antigo'&&cont.graphics==='desktop'&&JSON.stringify(await saves())===JSON.stringify(savesBefore),cont);
+ const all=()=>page.evaluate(()=>JSON.stringify(Object.fromEntries(Object.keys(localStorage).filter(k=>k.startsWith('brejo-b1:')).sort().map(k=>[k,localStorage.getItem(k)]))));
+ const msg=()=>page.locator('#saves-message').textContent();
+ const row=(id)=>page.locator(`.save-row[data-career="${id}"]`);
+ await page.locator('[data-menu-home="opcoes"]').tap();await page.locator('[data-menu="gerenciar-saves"]').tap();
+ await page.waitForSelector('#menu-saves:not([hidden])');
+ for(const [w,h] of [[780,360],[915,412]]){
+  await page.setViewportSize({width:w,height:h});await delay(250);
+  const L=await page.evaluate(()=>[...document.querySelectorAll('#menu-saves button')].filter(b=>b.offsetParent).map(b=>{const r=b.getBoundingClientRect();return {w:r.width,h:r.height,l:r.left,r:r.right};}));
+  check(`B1-01 F6: save management ${w}×${h} — four careers, every button inside the width and ≥ 40 px`,(await page.locator('.save-row').count())===4&&L.every(b=>b.h>=40&&b.l>=0&&b.r<=w+1),L);
+  if(process.env.WEBLAB_SHOTS)await page.screenshot({path:`${process.env.WEBLAB_SHOTS}/saves-${w}x${h}.png`});
+ }
+ await page.setViewportSize({width:780,height:360});
+ const start=await all();
+ // Export (download of the canonical save).
+ const [dl]=await Promise.all([page.waitForEvent('download'),row('personagem-norte').locator('[data-save="exportar"]').tap()]);
+ const text=require('node:fs').readFileSync(await dl.path(),'utf8');
+ const exp=JSON.parse(text);
+ check('B1-01 F6 AC-21: "Exportar backup" downloads the career\'s own save (format, schema v3, career, lineage, checkpoint, checksum) without writing anything',exp.format==='brejo-alegre-carreira'&&exp.schemaVersion===3&&exp.careerId==='personagem-norte'&&exp.checkpointSequence===1&&/^fnv1a32:/.test(exp.checksum)&&exp.profile.lineageId==='personagem-norte:e2e-rosa'&&/exportado/.test(await msg())&&await all()===start,{name:dl.suggestedFilename()});
+ const importFile=async(id,name,content)=>{
+  const [chooser]=await Promise.all([page.waitForEvent('filechooser'),row(id).locator('[data-save="importar"]').tap()]);
+  await chooser.setFiles({name,mimeType:'application/json',buffer:Buffer.from(content)});
+  await delay(400);
+ };
+ await importFile('personagem-norte','corrompido.json',text.replace('"calendarIndex":3','"calendarIndex":9'));
+ check('B1-01 F6 AC-21: an edited/corrupted backup is refused (checksum) and nothing is written',/recusado/.test(await msg())&&/Checksum/.test(await msg())&&await all()===start,await msg());
+ await importFile('personagem-norte','rosa-antigo.json',fx.olderRosa);
+ check('B1-01 F6 AC-21/22: an OLDER checkpoint of the same career is refused (would undo confirmed progress/pay) and nothing is written',/desatualizado/.test(await msg())&&await all()===start,await msg());
+ await importFile('personagem-norte','davi.json',fx.otherDavi);
+ check('B1-01 F6 AC-21: another career\'s backup is refused on Rosa\'s row (no mixing of profiles)',/esperado personagem-norte/.test(await msg())&&await all()===start,await msg());
+ // Another incarnation of Davi: only after an explicit "Substituir".
+ await importFile('personagem-sul','davi-outra.json',fx.otherDavi);
+ const conf=await page.locator('#saves-confirm').textContent();
+ check('B1-01 F6: restoring over ANOTHER incarnation of Davi asks for explicit confirmation first (nothing written yet)',/substitui OUTRA carreira/.test(conf)&&await all()===start,conf);
+ const daviBefore=await page.evaluate(()=>localStorage.getItem('brejo-b1:carreira:personagem-sul'));
+ await page.locator('[data-save="confirmar-importar"]').tap();await delay(300);
+ const davi=await page.evaluate(()=>({main:JSON.parse(localStorage.getItem('brejo-b1:carreira:personagem-sul')),prev:localStorage.getItem('brejo-b1:carreira:personagem-sul:anterior'),norte:localStorage.getItem('brejo-b1:carreira:personagem-norte')}));
+ check('B1-01 F6 AC-21: after confirming, Davi\'s backup is restored (day 5, moto) and the replaced career stays as the previous copy; Rosa untouched',davi.main.profile.calendarIndex===5&&davi.main.profile.vehicle.kind==='moto-antiga'&&davi.prev===daviBefore&&davi.norte===fx.storage['brejo-b1:carreira:personagem-norte']&&/restaurado/.test(await msg()),await msg());
+ // Delete: first tap only asks (export offered); cancel writes nothing; confirm deletes Rosa only.
+ const mid=await all();
+ await row('personagem-norte').locator('[data-save="apagar"]').tap();
+ const ask=await page.locator('#saves-confirm').textContent();
+ check('B1-01 F6: "Apagar carreira" first asks, offering to export first — nothing deleted yet',/Apagar a carreira de Rosa/.test(ask)&&await page.locator('[data-save="exportar-antes"]').count()===1&&await all()===mid,ask);
+ await page.locator('[data-save="cancelar"]').tap();await delay(200);
+ check('B1-01 F6: cancelling deletes nothing',await all()===mid&&/Nada foi apagado/.test(await msg()));
+ await row('personagem-norte').locator('[data-save="apagar"]').tap();
+ await page.locator('[data-save="confirmar-apagar"]').tap();await delay(300);
+ const gone=await page.evaluate(()=>({main:localStorage.getItem('brejo-b1:carreira:personagem-norte'),prev:localStorage.getItem('brejo-b1:carreira:personagem-norte:anterior'),marks:localStorage.getItem('brejo-b1:marcas:personagem-norte'),sul:localStorage.getItem('brejo-b1:carreira:personagem-sul')}));
+ check('B1-01 F6: after the explicit confirmation only Rosa\'s main save and previous copy are deleted; her checkpoint marks and Davi stay',gone.main===null&&gone.prev===null&&gone.marks!==null&&JSON.parse(gone.sul).profile.calendarIndex===5,gone);
+ // The older Rosa backup is STILL refused after the deletion; her latest export comes back.
+ await importFile('personagem-norte','rosa-antigo.json',fx.olderRosa);
+ check('B1-01 F6 AC-22: even after deleting, the older Rosa checkpoint stays refused (marks kept)',/desatualizado/.test(await msg()),await msg());
+ await importFile('personagem-norte','rosa.json',text);
+ await page.locator('[data-save="confirmar-importar"]').tap();await delay(300);
+ const back=await page.evaluate(()=>JSON.parse(localStorage.getItem('brejo-b1:carreira:personagem-norte')));
+ check('B1-01 F6 AC-21: Rosa\'s latest export restores her career (day 3, checkpoint 1) into the freed slot',back.profile.calendarIndex===3&&back.checkpointSequence===1&&back.profile.lineageId==='personagem-norte:e2e-rosa',back.profile);
  await ctx.close();
 }
 /** B1-01 F3.5 (AC-17): a career with an open shift locks the others; an invalid save shows its error. */
@@ -470,7 +635,8 @@ async function lockedMenu(browser){
  await page.waitForFunction(()=>!!window.__weblab?.snapshot?.().delivery?.logistics,{timeout:120000});
  const s=await page.evaluate(()=>window.__weblab.snapshot());
  const store=await page.evaluate(()=>({sul:localStorage.getItem('brejo-b1:carreira:personagem-sul'),norte:JSON.parse(localStorage.getItem('brejo-b1:carreira:personagem-norte'))}));
- check('B1-01 F3.5 AC-17: continuing Rosa keeps her day and open shift; the invalid Sul save is left as it was',s.career.id==='personagem-norte'&&s.career.calendarIndex===3&&store.norte.profile.activeShiftId==='personagem-norte/dia-3'&&store.norte.shift.elapsedVirtualMinutes===200&&store.sul==='{"corrompido":',{career:s.career,sul:store.sul});
+ // F6: the open shift goes on (its clock only moves forward from the saved 200 min, same id).
+ check('B1-01 F3.5/F6 AC-17: continuing Rosa keeps her day and open shift (same id, clock never back); the invalid Sul save is left as it was',s.career.id==='personagem-norte'&&s.career.calendarIndex===3&&store.norte.profile.activeShiftId==='personagem-norte/dia-3'&&store.norte.shift.shiftId==='personagem-norte/dia-3'&&store.norte.shift.elapsedVirtualMinutes>=200&&s.clock.shiftHour>=11.75+200/60-1e-6&&store.sul==='{"corrompido":',{career:s.career,sul:store.sul,elapsed:store.norte.shift.elapsedVirtualMinutes,clock:s.clock.shiftHour});
  await ctx.close();
 }
 /**
@@ -499,6 +665,42 @@ async function carLogistics(browser){
  const toBoot=async()=>{const r=await page.evaluate(()=>window.__debug.trunkSpot());const v=(await snap()).vehicle;await walkTo(r,v.yaw);await delay(150);};
  const openBoot=async()=>{if(!(await snap()).delivery.cargo.carBoot.open){await tapWhen(/^Abrir porta-malas$/,'abrir o porta-malas');await until(()=>window.__weblab.snapshot().delivery.cargo.carBoot.open);}};
  const hands=()=>page.evaluate(()=>window.__weblab.snapshot().delivery.cargo.hands);
+ /**
+  * B1-01 F6 (AC-18/19/20): pause (checkpoint), close the tab (reload), "Continuar" — the world must
+  * come back exactly as checkpointed: every parcel's state/place/custody/history, boot slots and
+  * boxes, ledger, clock not behind; no street vehicle spawned on the car or on a riding courier.
+  */
+ const resume=async(tag)=>{
+  await page.locator('.pause-button').tap();
+  await page.waitForFunction(()=>window.__weblab.snapshot().paused,null,{timeout:10000});
+  const st=await page.evaluate(()=>window.__weblab.snapshot().save.status);
+  const paused=await page.evaluate(()=>JSON.parse(localStorage.getItem('brejo-b1:carreira:personagem-oeste')));
+  check(`B1-01 F6 AC-18: ${tag} — the pause wrote a checkpoint (${st.lastSequence}, "${st.lastReason}") with the running world`,st.error===null&&st.lastReason==='pausa'&&paused.checkpointSequence===st.lastSequence&&paused.shift.world!==null,st);
+  await page.reload({waitUntil:'domcontentloaded'});
+  await page.waitForSelector('#menu-home:not([hidden])',{timeout:120000});
+  // The page also tries once more on leaving (pagehide): the save resumed is the last one written.
+  const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('brejo-b1:carreira:personagem-oeste')));
+  check(`B1-01 F6 AC-11: ${tag} — leaving the page wrote at most the extra exit attempt, with the same custody`,saved.checkpointSequence>=paused.checkpointSequence&&saved.checkpointSequence<=paused.checkpointSequence+1&&JSON.stringify(saved.shift.parcels.map(p=>[p.id,p.state,p.place,p.holder]))===JSON.stringify(paused.shift.parcels.map(p=>[p.id,p.state,p.place,p.holder])),[paused.checkpointSequence,saved.checkpointSequence]);
+  const info=await page.locator('#menu-continue-info').textContent();
+  await page.locator('[data-menu-home="continuar"]').tap();
+  await page.waitForFunction(()=>!!window.__weblab?.snapshot?.().delivery?.logistics,{timeout:120000});
+  await until(()=>{const b=window.__weblab.snapshot().delivery.cargo.carBoot;return b.drawn.length===b.parcels.length;},null,10000);
+  const r=await snap();
+  // The world goes on right after the resume (the checker, the couriers): every parcel must be
+  // EXACTLY its checkpointed history, possibly followed by new steps — never fewer, never different.
+  const ops=(p)=>p.history.map(e=>`${e.operation}|${e.holder}|${e.state}|${e.place}`);
+  const savedById=new Map(saved.shift.parcels.map(p=>[p.id,p]));
+  const regress=r.delivery.parcels.filter(p=>{const q=savedById.get(p.id);if(!q)return true;const a=ops(p),b=ops(q);return a.length<b.length||b.some((x,i)=>a[i]!==x);}).map(p=>p.id);
+  const sameNow=r.delivery.parcels.filter(p=>ops(p).length===ops(savedById.get(p.id)).length).length;
+  const bootSame=r.delivery.cargo.carBoot.parcels.every(b=>{const q=savedById.get(b.id);return q.place!=='porta-malas'||JSON.stringify(q.stowage)===JSON.stringify(b.stowage)||ops(r.delivery.parcels.find(p=>p.id===b.id)).length>ops(q).length;});
+  const ov=await page.evaluate(()=>window.__debug.overlaps());
+  check(`B1-01 F6 AC-19: ${tag} — after closing and reopening, "Continuar" (${info.trim()}) resumes every parcel from its checkpointed history (state, place, custody; boot slots identical) — nothing lost, duplicated or regressed`,regress.length===0&&r.delivery.parcels.length===saved.shift.parcels.length&&bootSame&&r.save.resumed&&r.career.checkpoint>=saved.checkpointSequence,{regress,sameNow,n:saved.shift.parcels.length});
+  check(`B1-01 F6 AC-15/19: ${tag} — same shift id, clock resumed at the checkpoint (never behind), same ledger`,r.save.shiftId===saved.shift.shiftId&&r.clock.shiftHour>=saved.shift.shiftHour-1e-6&&r.clock.shiftHour<saved.shift.shiftHour+0.05&&JSON.stringify(r.save.payments)===JSON.stringify(saved.shift.payments)&&r.save.balanceCents===saved.profile.balanceCents,{clock:r.clock.shiftHour,saved:saved.shift.shiftHour});
+  check(`B1-01 F6 AC-06/20: ${tag} — boot rebuilt with one box per ID in its slot; couriers back in their states; no street vehicle spawned on the car or a riding courier (traffic on)`,r.delivery.cargo.carBoot.problem===null&&r.delivery.cargo.carBoot.drawn.length===r.delivery.cargo.carBoot.parcels.length&&JSON.stringify(r.save.resumedCouriers.map(c=>[c.id,c.state,c.bike.x.toFixed(3),c.bike.z.toFixed(3)]))===JSON.stringify(saved.shift.world.logistics.couriers.map(c=>[c.id,c.state,c.bike.x.toFixed(3),c.bike.z.toFixed(3)]))&&r.delivery.logistics.couriers.every(c=>c.state!=='blocked'&&!c.error)&&!ov.player&&ov.couriers.length===0&&ov.vehicles>0,{ov});
+  for(const [w,h] of [[780,360],[915,412]]){await page.setViewportSize({width:w,height:h});await delay(250);assertLayout(`resumed (${tag}) ${w}×${h}`,await page.evaluate(layout));}
+  await page.setViewportSize({width:780,height:360});
+  return saved;
+ };
  let s=await snap();
  check('B1-01 F4: car career — no "F4" lock any more, the car enters the logistics cycle',s.vehicle.kind==='carro-antigo'&&!/F4/.test(s.delivery.action??''),s.delivery.action);
  await page.evaluate(()=>window.__debug.setHour(12.05));await delay(300);
@@ -528,6 +730,8 @@ async function carLogistics(browser){
  check('B1-01 F4 AC-08: collected parcels are EM_TRANSPORTE in place "porta-malas", custody of the player, history counter → hands → boot',s.delivery.parcels.filter(p=>mine.includes(p.id)).every(p=>p.place==='porta-malas'&&p.state==='EM_TRANSPORTE'&&p.holder==='jogador'&&p.history.map(e=>e.operation).join('>').includes('estado:COLETADO>transferência:maos>estado:EM_TRANSPORTE>transferência:porta-malas')));
  for(const [w,h] of [[780,360],[915,412]]){await page.setViewportSize({width:w,height:h});await delay(300);assertLayout(`car logistics loaded ${w}×${h}`,await page.evaluate(layout));}
  await page.setViewportSize({width:780,height:360});
+ // F6: interrupted with the collection in the boot, BEFORE the transfer at the base.
+ await resume('coleta no porta-malas, antes da transferência na base');
  const away=(await snap()).delivery.objective;
  check('B1-01 F4: out on the street the objective sends the loaded car back through the base entrance (porta-malas count)',/Retornar pela entrada da base/.test(away.title)&&/no porta-malas/.test(away.detail),away);
  // ---------------------------------------------------------------- AC-09: car bay → hands → receiving desk
@@ -545,6 +749,14 @@ async function carLogistics(browser){
   await walkTo(receiving,Math.PI/2);
   await tapWhen(/^Entregar ao conferente \(\d\)$/,'entregar ao conferente');
   await until(()=>window.__weblab.snapshot().delivery.cargo.hands===0);
+  // F6: right AFTER the first physical transfer to the checker (the rest still in the boot).
+  if(trips===1){
+   const live=await page.evaluate(()=>window.__weblab.snapshot().save.status);
+   check('B1-01 F6 AC-18: the hand-over at the desk was checkpointed right away (custody action)',live.error===null&&/Entregar ao conferente/.test(live.lastReason),live);
+   await resume('logo depois da 1ª transferência ao conferente');
+   await page.evaluate(b=>window.__debug.parkAt(b.x,b.z,b.yaw),bays[0]);await delay(300);
+   await toBoot();await openBoot();
+  }
  }
  s=await snap();
  const atDesk=s.delivery.parcels.filter(p=>mine.includes(p.id));
@@ -627,6 +839,8 @@ async function carLogistics(browser){
  const routeOk=deliveredMine.every(p=>{const o=p.history.map(e=>e.operation).filter(x=>x!=='arrumação:porta-malas');const i=o.indexOf('estado:EM_ROTA');return o.slice(i).join('>')==='estado:EM_ROTA>transferência:maos>transferência:porta-malas>transferência:maos>estado:ENTREGUE>transferência:destinatario';});
  check(`B1-01 F4 AC-10: the deliverable parcels of the ${sector} load were delivered by the car — dock → hands → boot → hands → customer, ENTREGUE exactly once`,deliveredMine.length===mineLoad.filter(p=>p.destination!==absentMine).length&&deliveredMine.every(p=>p.place==='destinatario'&&p.holder==='destinatario'&&p.history.filter(e=>e.operation==='estado:ENTREGUE').length===1)&&routeOk,{delivered:deliveredMine.length,routeOk});
  // ---------------------------------------------------------------- AC-12/25: physical return to the on-duty checker, after 00h
+ // F6: interrupted after 00h01, with the failed attempt in the boot (same shift on reopening).
+ await resume('depois de 00h01, com a tentativa frustrada no porta-malas');
  const pendingPanel=await page.evaluate(()=>window.__weblab.snapshot().delivery.objective.title);
  check('B1-01 F5 AC-13: with the failed attempt in the boot the objective is to return it — the shift is not over',/Devolver \d+ volume\(s\) na base/.test(pendingPanel)&&(await snap()).delivery.phase!=='CONCLUIDA',pendingPanel);
  await page.evaluate(b=>window.__debug.parkAt(b.x,b.z,b.yaw),bays[0]);await delay(300);
@@ -650,7 +864,33 @@ async function carLogistics(browser){
  check('B1-01 F5 AC-24/25: Rosa (NPC) kept working after 21h, recorded her own attempt, brought it back and the on-duty checker confirmed it',rosaBack.length>0&&rosaBack.every(p=>p.history.find(e=>e.operation==='tentativa:frustrada').holder==='npc1'&&conf(p).holder==='conferente'&&conf(p).hour>21),rosaBack.map(p=>p.id));
  const rep=s.delivery.logistics.report;
  check('B1-01 F5 AC-26: the report lists the four couriers separately, each finished after 21h with its own lateness; nothing pending',rep.length===4&&rep.every(r=>r.pending===0&&r.finishedAt!==null&&r.finishedAt>21&&r.lateMinutes>0)&&new Set(rep.map(r=>r.lateMinutes)).size>=2,rep);
- check('B1-01 F5 AC-13: only now — every parcel delivered or returned-and-checked by all four — the shift is CONCLUIDA and the next day can be started',s.delivery.logistics.allResolved&&s.delivery.phase==='CONCLUIDA'&&s.delivery.parcels.every(p=>p.state==='ENTREGUE'||p.state==='DEVOLVIDO_E_CONFERIDO')&&await page.evaluate(()=>!document.querySelector('#next-workday').disabled),{phase:s.delivery.phase,resolved:s.delivery.logistics.allResolved});
+ check('B1-01 F5 AC-13: only now — every parcel delivered or returned-and-checked by all four — the shift is CONCLUIDA',s.delivery.logistics.allResolved&&s.delivery.phase==='CONCLUIDA'&&s.delivery.parcels.every(p=>p.state==='ENTREGUE'||p.state==='DEVOLVIDO_E_CONFERIDO'),{phase:s.delivery.phase,resolved:s.delivery.logistics.allResolved});
+ // ---------------------------------------------------------------- F6: minimum end of shift at the career's own home
+ const nextBtn=await page.evaluate(()=>({disabled:document.querySelector('#next-workday').disabled,text:document.querySelector('#next-workday').textContent}));
+ await page.evaluate(()=>window.__debug.checkpoint());
+ const openSave=await page.evaluate(()=>JSON.parse(localStorage.getItem('brejo-b1:carreira:personagem-oeste')));
+ check('B1-01 F6 AC-13/26: CONCLUIDA is not the end — the save keeps the open shift, the next-day button is disabled ("Volte para casa") and the objective is the home return',nextBtn.disabled&&/Volte para casa/.test(nextBtn.text)&&s.save.closure==='retorno_pendente'&&/Voltar para casa/.test(s.delivery.objective.title)&&openSave.profile.activeShiftId==='personagem-oeste/dia-0',{nextBtn,closure:s.save.closure,objective:s.delivery.objective.title});
+ const mineCollected=s.delivery.parcels.filter(p=>p.collector==='jogador').map(p=>p.id);
+ const pays=openSave.shift.payments;
+ check('B1-01 F6 AC-12/22: the ledger in the save has the D07 values — one ENTREGA per delivered parcel of the player (carro ML R$ 9 / SHP R$ 5), one COLETA (R$ 0,50) per collected volume, nothing for the return; balance = ledger',pays.filter(q=>q.kind==='ENTREGA').length===deliveredMine.length&&pays.filter(q=>q.kind==='ENTREGA').every(q=>q.amountCents===(q.platform==='ML'?900:500)&&deliveredMine.some(p=>p.id===q.parcelId))&&pays.filter(q=>q.kind==='COLETA').length===mineCollected.length&&pays.filter(q=>q.kind==='COLETA').every(q=>q.amountCents===50)&&!pays.some(q=>mineBack.some(p=>p.id===q.parcelId)&&q.kind==='ENTREGA')&&openSave.profile.balanceCents===pays.reduce((t,q)=>t+q.amountCents,0)&&openSave.profile.balanceCents>0,{pays:pays.length,balance:openSave.profile.balanceCents});
+ const homeSpot=await page.evaluate(()=>window.__debug.homeSpot());
+ // At the base nothing closes the shift.
+ check('B1-01 F6: at the base (far from home) the action never offers to close the shift',!/Encerrar o expediente/.test(await label()),await label());
+ if(!(await page.evaluate(d=>window.__debug.parkCarNear(d.x,d.z),homeSpot.stop)))throw new Error('sem vaga perto de casa');
+ await walkTo(homeSpot.door);await delay(200);
+ await tapWhen(/^Encerrar o expediente em casa$/,'encerrar o expediente em casa');
+ await page.waitForSelector('#shift-end:not([hidden])',{timeout:10000});
+ const closedSave=await page.evaluate(()=>JSON.parse(localStorage.getItem('brejo-b1:carreira:personagem-oeste')));
+ const endText=await page.locator('#shift-end-summary').textContent();
+ check('B1-01 F6 AC-13/17/26: closed at the door of Lia\'s own home — ONE checkpoint with no open shift, calendar moved to the next working day once, summary and paid ledger in the balance',closedSave.shift===null&&closedSave.profile.activeShiftId===null&&closedSave.profile.calendarIndex===1&&closedSave.profile.lastClosedShift?.shiftId==='personagem-oeste/dia-0'&&closedSave.profile.balanceCents===openSave.profile.balanceCents&&closedSave.profile.lastClosedShift.earnedCents===openSave.profile.balanceCents&&/entregues/.test(endText),{profile:closedSave.profile,endText});
+ for(const [w,h] of [[780,360],[915,412]]){await page.setViewportSize({width:w,height:h});await delay(250);const b=await page.evaluate(()=>[...document.querySelectorAll('#shift-end button')].map(x=>{const r=x.getBoundingClientRect();return {l:r.left,r:r.right,t:r.top,b:r.bottom,h:r.height};}));check(`B1-01 F6: end-of-shift card ${w}×${h} — buttons on screen, ≥ 40 px`,b.length===2&&b.every(x=>x.l>=0&&x.r<=w+1&&x.t>=0&&x.b<=h+1&&x.h>=40),b);}
+ await page.setViewportSize({width:780,height:360});
+ await page.locator('[data-shift-end="menu"]').tap();
+ await page.waitForSelector('#menu-home:not([hidden])',{timeout:120000});
+ const after=await page.evaluate(()=>({cont:document.querySelector('#menu-continue-info').textContent,novo:document.querySelector('[data-menu-home="novo"]').disabled,newInfo:document.querySelector('#menu-new-info').textContent}));
+ await openList(page,'novo');
+ const freeCards=await page.locator('.career-card').evaluateAll(es=>es.map(e=>({id:e.dataset.career,disabled:e.disabled})));
+ check('B1-01 F6 AC-17: after the valid closing, career switching is free — "Novo jogo" offers the other three (none locked) and "Continuar" offers Lia\'s next day with no open shift',!after.novo&&freeCards.length===3&&freeCards.every(c=>!c.disabled)&&/^Lia · Setor Oeste · Terça/.test(after.cont)&&!/expediente aberto/.test(after.cont),{after,freeCards});
  check('B1-01 F4/F5: the whole day kept the same IDs, unique, none lost or duplicated; traffic on; no depot error',s.delivery.parcels.length===allIds.length&&new Set(s.delivery.parcels.map(p=>p.id)).size===allIds.length&&allIds.every(id=>s.delivery.parcels.some(p=>p.id===id))&&s.city.vehicles>0&&s.delivery.depot.errors.length===0,{n:s.delivery.parcels.length,vehicles:s.city.vehicles});
  if(process.env.WEBLAB_SHOTS)await page.screenshot({path:`${process.env.WEBLAB_SHOTS}/car-logistics-end.png`});
  await ctx.close();
@@ -663,6 +903,8 @@ async function run(){
  }
  browser=await chromium.launch({headless:true,args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
  // Local iteration only: WEBLAB_ONLY=car-logistics runs just that scenario (CI always runs everything).
+ if(process.env.WEBLAB_ONLY==='f6'){await persistenceMoto(browser);await savesMenu(browser);check('no fatal JavaScript errors',errors.length===0,errors);console.log('Partial browser run (WEBLAB_ONLY):',notes.length,'checks');return;}
+ if(process.env.WEBLAB_ONLY==='four'){await fourCareers(browser);await lockedMenu(browser);check('no fatal JavaScript errors',errors.length===0,errors);console.log('Partial browser run (WEBLAB_ONLY):',notes.length,'checks');return;}
  if(process.env.WEBLAB_ONLY==='car-logistics'){await carLogistics(browser);check('no fatal JavaScript errors',errors.length===0,errors);console.log('Partial browser run (WEBLAB_ONLY):',notes.length,'checks');return;}
  const context=await browser.newContext({viewport:{width:915,height:412},isMobile:true,hasTouch:true,deviceScaleFactor:1});
  const page=await context.newPage();
@@ -913,13 +1155,15 @@ async function run(){
   check('B1-01 F3.5: the Oeste card shows the legacy calendar day by reading only (nothing written by the menu)',/18\/11\/2026/.test(legacyCard)&&/Calendário antigo/.test(legacyCard)&&untouched,{legacyCard,untouched});
   await enterFromMenu(lp,'personagem-oeste',{vehicle:'moto-antiga'});
   const ls=await lp.evaluate(()=>({career:window.__weblab.snapshot().career,legacy:localStorage.getItem('brejo-log003-workday-index'),save:JSON.parse(localStorage.getItem('brejo-b1:carreira:personagem-oeste')||'null'),others:['norte','leste','sul'].map(k=>localStorage.getItem('brejo-b1:carreira:personagem-'+k))}));
-  check('B1-01 F1/F3: legacy calendar migrated to the Oeste career in browser storage (save schema v2), legacy key kept, other careers untouched',ls.career.calendarIndex===2&&ls.career.durable===true&&ls.legacy==='2'&&ls.save?.schemaVersion===2&&ls.save.profile.calendarIndex===2&&ls.others.every(v=>v===null),ls);
+  check('B1-01 F1/F3/F6: legacy calendar migrated to the Oeste career in browser storage (save schema v3), legacy key kept, other careers untouched',ls.career.calendarIndex===2&&ls.career.durable===true&&ls.legacy==='2'&&ls.save?.schemaVersion===3&&ls.save.profile.calendarIndex===2&&ls.others.every(v=>v===null),ls);
   await legacy.close();
  }
  await carCareer(browser);
  await carLogistics(browser);
  await fourCareers(browser);
  await lockedMenu(browser);
+ await persistenceMoto(browser);
+ await savesMenu(browser);
  check('no fatal JavaScript errors',errors.length===0,errors);
  console.log('Browser smoke completed:',notes.length,'checks; Chromium emulated mobile/SwiftShader, NOT physical Android.');
 }
