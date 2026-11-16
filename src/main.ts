@@ -172,7 +172,7 @@ function start(canvas: HTMLCanvasElement, boot: BrowserCareer): void {
   // only the static world blocks so the player can always move away.
   let insideVehicle = false;
   const baseGuard: MotionGuard = (x, z, r) => world.guard(x, z, r) && (insideVehicle || !cityLife.blocks(x, z, r));
-  const logisticsPanel=new LogisticsPanel(document,delivery.workday,()=>clock.hour,()=>{hud.setPaused(false);input.reset()},day,()=>{
+  const logisticsPanel=new LogisticsPanel(document,delivery.workday,()=>clock.shiftHour,()=>{hud.setPaused(false);input.reset()},day,()=>{
     if(!['CONCLUIDA','ENCERRADA'].includes(delivery.workday.phase))return;
     const next=nextWorkday(dayIndex??savedDay);
     try{commitNextDay(career.session,next.index);}catch(e){console.warn('[carreira] avanço de dia não gravado:',(e as Error).message);}
@@ -200,7 +200,7 @@ function start(canvas: HTMLCanvasElement, boot: BrowserCareer): void {
     const speedButton = panel?.querySelector<HTMLElement>('[data-devtime="speed"]');
     if (panel) panel.hidden = false;
     const apply = (key: string) => {
-      if (key === '+1') clock.setHour(Math.floor(clock.hour) + 1);
+      if (key === '+1') clock.setShiftHour(Math.floor(clock.shiftHour) + 1);
       else if (key === 'speed') { devSpeed = devSpeed === 1 ? 30 : 1; if (speedButton) speedButton.textContent = `×${devSpeed}`; }
       else clock.setHour(Number(key));
       lightTimer = 0;
@@ -255,14 +255,14 @@ function start(canvas: HTMLCanvasElement, boot: BrowserCareer): void {
       const visit = { player: { x: here.x, z: here.z, riding: false }, bike: { ...bikeSpot() }, car: true };
       const forDepot = wd.carForDepot().length;
       if (forDepot && depotVisitAllowed(visit, 'parking') && !wd.sackInHands) {
-        return { label: `Retirar do porta-malas (${Math.min(forDepot, HANDS_MAX)})`, available: true, trunk: true, run: () => `${wd.unloadCarForDepot(trunk, clock.hour, visit)} nas mãos — leve ao recebimento` };
+        return { label: `Retirar do porta-malas (${Math.min(forDepot, HANDS_MAX)})`, available: true, trunk: true, run: () => `${wd.unloadCarForDepot(trunk, clock.shiftHour, visit)} nas mãos — leve ao recebimento` };
       }
       // B1-01 F4 (AC-10): on the route, the parcels of the nearest stop come out of the boot.
       if (wd.released && wd.carForRoute().length) {
         const stop = delivery.nearestStop(car.state, wd.carForRoute());
         if (stop && stop.d < 60) {
           const a = stop.address;
-          return { label: `Retirar pacote · nº ${a.number}`, available: true, trunk: true, run: () => (wd.takeFromCarForAddress(trunk, a.id, clock.hour, trunkParked()) ? `Pacote de ${a.street}, ${a.number} nas mãos` : 'Pacote não retirado') };
+          return { label: `Retirar pacote · nº ${a.number}`, available: true, trunk: true, run: () => (wd.takeFromCarForAddress(trunk, a.id, clock.shiftHour, trunkParked()) ? `Pacote de ${a.street}, ${a.number} nas mãos` : 'Pacote não retirado') };
         }
       }
       return { label: 'Fechar porta-malas', available: true, run: closeTrunk };
@@ -272,7 +272,7 @@ function start(canvas: HTMLCanvasElement, boot: BrowserCareer): void {
     return {
       label: `Guardar no porta-malas (${fit})`, available: true, trunk: true,
       run: () => {
-        const r = trunk.stow(delivery.workday.parcels, clock.hour, { parked: trunkParked() });
+        const r = trunk.stow(delivery.workday.parcels, clock.shiftHour, { parked: trunkParked() });
         if (r.refused) return r.refused;
         // Same as the motorcycle top box: once the hands are empty, no sack is being carried.
         if (!delivery.workday.inHands().length) delivery.workday.sackInHands = false;
@@ -289,7 +289,7 @@ function start(canvas: HTMLCanvasElement, boot: BrowserCareer): void {
   const jobAt = (here: { x: number; z: number; riding: boolean }) => {
     const atBoot = trunkJob(here);
     if (atBoot) return atBoot;
-    return delivery.action(clock.hour, here, bikeSpot());
+    return delivery.action(clock.shiftHour, here, bikeSpot());
   };
   const toggleMount = (): void => {
     if (mode === 'riding') {
@@ -334,7 +334,7 @@ function start(canvas: HTMLCanvasElement, boot: BrowserCareer): void {
     if (action === 'mount') contextAction();
     else if (action === 'graphics') switchGraphicsProfile(profile);
     else if (action === 'wait') {
-      const w = delivery.waitOption(clock.hour);
+      const w = delivery.waitOption(clock.shiftHour);
       const still = mode === 'walking' || vehicle.stopped();
       if (w && still) { delivery.startWait(w.until); hud.toast(`${w.label}…`); }
       else if (w) hud.toast(moto ? 'Pare a moto para aguardar' : 'Pare o carro para aguardar');
@@ -408,11 +408,11 @@ function start(canvas: HTMLCanvasElement, boot: BrowserCareer): void {
     hud.setContext(context, mode);
     // Delivery job: shops, depot staff, customers, objective marker and contextual action.
     const here = mode === 'riding' ? { x: m.x, z: m.z, riding: true } : { x: walker.state.x, z: walker.state.z, riding: false };
-    delivery.update(dt, clock.hour, cityLife.crowd, here, ground, (x,z,r)=>cityLife.blocks(x,z,r)||Math.hypot(x-player.x,z-player.z)<r+player.radius, bikeSpot());
+    delivery.update(dt, clock.shiftHour, cityLife.crowd, here, ground, (x,z,r)=>cityLife.blocks(x,z,r)||Math.hypot(x-player.x,z-player.z)<r+player.radius, bikeSpot());
     for (const msg of delivery.workday.events.splice(0)) hud.toast(msg);
-    logisticsPanel.update(delivery.workday,clock.hour,performance.now()/1000);
-    const objective = delivery.workday.objective(clock.hour, vehicle.view);
-    const wait = delivery.waiting === null ? delivery.waitOption(clock.hour) : null;
+    logisticsPanel.update(delivery.workday,clock.shiftHour,performance.now()/1000);
+    const objective = delivery.workday.objective(clock.shiftHour, vehicle.view);
+    const wait = delivery.waiting === null ? delivery.waitOption(clock.shiftHour) : null;
     // Progress texts (mine vs team) and the base lines change slowly: 4 Hz is plenty.
     summaryTimer -= dt || 0.016;
     if (summaryTimer <= 0) {
@@ -458,6 +458,8 @@ function start(canvas: HTMLCanvasElement, boot: BrowserCareer): void {
         teleport: (x: number, z: number, yaw: number) => Object.assign(vehicle.view as { x: number; z: number; yaw: number; speed: number }, { x, z, yaw, speed: 0 }),
         camera: (alpha: number, beta: number, radius: number) => rig.debugSet(alpha, beta, radius),
         setHour: (hour: number) => { clock.setHour(hour); lightTimer = 0; },
+        /** B1-01 F5: jump to a SHIFT hour (≥ 24 = after midnight, same shift). Development only. */
+        setShiftHour: (hour: number) => { clock.setShiftHour(hour); lightTimer = 0; },
         /** Puts the rider on foot at a spot (the bike stays where it is). */
         placeWalker: (x: number, z: number, yaw = 0) => {
           if (mode === 'riding') {
@@ -490,8 +492,8 @@ function start(canvas: HTMLCanvasElement, boot: BrowserCareer): void {
         depotGate:(open:boolean|null)=>{delivery.gateManual=open},
         canStand:(x:number,z:number,r=.35,riding=false)=>world.guard(x,z,r)&&!delivery.doorBlocked(x,z,r,riding,{x,z}),
         /** Deterministic test clock: executes real work in bounded steps, never edits parcels. */
-        processDepot:(seconds:number)=>{for(let t=0;t<Math.min(seconds,1);t+=.05)delivery.workday.update(clock.hour,.05)},
-        logisticsStep:(seconds:number)=>{for(let t=0;t<Math.min(seconds,1);t+=.05){clock.advance(.05);delivery.workday.update(clock.hour,.05)}},
+        processDepot:(seconds:number)=>{for(let t=0;t<Math.min(seconds,1);t+=.05)delivery.workday.update(clock.shiftHour,.05)},
+        logisticsStep:(seconds:number)=>{for(let t=0;t<Math.min(seconds,1);t+=.05){clock.advance(.05);delivery.workday.update(clock.shiftHour,.05)}},
         /**
          * B1-01 F4 TIME FIXTURE (development only): advances the WHOLE simulated world — clock, traffic,
          * pedestrians, NPC couriers, depot and stores — with the exact calls of the render loop, in
@@ -506,7 +508,7 @@ function start(canvas: HTMLCanvasElement, boot: BrowserCareer): void {
             cityLife.courierObstacles.splice(0,cityLife.courierObstacles.length,...courierTrafficObstacles(delivery.workday.couriers));
             cityLife.update(.05,simTime,clock.hour,lighting.night,player,ground);
             const here=mode==='riding'?{x:m.x,z:m.z,riding:true}:{x:walker.state.x,z:walker.state.z,riding:false};
-            delivery.update(.05,clock.hour,cityLife.crowd,here,ground,(x,z,r)=>cityLife.blocks(x,z,r)||Math.hypot(x-player.x,z-player.z)<r+player.radius,bikeSpot());
+            delivery.update(.05,clock.shiftHour,cityLife.crowd,here,ground,(x,z,r)=>cityLife.blocks(x,z,r)||Math.hypot(x-player.x,z-player.z)<r+player.radius,bikeSpot());
           }
           delivery.workday.events.splice(0);
         },
@@ -533,7 +535,7 @@ function start(canvas: HTMLCanvasElement, boot: BrowserCareer): void {
          * parcels handed over by the domain's real `collect` (NA_LOJA → COLETADO, loja → mãos, with
          * history), skipping only the walk to the counter. Store pickup BY CAR is F4 and stays off in play.
          */
-        fixtureCollect: () => { const w = delivery.workday; const kind = w.assigned.find((k) => w.readyAt(k).length > 0); return kind ? w.collect(kind, clock.hour) : 0; },
+        fixtureCollect: () => { const w = delivery.workday; const kind = w.assigned.find((k) => w.readyAt(k).length > 0); return kind ? w.collect(kind, clock.shiftHour) : 0; },
         /**
          * B1-01 F4 TRAVEL FIXTURE (development only): parks the player's vehicle at the kerb near a
          * spot, on a pose where the whole body fits the static world. It moves the vehicle only;
@@ -585,7 +587,7 @@ function start(canvas: HTMLCanvasElement, boot: BrowserCareer): void {
         walker: { ...walker.state, y: walker.root.position.y },
         camera: { framing: rig.driveFraming, mode: rig.mode, alpha: rig.camera.alpha, beta: rig.camera.beta, radius: rig.camera.radius, target: rig.camera.target.asArray() },
         fadedBuildings: fader.fadedCount,
-        clock: { label: clock.label, hour: clock.hour, workday: clock.isWorkday, night: lighting.night, devTime, speed: clock.speedFactor },
+        clock: { label: clock.label, hour: clock.hour, shiftHour: clock.shiftHour, daysCrossed: clock.daysCrossed, workday: clock.isWorkday, night: lighting.night, devTime, speed: clock.speedFactor },
         /** B1-01 F3.5: presets saved in the career and the looks the player's 3D bodies were built with. */
         avatar: { appearance: career.session.profile.appearance, equipment: career.session.profile.equipment, walker: { ...walker.body.look }, rider: moto?.rider ? { ...moto.rider.look } : null, driver: car ? { ...car.driver.look } : null },
         career: { id: career.session.careerId, name: career.session.character.name, sector: delivery.workday.playerSector, home: career.home.id, roster: { ...career.roster }, calendarIndex: career.session.profile.calendarIndex, checkpoint: career.session.save.checkpointSequence, durable: careerStorage.durable, source: career.session.loadSource },
@@ -593,7 +595,7 @@ function start(canvas: HTMLCanvasElement, boot: BrowserCareer): void {
           depot:{gateOpen:delivery.gateOpen,gateManual:delivery.gateManual,visibleIds:[...delivery.parcelViews.visibleIds],workers:delivery.workday.depot.workers.map(w=>({...w,task:w.task?{id:w.task.id,kind:w.task.kind,stage:w.task.stage}:null})),errors:[...delivery.workday.depot.errors]},
           phase: delivery.workday.phase,
           logistics:{playerReady:delivery.workday.playerReady,seed:delivery.workday.options.seed??day?.seed??2026,calendar:day?{date:day.date,index:day.index,tier:day.tier,target:day.depotTarget}:null,sortedAt:delivery.workday.allSortedAt,assignments:delivery.workday.assignments,teamReady:delivery.workday.teamReady,released:delivery.workday.released,releaseHour:delivery.workday.releaseHour,van:{state:delivery.workday.van.state,door:delivery.workday.van.door,approach:'assisted-D05'},couriers:delivery.workday.couriers.map(c=>({id:c.id,name:c.name,sector:c.sector,state:c.state,bike:{...c.bike},person:{...c.person},riding:c.riding,error:c.error,stops:[...c.stops],route:c.route.map(p=>({...p})),trunk:c.trunk(delivery.workday).map(p=>p.id),hands:c.hands(delivery.workday).map(p=>p.id)}))},
-          objective: delivery.workday.objective(clock.hour, vehicle.view),
+          objective: delivery.workday.objective(clock.shiftHour, vehicle.view),
           cargo: { visualHands:walker.displayedLoad, hands: delivery.workday.inHands().length, trunk: delivery.workday.inTrunk().length, sack: delivery.workday.sackInHands, label: delivery.workday.cargoLabel(), trunkOpen: moto?.trunkOpen ?? 0, trunkSpot: moto ? trunkSpot(bikeSpot()) : null,
             /** B1-01 F3: the car boot — domain (open flag, parcels with slots) and what is drawn. */
             carBoot: car && trunk && cargoView ? { open: trunk.open, lid: car.trunk01, vehicleId: trunk.vehicleId, problem: trunk.problem(delivery.workday.parcels), parcels: trunk.contents(delivery.workday.parcels).map((p) => ({ id: p.id, state: p.state, holder: p.holder, stowage: { ...p.stowage! } })), drawn: cargoView.drawn() } : null },
