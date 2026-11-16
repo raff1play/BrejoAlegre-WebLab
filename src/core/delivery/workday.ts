@@ -120,12 +120,14 @@ export class Workday {
    * state, place, custody, slot and history) and the player's own routine state. The previous
    * frame's hour is forgotten, so the first update after a restore does no catch-up work.
    */
-  protected restoreWorkday(s: Readonly<{ phase: Phase; assigned: readonly StoreKind[]; route: readonly string[]; sackInHands: boolean; late: boolean; absent: readonly string[] }>, parcels: readonly Parcel[]): void {
+  protected restoreWorkday(s: Readonly<{ phase: Phase; assigned: readonly StoreKind[]; route: readonly string[]; sackInHands: boolean; late: boolean; absent: readonly string[]; lastHour: number | null }>, parcels: readonly Parcel[]): void {
     this.parcels.splice(0, this.parcels.length, ...parcels);
     this.phase = s.phase; this.assigned = [...s.assigned]; this.route = [...s.route]; this.sackInHands = s.sackInHands; this.late = s.late;
     this.absentAddresses.clear(); for (const id of s.absent) this.absentAddresses.add(id);
-    this.lastHour = null; this.events.length = 0;
+    this.lastHour = s.lastHour; this.events.length = 0;
   }
+  /** B1-01 F6: hour of the previous depot step (the resumed world continues the same pacing). */
+  protected get lastUpdateHour(): number | null { return this.lastHour; }
 
   // ------------------------------------------------------------------ helpers
 

@@ -37,6 +37,8 @@ export type LogisticsSnapshot=Readonly<{
  released:boolean;releaseHour:number|null;allSortedAt:number|null;readinessWarned:boolean;finishedAt:Record<ActorId,number|null>;
  trafficTime:number;gateOpen:number;van:{state:'scheduled'|'opening'|'unloading'|'closing'|'departed';door:number};
  depot:DepotSnapshot;couriers:CourierSnapshot[];closedAtHome:number|null;
+ /** Hours of the previous depot/courier steps: the resumed world keeps exactly the same pacing. */
+ lastUpdateHour:number|null;previousHour:number|null;
 }>;
 export type ActorReport=Readonly<{actor:ActorId;delivered:number;returned:number;pending:number;lateDeliveries:number;finishedAt:number|null;lateMinutes:number|null}>;
 /**
@@ -69,7 +71,7 @@ export class LogisticsDay extends Workday {
  captureState():LogisticsSnapshot{
   return {phase:this.phase,assignments:Object.fromEntries(ACTORS.map(a=>[a,[...this.assignments[a]]])) as Record<ActorId,StoreKind[]>,route:[...this.route],sackInHands:this.sackInHands,late:this.late,
    absent:[...this.absentAddresses].sort(),released:this.released,releaseHour:this.releaseHour,allSortedAt:this.allSortedAt,readinessWarned:this.readinessWarned,
-   finishedAt:{...this.finishedAt},trafficTime:this.trafficTime,gateOpen:this.gateOpen,van:this.van.toState(),depot:this.depot.toState(),couriers:this.couriers.map(c=>c.toState()),closedAtHome:this.closedAtHome};
+   finishedAt:{...this.finishedAt},trafficTime:this.trafficTime,gateOpen:this.gateOpen,van:this.van.toState(),depot:this.depot.toState(),couriers:this.couriers.map(c=>c.toState()),closedAtHome:this.closedAtHome,lastUpdateHour:this.lastUpdateHour,previousHour:this.previousHour};
  }
  /**
   * B1-01 F6: resumes the shift of a validated checkpoint. `parcels` are fresh domain objects built
@@ -78,13 +80,13 @@ export class LogisticsDay extends Workday {
   */
  restoreState(s:LogisticsSnapshot,parcels:readonly Parcel[]):void{
   if(this.phase!=='ANTES'||this.parcels.length)throw new Error('Restaurar só num expediente ainda não iniciado');
-  this.restoreWorkday({phase:s.phase,assigned:s.assignments.jogador,route:s.route,sackInHands:s.sackInHands,late:s.late,absent:s.absent},parcels);
+  this.restoreWorkday({phase:s.phase,assigned:s.assignments.jogador,route:s.route,sackInHands:s.sackInHands,late:s.late,absent:s.absent,lastHour:s.lastUpdateHour},parcels);
   this.assignments=Object.fromEntries(ACTORS.map(a=>[a,[...s.assignments[a]]])) as Record<ActorId,StoreKind[]>;
   this.released=s.released;this.releaseHour=s.releaseHour;this.allSortedAt=s.allSortedAt;this.readinessWarned=s.readinessWarned;
   for(const a of ACTORS)this.finishedAt[a]=s.finishedAt[a];
   this.trafficTime=s.trafficTime;this.gateOpen=s.gateOpen;this.van.restoreState(s.van);this.depot.restoreState(s.depot);
   for(const c of this.couriers){const saved=s.couriers.find(q=>q.id===c.id);if(!saved)throw new Error(`Checkpoint sem ${c.id}`);c.restoreState(saved);}
-  this.previousHour=null;this.closedAtHome=s.closedAtHome;
+  this.previousHour=s.previousHour;this.closedAtHome=s.closedAtHome;
  }
  override start(hour:number):void{
   if(this.phase!=='ANTES')return;const d=dailyDemand(this.addresses,hour,this.demandOptions);

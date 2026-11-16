@@ -110,7 +110,7 @@ export class ShiftCheckpointer {
   constructor(session: CareerSession, capture: () => ShiftCapture, options: CheckpointOptions) {
     this.session = session; this.capture = capture; this.options = options;
     this.now = options.now ?? (() => Date.now());
-    this.minGap = options.minGapMs ?? 4000; this.periodic = options.periodicMs ?? 30000; this.retry = options.retryMs ?? 5000;
+    this.minGap = options.minGapMs ?? 8000; this.periodic = options.periodicMs ?? 30000; this.retry = options.retryMs ?? 5000;
   }
 
   get enabled(): boolean { return this.options.enabled && !this.status.stale; }
@@ -152,6 +152,8 @@ export class ShiftCheckpointer {
     if (day.phase === 'ANTES' || day.closedAtHome !== null) return;
     const changed = custodySignature(day) !== this.lastSignature;
     if (this.lastSignature === null) { this.checkpoint('abertura do expediente'); return; }
+    // After a failed write, try again as soon as the retry delay is over (whatever the gap).
+    if (this.status.error !== null) { this.checkpoint('nova tentativa'); return; }
     if (changed && t - this.lastWrite >= this.minGap) { this.checkpoint('operação da equipe/base'); return; }
     if (t - this.lastWrite >= this.periodic) this.checkpoint('periódico');
   }

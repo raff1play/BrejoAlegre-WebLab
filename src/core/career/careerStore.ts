@@ -154,7 +154,7 @@ export class CareerStore {
       const current = this.storage.getItem(saveKey(id));
       if (current !== null) {
         let intact = true;
-        try { parseSave(JSON.parse(current), id); } catch { intact = false; }
+        try { this.parseKey(saveKey(id), id); } catch { intact = false; }
         // Só promove a "anterior" uma cópia íntegra: um principal corrompido nunca apaga o backup bom.
         if (intact) { this.storage.setItem(previousKey(id), current); promoted = true; }
       }

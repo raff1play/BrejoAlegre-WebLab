@@ -411,6 +411,7 @@ function validateWorld(w: unknown, parcels: Obj[], profile: Obj, phase: string):
   if (finite(l.trafficTime, 'Tempo do trânsito') < 0) fail('Tempo do trânsito negativo');
   const gate = finite(l.gateOpen, 'Portão'); if (gate < 0 || gate > 1) fail('Portão fora de 0–1');
   if (l.closedAtHome !== null) fail('Expediente encerrado em casa não fica aberto no save');
+  nullable(l.lastUpdateHour, (x) => finite(x, 'Hora do último passo da base')); nullable(l.previousHour, (x) => finite(x, 'Hora do último passo dos NPCs'));
   if (!isObj(l.van)) fail('Van ausente');
   oneOf((l.van as Obj).state, ['scheduled', 'opening', 'unloading', 'closing', 'departed'] as const, 'Estado da van');
   const door = finite((l.van as Obj).door, 'Porta da van'); if (door < 0 || door > 1) fail('Porta da van fora de 0–1');
