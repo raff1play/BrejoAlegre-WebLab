@@ -516,6 +516,22 @@ function start(canvas: HTMLCanvasElement, boot: BrowserCareer): void {
          * history), skipping only the walk to the counter. Store pickup BY CAR is F4 and stays off in play.
          */
         fixtureCollect: () => { const w = delivery.workday; const kind = w.assigned.find((k) => w.readyAt(k).length > 0); return kind ? w.collect(kind, clock.hour) : 0; },
+        /**
+         * B1-01 F4 TRAVEL FIXTURE (development only): parks the player's vehicle at the kerb near a
+         * spot, on a pose where the whole body fits the static world. It moves the vehicle only;
+         * no parcel changes. Stands in for driving across the city in the browser test.
+         */
+        parkCarNear: (x: number, z: number) => {
+          const p = parkNear(x, z);
+          for (const along of [0, 1.5, -1.5, 3, -3, 4.5, -4.5, 6, -6]) for (const side of [0, 0.5, -0.5, 1]) for (const yaw of [p.yaw, p.yaw + Math.PI]) {
+            const q = { x: p.x + Math.sin(p.yaw) * along + Math.cos(p.yaw) * side, z: p.z + Math.cos(p.yaw) * along - Math.sin(p.yaw) * side };
+            if (vehicle.fitsAt(world.guard, q.x, q.z, yaw)) { Object.assign(vehicle.view as object, { ...q, yaw, speed: 0, steer: 0 }); return { ...q, yaw }; }
+          }
+          return null;
+        },
+        /** B1-01 F4: read-only spots of the delivery domain (address door, player's sector counter). */
+        addressDoor: (id: string) => { const a = delivery.workday.byAddress.get(id); return a ? { ...a.door, number: a.number } : null; },
+        dispatchSpot: () => ({ ...delivery.workday.playerDispatch }),
         /** B1-01 F3: a parked car's boot spot (behind the tailgate), in world coordinates. */
         trunkSpot: () => (car ? carToWorld(car.state, 0, -CAR.length / 2 - 0.55) : null),
         /**
@@ -558,7 +574,7 @@ function start(canvas: HTMLCanvasElement, boot: BrowserCareer): void {
         delivery: {
           depot:{gateOpen:delivery.gateOpen,gateManual:delivery.gateManual,visibleIds:[...delivery.parcelViews.visibleIds],workers:delivery.workday.depot.workers.map(w=>({...w,task:w.task?{id:w.task.id,kind:w.task.kind,stage:w.task.stage}:null})),errors:[...delivery.workday.depot.errors]},
           phase: delivery.workday.phase,
-          logistics:{seed:delivery.workday.options.seed??day?.seed??2026,calendar:day?{date:day.date,index:day.index,tier:day.tier,target:day.depotTarget}:null,sortedAt:delivery.workday.allSortedAt,assignments:delivery.workday.assignments,teamReady:delivery.workday.teamReady,released:delivery.workday.released,releaseHour:delivery.workday.releaseHour,van:{state:delivery.workday.van.state,door:delivery.workday.van.door,approach:'assisted-D05'},couriers:delivery.workday.couriers.map(c=>({id:c.id,name:c.name,sector:c.sector,state:c.state,bike:{...c.bike},person:{...c.person},riding:c.riding,error:c.error,stops:[...c.stops],route:c.route.map(p=>({...p})),trunk:c.trunk(delivery.workday).map(p=>p.id),hands:c.hands(delivery.workday).map(p=>p.id)}))},
+          logistics:{playerReady:delivery.workday.playerReady,seed:delivery.workday.options.seed??day?.seed??2026,calendar:day?{date:day.date,index:day.index,tier:day.tier,target:day.depotTarget}:null,sortedAt:delivery.workday.allSortedAt,assignments:delivery.workday.assignments,teamReady:delivery.workday.teamReady,released:delivery.workday.released,releaseHour:delivery.workday.releaseHour,van:{state:delivery.workday.van.state,door:delivery.workday.van.door,approach:'assisted-D05'},couriers:delivery.workday.couriers.map(c=>({id:c.id,name:c.name,sector:c.sector,state:c.state,bike:{...c.bike},person:{...c.person},riding:c.riding,error:c.error,stops:[...c.stops],route:c.route.map(p=>({...p})),trunk:c.trunk(delivery.workday).map(p=>p.id),hands:c.hands(delivery.workday).map(p=>p.id)}))},
           objective: delivery.workday.objective(clock.hour, vehicle.view),
           cargo: { visualHands:walker.displayedLoad, hands: delivery.workday.inHands().length, trunk: delivery.workday.inTrunk().length, sack: delivery.workday.sackInHands, label: delivery.workday.cargoLabel(), trunkOpen: moto?.trunkOpen ?? 0, trunkSpot: moto ? trunkSpot(bikeSpot()) : null,
             /** B1-01 F3: the car boot — domain (open flag, parcels with slots) and what is drawn. */

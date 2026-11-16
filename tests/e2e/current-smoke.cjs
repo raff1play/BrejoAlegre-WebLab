@@ -473,6 +473,129 @@ async function lockedMenu(browser){
  check('B1-01 F3.5 AC-17: continuing Rosa keeps her day and open shift; the invalid Sul save is left as it was',s.career.id==='personagem-norte'&&s.career.calendarIndex===3&&store.norte.profile.activeShiftId==='personagem-norte/dia-3'&&store.norte.shift.elapsedVirtualMinutes===200&&store.sul==='{"corrompido":',{career:s.career,sul:store.sul});
  await ctx.close();
 }
+/**
+ * B1-01 F4 (AC-08/09/10): one complete working day with the player's own CAR, in the real game.
+ * Every parcel transition is a real action-button tap (store counter, tailgate, receiving desk,
+ * sector dock, customer's gate). Development fixtures are used ONLY to travel (park the car near a
+ * spot / place the person) and to run the depot/NPC simulation forward (logisticsStep = the same
+ * domain update the game loop calls); they never edit a parcel.
+ */
+async function carLogistics(browser){
+ const ctx=await browser.newContext({viewport:{width:780,height:360},isMobile:true,hasTouch:true,deviceScaleFactor:1});
+ const page=await ctx.newPage();page.on('pageerror',e=>errors.push(e.message));
+ await page.goto(url+'?gfx=mobile&trafego=1&dia=0',{waitUntil:'domcontentloaded',timeout:120000});
+ await enterFromMenu(page,'personagem-oeste',{vehicle:'carro-antigo'});
+ if(!(await page.evaluate(()=>!!window.__debug))){console.log('SKIP car logistics: __debug only exists in development builds');await ctx.close();return;}
+ const snap=()=>page.evaluate(()=>window.__weblab.snapshot());
+ const action=page.locator('[data-action="mount"]');
+ const label=()=>page.evaluate(()=>document.querySelector('[data-action="mount"]').textContent);
+ const tapWhen=async(re,what)=>{
+  const ok=await page.waitForFunction(src=>new RegExp(src).test(document.querySelector('[data-action="mount"]').textContent),re.source,{timeout:20000}).then(()=>true).catch(()=>false);
+  if(!ok)throw new Error(`${what}: o botão mostra "${await label()}"`);
+  await action.tap();
+ };
+ const until=(fn,arg,ms=20000)=>page.waitForFunction(fn,arg,{timeout:ms}).catch(()=>{});
+ const walkTo=(p,yaw=0)=>page.evaluate(([p,y])=>window.__debug.placeWalker(p.x,p.z,y),[p,yaw]);
+ const toBoot=async()=>{const r=await page.evaluate(()=>window.__debug.trunkSpot());const v=(await snap()).vehicle;await walkTo(r,v.yaw);await delay(150);};
+ const openBoot=async()=>{if(!(await snap()).delivery.cargo.carBoot.open){await tapWhen(/^Abrir porta-malas$/,'abrir o porta-malas');await until(()=>window.__weblab.snapshot().delivery.cargo.carBoot.open);}};
+ const hands=()=>page.evaluate(()=>window.__weblab.snapshot().delivery.cargo.hands);
+ let s=await snap();
+ check('B1-01 F4: car career — no "F4" lock any more, the car enters the logistics cycle',s.vehicle.kind==='carro-antigo'&&!/F4/.test(s.delivery.action??''),s.delivery.action);
+ await page.evaluate(()=>window.__debug.setHour(12.05));await delay(300);
+ s=await snap();
+ const mine=s.delivery.parcels.filter(p=>p.collector==='jogador').map(p=>p.id);
+ const allIds=s.delivery.parcels.map(p=>p.id);
+ // ---------------------------------------------------------------- AC-08: stores → hands → boot
+ for(const kind of s.delivery.assigned){
+  const st=s.delivery.stores.find(x=>x.id===kind);
+  const pose=await page.evaluate(p=>window.__debug.parkCarNear(p.x,p.z),st.pickup);
+  if(!pose)throw new Error(`sem vaga para o carro perto de ${kind}`);
+  let rounds=0;
+  while((await snap()).delivery.parcels.some(p=>p.origin===kind&&p.state==='NA_LOJA')&&rounds++<4){
+   await walkTo(st.pickup,st.facing+Math.PI);
+   await tapWhen(/^Retirar com /,`coleta em ${kind}`);
+   await until(()=>window.__weblab.snapshot().delivery.cargo.hands>0);
+   const n=await hands();
+   await toBoot();await openBoot();
+   await tapWhen(new RegExp(`^Guardar no porta-malas \\(${n}\\)$`),'guardar no porta-malas');
+   await until(()=>window.__weblab.snapshot().delivery.cargo.hands===0);
+  }
+ }
+ await until(()=>{const b=window.__weblab.snapshot().delivery.cargo.carBoot;return b.drawn.length===b.parcels.length;},null,10000);
+ s=await snap();
+ let boot=s.delivery.cargo.carBoot;
+ check('B1-01 F4 AC-08: every store parcel of the player was collected at the counter and stowed by touch in the car boot (one 3D box per ID)',mine.length>=4&&boot.parcels.length===mine.length&&mine.every(id=>boot.parcels.some(p=>p.id===id))&&boot.drawn.length===mine.length&&boot.problem===null&&s.delivery.cargo.hands===0,{mine,boot:boot.parcels.map(p=>p.id)});
+ check('B1-01 F4 AC-08: collected parcels are EM_TRANSPORTE in place "porta-malas", custody of the player, history counter → hands → boot',s.delivery.parcels.filter(p=>mine.includes(p.id)).every(p=>p.place==='porta-malas'&&p.state==='EM_TRANSPORTE'&&p.holder==='jogador'&&p.history.map(e=>e.operation).join('>').includes('estado:COLETADO>transferência:maos>estado:EM_TRANSPORTE>transferência:porta-malas')));
+ for(const [w,h] of [[780,360],[915,412]]){await page.setViewportSize({width:w,height:h});await delay(300);assertLayout(`car logistics loaded ${w}×${h}`,await page.evaluate(layout));}
+ await page.setViewportSize({width:780,height:360});
+ check('B1-01 F4: objective sends the loaded car to a car bay of the base',/vaga de carro/.test((await snap()).delivery.objective.title),(await snap()).delivery.objective);
+ // ---------------------------------------------------------------- AC-09: car bay → hands → receiving desk
+ const bays=await page.evaluate(()=>window.__debug.carBays());
+ await page.evaluate(b=>window.__debug.parkAt(b.x,b.z,b.yaw),bays[0]);await delay(300);
+ await toBoot();await openBoot();
+ const receiving=(await page.evaluate(()=>window.__debug.depotPlan())).spots.receiving;
+ let trips=0;
+ while((await snap()).delivery.parcels.some(p=>mine.includes(p.id)&&p.place==='porta-malas')&&trips++<6){
+  await toBoot();
+  await tapWhen(/^Retirar do porta-malas \(\d\)$/,'retirar do porta-malas na vaga da base');
+  await until(()=>window.__weblab.snapshot().delivery.cargo.hands>0);
+  await walkTo(receiving,Math.PI/2);
+  await tapWhen(/^Entregar ao conferente \(\d\)$/,'entregar ao conferente');
+  await until(()=>window.__weblab.snapshot().delivery.cargo.hands===0);
+ }
+ s=await snap();
+ const atDesk=s.delivery.parcels.filter(p=>mine.includes(p.id));
+ check('B1-01 F4 AC-09: unloaded at the car bay in hands-full trips and handed to the receiving desk — boot → hands → recebimento, nothing teleported',trips>=2&&s.delivery.cargo.carBoot.parcels.length===0&&atDesk.every(p=>{const o=p.history.map(e=>e.operation).join('>');return o.includes('transferência:porta-malas>transferência:maos>transferência:recebimento')&&p.history.every(e=>e.place!=='galpao');}),{trips,places:atDesk.map(p=>p.place)});
+ // ---------------------------------------------------------------- depot pipeline runs (same domain update, time fixture)
+ const sector=s.career.sector;
+ const sorted=()=>page.evaluate(sct=>{const s=window.__weblab.snapshot();const load=s.delivery.parcels.filter(p=>p.sector===sct);return {hour:s.clock.hour,ok:load.length>0&&load.every(p=>p.state==='NA_SACA'&&p.place==='saca'),errors:s.delivery.depot.errors.length};},sector);
+ for(let i=0;i<60;i++){const r=await sorted();if(r.ok&&r.hour>=15)break;if(r.ok&&r.hour<15){await page.evaluate(()=>window.__debug.setHour(15.02));continue;}await page.evaluate(()=>{for(let k=0;k<40;k++)window.__debug.logisticsStep(1);});}
+ let r=await sorted();
+ check('B1-01 F4 AC-09: the existing receiving/checking/sorting pipeline processed the car\'s parcels into the sector sack, with no depot error',r.ok&&r.errors===0,r);
+ // ---------------------------------------------------------------- AC-10: sector dock → hands → boot
+ const load=(await snap()).delivery.parcels.filter(p=>p.sector===sector).map(p=>p.id);
+ await walkTo(await page.evaluate(()=>window.__debug.dispatchSpot()),Math.PI);
+ await tapWhen(/^Retirar a saca$/,'retirar a saca do setor');
+ await until(n=>window.__weblab.snapshot().delivery.cargo.hands===n,load.length);
+ await toBoot();await openBoot();
+ await tapWhen(new RegExp(`^Guardar no porta-malas \\(${load.length}\\)$`),'guardar a carga do setor');
+ await until(()=>window.__weblab.snapshot().delivery.cargo.hands===0);
+ await until(()=>{const b=window.__weblab.snapshot().delivery.cargo.carBoot;return b.drawn.length===b.parcels.length;},null,10000);
+ s=await snap();boot=s.delivery.cargo.carBoot;
+ check(`B1-01 F4 AC-10: the whole ${sector} load (${load.length} IDs) went from the sector dock into the boot, arranged, one box per ID, ready to leave`,boot.parcels.length===load.length&&load.every(id=>boot.parcels.some(p=>p.id===id&&p.state==='EM_ROTA'))&&boot.drawn.length===load.length&&boot.problem===null&&s.delivery.logistics.playerReady,{boot:boot.parcels.length,load:load.length,ready:s.delivery.logistics.playerReady});
+ // Team release from the car (same action as the bike), once the three NPCs are ready.
+ for(let i=0;i<60&&!(await snap()).delivery.logistics.teamReady;i++)await page.evaluate(()=>{for(let k=0;k<40;k++)window.__debug.logisticsStep(1);});
+ await page.evaluate(()=>{const v=window.__weblab.snapshot().vehicle,c=Math.cos(v.yaw),n=Math.sin(v.yaw);window.__debug.placeWalker(v.x-1.31*c,v.z+1.31*n,v.yaw);});await delay(200);
+ await tapWhen(/^Entrar no carro$/,'entrar no carro');
+ await until(()=>window.__weblab.snapshot().mode==='riding');
+ await tapWhen(/^Equipe pronta — iniciar rota de entregas$/,'liberar a equipe');
+ await until(()=>window.__weblab.snapshot().delivery.logistics.released);
+ s=await snap();
+ check('B1-01 F4 AC-10: from the driver\'s seat the team is released (four routes) and the tailgate closed itself',s.delivery.logistics.released&&!s.delivery.cargo.carBoot.open&&s.delivery.route.length>0,{released:s.delivery.logistics.released,route:s.delivery.route.length});
+ // ---------------------------------------------------------------- route: boot → hands → customer, stop by stop
+ let stops=0;
+ while((await snap()).delivery.cargo.carBoot.parcels.length&&stops++<20){
+  const next=(await snap()).delivery.route[0];
+  const door=await page.evaluate(id=>window.__debug.addressDoor(id),next);
+  if(!(await page.evaluate(d=>window.__debug.parkCarNear(d.x,d.z),door)))throw new Error(`sem vaga perto de ${next}`);
+  await toBoot();await openBoot();
+  await tapWhen(/^Retirar pacote · nº \d+/,'retirar pacote do endereço');
+  await until(()=>window.__weblab.snapshot().delivery.cargo.hands>0);
+  const held=(await snap()).delivery.parcels.filter(p=>p.place==='maos'&&p.holder==='jogador');
+  const dest=held[0].destination;
+  check(`B1-01 F4 AC-10: stop ${stops} — only the parcels of ONE address leave the boot (${held.length})`,held.every(p=>p.destination===dest&&p.state==='EM_ROTA'),held.map(p=>p.id));
+  await walkTo(await page.evaluate(id=>window.__debug.addressDoor(id),dest));
+  await tapWhen(/^Entregar nº \d+$/,'entregar ao destinatário');
+  await until(n=>window.__weblab.snapshot().delivery.cargo.hands===0,null);
+ }
+ s=await snap();
+ const mineLoad=s.delivery.parcels.filter(p=>load.includes(p.id));
+ const routeOk=mineLoad.every(p=>{const o=p.history.map(e=>e.operation).filter(x=>x!=='arrumação:porta-malas');const i=o.indexOf('estado:EM_ROTA');return o.slice(i).join('>')==='estado:EM_ROTA>transferência:maos>transferência:porta-malas>transferência:maos>estado:ENTREGUE>transferência:destinatario';});
+ check(`B1-01 F4 AC-10: all ${load.length} parcels of the ${sector} load delivered by the car — dock → hands → boot → hands → customer, ENTREGUE exactly once`,mineLoad.every(p=>p.state==='ENTREGUE'&&p.place==='destinatario'&&p.holder==='destinatario')&&routeOk&&mineLoad.every(p=>p.history.filter(e=>e.operation==='estado:ENTREGUE').length===1)&&s.delivery.cargo.carBoot.parcels.length===0,{states:mineLoad.map(p=>p.state),routeOk});
+ check('B1-01 F4: the whole day kept the same IDs, unique, none lost or duplicated; traffic on; no depot error',s.delivery.parcels.length===allIds.length&&new Set(s.delivery.parcels.map(p=>p.id)).size===allIds.length&&allIds.every(id=>s.delivery.parcels.some(p=>p.id===id))&&s.city.vehicles>0&&s.delivery.depot.errors.length===0,{n:s.delivery.parcels.length,vehicles:s.city.vehicles});
+ if(process.env.WEBLAB_SHOTS)await page.screenshot({path:`${process.env.WEBLAB_SHOTS}/car-logistics-end.png`});
+ await ctx.close();
+}
 async function run(){
  if(!process.env.WEBLAB_URL){
   // Own process group, so stopping it also stops Vite (killing npm alone leaves Vite running).
@@ -480,6 +603,8 @@ async function run(){
   await waitReady();
  }
  browser=await chromium.launch({headless:true,args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
+ // Local iteration only: WEBLAB_ONLY=car-logistics runs just that scenario (CI always runs everything).
+ if(process.env.WEBLAB_ONLY==='car-logistics'){await carLogistics(browser);check('no fatal JavaScript errors',errors.length===0,errors);console.log('Partial browser run (WEBLAB_ONLY):',notes.length,'checks');return;}
  const context=await browser.newContext({viewport:{width:915,height:412},isMobile:true,hasTouch:true,deviceScaleFactor:1});
  const page=await context.newPage();
  page.on('pageerror',e=>errors.push(e.message));
@@ -733,6 +858,7 @@ async function run(){
   await legacy.close();
  }
  await carCareer(browser);
+ await carLogistics(browser);
  await fourCareers(browser);
  await lockedMenu(browser);
  check('no fatal JavaScript errors',errors.length===0,errors);
