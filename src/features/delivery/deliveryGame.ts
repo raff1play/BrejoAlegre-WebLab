@@ -13,7 +13,7 @@ import type { Scene } from '@babylonjs/core/scene';
 import type { ShadowGenerator } from '@babylonjs/core/Lights/Shadows/shadowGenerator';
 import type { Crowd, Pedestrian as CrowdPed } from '../../core/city/pedestrians';
 import { STORE_HOURS, STORE_STAFF, createStoreOps, isOpen, joinQueue, stepStore, type StoreOps } from '../../core/delivery/stores';
-import { DEPOT_SPOTS, depotVisitAllowed, HANDS_MAX, ROUTINE, type DepotRole } from '../../core/delivery/workday';
+import { DEPOT_SPOTS, depotVisitAllowed, HANDS_MAX, ROUTINE, releaseWithinReach, type DepotRole } from '../../core/delivery/workday';
 import type { Address } from '../../core/delivery/addresses';
 import type { GraphicsProfile } from '../../config/graphics';
 import { circleIntersectsPoly, pointInPoly } from '../../core/collision';
@@ -238,7 +238,7 @@ export class DeliveryGame {
    */
   action(hour: number, player: { x: number; z: number; riding: boolean }, bike?: BikeSpot): ContextAction | null {
     const w = this.workday;
-    if(w.teamReady&&!w.released&&bike&&!bike.moving){const p=depotLocal(bike.x,bike.z);if(p.x>76.4&&p.x<139.6&&p.z<-92.5&&p.z>-149.8)return {label:'Equipe pronta — iniciar rota de entregas',available:true,run:()=>w.release(hour)?'Quatro rotas liberadas':null};}
+    if(w.teamReady&&!w.released&&bike&&!bike.moving&&releaseWithinReach(player,bike)){const p=depotLocal(bike.x,bike.z);if(p.x>76.4&&p.x<139.6&&p.z<-92.5&&p.z>-149.8)return {label:'Equipe pronta — iniciar rota de entregas',available:true,run:()=>w.release(hour)?'Quatro rotas liberadas':null};}
     if (player.riding) return null;
     const car = bike?.kind === 'carro';
     const box = car ? 'porta-malas' : 'baú';

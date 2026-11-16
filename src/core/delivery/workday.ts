@@ -55,6 +55,14 @@ export function carCornersLocal(c:{x:number;z:number;yaw:number}):{x:number;z:nu
 }
 /** B1-01 F4: where a person stands to reach into the car boot (behind the tailgate). */
 export const carBootSpot=(c:{x:number;z:number;yaw:number}):{x:number;z:number}=>carToWorld(c,0,-CAR.length/2-.55);
+/**
+ * B1-01 F5 (F4 audit): the team release is a physical interaction — from the vehicle's seat, or
+ * standing beside the parked vehicle, never from across the yard.
+ */
+export const RELEASE_REACH = 3;
+export function releaseWithinReach(player:{x:number;z:number;riding:boolean},vehicle:{x:number;z:number}):boolean {
+ return player.riding||Math.hypot(player.x-vehicle.x,player.z-vehicle.z)<=RELEASE_REACH;
+}
 /** `at`: a named depot point, or (B1-01) an explicit depot-local counter such as the player's sector dock. */
 export function depotVisitAllowed(visit:DepotVisit|undefined,at:'receiving'|'dispatch'|'parking'|{x:number;z:number}):boolean {
  if(!visit||visit.player.riding||visit.bike.moving)return false;
@@ -196,7 +204,8 @@ export class Workday {
     if (!visit?.car || !depotVisitAllowed(visit, 'parking') || this.sackInHands) return 0;
     const room = HANDS_MAX - this.inHands().length;
     if (room <= 0) return 0;
-    const top = [...trunk.contents(this.parcels)].filter((p) => p.state === 'EM_TRANSPORTE')
+    // Collected volumes and (B1-01 F5) failed-attempt returns both go to the receiving desk.
+    const top = [...trunk.contents(this.parcels)].filter((p) => p.state === 'EM_TRANSPORTE' || p.state === 'TENTATIVA_FRUSTRADA')
       .sort((a, b) => (b.stowage!.y + b.stowage!.h) - (a.stowage!.y + a.stowage!.h) || b.stowage!.z - a.stowage!.z || (a.id < b.id ? -1 : 1));
     const r = trunk.take(this.parcels, top.slice(0, room).map((p) => p.id), hour, { parked: true }, room);
     if (r.taken.length) this.say(r.taken.length === 1 ? '1 volume retirado do porta-malas' : `${r.taken.length} volumes retirados do porta-malas`);
