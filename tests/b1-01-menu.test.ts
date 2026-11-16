@@ -285,3 +285,68 @@ test('B1-01 F3.5.1 (ressalva da auditoria): perfil gravado mas apontador ativo f
   storage.failKey = saveKey('personagem-norte');
   try { enterCareer(storage, 'personagem-norte', pick()); } catch (e) { assert.ok(!(e instanceof ActivationError)); assert.ok(e instanceof SaveError); }
 });
+
+// ------------------------------------------------------------------ auditoria F3.5.1 (comentário 6903966725): cópia anterior órfã/inválida
+
+/** A sealed, valid Leste save (to tamper with) as stored text. */
+function lesteSaveText(): string {
+  const st = new MemoryStorage();
+  enterCareer(st, 'personagem-leste', pick('feminino', 'carro-antigo'));
+  return st.getItem(saveKey('personagem-leste'))!;
+}
+const orphanCases: [string, () => string][] = [
+  ['JSON inválido', () => '{json-invalido'],
+  ['checksum inválido', () => { const o = JSON.parse(lesteSaveText()); o.profile.experience = 99; return JSON.stringify(o); }],
+  ['schema incompatível', () => { const o = JSON.parse(lesteSaveText()); o.schemaVersion = 99; return JSON.stringify(o); }],
+];
+
+for (const [label, make] of orphanCases) {
+  test(`B1-01 F3.5.1 auditoria: só cópia anterior com ${label} (sem principal) — slot OCUPADO por erro, nunca livre; entrar recusado; nada apagado`, () => {
+    const storage = new MemoryStorage(); storage.setItem(previousKey('personagem-leste'), make());
+    const before = dump(storage);
+    const r = new CareerStore(storage).read('personagem-leste');
+    assert.equal(r.persisted, false); assert.match(r.problem!, /Cópia anterior rejeitada/);
+    const model = menuModel(storage);
+    const card = model.cards.find((c) => c.careerId === 'personagem-leste')!;
+    assert.match(card.blocked!, /Save inválido/);
+    const screen = mainScreen(model);
+    assert.ok(!screen.newGame.some((c) => c.careerId === 'personagem-leste'), 'não aparece em Novo jogo');
+    assert.match(screen.load.find((l) => l.card.careerId === 'personagem-leste')!.reason!, /Save inválido.*Cópia anterior rejeitada/);
+    assert.throws(() => enterCareer(storage, 'personagem-leste', pick('feminino', 'carro-antigo')), /Save inválido de Caio/);
+    assert.deepEqual(dump(storage), before, 'leitura pura: nenhuma chave criada, alterada ou apagada');
+  });
+}
+
+test('B1-01 F3.5.1 auditoria: principal E cópia anterior inválidos — erro dos dois, slot ocupado, nada gravado', () => {
+  const storage = new MemoryStorage();
+  storage.setItem(saveKey('personagem-sul'), '{'); storage.setItem(previousKey('personagem-sul'), 'lixo');
+  const before = dump(storage);
+  const r = new CareerStore(storage).read('personagem-sul');
+  assert.match(r.problem!, /Save principal rejeitado/); assert.match(r.problem!, /Cópia anterior rejeitada/);
+  assert.ok(!mainScreen(menuModel(storage)).newGame.some((c) => c.careerId === 'personagem-sul'));
+  assert.throws(() => enterCareer(storage, 'personagem-sul', pick()), /Save inválido de Davi/);
+  assert.deepEqual(dump(storage), before);
+});
+
+test('B1-01 F3.5.1 auditoria: calendário legado Oeste com cópia anterior inválida também não vira slot livre nem é migrado por cima', () => {
+  const storage = new MemoryStorage(); storage.setItem(CALENDAR_STORAGE_KEY, '3'); storage.setItem(previousKey('personagem-oeste'), '{x');
+  const before = dump(storage);
+  const m = mainScreen(menuModel(storage));
+  assert.ok(!m.newGame.some((c) => c.careerId === 'personagem-oeste'));
+  assert.match(m.load.find((l) => l.card.careerId === 'personagem-oeste')!.reason!, /Save inválido/);
+  assert.throws(() => enterCareer(storage, 'personagem-oeste', pick()), /Save inválido de Lia/);
+  assert.deepEqual(dump(storage), before);
+});
+
+test('B1-01 F3.5.1 auditoria: principal inválido com cópia anterior ÍNTEGRA continua recuperável (Carregar/Continuar com aviso)', () => {
+  const storage = new MemoryStorage();
+  enterCareer(storage, 'personagem-leste', pick('feminino', 'carro-antigo')); enterCareer(storage, 'personagem-leste', pick('masculino', null));
+  storage.setItem(saveKey('personagem-leste'), '{quebrado');
+  const m = mainScreen(menuModel(storage));
+  const load = m.load.find((l) => l.card.careerId === 'personagem-leste')!;
+  assert.equal(load.reason, null); assert.equal(load.card.source, 'anterior'); assert.match(load.card.problem!, /Save principal rejeitado/);
+  assert.equal(m.continueCard!.careerId, 'personagem-leste');
+  assert.ok(!m.newGame.some((c) => c.careerId === 'personagem-leste'));
+  const boot = enterCareer(storage, 'personagem-leste', pick('feminino', null));
+  assert.equal(boot.session.profile.vehicle!.kind, 'carro-antigo');
+});
