@@ -551,8 +551,11 @@ async function carLogistics(browser){
  check('B1-01 F4 AC-09: unloaded at the car bay in hands-full trips and handed to the receiving desk — boot → hands → recebimento, nothing teleported',trips>=2&&s.delivery.cargo.carBoot.parcels.length===0&&atDesk.every(p=>{const o=p.history.map(e=>e.operation).join('>');return o.includes('transferência:porta-malas>transferência:maos>transferência:recebimento')&&p.history.every(e=>e.place!=='galpao');}),{trips,places:atDesk.map(p=>p.place)});
  // ---------------------------------------------------------------- depot pipeline runs (same domain update, time fixture)
  const sector=s.career.sector;
- const sorted=()=>page.evaluate(sct=>{const s=window.__weblab.snapshot();const load=s.delivery.parcels.filter(p=>p.sector===sct);return {hour:s.clock.hour,ok:load.length>0&&load.every(p=>p.state==='NA_SACA'&&p.place==='saca'),errors:s.delivery.depot.errors.length};},sector);
- for(let i=0;i<60;i++){const r=await sorted();if(r.ok&&r.hour>=15)break;if(r.ok&&r.hour<15){await page.evaluate(()=>window.__debug.setHour(15.02));continue;}await page.evaluate(()=>{for(let k=0;k<40;k++)window.__debug.logisticsStep(1);});}
+ // The player walks away from the desk (NPC couriers yield to a person standing in their way).
+ await toBoot();
+ const sorted=()=>page.evaluate(sct=>{const s=window.__weblab.snapshot();const load=s.delivery.parcels.filter(p=>p.sector===sct);return {hour:s.clock.hour,ok:load.length>0&&load.every(p=>p.state==='NA_SACA'&&p.place==='saca'),errors:s.delivery.depot.errors.length,
+  states:Object.entries(load.reduce((m,p)=>(m[p.state+'@'+p.place]=(m[p.state+'@'+p.place]||0)+1,m),{})),couriers:s.delivery.logistics.couriers.map(c=>c.name+':'+c.state+(c.error?'('+c.error+')':'')),van:s.delivery.logistics.van.state};},sector);
+ for(let i=0;i<60;i++){const r=await sorted();if(r.ok&&r.hour>=15)break;if(r.hour>=20.5)break;if(r.ok&&r.hour<15){await page.evaluate(()=>window.__debug.setHour(15.02));continue;}await page.evaluate(()=>{for(let k=0;k<20;k++)window.__debug.logisticsStep(1);});}
  let r=await sorted();
  check('B1-01 F4 AC-09: the existing receiving/checking/sorting pipeline processed the car\'s parcels into the sector sack, with no depot error',r.ok&&r.errors===0,r);
  // ---------------------------------------------------------------- AC-10: sector dock → hands → boot
@@ -567,7 +570,7 @@ async function carLogistics(browser){
  s=await snap();boot=s.delivery.cargo.carBoot;
  check(`B1-01 F4 AC-10: the whole ${sector} load (${load.length} IDs) went from the sector dock into the boot, arranged, one box per ID, ready to leave`,boot.parcels.length===load.length&&load.every(id=>boot.parcels.some(p=>p.id===id&&p.state==='EM_ROTA'))&&boot.drawn.length===load.length&&boot.problem===null&&s.delivery.logistics.playerReady,{boot:boot.parcels.length,load:load.length,ready:s.delivery.logistics.playerReady});
  // Team release from the car (same action as the bike), once the three NPCs are ready.
- for(let i=0;i<60&&!(await snap()).delivery.logistics.teamReady;i++)await page.evaluate(()=>{for(let k=0;k<40;k++)window.__debug.logisticsStep(1);});
+ for(let i=0;i<80&&!(await snap()).delivery.logistics.teamReady&&(await snap()).clock.hour<20.5;i++)await page.evaluate(()=>{for(let k=0;k<20;k++)window.__debug.logisticsStep(1);});
  await page.evaluate(()=>{const v=window.__weblab.snapshot().vehicle,c=Math.cos(v.yaw),n=Math.sin(v.yaw);window.__debug.placeWalker(v.x-1.31*c,v.z+1.31*n,v.yaw);});await delay(200);
  await tapWhen(/^Entrar no carro$/,'entrar no carro');
  await until(()=>window.__weblab.snapshot().mode==='riding');
