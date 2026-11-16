@@ -93,6 +93,8 @@ async function carCareer(browser){
  await enterFromMenu(page,'personagem-oeste',{vehicle:'carro-antigo'});
  const snapshot=()=>page.evaluate(()=>window.__weblab.snapshot());
  await delay(600);
+ // The chase camera eases into its framing: wait (≤ 5 s) for it to settle before reading it.
+ await page.waitForFunction(()=>{const s=window.__weblab.snapshot();return s.camera.radius>6&&s.camera.target[1]-s.vehicle.y>1.05;},null,{timeout:5000}).catch(()=>{});
  let s=await snapshot();
  check('B1-01 F2 AC-03: car career owns a paid-off old car, fixed; no motorcycle is built',s.vehicle.kind==='carro-antigo'&&s.vehicle.owned?.kind==='carro-antigo'&&s.vehicle.owned.paidOff&&s.vehicle.owned.vehicleId==='veiculo-personagem-oeste'&&s.moto===null,s.vehicle);
  check('B1-01 F2 AC-05: the car starts inside a painted depot car bay, driver at the wheel',s.vehicle.bay!==null&&s.mode==='riding'&&s.vehicle.driven&&!s.vehicle.parked,s.vehicle);
@@ -212,6 +214,27 @@ async function carCareer(browser){
  await page.waitForFunction(()=>window.__weblab.snapshot().mode==='walking',null,{timeout:10000}).catch(()=>{});
  s=await snapshot();
  check('B1-01 F2 AC-05: car parked inside depot bay 1 is recognised (all four corners in the paint)',fits&&s.vehicle.parked&&s.vehicle.bay===0,{fits,vehicle:s.vehicle});
+ // F7: the same bay reached by DRIVING (keyboard reverse), not by the parking fixture. The car is put
+ // 4 m out of the bay on the same heading (fixture), then reversed in with the pedal (▼ FREIO/RÉ).
+ {
+  await page.evaluate(()=>{const v=window.__weblab.snapshot().vehicle,c=Math.cos(v.yaw),n=Math.sin(v.yaw);window.__debug.placeWalker(v.x-1.31*c,v.z+1.31*n,v.yaw);});await delay(200);
+  await page.evaluate(()=>window.__debug.act());await page.waitForFunction(()=>window.__weblab.snapshot().mode==='riding',null,{timeout:10000}).catch(()=>{});
+  const out={x:b0.x+Math.sin(b0.yaw)*4,z:b0.z+Math.cos(b0.yaw)*4,yaw:b0.yaw};
+  await page.evaluate(o=>window.__debug.parkAt(o.x,o.z,o.yaw),out);await delay(300);
+  const outBay=(await snapshot()).vehicle.bay;
+  await page.keyboard.down('KeyS');
+  await page.waitForFunction(b=>{const v=window.__weblab.snapshot().vehicle;return Math.hypot(v.x-b.x,v.z-b.z)<0.9||v.speed<-2.9;},b0,{timeout:15000}).catch(()=>{});
+  await page.waitForFunction(b=>{const v=window.__weblab.snapshot().vehicle;return Math.hypot(v.x-b.x,v.z-b.z)<0.9;},b0,{timeout:15000}).catch(()=>{});
+  await page.keyboard.up('KeyS');
+  // Stop with the opposite pedal, then let it settle.
+  await page.keyboard.down('KeyW');await page.waitForFunction(()=>window.__weblab.snapshot().vehicle.speed>-0.05,null,{timeout:5000}).catch(()=>{});await page.keyboard.up('KeyW');
+  await page.waitForFunction(()=>window.__weblab.snapshot().vehicle.stopped,null,{timeout:8000}).catch(()=>{});
+  const clear=await page.evaluate(()=>window.__debug.vehicleClear());
+  await page.evaluate(()=>window.__debug.act());
+  await page.waitForFunction(()=>window.__weblab.snapshot().mode==='walking',null,{timeout:10000}).catch(()=>{});
+  s=await snapshot();
+  check('B1-01 F7 AC-05/09: the car REVERSED INTO depot bay 1 with the pedal (driven, not placed) is recognised as parked, body clear of the world',outBay===null&&s.vehicle.bay===0&&s.vehicle.parked&&clear,{outBay,vehicle:{x:s.vehicle.x,z:s.vehicle.z,yaw:s.vehicle.yaw,bay:s.vehicle.bay},b0,clear});
+ }
 
  // ------------------------------------------------ B1-01 F3: the boot (AC-06/AC-07, browser part)
  await carBoot(page,snapshot,action,s);
@@ -927,6 +950,7 @@ async function run(){
  // Local iteration only: WEBLAB_ONLY=car-logistics runs just that scenario (CI always runs everything).
  if(process.env.WEBLAB_ONLY==='f6'){await persistenceMoto(browser);await savesMenu(browser);check('no fatal JavaScript errors',errors.length===0,errors);console.log('Partial browser run (WEBLAB_ONLY):',notes.length,'checks');return;}
  if(process.env.WEBLAB_ONLY==='four'){await fourCareers(browser);await lockedMenu(browser);check('no fatal JavaScript errors',errors.length===0,errors);console.log('Partial browser run (WEBLAB_ONLY):',notes.length,'checks');return;}
+ if(process.env.WEBLAB_ONLY==='car-career'){await carCareer(browser);check('no fatal JavaScript errors',errors.length===0,errors);console.log('Partial browser run (WEBLAB_ONLY):',notes.length,'checks');return;}
  if(process.env.WEBLAB_ONLY==='car-logistics'){await carLogistics(browser);check('no fatal JavaScript errors',errors.length===0,errors);console.log('Partial browser run (WEBLAB_ONLY):',notes.length,'checks');return;}
  const context=await browser.newContext({viewport:{width:915,height:412},isMobile:true,hasTouch:true,deviceScaleFactor:1});
  const page=await context.newPage();
