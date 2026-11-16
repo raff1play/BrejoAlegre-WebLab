@@ -206,7 +206,7 @@ export function layoutProblem(c: Compartment, placed: readonly Placed[]): string
 }
 
 /** States in which a parcel may travel in the player's vehicle (collected, to the base, on the route). */
-export const STOWABLE: readonly ParcelState[] = ['COLETADO', 'EM_TRANSPORTE', 'EM_ROTA'];
+export const STOWABLE: readonly ParcelState[] = ['COLETADO', 'EM_TRANSPORTE', 'EM_ROTA', 'TENTATIVA_FRUSTRADA'];
 export type TrunkContext = Readonly<{ parked: boolean }>;
 export type StowResult = Readonly<{ stowed: readonly string[]; rejected: readonly string[]; refused: string | null }>;
 

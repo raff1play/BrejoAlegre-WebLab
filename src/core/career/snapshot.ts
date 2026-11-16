@@ -1,5 +1,5 @@
 import { ACTORS, type ActorId } from '../delivery/dailyDemand.ts';
-import { PARCEL_FLOW, PLACE_MOVES, type Parcel, type ParcelEvent, type ParcelPlace, type ParcelState, type Stowage } from '../delivery/parcels.ts';
+import { PARCEL_STATES, PLACE_MOVES, type Parcel, type ParcelEvent, type ParcelPlace, type ParcelState, type Stowage } from '../delivery/parcels.ts';
 import { CAR_TRUNK, STOWABLE, layoutProblem, parcelDims } from '../delivery/carTrunk.ts';
 import { SECTORS, type Sector } from '../delivery/sectors.ts';
 import {
@@ -217,7 +217,7 @@ function validateParcel(p: unknown): string {
   nullable(o.sector, (x) => oneOf(x, SECTORS, 'Setor do pacote'));
   str(o.origin, 'Origem'); str(o.destination, 'Destino'); str(o.region, 'Região'); str(o.holder, 'Detentor');
   oneOf(o.platform, ['ML', 'SHP', 'LOJA'] as const, 'Plataforma');
-  oneOf(o.state, PARCEL_FLOW, 'Estado do pacote');
+  oneOf(o.state, PARCEL_STATES, 'Estado do pacote');
   oneOf(o.place, PLACES, 'Local do pacote');
   const pos = (v: unknown) => { if (!isObj(v)) fail('Posição inválida'); const q = v as Obj; finite(q.x, 'x'); finite(q.y, 'y'); finite(q.z, 'z'); return v; };
   nullable(o.position, pos);
@@ -235,12 +235,23 @@ function validateParcel(p: unknown): string {
   for (const e of o.history as unknown[]) {
     if (!isObj(e)) fail('Evento de histórico inválido');
     const ev = e as Obj;
-    oneOf(ev.state, PARCEL_FLOW, 'Estado no histórico'); oneOf(ev.place, PLACES, 'Local no histórico');
+    oneOf(ev.state, PARCEL_STATES, 'Estado no histórico'); oneOf(ev.place, PLACES, 'Local no histórico');
     finite(ev.hour, 'Hora no histórico'); str(ev.operation, 'Operação'); str(ev.holder, 'Detentor no histórico');
   }
   // O estado atual é o último registrado: o save não pode "pular" ou desfazer o histórico.
   const last = (o.history as Obj[])[(o.history as Obj[]).length - 1]!;
   if (last.state !== o.state || last.place !== o.place) fail(`Pacote ${id}: estado diverge do histórico`);
+  // B1-01 F5: the return states only exist through their real procedure (no forged final result).
+  const ops = (o.history as Obj[]).map((e) => e.operation);
+  if (o.state === 'TENTATIVA_FRUSTRADA' || o.state === 'DEVOLVIDO_E_CONFERIDO') {
+    if (!ops.includes('tentativa:frustrada')) fail(`Pacote ${id}: ${String(o.state)} sem tentativa registrada`);
+    if ((o.history as Obj[]).some((e) => e.state === 'ENTREGUE')) fail(`Pacote ${id}: devolução de pacote já entregue`);
+  }
+  if (o.state === 'DEVOLVIDO_E_CONFERIDO') {
+    if (o.place !== 'devolucoes') fail(`Pacote ${id}: DEVOLVIDO_E_CONFERIDO fora das devoluções da base`);
+    const t = ops.lastIndexOf('tentativa:frustrada'), r = ops.lastIndexOf('transferência:recebimento'), c = ops.lastIndexOf('transferência:conferencia'), d = ops.lastIndexOf('estado:DEVOLVIDO_E_CONFERIDO');
+    if (!(t < r && r < c && c < d)) fail(`Pacote ${id}: DEVOLVIDO_E_CONFERIDO sem devolução física e conferência`);
+  }
   return id;
 }
 

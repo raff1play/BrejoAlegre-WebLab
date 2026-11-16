@@ -1,6 +1,15 @@
 import {SECTORS,SECTOR_DATA} from './sectors.ts';
 import { depotPath, MIXED_LOAD, DISPATCH_DOCK, REGIONAL_CAGES } from '../../world/city/depotPlan.ts';
-import { advance, move, type Parcel, type ParcelPosition } from './parcels.ts';
+import { advance, confirmReturn, move, type Parcel, type ParcelPosition } from './parcels.ts';
+import { WORKDAY_END } from '../city/clock.ts';
+/**
+ * B1-01 F5 (decision 17, AC-25): the on-duty checker. After 21h the other workers have finished
+ * their shift; this one stays at the receiving desk while anything can still come back, and is the
+ * real worker who receives and checks returns (also after 00h, same shift).
+ */
+export const ON_DUTY_ROLES: readonly string[] = ['conferente'];
+/** Shelf of checked returns, beside the receiving desk (depot-local metres). */
+export const depotReturnPosition = (index: number): ParcelPosition => ({ x: 97.2 + (index % 4) * 0.42, y: 0.35 + Math.floor(index / 4) * 0.3, z: -123.6 });
 
 export type AssistantId='npc1'|'npc2'|'npc3';
 export type WorkerRole='conferente'|'conferente-2'|'descarregador-1'|'descarregador-2'|'separador-1'|'separador-2'|'separador-3'|'expedidor'|'expedidor-2'|'supervisor'|`auxiliar-${AssistantId}`;
@@ -40,7 +49,8 @@ export class DepotOperations {
   for(let i=0;i<12;i++){const at=depotReceivingPosition(i);if(!used.some(p=>p&&Math.hypot(p.x-at.x,p.y-at.y,p.z-at.z)<.1))return at;}return null;
  }
  receive(p:Parcel,hour:number,parcels?:readonly Parcel[]):boolean {
-  if(p.place!=='maos'||p.state!=='EM_TRANSPORTE')return false;
+  // B1-01 F5: a failed-attempt parcel is returned at the same desk (physically, from the hands).
+  if(p.place!=='maos'||(p.state!=='EM_TRANSPORTE'&&p.state!=='TENTATIVA_FRUSTRADA'))return false;
   const at=parcels?this.receivingSlot(parcels):depotReceivingPosition(this.handoffIndex++);
   if(!at)return false;move(p,'recebimento','recebimento',hour,at);return true;
  }
@@ -57,7 +67,10 @@ export class DepotOperations {
   let p:Parcel|undefined;
   switch(w.role){
    case 'descarregador-1':p=this.truckAvailable?pick(p=>p.place==='caminhao'):undefined;if(p){const at=this.receivingSlot(parcels);if(at)this.plan(w,p,'truck',{x:128,z:-119.4},receivingStand,at);}break;
-   case 'conferente':case 'conferente-2':p=pick(p=>p.place==='recebimento'&&p.state==='EM_TRANSPORTE');if(p)this.plan(w,p,'check',receivingStand,receivingStand,p.position!);break;
+   case 'conferente':case 'conferente-2':
+     // Returns first (they close a procedure), then the normal intake.
+     p=pick(p=>p.place==='recebimento'&&p.state==='TENTATIVA_FRUSTRADA')??pick(p=>p.place==='recebimento'&&p.state==='EM_TRANSPORTE');
+     if(p)this.plan(w,p,'check',receivingStand,receivingStand,p.position!);break;
    case 'descarregador-2':case 'auxiliar-npc1':{
      const lanes=[-129.6,-130.25,-130.9];
      const occupied=[...parcels.filter(p=>p.place==='triagem'&&p.state==='RECEBIDO_BASE').map(p=>p.position?.z),
@@ -81,11 +94,14 @@ export class DepotOperations {
   if(d<=s+.001)w.task!.route.shift();return w.task!.route.length===0;
  }
  update(parcels:readonly Parcel[],hour:number,seconds:number):void {
-  if(!(seconds>0)||hour>=21)return;
+  if(!(seconds>0))return;
   const dt=Math.min(seconds,.4);
+  // B1-01 F5: 21h ends the normal shifts, not the work: whoever has a task finishes it, and only
+  // the on-duty checker takes new tasks afterwards (also after 00h — `hour` is the shift hour).
+  const late=hour>=WORKDAY_END;
   for(const w of this.allWorkers){
    if(!w.active)continue;
-   w.activity='idle';if(!w.task)this.assign(w,parcels);
+   w.activity='idle';if(!w.task&&(!late||ON_DUTY_ROLES.includes(w.role)))this.assign(w,parcels);
    const t=w.task;if(!t)continue;const p=parcels.find(p=>p.id===t.id);
    if(!p||p.place!==t.expected||p.state!==t.state){this.errors.push(`${t.id}: tarefa invalidada ${t.kind}`);w.task=null;w.parcel=null;continue;}
    switch(t.stage){
@@ -110,7 +126,14 @@ export class DepotOperations {
      w.task=null;w.parcel=null;break;
     case 'process':
      w.activity='work';t.timer+=dt;
-     if(t.kind==='check'){if(t.timer<2.4)break;advance(p,'RECEBIDO_BASE',w.role,hour);}
+     if(t.kind==='check'){
+      if(t.timer<2.4)break;
+      if(p.state==='TENTATIVA_FRUSTRADA'){
+       const used=parcels.filter(q=>q.place==='devolucoes').length;
+       confirmReturn(p,w.role,hour,depotReturnPosition(used));
+      }
+      else advance(p,'RECEBIDO_BASE',w.role,hour);
+     }
      else {p.position=mix(t.origin,t.destination,Math.min(1,t.timer/13));if(t.timer<13)break;advance(p,'TRIADO',w.role,hour);}
      w.task=null;w.parcel=null;break;
    }

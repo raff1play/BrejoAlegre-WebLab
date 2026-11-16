@@ -131,10 +131,10 @@ test('Auditoria 3: pagamento de entrega só para pacote ENTREGUE ao destinatári
   assert.throws(withPayment(delivered, { kind: 'DEVOLUCAO' as 'ENTREGA' }), /Tipo de pagamento/, 'devolução nunca paga');
 });
 
-test('Auditoria 3: estado DEVOLVIDO_E_CONFERIDO forjado é rejeitado até a F5 definir o fluxo (nunca pago)', () => {
-  // Um save com estado final DEVOLVIDO_E_CONFERIDO forjado é rejeitado inteiro até a F5 definir o fluxo.
+test('Auditoria 3 (atualizado na F5): DEVOLVIDO_E_CONFERIDO forjado, sem tentativa/devolução/conferência reais, é rejeitado (nunca pago)', () => {
+  // F5 definiu o fluxo: o estado só vale com tentativa, devolução física e conferência no histórico.
   const forged = JSON.parse(JSON.stringify(captureParcels([parcelUpTo('ENTREGUE')])));
   forged[0].state = 'DEVOLVIDO_E_CONFERIDO'; forged[0].history[forged[0].history.length - 1].state = 'DEVOLVIDO_E_CONFERIDO';
   const { profile, shift } = openShift(DEFAULT_CAREER, 7);
-  assert.throws(() => sealSave({ careerId: DEFAULT_CAREER, checkpointSequence: 0, profile, shift: { ...shift, parcels: forged, payments: [] } }), /Estado do pacote inválido/);
+  assert.throws(() => sealSave({ careerId: DEFAULT_CAREER, checkpointSequence: 0, profile, shift: { ...shift, parcels: forged, payments: [] } }), /DEVOLVIDO_E_CONFERIDO sem tentativa registrada|devolução de pacote já entregue/);
 });

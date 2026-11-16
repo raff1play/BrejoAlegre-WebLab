@@ -4,14 +4,18 @@ import {COURIER_BAYS,COURIER_ENTRY_X,COURIER_EXIT_X,depotPath,DEPOT_POINTS} from
 import {courierFootRoute,courierRoadRoute,depotDrivingCurve,courierSignalAllows,type CourierRoutePoint} from './courierRoutes.ts';
 import {SECTOR_DATA,type Sector} from './sectors.ts';
 import type {ActorId} from './dailyDemand.ts';
-import {advance,move,type Parcel} from './parcels.ts';
+import {advance,attemptFailed,move,type Parcel} from './parcels.ts';
 import type {LogisticsDay} from './logisticsDay.ts';
 type Point={x:number;z:number;yaw:number};
 export type CourierState='waiting'|'to-store'|'parking'|'walk-counter'|'pickup'|'walk-bike'|'stow'|'return-base'|'unload'|'walk-receiving'|'deposit'|'walk-parking'|'waiting-load'|'help-sort'|'walk-dock'|'take-load'|'return-load'|'ready'|'to-address'|'park-address'|'take-parcel'|'walk-address'|'handoff'|'return-address'|'complete'|'blocked';
 export const COURIER_LABEL:Record<CourierState,string>={waiting:'aguardando coleta','to-store':'a caminho da loja',parking:'estacionando','walk-counter':'indo ao balcão',pickup:'retirando volumes','walk-bike':'voltando à moto',stow:'guardando no baú','return-base':'retornando à base',unload:'retirando do baú','walk-receiving':'levando ao recebimento',deposit:'descarregando','walk-parking':'voltando à vaga','waiting-load':'aguardando carga','help-sort':'ajudando na triagem','walk-dock':'indo à doca','take-load':'retirando saca','return-load':'levando saca à moto',ready:'pronto para saída','to-address':'a caminho da entrega','park-address':'estacionando na entrega','take-parcel':'retirando encomenda','walk-address':'indo ao destinatário',handoff:'entregando','return-address':'voltando à moto',complete:'rota concluída',blocked:'acesso bloqueado'};
+/** B1-01 F5: courier states while bringing failed attempts back (same physical steps as the morning return). */
+export const RETURN_LABEL='devolvendo à base';
 export class Courier {
  readonly id:Exclude<ActorId,'jogador'>;readonly name:string;readonly sector:Sector;
  stores:StoreKind[]=[];storeIndex=0;state:CourierState='waiting';bike:Point;person:Point;route:CourierRoutePoint[]=[];private stopTimer=0;
+ /** B1-01 F5: on the way back with failed-attempt parcels (ends in 'complete', not in sorting help). */
+ returning=false;
  readonly targetReturnHour=14;readonly latestReturnHour=14+20/60;returnedAt:number|null=null;deadlineReported=false;yieldingToTraffic=false;stops:string[]=[];timer=0;error:string|null=null;routeLog:{from:{x:number;z:number};to:{x:number;z:number};points:{x:number;z:number}[]}[]=[];
  constructor(id:Exclude<ActorId,'jogador'>,name:string,sector:Sector){this.id=id;this.name=name;this.sector=sector;this.bike={...depotWorld(COURIER_BAYS[id].x,COURIER_BAYS[id].z),yaw:depotYaw(0)};this.person={...this.bike};}
  get riding():boolean{return ['waiting','to-store','parking','return-base','ready','to-address','park-address','complete'].includes(this.state);}
@@ -45,7 +49,8 @@ export class Courier {
   return !this.route.length;
  }
  update(day:LogisticsDay,hour:number,dt:number):void{
-  if(hour>=21||this.state==='blocked'||this.state==='complete')return;
+  // B1-01 F5 (decision 17, AC-24): no stop at 21h — the courier works until every parcel is resolved.
+  if(this.state==='blocked'||this.state==='complete')return;
   this.timer+=dt;
   if(hour>this.latestReturnHour&&this.returnedAt===null&&!this.deadlineReported){
     this.deadlineReported=true;day.events.push(`${this.name}: atraso de coleta após 14h20 — verificar trânsito`);
@@ -65,8 +70,8 @@ export class Courier {
     if(day.readyAt(current!).length){this.walk(storeLayout(store!).pickup,day);state('walk-counter');}
     else if(++this.storeIndex<this.stores.length){this.drive(day.storeOf(this.stores[this.storeIndex]!).stop);state('to-store');}
     else{const bay=COURIER_BAYS[this.id];this.drive(depotWorld(bay.x,bay.z),false,true);state('return-base');}}break;
-   case 'return-base':if(this.travel(dt,day,true)){this.returnedAt=hour;this.bike.yaw=depotYaw(0);this.person={...atBike(),yaw:this.bike.yaw};state('unload');}break;
-   case 'unload':if(this.timer>=.65){const list=this.trunk(day).slice(0,4);if(!list.length){state('help-sort');break;}for(const p of list)move(p,'maos',this.id,hour);this.walk(depotWorld(DEPOT_POINTS.receiving.x,DEPOT_POINTS.receiving.z),day,true);state('walk-receiving');}break;
+   case 'return-base':if(this.travel(dt,day,true)){if(this.returnedAt===null)this.returnedAt=hour;this.bike.yaw=depotYaw(0);this.person={...atBike(),yaw:this.bike.yaw};state('unload');}break;
+   case 'unload':if(this.timer>=.65){const list=this.trunk(day).slice(0,4);if(!list.length){state(this.returning?'complete':'help-sort');break;}for(const p of list)move(p,'maos',this.id,hour);this.walk(depotWorld(DEPOT_POINTS.receiving.x,DEPOT_POINTS.receiving.z),day,true);state('walk-receiving');}break;
    case 'walk-receiving':if(this.travel(dt,day,false))state('deposit');break;
    case 'deposit':if(this.timer>=.75){for(const p of this.hands(day))day.depot.receive(p,hour,day.parcels);if(this.hands(day).length)break;this.walk(atBike(),day,true);state('walk-parking');}break;
    case 'walk-parking':if(this.travel(dt,day,false))state('unload');break;
@@ -88,10 +93,21 @@ export class Courier {
    case 'ready':if(day.released&&this.timer>day.releaseDelay(this.id)){const next=day.byAddress.get(this.stops[0]!);if(next){this.drive(next.stop,true);state('to-address');}else state('complete');}break;
    case 'to-address':if(this.travel(dt,day,true))state('park-address');break;
    case 'park-address':if(this.timer>=1){this.person={...atBike(),yaw:this.bike.yaw};state('take-parcel');}break;
-   case 'take-parcel':if(this.timer>=1){for(const p of this.trunk(day).filter(p=>p.destination===this.stops[0]).slice(0,4))move(p,'maos',this.id,hour);this.walk(day.byAddress.get(this.stops[0]!)!.door,day);state('walk-address');}break;
+   case 'take-parcel':if(this.timer>=1){for(const p of this.trunk(day).filter(p=>p.destination===this.stops[0]&&p.state==='EM_ROTA').slice(0,4))move(p,'maos',this.id,hour);this.walk(day.byAddress.get(this.stops[0]!)!.door,day);state('walk-address');}break;
    case 'walk-address':if(this.travel(dt,day,false))state('handoff');break;
-   case 'handoff':if(this.timer>=1.3){for(const p of this.hands(day)){advance(p,'ENTREGUE','destinatario',hour);move(p,'destinatario','destinatario',hour);}this.walk(atBike(),day);state('return-address');}break;
-   case 'return-address':if(this.travel(dt,day,false)){if(this.trunk(day).some(p=>p.destination===this.stops[0])){state('take-parcel');break;}this.stops.shift();const next=day.byAddress.get(this.stops[0]!);if(next){this.drive(next.stop);state('to-address');}else state('complete');}break;
+   case 'handoff':if(this.timer>=1.3){
+    // B1-01 F5: nobody at home → the attempt is recorded and the parcel goes back to the top box.
+    const absent=day.recipientAbsent(this.stops[0]!);
+    for(const p of this.hands(day)){if(absent)attemptFailed(p,this.id,hour);else{advance(p,'ENTREGUE','destinatario',hour);move(p,'destinatario','destinatario',hour);}}
+    if(absent)day.events.push(`${this.name}: ninguém atendeu — tentativa registrada, volta para devolução`);
+    this.walk(atBike(),day);state('return-address');}break;
+   case 'return-address':if(this.travel(dt,day,false)){
+    for(const p of this.hands(day))move(p,'bau',this.id,hour);
+    if(this.trunk(day).some(p=>p.destination===this.stops[0]&&p.state==='EM_ROTA')){state('take-parcel');break;}
+    this.stops.shift();const next=day.byAddress.get(this.stops[0]!);
+    if(next){this.drive(next.stop);state('to-address');}
+    else if(this.trunk(day).some(p=>p.state==='TENTATIVA_FRUSTRADA')){this.returning=true;const bay=COURIER_BAYS[this.id];this.drive(depotWorld(bay.x,bay.z),false,true);state('return-base');}
+    else state('complete');}break;
   }
    for(const [i,p] of this.hands(day).entries()){const at=day.local(this.person),yaw=this.person.yaw-depotYaw(0),sack=this.state==='return-load',side=sack?0:(i%2===0?-.25:.25);p.position={x:at.x+Math.sin(yaw)*.35+Math.cos(yaw)*side,y:sack?1.04:1+Math.floor(i/2)*.3,z:at.z+Math.cos(yaw)*.35-Math.sin(yaw)*side};}
   }catch(e){this.error=String(e);this.state='blocked';day.events.push(`${this.name}: rota bloqueada (${this.error})`);}

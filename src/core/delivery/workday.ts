@@ -10,7 +10,7 @@ import { DEPOT, STORES, depotWorld, depotYaw, depotLocal, type StoreKind } from 
 import { yawOf } from '../../world/layout.ts';
 import { rng } from '../city/traffic.ts';
 import { buildAddresses, type Address } from './addresses.ts';
-import { advance, createParcel, move, arriveTruck, type Parcel, type ParcelState, type Platform } from './parcels.ts';
+import { advance, attemptFailed, createParcel, isFinal, move, arriveTruck, type Parcel, type ParcelState, type Platform } from './parcels.ts';
 
 /**
  * CORE-014 delivery workday (vertical slice) following the approved routine, on the virtual
@@ -96,7 +96,7 @@ export class Workday {
     const S = DEPOT_SPOTS;
     const st = (role: DepotRole, station: { x: number; z: number }, shift: [number, number]): DepotStaff => ({ role, state: 'fora', station, shift, carrying: false });
     this.staff = [
-      st('porteiro', S.gatehouse, [6, 22]), st('conferente', S.receiving, [10, 21]),
+      st('porteiro', S.gatehouse, [6, 22]), st('conferente', S.receiving, [10, 72]),
       st('descarregador-1', depotWorld(104, -121), [10, 21]), st('descarregador-2', depotWorld(120, -121), [10, 21]),
       st('separador-1', depotWorld(108, -128), [11, 21]), st('separador-2', depotWorld(113, -131), [11, 21]),
       st('expedidor', S.dispatch, [11, 21.5]), st('supervisor', S.office, [9, 21]),
@@ -161,7 +161,30 @@ export class Workday {
   private get carMode(): boolean { return this.vehicleKind === 'carro-antigo'; }
   /** Name of the compartment in player-facing texts. */
   get compartment(): string { return this.carMode ? 'porta-malas' : 'baú'; }
-  carForDepot(): Parcel[] { return this.inCarBoot().filter((p) => p.state === 'EM_TRANSPORTE'); }
+  carForDepot(): Parcel[] { return this.inCarBoot().filter((p) => p.state === 'EM_TRANSPORTE' || p.state === 'TENTATIVA_FRUSTRADA'); }
+  /** B1-01 F5: failed-attempt parcels the player still has to bring back to the base (hands or vehicle). */
+  returnsPending(): Parcel[] { return this.parcels.filter((p) => p.holder === 'jogador' && p.state === 'TENTATIVA_FRUSTRADA'); }
+  /**
+   * B1-01 F5: addresses whose recipient is not there today (failed attempt). Decided once per day by
+   * `LogisticsDay` (deterministic, from the calendar), empty in the legacy single-player workday.
+   */
+  readonly absentAddresses = new Set<string>();
+  recipientAbsent(addressId: string): boolean { return this.absentAddresses.has(addressId); }
+  /**
+   * B1-01 F5 (AC-11): at the gate, nobody answers. Every parcel of that address IN THE HANDS gets
+   * the attempt recorded; it stays in the hands (same custody) and must go back to the base.
+   */
+  registerAttempt(addressId: string, hour: number, by = 'jogador'): number {
+    if (!this.recipientAbsent(addressId)) return 0;
+    const list = this.parcels.filter((p) => p.place === 'maos' && p.holder === by && p.destination === addressId && p.state === 'EM_ROTA');
+    for (const p of list) attemptFailed(p, by, hour);
+    if (list.length && by === 'jogador') {
+      if (!this.parcels.some((p) => p.destination === addressId && p.state === 'EM_ROTA' && p.holder === 'jogador')) this.route = this.route.filter((id) => id !== addressId);
+      if (!this.inHands().some((p) => p.state === 'EM_ROTA')) this.sackInHands = false;
+      this.say(`Ninguém atendeu: tentativa registrada (${list.length}) — devolva na base`);
+    }
+    return list.length;
+  }
   carForRoute(): Parcel[] { return this.inCarBoot().filter((p) => p.state === 'EM_ROTA'); }
 
   /**
@@ -190,7 +213,7 @@ export class Workday {
     return r.taken.length;
   }
   /** Trunk parcels still to be handed to the checker / still to be delivered. */
-  trunkForDepot(): Parcel[] { return this.inTrunk().filter((p) => p.state === 'EM_TRANSPORTE'); }
+  trunkForDepot(): Parcel[] { return this.inTrunk().filter((p) => p.state === 'EM_TRANSPORTE' || p.state === 'TENTATIVA_FRUSTRADA'); }
   trunkForRoute(): Parcel[] { return this.inTrunk().filter((p) => p.state === 'EM_ROTA'); }
   cargoLabel(): string {
     const h = this.inHands().length; const t = this.inTrunk().length; const c = this.inCarBoot().length;
@@ -258,21 +281,23 @@ export class Workday {
   /** At the receiving desk: the checker takes the parcels the player has IN THE HANDS. */
   handOver(hour: number,visit?:DepotVisit): number {
     if(!depotVisitAllowed(visit,'receiving'))return 0;
-    const list = this.inHands().filter(p=>p.state==='COLETADO'||p.state==='EM_TRANSPORTE');
-    let deposited=0;
+    const list = this.inHands().filter(p=>p.state==='COLETADO'||p.state==='EM_TRANSPORTE'||p.state==='TENTATIVA_FRUSTRADA');
+    let deposited=0,returned=0;
     for(const p of list){
       if(p.state==='COLETADO')advance(p,'EM_TRANSPORTE','jogador',hour);
-      if(this.depot.receive(p,hour,this.parcels))deposited++;
+      const back=p.state==='TENTATIVA_FRUSTRADA';
+      if(this.depot.receive(p,hour,this.parcels)){deposited++;if(back)returned++;}
     }
-    if(deposited){
+    if(deposited>returned){
       if(hour>ROUTINE.returnBy)this.late=true;
-      if(!this.carrying().length&&this.assigned.every(s=>!this.readyAt(s).length))this.phase='CONFERENCIA';
-      this.say(`${deposited} volume(s) depositados no recebimento`);
+      if(!this.carrying().length&&this.assigned.every(s=>!this.readyAt(s).length)&&this.phase==='RETORNO')this.phase='CONFERENCIA';
+      this.say(`${deposited-returned} volume(s) depositados no recebimento`);
     }
+    if(returned)this.say(`${returned} devolução(ões) entregue(s) ao conferente de plantão para conferência`);
     return deposited;
   }
   canTakeSack(hour:number):boolean {
-    return hour>=ROUTINE.sackFrom&&hour<ROUTINE.end&&!this.inHands().length&&this.parcels.length>0&&this.parcels.every(p=>p.state==='NA_SACA'&&p.place==='saca'&&p.dock===DISPATCH_DOCK&&p.load===MIXED_LOAD&&p.position!==null);
+    return hour>=ROUTINE.sackFrom&&!this.inHands().length&&this.parcels.length>0&&this.parcels.every(p=>p.state==='NA_SACA'&&p.place==='saca'&&p.dock===DISPATCH_DOCK&&p.load===MIXED_LOAD&&p.position!==null);
   }
 
   /** At the dispatch counter: the mixed sack is released to the player (carried in the hands). */
@@ -304,7 +329,7 @@ export class Workday {
       if (!this.parcels.some((p) => p.destination === addressId && p.state === 'EM_ROTA')) this.route = this.route.filter((id) => id !== addressId);
       if (this.inHands().length === 0) this.sackInHands = false;
       this.say(`Entregue: ${this.byAddress.get(addressId)!.label}`);
-      if (this.count('EM_ROTA') === 0) { this.phase = 'CONCLUIDA'; this.say('Rota concluída! Jornada encerrada.'); }
+      if (this.parcels.every(isFinal)) { this.phase = 'CONCLUIDA'; this.say('Rota concluída! Jornada encerrada.'); }
     }
     return list.length;
   }
@@ -314,9 +339,7 @@ export class Workday {
   /** Advances the depot staff and the parcel flow. `truckDocked` comes from the traffic (or 13h fallback). */
   update(hour: number, dt: number, truckDocked = false): void {
     if (this.phase === 'ANTES' && hour >= ROUTINE.assign) this.start(hour);
-    if (this.phase !== 'CONCLUIDA' && this.phase !== 'ANTES' && hour >= ROUTINE.end && this.count('ENTREGUE') < this.parcels.length) {
-      this.phase = 'ENCERRADA';
-    }
+    // B1-01 F5: 21h is a deadline (lateness), never an automatic end of the shift (decisions 9/14/17).
     if(this.van.update(truckDocked?Math.max(hour,13):hour,dt,this.parcels.some(p=>p.place==='caminhao'),this.depot.allWorkers.some(w=>w.task?.kind==='truck'))&&this.phase!=='ANTES'){
       this.parcels.filter(p=>p.place==='caminhao').forEach((p,i)=>arriveTruck(p,hour,{x:127.25+(i%3)*.55,y:1.25+(Math.floor(i/3)%2)*.32,z:-117.15+Math.floor(i/6)*.85}));
       this.say('Van na D05 — estacionamento assistido; abrindo portas para descarga');
@@ -334,12 +357,14 @@ export class Workday {
   private updateStaff(hour:number):void {
     for(const st of this.staff){
       st.carrying=false;
-      if(hour<st.shift[0]||hour>=st.shift[1]){st.state='fora do turno';continue;}
       const worker=this.depot.workers.find(w=>w.role===st.role);
+      // A worker whose shift ended still finishes the parcel in hand (it is never dropped).
+      if((hour<st.shift[0]||hour>=st.shift[1])&&!worker?.task){st.state='fora do turno';continue;}
       if(worker){
         st.station=depotWorld(worker.x,worker.z);st.carrying=worker.activity==='carry';
         st.state=worker.task?`${worker.task.kind}: ${worker.task.id} (${worker.task.stage})`:'aguardando tarefa';
       }else st.state=st.role==='porteiro'?'controle de acesso':'supervisionando a operação';
+      if(hour>=ROUTINE.end&&st.role==='conferente'&&!worker?.task)st.state='plantão de conferência — aguardando devoluções';
     }
   }
 
