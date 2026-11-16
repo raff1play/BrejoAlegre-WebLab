@@ -571,16 +571,28 @@ async function carLogistics(browser){
  check(`B1-01 F4 AC-10: the whole ${sector} load (${load.length} IDs) went from the sector dock into the boot, arranged, one box per ID, ready to leave`,boot.parcels.length===load.length&&load.every(id=>boot.parcels.some(p=>p.id===id&&p.state==='EM_ROTA'))&&boot.drawn.length===load.length&&boot.problem===null&&s.delivery.logistics.playerReady,{boot:boot.parcels.length,load:load.length,ready:s.delivery.logistics.playerReady});
  // Team release from the car (same action as the bike), once the three NPCs are ready.
  for(let i=0;i<80&&!(await snap()).delivery.logistics.teamReady&&(await snap()).clock.hour<20.5;i++)await page.evaluate(()=>{for(let k=0;k<4;k++)window.__debug.worldStep(5);});
+ // B1-01 F5 (F4 audit): standing at the receiving desk, far from the car, the release is NOT offered.
+ await walkTo(receiving,Math.PI/2);await delay(400);
+ check('B1-01 F5: the team release is not offered from across the yard (receiving desk, far from the car)',!/Equipe pronta/.test(await label()),await label());
+ // F5: the release waits until 20h54, so the four couriers work across 21h and 00h (time fixture).
+ await page.evaluate(()=>window.__debug.setShiftHour(20+54/60));await delay(200);
  // Same release action as with the bike: offered beside the stopped vehicle inside the base.
  await page.evaluate(()=>{const v=window.__weblab.snapshot().vehicle,c=Math.cos(v.yaw),n=Math.sin(v.yaw);window.__debug.placeWalker(v.x-1.31*c,v.z+1.31*n,v.yaw);});await delay(200);
  await tapWhen(/^Equipe pronta — iniciar rota de entregas$/,'liberar a equipe');
  await until(()=>window.__weblab.snapshot().delivery.logistics.released);
  s=await snap();
  check('B1-01 F4 AC-10: with the load in the parked car the team is released (four routes), same action as with the bike',s.delivery.logistics.released&&s.delivery.route.length>0&&s.delivery.cargo.carBoot.parcels.length===load.length,{released:s.delivery.logistics.released,route:s.delivery.route.length});
- // ---------------------------------------------------------------- route: boot → hands → customer, stop by stop
- let stops=0;
- while((await snap()).delivery.cargo.carBoot.parcels.length&&stops++<20){
+ // Scenario: nobody at home at the player's 3rd stop and at Rosa's last stop (absence schedule, not a parcel edit).
+ const absentMine=s.delivery.route[Math.min(2,s.delivery.route.length-1)];
+ const rosa=s.delivery.logistics.couriers.find(c=>c.name==='Rosa');
+ const absentNpc=rosa.stops[rosa.stops.length-1];
+ await page.evaluate(([a,b])=>{window.__debug.markAbsent(a);window.__debug.markAbsent(b);},[absentMine,absentNpc]);
+ // ---------------------------------------------------------------- route: 20h59, 21h01, failed attempt, then after 00h01
+ const at=(h)=>page.evaluate(h=>window.__debug.setShiftHour(h),h);
+ let stops=0,attempted=false,afterMidnight=false;
+ while((await snap()).delivery.cargo.carBoot.parcels.some(p=>p.state==='EM_ROTA')&&stops++<20){
   const next=(await snap()).delivery.route[0];
+  if(stops===1)await at(20+59/60);else if(stops===2)await at(21+1/60);else if(attempted&&!afterMidnight){await at(24+1/60);afterMidnight=true;}
   const door=await page.evaluate(id=>window.__debug.addressDoor(id),next);
   if(!(await page.evaluate(d=>window.__debug.parkCarNear(d.x,d.z),door)))throw new Error(`sem vaga perto de ${next}`);
   await toBoot();await openBoot();
@@ -590,14 +602,53 @@ async function carLogistics(browser){
   const dest=held[0].destination;
   check(`B1-01 F4 AC-10: stop ${stops} — only the parcels of ONE address leave the boot (${held.length})`,held.every(p=>p.destination===dest&&p.state==='EM_ROTA'),held.map(p=>p.id));
   await walkTo(await page.evaluate(id=>window.__debug.addressDoor(id),dest));
-  await tapWhen(/^Entregar nº \d+$/,'entregar ao destinatário');
-  await until(n=>window.__weblab.snapshot().delivery.cargo.hands===0,null);
+  if(dest===absentMine){
+   // AC-11: nobody answers — the attempt is recorded; the parcels stay in the hands, not delivered.
+   await tapWhen(/^Ninguém atende · registrar tentativa nº \d+$/,'registrar tentativa');
+   await until(()=>window.__weblab.snapshot().delivery.parcels.some(p=>p.state==='TENTATIVA_FRUSTRADA'));
+   const q=await snap();const tried=q.delivery.parcels.filter(p=>p.destination===absentMine&&p.sector===sector);
+   check('B1-01 F5 AC-11: at the absent address the attempt is recorded — TENTATIVA_FRUSTRADA, still in the player\'s hands, not ENTREGUE',tried.length>0&&tried.every(p=>p.state==='TENTATIVA_FRUSTRADA'&&p.place==='maos'&&p.holder==='jogador'&&!p.history.some(e=>e.state==='ENTREGUE')),tried.map(p=>[p.id,p.state,p.place]));
+   await toBoot();
+   await tapWhen(new RegExp(`^Guardar no porta-malas \\(${tried.length}\\)$`),'guardar a devolução no porta-malas');
+   await until(()=>window.__weblab.snapshot().delivery.cargo.hands===0);
+   attempted=true;
+  } else {
+   await tapWhen(/^Entregar nº \d+$/,'entregar ao destinatário');
+   await until(()=>window.__weblab.snapshot().delivery.cargo.hands===0);
+  }
  }
  s=await snap();
+ const delivHour=(p)=>p.history.find(e=>e.state==='ENTREGUE')?.hour??null;
  const mineLoad=s.delivery.parcels.filter(p=>load.includes(p.id));
- const routeOk=mineLoad.every(p=>{const o=p.history.map(e=>e.operation).filter(x=>x!=='arrumação:porta-malas');const i=o.indexOf('estado:EM_ROTA');return o.slice(i).join('>')==='estado:EM_ROTA>transferência:maos>transferência:porta-malas>transferência:maos>estado:ENTREGUE>transferência:destinatario';});
- check(`B1-01 F4 AC-10: all ${load.length} parcels of the ${sector} load delivered by the car — dock → hands → boot → hands → customer, ENTREGUE exactly once`,mineLoad.every(p=>p.state==='ENTREGUE'&&p.place==='destinatario'&&p.holder==='destinatario')&&routeOk&&mineLoad.every(p=>p.history.filter(e=>e.operation==='estado:ENTREGUE').length===1)&&s.delivery.cargo.carBoot.parcels.length===0,{states:mineLoad.map(p=>p.state),routeOk});
- check('B1-01 F4: the whole day kept the same IDs, unique, none lost or duplicated; traffic on; no depot error',s.delivery.parcels.length===allIds.length&&new Set(s.delivery.parcels.map(p=>p.id)).size===allIds.length&&allIds.every(id=>s.delivery.parcels.some(p=>p.id===id))&&s.city.vehicles>0&&s.delivery.depot.errors.length===0,{n:s.delivery.parcels.length,vehicles:s.city.vehicles});
+ const deliveredMine=mineLoad.filter(p=>p.state==='ENTREGUE');
+ const hours=deliveredMine.map(delivHour).sort((a,b)=>a-b);
+ check('B1-01 F5 AC-14: deliveries at 20h59 (on time) and 21h01 (late) both work; 21h ended nothing',hours[0]>=20+59/60&&hours[0]<21&&hours.some(h=>h>=21+1/60&&h<22)&&s.delivery.phase!=='ENCERRADA',{hours,phase:s.delivery.phase});
+ check('B1-01 F5 AC-15: after 00h01 the SAME shift continues — deliveries recorded at shift hour > 24, calendar day and career unchanged, HUD clock shows (+1)',hours.some(h=>h>=24+1/60)&&s.clock.shiftHour>24&&s.clock.daysCrossed===1&&s.career.calendarIndex===0&&/\(\+1\)/.test(await page.locator('#clock').textContent()),{shift:s.clock.shiftHour,clock:await page.locator('#clock').textContent()});
+ const routeOk=deliveredMine.every(p=>{const o=p.history.map(e=>e.operation).filter(x=>x!=='arrumação:porta-malas');const i=o.indexOf('estado:EM_ROTA');return o.slice(i).join('>')==='estado:EM_ROTA>transferência:maos>transferência:porta-malas>transferência:maos>estado:ENTREGUE>transferência:destinatario';});
+ check(`B1-01 F4 AC-10: the deliverable parcels of the ${sector} load were delivered by the car — dock → hands → boot → hands → customer, ENTREGUE exactly once`,deliveredMine.length===mineLoad.filter(p=>p.destination!==absentMine).length&&deliveredMine.every(p=>p.place==='destinatario'&&p.holder==='destinatario'&&p.history.filter(e=>e.operation==='estado:ENTREGUE').length===1)&&routeOk,{delivered:deliveredMine.length,routeOk});
+ // ---------------------------------------------------------------- AC-12/25: physical return to the on-duty checker, after 00h
+ const pendingPanel=await page.evaluate(()=>window.__weblab.snapshot().delivery.objective.title);
+ check('B1-01 F5 AC-13: with the failed attempt in the boot the objective is to return it — the shift is not over',/Devolver \d+ volume\(s\) na base/.test(pendingPanel)&&(await snap()).delivery.phase!=='CONCLUIDA',pendingPanel);
+ await page.evaluate(b=>window.__debug.parkAt(b.x,b.z,b.yaw),bays[0]);await delay(300);
+ await toBoot();await openBoot();
+ await tapWhen(/^Retirar do porta-malas \(\d\)$/,'retirar a devolução do porta-malas na vaga da base');
+ await until(()=>window.__weblab.snapshot().delivery.cargo.hands>0);
+ await walkTo(receiving,Math.PI/2);
+ await tapWhen(/^Devolver ao conferente \(\d\)$/,'devolver ao conferente de plantão');
+ await until(()=>window.__weblab.snapshot().delivery.cargo.hands===0);
+ await toBoot();
+ // Everyone works on: the on-duty checker, Rosa's return, the other two NPCs (whole-world fixture, same calls as the game loop).
+ for(let i=0;i<120&&!(await snap()).delivery.logistics.allResolved&&(await snap()).clock.shiftHour<34;i++)await page.evaluate(()=>{for(let k=0;k<4;k++)window.__debug.worldStep(5);});
+ s=await snap();
+ const ret=s.delivery.parcels.filter(p=>p.state==='DEVOLVIDO_E_CONFERIDO');
+ const mineBack=ret.filter(p=>p.destination===absentMine&&p.sector===sector),rosaBack=ret.filter(p=>p.destination===absentNpc&&p.sector!==sector);
+ const conf=(p)=>p.history.find(e=>e.operation==='estado:DEVOLVIDO_E_CONFERIDO');
+ check('B1-01 F5 AC-12/25: the player\'s return was received and checked by the on-duty checker after 00h — DEVOLVIDO_E_CONFERIDO on the returns shelf, never ENTREGUE',mineBack.length>0&&mineBack.every(p=>p.place==='devolucoes'&&conf(p).holder==='conferente'&&conf(p).hour>24&&!p.history.some(e=>e.state==='ENTREGUE')),mineBack.map(p=>[p.id,p.place,conf(p)?.hour]));
+ check('B1-01 F5 AC-24/25: Rosa (NPC) kept working after 21h, recorded her own attempt, brought it back and the on-duty checker confirmed it',rosaBack.length>0&&rosaBack.every(p=>p.history.find(e=>e.operation==='tentativa:frustrada').holder==='npc1'&&conf(p).holder==='conferente'&&conf(p).hour>21),rosaBack.map(p=>p.id));
+ const rep=s.delivery.logistics.report;
+ check('B1-01 F5 AC-26: the report lists the four couriers separately, each finished after 21h with its own lateness; nothing pending',rep.length===4&&rep.every(r=>r.pending===0&&r.finishedAt!==null&&r.finishedAt>21&&r.lateMinutes>0)&&new Set(rep.map(r=>r.lateMinutes)).size>=2,rep);
+ check('B1-01 F5 AC-13: only now — every parcel delivered or returned-and-checked by all four — the shift is CONCLUIDA and the next day can be started',s.delivery.logistics.allResolved&&s.delivery.phase==='CONCLUIDA'&&s.delivery.parcels.every(p=>p.state==='ENTREGUE'||p.state==='DEVOLVIDO_E_CONFERIDO')&&await page.evaluate(()=>!document.querySelector('#next-workday').disabled),{phase:s.delivery.phase,resolved:s.delivery.logistics.allResolved});
+ check('B1-01 F4/F5: the whole day kept the same IDs, unique, none lost or duplicated; traffic on; no depot error',s.delivery.parcels.length===allIds.length&&new Set(s.delivery.parcels.map(p=>p.id)).size===allIds.length&&allIds.every(id=>s.delivery.parcels.some(p=>p.id===id))&&s.city.vehicles>0&&s.delivery.depot.errors.length===0,{n:s.delivery.parcels.length,vehicles:s.city.vehicles});
  if(process.env.WEBLAB_SHOTS)await page.screenshot({path:`${process.env.WEBLAB_SHOTS}/car-logistics-end.png`});
  await ctx.close();
 }

@@ -552,6 +552,11 @@ function start(canvas: HTMLCanvasElement, boot: BrowserCareer): void {
         /** B1-01 F4: read-only spots of the delivery domain (address door, player's sector counter). */
         addressDoor: (id: string) => { const a = delivery.workday.byAddress.get(id); return a ? { ...a.door, number: a.number } : null; },
         dispatchSpot: () => ({ ...delivery.workday.playerDispatch }),
+        /**
+         * B1-01 F5 SCENARIO FIXTURE (development only): nobody will be at home at this address today.
+         * It sets who answers the door (the day's absence schedule), never a parcel state.
+         */
+        markAbsent: (id: string) => { delivery.workday.absentAddresses.add(id); return delivery.workday.recipientAbsent(id); },
         /** B1-01 F3: a parked car's boot spot (behind the tailgate), in world coordinates. */
         trunkSpot: () => (car ? carToWorld(car.state, 0, -CAR.length / 2 - 0.55) : null),
         /**
@@ -594,7 +599,7 @@ function start(canvas: HTMLCanvasElement, boot: BrowserCareer): void {
         delivery: {
           depot:{gateOpen:delivery.gateOpen,gateManual:delivery.gateManual,visibleIds:[...delivery.parcelViews.visibleIds],workers:delivery.workday.depot.workers.map(w=>({...w,task:w.task?{id:w.task.id,kind:w.task.kind,stage:w.task.stage}:null})),errors:[...delivery.workday.depot.errors]},
           phase: delivery.workday.phase,
-          logistics:{playerReady:delivery.workday.playerReady,seed:delivery.workday.options.seed??day?.seed??2026,calendar:day?{date:day.date,index:day.index,tier:day.tier,target:day.depotTarget}:null,sortedAt:delivery.workday.allSortedAt,assignments:delivery.workday.assignments,teamReady:delivery.workday.teamReady,released:delivery.workday.released,releaseHour:delivery.workday.releaseHour,van:{state:delivery.workday.van.state,door:delivery.workday.van.door,approach:'assisted-D05'},couriers:delivery.workday.couriers.map(c=>({id:c.id,name:c.name,sector:c.sector,state:c.state,bike:{...c.bike},person:{...c.person},riding:c.riding,error:c.error,stops:[...c.stops],route:c.route.map(p=>({...p})),trunk:c.trunk(delivery.workday).map(p=>p.id),hands:c.hands(delivery.workday).map(p=>p.id)}))},
+          logistics:{playerReady:delivery.workday.playerReady,report:delivery.workday.report(clock.shiftHour),allResolved:delivery.workday.allResolved,absent:[...delivery.workday.absentAddresses],seed:delivery.workday.options.seed??day?.seed??2026,calendar:day?{date:day.date,index:day.index,tier:day.tier,target:day.depotTarget}:null,sortedAt:delivery.workday.allSortedAt,assignments:delivery.workday.assignments,teamReady:delivery.workday.teamReady,released:delivery.workday.released,releaseHour:delivery.workday.releaseHour,van:{state:delivery.workday.van.state,door:delivery.workday.van.door,approach:'assisted-D05'},couriers:delivery.workday.couriers.map(c=>({id:c.id,name:c.name,sector:c.sector,state:c.state,bike:{...c.bike},person:{...c.person},riding:c.riding,error:c.error,stops:[...c.stops],route:c.route.map(p=>({...p})),trunk:c.trunk(delivery.workday).map(p=>p.id),hands:c.hands(delivery.workday).map(p=>p.id)}))},
           objective: delivery.workday.objective(clock.shiftHour, vehicle.view),
           cargo: { visualHands:walker.displayedLoad, hands: delivery.workday.inHands().length, trunk: delivery.workday.inTrunk().length, sack: delivery.workday.sackInHands, label: delivery.workday.cargoLabel(), trunkOpen: moto?.trunkOpen ?? 0, trunkSpot: moto ? trunkSpot(bikeSpot()) : null,
             /** B1-01 F3: the car boot — domain (open flag, parcels with slots) and what is drawn. */
