@@ -42,3 +42,18 @@
 ## Governança
 
 Mesma branch `feat/beta1-01-carreiras`, mesmo PR draft #15, commits pequenos; não abrir novo PR, não fazer merge nem publicar `preview`, `main` ou `lab/beta1-playtest`. Status do B1-01 continua **EM_DESENVOLVIMENTO**. F3.5 não significa aprovação final nem substitui F4–F7.
+
+## Adendo F3.5.1 — menu principal completo
+
+**Adendo operacional (16/11/2026), autorizado no PR #15 (comentário 6903570909) após a auditoria aprovada da correção F3.5 (SHA `6271f55`).** Marco interno entre F3.5 e F4. Não altera as 17 decisões nem AC-01–AC-26 de `docs/BETA_1_0_SPEC.md`, nem `docs/beta1/STATE.json`.
+
+1. **Tela principal** antes do mundo 3D com **Continuar**, **Novo jogo**, **Carregar jogo** e **Opções**, sobre o mesmo menu da F3.5 (sem outro motor de menu).
+2. **Novo jogo** lista só personagens **sem nenhum dado salvo** (sem save principal/anterior, sem calendário legado, sem save ilegível); presets e veículo único como na F3.5. Com os quatro ocupados: aviso de que não há personagem livre — **nunca sobrescrever**. Sempre quatro carreiras, uma por personagem.
+3. **Continuar** abre a carreira ativa **somente se ela tem save válido** (principal ou cópia anterior íntegra), respeitando `activeShiftId`/bloqueio de troca. Sem save ativo válido, orienta para Carregar ou Novo jogo; nunca inicia Oeste sozinho. Não promete retomar ponto da jornada (F6).
+4. **Carregar jogo** mostra os quatro cards (carreira, setor, veículo, dia, checkpoint, status nova/corrompida/cópia anterior/calendário antigo), pelo mesmo `CareerStore`/`enterCareer`; navegar não grava; bloqueio de expediente aberto respeitado.
+5. **Opções**: perfil gráfico real (`src/config/graphics.ts`, `mobile/desktop`), salvo e aplicado antes de criar o motor 3D; ajuda de controles. Nada inventado (som, nuvem etc.).
+6. **Gerenciar saves, apagar carreira, sobrescrever slot, exportar/importar backup: F6.** Na F3.5.1 só aparecem como indisponíveis; nenhuma exclusão real.
+7. Interface leve em Android horizontal (780×360 e 915×412), toque e teclado, Esc/Voltar consistentes, HUD inativo no menu; persistência e jogo idênticos à F3.5.
+8. Mensagem correta quando o perfil é gravado mas a troca do apontador `ACTIVE_CAREER_KEY` falha (ressalva da auditoria F3.5): o perfil foi gravado e a carreira ativa continua a anterior.
+
+**Aceite:** testes unitários de estado da tela, não sobrescrita, ausência de escrita ao abrir/navegar, bloqueio de expediente e erros de gravação; E2E por toque de Novo jogo, Continuar, Carregar jogo e Opções em 780×360 e 915×412, com as regressões F1–F3.5; `npm run check`, `npm run test:e2e` e CI verde no SHA final. Parar para auditoria antes da F4.
