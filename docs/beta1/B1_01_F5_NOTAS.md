@@ -30,3 +30,10 @@
 - Moto: as mesmas regras e ações (baú em vez de porta-malas) estão cobertas em domínio; o E2E noturno usa o carro.
 - NPCs param diante de uma pessoa parada no caminho (comportamento herdado).
 - **Galaxy S24 físico: NÃO TESTADO.**
+
+## Correções da auditoria F5 (comentário 6905901610)
+
+1. **Triagem e expedição não param depois das 21h.** Antes, após 21h só o conferente de plantão pegava tarefas novas; um lote que chegasse tarde ficaria preso em conferência/triagem/gaiola. Agora `DepotOperations` **retém os trabalhadores reais** (descarregadores, separadores, expedidores, supervisor, auxiliares) **enquanto houver entrada pendente na base** (`pendingIntake`: caminhão em descarga, mesa, conferência, transferência, triagem, gaiola, doca — devoluções não contam) e os libera assim que nada resta. O conferente de plantão continua sempre. Ninguém é criado do nada; cada etapa continua sendo uma tarefa física de um trabalhador existente.
+2. **A última entrega não conclui o expediente.** `Workday.deliver` usa o gancho `dayComplete()`: no `Workday` isolado (moto legada) continua "todos os pacotes finais"; no `LogisticsDay` devolve sempre falso, e só o `update` marca `CONCLUIDA`, com `allResolved` (todo pacote final **e** os quatro entregadores concluídos), anunciando "Expediente concluído: todos os pacotes resolvidos pelos quatro entregadores".
+
+Testes (`tests/b1-01-night.test.ts`, 4 novos; 3 falhavam antes da correção — commit `test(...) F5 reproduz…`): lote coletado ao meio-dia e entregue ao conferente às **21h01** e às **00h01** percorre recebimento → conferência → triagem → gaiola → doca → saca por tarefas reais após o horário (histórico conferido etapa por etapa), a carga inteira do dia (van e NPCs) chega às sacas, e depois disso só o plantão continua com tarefa; em dia normal ninguém faz triagem depois das 21h e as devoluções tardias são conferidas só pelo plantão; a última entrega do jogador com Caio ainda caminhando de volta à moto não conclui nem anuncia o fim — só conclui quando ele termina.
