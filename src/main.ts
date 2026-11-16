@@ -492,6 +492,24 @@ function start(canvas: HTMLCanvasElement, boot: BrowserCareer): void {
         /** Deterministic test clock: executes real work in bounded steps, never edits parcels. */
         processDepot:(seconds:number)=>{for(let t=0;t<Math.min(seconds,1);t+=.05)delivery.workday.update(clock.hour,.05)},
         logisticsStep:(seconds:number)=>{for(let t=0;t<Math.min(seconds,1);t+=.05){clock.advance(.05);delivery.workday.update(clock.hour,.05)}},
+        /**
+         * B1-01 F4 TIME FIXTURE (development only): advances the WHOLE simulated world — clock, traffic,
+         * pedestrians, NPC couriers, depot and stores — with the exact calls of the render loop, in
+         * 0.05 s steps, without drawing. Unlike `logisticsStep`, ambient traffic moves with the couriers.
+         * The player stands still (on foot or parked); no parcel is edited by the fixture itself.
+         */
+        worldStep:(seconds:number)=>{
+          for(let t=0;t<Math.min(seconds,5);t+=.05){
+            const m=vehicle.view;
+            clock.advance(.05);simTime+=.05;
+            const player=mode==='riding'?{x:m.x,z:m.z,radius:vehicle.trafficRadius}:{x:walker.state.x,z:walker.state.z,radius:0.45};
+            cityLife.courierObstacles.splice(0,cityLife.courierObstacles.length,...courierTrafficObstacles(delivery.workday.couriers));
+            cityLife.update(.05,simTime,clock.hour,lighting.night,player,ground);
+            const here=mode==='riding'?{x:m.x,z:m.z,riding:true}:{x:walker.state.x,z:walker.state.z,riding:false};
+            delivery.update(.05,clock.hour,cityLife.crowd,here,ground,(x,z,r)=>cityLife.blocks(x,z,r)||Math.hypot(x-player.x,z-player.z)<r+player.radius,bikeSpot());
+          }
+          delivery.workday.events.splice(0);
+        },
         minimapBase: () => minimap.baseImage(),
         /** MAP-001 fixture: draws the player's (Oeste) delivery addresses as map stops. Display only. */
         previewStops: () => {
