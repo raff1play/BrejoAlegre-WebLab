@@ -66,6 +66,56 @@ export function menuModel(storage: KeyValueStorage, durable = true): MenuModel {
   return Object.freeze({ cards: Object.freeze(cards), active, lockedBy, durable });
 }
 
+/**
+ * B1-01 F3.5.1: what the main screen offers, derived ONLY from the read-only model.
+ * - New game: the characters with no save at all (no main/previous copy, no legacy calendar, no
+ *   unreadable save). A slot with data is never offered for a new game (no overwrite).
+ * - Continue: the active career, only when it really has a valid save in storage.
+ * - Load: the four cards; a card can be loaded when it has saved progress (or the Oeste legacy
+ *   calendar) and nothing blocks it.
+ * Deleting/overwriting careers and backups is F6 and is not offered here.
+ */
+export type MainScreen = Readonly<{
+  continueCard: CareerCard | null;
+  continueReason: string | null;
+  newGame: readonly CareerCard[];
+  newGameReason: string | null;
+  load: readonly Readonly<{ card: CareerCard; reason: string | null }>[];
+}>;
+
+export const isFreeSlot = (c: CareerCard): boolean => c.source === 'novo' && c.problem === null;
+
+export function mainScreen(model: MenuModel): MainScreen {
+  const active = model.cards.find((c) => c.careerId === model.active)!;
+  const continueReason = !active.saved
+    ? 'Nenhuma carreira salva ativa: escolha uma em Carregar jogo ou comece em Novo jogo'
+    : active.blocked;
+  const newGame = model.cards.filter(isFreeSlot);
+  const newGameReason = !newGame.length
+    ? 'Os quatro personagens já têm carreira salva: não há personagem livre para um novo jogo. Use Carregar jogo (apagar carreira só na etapa F6).'
+    : newGame.every((c) => c.blocked !== null) ? newGame[0]!.blocked : null;
+  const load = model.cards.map((card) => ({
+    card,
+    reason: card.blocked ?? (card.saved || card.source === 'legado' ? null : 'Sem carreira salva: comece por Novo jogo'),
+  }));
+  return Object.freeze({ continueCard: continueReason === null ? active : null, continueReason, newGame, newGameReason, load });
+}
+
+/**
+ * The chosen career's profile WAS written, but making it the active career failed (e.g. storage
+ * full when writing the pointer). The previous active career stays active; nothing claims that the
+ * switch happened, and nothing claims that the profile was not saved.
+ */
+export class ActivationError extends SaveError {
+  readonly profileSaved = true;
+  readonly careerId: CareerId;
+  readonly stillActive: CareerId;
+  constructor(careerId: CareerId, stillActive: CareerId, cause: string) {
+    super(`O perfil de ${CHARACTERS[careerId].name} foi gravado, mas não foi possível torná-la a carreira ativa (${cause}). A carreira ativa continua ${CHARACTERS[stillActive].name}.`);
+    this.name = 'ActivationError'; this.careerId = careerId; this.stillActive = stillActive;
+  }
+}
+
 export type CareerChoice = Readonly<{ appearance: AppearancePreset; equipment: EquipmentPresetId; vehicle: VehicleKind | null }>;
 
 /**
@@ -108,7 +158,8 @@ export function enterCareer(storage: KeyValueStorage, careerId: CareerId, choice
     session.commit(careerId, (_profile, shift) => ({ profile: finalProfile, shift }));
     if (session.loadSource === 'legado') notes.push('Calendário legado migrado para a carreira Oeste');
   }
-  store.setActiveCareer(careerId);
+  try { store.setActiveCareer(careerId); }
+  catch (e) { throw new ActivationError(careerId, store.activeCareer(), (e as Error).message); }
   return Object.freeze({
     session, roster: buildRoster(careerId), home: careerHome(careerId),
     calendarIndex: session.profile.calendarIndex, notes: Object.freeze(notes),

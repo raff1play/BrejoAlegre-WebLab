@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { CAREER_IDS, CHARACTERS, careerHome, type CareerId } from '../src/core/career/careers.ts';
-import { enterCareer, menuModel } from '../src/core/career/careerMenu.ts';
+import { ActivationError, enterCareer, mainScreen, menuModel } from '../src/core/career/careerMenu.ts';
 import { ACTIVE_CAREER_KEY, CareerStore, MemoryStorage, previousKey, saveKey } from '../src/core/career/careerStore.ts';
 import { chooseStartingVehicle, defaultProfile, emptyShift, shiftIdOf, SaveError } from '../src/core/career/snapshot.ts';
 import { CALENDAR_STORAGE_KEY } from '../src/core/delivery/operatingCalendar.ts';
@@ -205,4 +205,83 @@ test('B1-01 F3.5 auditoria: falha ao gravar o apontador ativo depois do save dei
   assert.equal(storage.getItem(ACTIVE_CAREER_KEY), 'personagem-oeste');
   // O perfil de Norte pode ter sido gravado (dado válido da escolha), mas o jogo continua apontando para Oeste.
   assert.equal(menuModel(storage).active, 'personagem-oeste');
+});
+
+// ------------------------------------------------------------------ F3.5.1: tela principal
+
+const pick = (appearance: 'masculino' | 'feminino' = 'masculino', vehicle: 'moto-antiga' | 'carro-antigo' | null = 'moto-antiga') => ({ appearance, equipment: 'kit-jaqueta' as const, vehicle });
+
+test('B1-01 F3.5.1: armazenamento vazio — Continuar indisponível (nunca inicia Oeste sozinho), Novo jogo com os quatro, Carregar sem nada carregável, sem escrita', () => {
+  const storage = new MemoryStorage();
+  const m = mainScreen(menuModel(storage));
+  assert.equal(keysOf(storage), 0);
+  assert.equal(m.continueCard, null); assert.match(m.continueReason!, /Nenhuma carreira salva ativa/);
+  assert.deepEqual(m.newGame.map((c) => c.careerId), [...CAREER_IDS]); assert.equal(m.newGameReason, null);
+  assert.ok(m.load.every((l) => /Novo jogo/.test(l.reason!)));
+});
+
+test('B1-01 F3.5.1: Novo jogo só lista personagens sem save; com os quatro ocupados não há slot e nada é sobrescrito', () => {
+  const storage = new MemoryStorage();
+  enterCareer(storage, 'personagem-leste', pick('feminino', 'carro-antigo'));
+  let m = mainScreen(menuModel(storage));
+  assert.deepEqual(m.newGame.map((c) => c.careerId), ['personagem-norte', 'personagem-oeste', 'personagem-sul']);
+  assert.equal(m.continueCard!.careerId, 'personagem-leste', 'Continuar = a carreira ativa salva');
+  assert.equal(m.load.find((l) => l.card.careerId === 'personagem-leste')!.reason, null);
+  for (const id of ['personagem-norte', 'personagem-oeste', 'personagem-sul'] as const) enterCareer(storage, id, pick());
+  const before = dump(storage);
+  m = mainScreen(menuModel(storage));
+  assert.deepEqual(m.newGame, []); assert.match(m.newGameReason!, /não há personagem livre/);
+  assert.ok(m.load.every((l) => l.reason === null));
+  assert.deepEqual(dump(storage), before, 'calcular a tela não grava');
+});
+
+test('B1-01 F3.5.1: calendário legado e save corrompido não aparecem como personagem livre (nunca sobrescritos por Novo jogo)', () => {
+  const storage = new MemoryStorage(); storage.setItem(CALENDAR_STORAGE_KEY, '2'); storage.setItem(saveKey('personagem-sul'), '{');
+  const m = mainScreen(menuModel(storage));
+  assert.deepEqual(m.newGame.map((c) => c.careerId), ['personagem-norte', 'personagem-leste']);
+  assert.equal(m.continueCard, null, 'calendário legado sem save não vira Continuar automático');
+  const oeste = m.load.find((l) => l.card.careerId === 'personagem-oeste')!;
+  assert.equal(oeste.reason, null, 'o Oeste legado é carregável');
+  assert.match(m.load.find((l) => l.card.careerId === 'personagem-sul')!.reason!, /Save inválido/);
+});
+
+test('B1-01 F3.5.1 AC-17: expediente aberto — Continuar abre só a carreira travada; Novo jogo e as outras ficam bloqueados', () => {
+  const storage = new MemoryStorage(); const store = new CareerStore(storage);
+  const profile = { ...chooseStartingVehicle(defaultProfile('personagem-norte', 3), 'moto-antiga'), activeShiftId: shiftIdOf('personagem-norte', 3) };
+  store.commit('personagem-norte', profile, { ...emptyShift('personagem-norte', 3), elapsedVirtualMinutes: 90 }, -1);
+  store.setActiveCareer('personagem-norte');
+  const m = mainScreen(menuModel(storage));
+  assert.equal(m.continueCard!.careerId, 'personagem-norte'); assert.equal(m.continueCard!.activeShiftId, 'personagem-norte/dia-3');
+  assert.ok(m.newGame.every((c) => /Expediente aberto de Rosa/.test(c.blocked!)));
+  assert.match(m.newGameReason!, /Expediente aberto de Rosa/);
+  assert.ok(m.load.filter((l) => l.card.careerId !== 'personagem-norte').every((l) => l.reason !== null));
+});
+
+test('B1-01 F3.5.1: cópia anterior utilizável permite Continuar; carreira ativa com save corrompido sem cópia não', () => {
+  const storage = new MemoryStorage();
+  enterCareer(storage, 'personagem-sul', pick()); enterCareer(storage, 'personagem-sul', pick('feminino', null));
+  storage.setItem(saveKey('personagem-sul'), 'x');
+  let m = mainScreen(menuModel(storage));
+  assert.equal(m.continueCard!.source, 'anterior');
+  storage.removeItem(previousKey('personagem-sul'));
+  m = mainScreen(menuModel(storage));
+  assert.equal(m.continueCard, null); assert.match(m.continueReason!, /Nenhuma carreira salva ativa/);
+});
+
+test('B1-01 F3.5.1 (ressalva da auditoria): perfil gravado mas apontador ativo falhou — erro próprio, mensagem verdadeira, carreira anterior ativa', () => {
+  const storage = new FailingStorage(); oesteActiveLesteSaved(storage);
+  storage.failKey = ACTIVE_CAREER_KEY;
+  let err: unknown = null;
+  try { enterCareer(storage, 'personagem-leste', { appearance: 'masculino', equipment: 'kit-refletivo', vehicle: null }); } catch (e) { err = e; }
+  assert.ok(err instanceof ActivationError, 'erro de ativação distinto de "não gravado"');
+  const a = err as ActivationError;
+  assert.equal(a.profileSaved, true); assert.equal(a.careerId, 'personagem-leste'); assert.equal(a.stillActive, 'personagem-oeste');
+  assert.match(a.message, /O perfil de Caio foi gravado, mas não foi possível torná-la a carreira ativa/);
+  assert.match(a.message, /A carreira ativa continua Lia/);
+  assert.equal(new CareerStore(storage).read('personagem-leste').save.profile.equipment, 'kit-refletivo', 'o perfil realmente foi gravado');
+  assert.equal(new CareerStore(storage).activeCareer(), 'personagem-oeste');
+  assert.equal(mainScreen(menuModel(storage)).continueCard!.careerId, 'personagem-oeste');
+  // Other failures keep saying the choice was NOT saved.
+  storage.failKey = saveKey('personagem-norte');
+  try { enterCareer(storage, 'personagem-norte', pick()); } catch (e) { assert.ok(!(e instanceof ActivationError)); assert.ok(e instanceof SaveError); }
 });
