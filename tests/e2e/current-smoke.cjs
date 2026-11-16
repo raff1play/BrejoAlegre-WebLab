@@ -606,7 +606,7 @@ async function carLogistics(browser){
    // AC-11: nobody answers — the attempt is recorded; the parcels stay in the hands, not delivered.
    await tapWhen(/^Ninguém atende · registrar tentativa nº \d+$/,'registrar tentativa');
    await until(()=>window.__weblab.snapshot().delivery.parcels.some(p=>p.state==='TENTATIVA_FRUSTRADA'));
-   const q=await snap();const tried=q.delivery.parcels.filter(p=>p.destination===absentMine&&p.sector===sector);
+   const q=await snap();const tried=q.delivery.parcels.filter(p=>p.destination===absentMine&&p.sector===sector&&p.place==='maos');
    check('B1-01 F5 AC-11: at the absent address the attempt is recorded — TENTATIVA_FRUSTRADA, still in the player\'s hands, not ENTREGUE',tried.length>0&&tried.every(p=>p.state==='TENTATIVA_FRUSTRADA'&&p.place==='maos'&&p.holder==='jogador'&&!p.history.some(e=>e.state==='ENTREGUE')),tried.map(p=>[p.id,p.state,p.place]));
    await toBoot();
    await tapWhen(new RegExp(`^Guardar no porta-malas \\(${tried.length}\\)$`),'guardar a devolução no porta-malas');
