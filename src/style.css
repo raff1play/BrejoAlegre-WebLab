@@ -291,3 +291,17 @@ body.in-menu #hud { display: none; }
 .menu-actions button { min-height: 44px; padding: 8px 16px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); color: #fff; font: inherit; font-weight: 600; }
 .menu-actions .primary { background: var(--amber); color: #1b1408; border-color: var(--amber); }
 @media (max-height: 420px) { .menu-sub { display: none; } .career-lines { font-size: 10.5px; } }
+/* B1-01 F3.5.1: main screen, lists and options */
+.menu-home { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; flex: 1; align-content: center; max-width: 720px; width: 100%; margin: 0 auto; }
+.menu-home[hidden], .menu-list[hidden], .menu-options[hidden] { display: none; }
+.menu-home button { display: grid; gap: 3px; min-height: 64px; padding: 10px 14px; border-radius: 14px; text-align: left; font-size: 18px; font-weight: 800; }
+.menu-home button small { font-size: 11px; font-weight: 500; opacity: .85; }
+.menu-home button:disabled { opacity: .55; cursor: not-allowed; }
+.menu-list, .menu-options { display: flex; flex-direction: column; gap: 6px; flex: 1; min-height: 0; }
+.menu-list-head { display: flex; align-items: center; gap: 10px; }
+.menu-list-head h2 { margin: 0; font-size: 16px; }
+.menu-back { min-height: 40px; padding: 6px 14px; border-radius: 10px; font-size: 13px; }
+.menu-reason { margin: 0; padding: 6px 10px; border-radius: 8px; background: rgba(242, 178, 51, .16); border: 1px solid rgba(242, 178, 51, .5); font-size: 12px; }
+.options-body { display: grid; gap: 10px; font-size: 12px; }
+.option-note { opacity: .8; font-size: 11px; margin: 0; }
+.controls-help { display: grid; gap: 4px; line-height: 1.35; }

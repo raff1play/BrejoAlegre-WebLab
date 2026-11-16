@@ -43,3 +43,20 @@ export function switchGraphicsProfile(current: GraphicsProfile): void {
   url.searchParams.set('gfx', next);
   window.location.replace(url.toString());
 }
+
+export type GraphicsChoice = Readonly<{ name: GraphicsProfile['name']; source: 'url' | 'salvo' | 'automatico' }>;
+/** B1-01 F3.5.1 (Opções): which profile the NEXT start will use, and where that comes from. */
+export function graphicsChoice(): GraphicsChoice {
+  const url = new URLSearchParams(window.location.search).get('gfx');
+  if (url === 'mobile' || url === 'desktop') return { name: url, source: 'url' };
+  const saved = stored();
+  if (saved === 'mobile' || saved === 'desktop') return { name: saved, source: 'salvo' };
+  return { name: resolveGraphicsProfile().name, source: 'automatico' };
+}
+/**
+ * B1-01 F3.5.1: saves the profile chosen in the main menu. It is read by `resolveGraphicsProfile`
+ * when the engine is built, which happens only after the menu, so no reload is needed.
+ */
+export function saveGraphicsPreference(name: GraphicsProfile['name']): boolean {
+  try { window.localStorage.setItem(STORAGE_KEY, name); return true; } catch { return false; }
+}

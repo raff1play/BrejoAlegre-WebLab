@@ -91,8 +91,35 @@
         <p class="menu-sub">Quatro entregadores, um setor e uma casa cada. Os outros três trabalham como colegas na cidade.</p>
       </header>
       <p id="menu-notice" class="menu-notice" role="alert" hidden></p>
-      <div id="career-cards" class="career-cards" aria-label="Carreiras"></div>
+      <nav id="menu-home" class="menu-home" aria-label="Menu principal">
+        <button type="button" class="primary" data-menu-home="continuar">Continuar<small id="menu-continue-info"></small></button>
+        <button type="button" data-menu-home="novo">Novo jogo<small id="menu-new-info"></small></button>
+        <button type="button" data-menu-home="carregar">Carregar jogo<small>as quatro carreiras salvas</small></button>
+        <button type="button" data-menu-home="opcoes">Opções<small>gráficos e controles</small></button>
+      </nav>
+      <div id="menu-list" class="menu-list" hidden>
+        <div class="menu-list-head"><button type="button" class="menu-back" data-menu="voltar-inicio">Voltar</button><h2 id="menu-list-title"></h2></div>
+        <p id="menu-list-reason" class="menu-reason" hidden></p>
+        <div id="career-cards" class="career-cards" aria-label="Carreiras"></div>
+      </div>
       <div id="career-detail" class="career-detail" hidden></div>
+      <section id="menu-options" class="menu-options" hidden aria-labelledby="menu-options-title">
+        <div class="menu-list-head"><button type="button" class="menu-back" data-menu="voltar-inicio">Voltar</button><h2 id="menu-options-title">Opções</h2></div>
+        <div class="options-body">
+          <div class="option-group" role="radiogroup" aria-label="Gráficos">
+            <span class="option-label">Gráficos</span>
+            <button type="button" class="option" role="radio" data-gfx="mobile">Leve (celular)</button>
+            <button type="button" class="option" role="radio" data-gfx="desktop">Completo (computador)</button>
+            <small id="menu-gfx-info" class="option-note"></small>
+          </div>
+          <div class="controls-help">
+            <strong>Controles</strong>
+            <span>Toque: analógico flutuante no canto esquerdo · ▲ acelerar · ▼ freio/ré · botão amarelo = ação (montar, descer, entrar, porta-malas, retirar, entregar) · ☰ pausa e logística · toque no mapa para ampliar</span>
+            <span>Teclado: WASD/setas · F ação · Q/E girar câmera · Z/X zoom · M mapa · P pausa</span>
+          </div>
+          <p class="option-note" data-indisponivel="gerenciar-saves">Gerenciar saves (apagar carreira, exportar e importar backup): indisponível — previsto para a etapa F6.</p>
+        </div>
+      </section>
     </div>
     <div id="fatal" class="fatal" role="alert" hidden></div>
     <div class="portrait-warning" role="group" aria-label="Iniciar jogo na horizontal">

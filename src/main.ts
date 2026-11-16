@@ -21,7 +21,7 @@ import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import { Scene } from '@babylonjs/core/scene';
 import { SceneInstrumentation } from '@babylonjs/core/Instrumentation/sceneInstrumentation';
 import { currentEnvironment } from './config/environment';
-import { resolveGraphicsProfile, switchGraphicsProfile } from './config/graphics';
+import { graphicsChoice, resolveGraphicsProfile, saveGraphicsPreference, switchGraphicsProfile } from './config/graphics';
 import type { MotionGuard } from './core/collision';
 import { MOTO } from './core/motorcyclePhysics';
 import { heightAt } from './core/terrain';
@@ -70,6 +70,8 @@ async function bootBrowserCareer(): Promise<BrowserCareer> {
   await runMainMenu(document, menuModel(storage.storage, storage.durable), {
     askVehicle: (name) => (devTime && isVehicleKind(requested) ? Promise.resolve(requested) : askVehicle(document, name)),
     enter: (careerId, choice) => { entered = enterCareer(storage.storage, careerId, choice); },
+    refresh: () => menuModel(storage.storage, storage.durable),
+    graphics: { choice: graphicsChoice, save: saveGraphicsPreference },
   });
   const career = entered as CareerBoot | null;
   if (!career) throw new Error('Carreira não carregada');
