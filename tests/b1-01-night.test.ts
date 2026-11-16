@@ -210,3 +210,80 @@ test('B1-01 F5 AC-11/12: com o CARRO a devolução volta pelo porta-malas e pass
   assert.equal(p.state, 'DEVOLVIDO_E_CONFERIDO', 'conferido pelo plantão depois de 00h01');
   assert.equal(p.history.find((e) => e.state === 'DEVOLVIDO_E_CONFERIDO')!.holder, 'conferente');
 });
+
+// ------------------------------------------------------------------ auditoria F5 (comentário 6905901610)
+
+/**
+ * Lote que só chega à base DEPOIS das 21h (ou de 00h01): coleta real ao meio-dia, mas descarga e
+ * entrega ao conferente tarde. A base tem de continuar recebimento → conferência → triagem →
+ * gaiola → doca → saca com trabalhadores reais (retidos só enquanto há trabalho), sem bloqueio.
+ */
+function lateIntake(handOverAt: number) {
+  const d = new LogisticsDay({ seed: 2026, free: (x, z) => guard(x, z, 0.45), roster: buildRoster('personagem-oeste') });
+  d.start(11);
+  for (const kind of d.assigned) while (d.readyAt(kind).length) { assert.ok(d.collect(kind, 12) > 0); d.stow(12); }
+  const mine = d.parcels.filter((p) => p.collector === 'jogador').map((p) => p.id);
+  let delivered = false;
+  for (let t = 0; t < 1800; t += 0.1) {
+    const hour = handOverAt + t / 150;
+    if (d.trunkForDepot().length && !d.inHands().length) d.unloadForDepot(hour, false, parking);
+    if (d.inHands().some((p) => p.state === 'EM_TRANSPORTE')) { d.handOver(hour, receiving); delivered = true; }
+    d.update(hour, 0.1);
+    if (delivered && mine.every((id) => { const p = d.parcels.find((q) => q.id === id)!; return p.state === 'NA_SACA' && p.place === 'saca'; })) return { d, mine, hour, ok: true };
+  }
+  return { d, mine, hour: handOverAt + 12, ok: false };
+}
+
+for (const [label, at] of [['21h01', H(21, 1)], ['00h01', H(24, 1)]] as const) test(`B1-01 F5 auditoria 1: lote recebido às ${label} percorre conferência, triagem e expedição até a saca, sem bloqueio permanente`, () => {
+  const { d, mine, hour, ok } = lateIntake(at);
+  const where = mine.map((id) => { const p = d.parcels.find((q) => q.id === id)!; return `${id}:${p.state}@${p.place}`; });
+  assert.ok(ok, `lote parado depois das 21h (${hour.toFixed(2)}h): ${where.join(' ')}`);
+  assert.deepEqual(d.depot.errors, []);
+  for (const id of mine) {
+    const p = d.parcels.find((q) => q.id === id)!;
+    const ops = p.history.map((e) => e.operation);
+    // Every stage was a real worker task after the late hand-over (no teleport, no forced state).
+    for (const op of ['transferência:recebimento', 'transferência:conferencia', 'estado:RECEBIDO_BASE', 'transferência:triagem', 'estado:TRIADO', 'transferência:gaiola', 'transferência:doca', 'estado:NA_SACA'])
+      assert.ok(ops.includes(op), `${id} sem ${op}: ${ops.join('>')}`);
+    const sorted = p.history.find((e) => e.state === 'TRIADO')!;
+    assert.ok(sorted.hour >= at, `${id} triado depois da entrega tardia`);
+  }
+  // Once nothing is pending, the regular team stops again; the on-duty checker stays.
+  for (let t = 0; t < 120; t += 0.1) d.update(hour + 0.5 + t / 150, 0.1);
+  const busy = d.depot.workers.filter((w) => w.task);
+  assert.ok(busy.every((w) => ON_DUTY_ROLES.includes(w.role)), `sem trabalho pendente só o plantão: ${busy.map((w) => w.role).join(',')}`);
+  const staff = new Map(d.staff.map((s) => [s.role, s.state]));
+  assert.equal(staff.get('separador-1'), 'fora do turno');
+  assert.match(staff.get('conferente')!, /plantão|aguardando|check/);
+});
+
+test('B1-01 F5 auditoria 1: em dia normal, depois das 21h sem pendências, a equipe regular não pega trabalho novo e o plantão continua disponível', () => {
+  const { d } = nightDay('personagem-oeste');
+  assert.equal(d.phase, 'CONCLUIDA');
+  const late = d.parcels.flatMap((p) => p.history.filter((e) => e.hour > WORKDAY_END && /^(estado:TRIADO|transferência:triagem|transferência:gaiola)$/.test(e.operation)).map((e) => e.holder));
+  assert.deepEqual(late, [], 'sem lote atrasado, ninguém fez triagem depois das 21h');
+  const conf = d.parcels.filter((p) => p.state === 'DEVOLVIDO_E_CONFERIDO').map((p) => p.history.find((e) => e.state === 'DEVOLVIDO_E_CONFERIDO')!.holder);
+  assert.ok(conf.length > 0 && conf.every((h) => ON_DUTY_ROLES.includes(h)), 'devoluções após 21h só pelo plantão');
+});
+
+test('B1-01 F5 auditoria 2: a última entrega do jogador com um NPC ainda na rua NÃO conclui nem anuncia o fim do expediente', () => {
+  const d = new LogisticsDay({ seed: 2026, free: (x, z) => guard(x, z, 0.45), roster: buildRoster('personagem-oeste') });
+  d.start(11); d.released = true;
+  for (const p of d.parcels) { p.state = 'ENTREGUE'; p.place = 'destinatario'; p.holder = 'destinatario'; }
+  const last = d.load('jogador')[0]!;
+  last.state = 'EM_ROTA'; last.place = 'maos'; last.holder = 'jogador';
+  for (const c of d.couriers) c.state = 'complete';
+  d.couriers[1]!.state = 'return-address';     // Caio is still walking back to his bike
+  d.update(22, 0.01);
+  d.events.length = 0;
+  assert.ok(d.deliver(last.destination, 22) > 0, 'última entrega do jogador acontece');
+  assert.ok(d.parcels.every(isFinal), 'todos os pacotes têm resultado final');
+  assert.notEqual(d.phase, 'CONCLUIDA', 'ainda falta um entregador terminar');
+  assert.ok(!d.events.some((e) => /Jornada encerrada|concluído/i.test(e) && !/Você concluiu|setor/.test(e)), d.events.join(' | '));
+  d.update(22.01, 0.01);
+  assert.notEqual(d.phase, 'CONCLUIDA');
+  d.couriers[1]!.state = 'complete';
+  d.update(22.02, 0.01);
+  assert.equal(d.phase, 'CONCLUIDA', 'só depois que os quatro terminam');
+  assert.ok(d.events.some((e) => /Expediente concluído/.test(e)));
+});
