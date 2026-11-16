@@ -338,7 +338,7 @@ function start(canvas: HTMLCanvasElement, boot: BrowserCareer): void {
     if (!check.ok) return { label: check.reason, available: false, run: null };
     return { label: 'Encerrar o expediente em casa', available: true, run: () => {
       try {
-        const saved = closeShiftAtHome(career.session, captureNow(), nextWorkday(career.session.profile.calendarIndex).index);
+        const saved = closeShiftAtHome(career.session, captureNow(), nextWorkday(career.session.profile.calendarIndex).index, { vehicleStopped: vehicle.stopped() });
         wd.closedAtHome = clock.shiftHour;
         showShiftEnd(saved.profile.lastClosedShift!, saved.profile.balanceCents);
         return 'Expediente encerrado e salvo — troca de carreira liberada';

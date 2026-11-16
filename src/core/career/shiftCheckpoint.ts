@@ -2,7 +2,7 @@ import type { LogisticsDay } from '../delivery/logisticsDay.ts';
 import { ACTORS } from '../delivery/dailyDemand.ts';
 import { isFinal, type Parcel } from '../delivery/parcels.ts';
 import { WORKDAY_START } from '../city/clock.ts';
-import { CHARACTERS, buildRoster, type CareerId, type VehicleKind } from './careers.ts';
+import { CHARACTERS, buildRoster, careerHome, type CareerId, type VehicleKind } from './careers.ts';
 import type { CareerSession } from './careerStore.ts';
 import { ledgerTotal, settle } from './ledger.ts';
 import {
@@ -206,9 +206,14 @@ export function homeClosureCheck(day: LogisticsDay, home: { door: { x: number; z
  * the next working day with no open shift and a summary of the closed one. Career switching is
  * possible only after this write succeeds. Any failure leaves the open shift exactly as it was.
  */
-export function closeShiftAtHome(session: CareerSession, cap: ShiftCapture, nextCalendarIndex: number): CareerSave {
+export function closeShiftAtHome(session: CareerSession, cap: ShiftCapture, nextCalendarIndex: number, at: Readonly<{ vehicleStopped: boolean }>): CareerSave {
   if (!cap.day.allResolved) throw new SaveError('Expediente com pendências: não pode ser encerrado');
   if (cap.day.parcels.some((p) => !isFinal(p))) throw new SaveError('Há pacote sem resultado final');
+  // F6 audit reinforcement: the domain itself proves the home condition from the captured poses
+  // (the career's OWN home, never one passed by the caller) — no entry point can close remotely.
+  const w = cap.player.walker, v = cap.player.vehicle;
+  const home = homeClosureCheck(cap.day, careerHome(session.careerId), { x: w.x, z: w.z, riding: cap.player.mode === 'riding' }, { x: v.x, z: v.z, stopped: at.vehicleStopped });
+  if (!home.ok) throw new SaveError(`Encerramento só na porta da própria casa: ${home.reason}`);
   if (!Number.isSafeInteger(nextCalendarIndex) || nextCalendarIndex <= session.profile.calendarIndex) throw new SaveError('O calendário da carreira não retrocede');
   const careerId: CareerId = session.careerId;
   return session.commit(careerId, (p, s) => {

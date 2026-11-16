@@ -58,6 +58,11 @@ const capture = (g: Game, hour: number): ShiftCapture => ({
   day: g.day, shiftHour: hour, vehicle: g.vehicle,
   player: { mode: 'walking', walker: { x: 1, z: 2, yaw: 0 }, vehicle: g.vehicle === 'carro-antigo' ? car : bike },
 });
+/** The capture with the player on foot at the career's own door and the vehicle parked at its home stop. */
+const atHome = (g: Game, hour: number): ShiftCapture => {
+  const h = careerHome(g.careerId);
+  return { ...capture(g, hour), player: { mode: 'walking', walker: { ...h.door, yaw: 0 }, vehicle: { ...h.stop, yaw: 0 } } };
+};
 const checkpoint = (g: Game, hour: number): CareerSave => g.session.commit(g.careerId, (p, s) => captureShift(p, s, capture(g, hour)));
 
 /**
@@ -335,13 +340,13 @@ test('B1-01 F6 AC-21/22: backup só entre expedientes; desatualizado ou de outra
   const fresh = store.exportBackup('personagem-oeste');
   const g = open(storage).game; g.day.start(11.75); checkpoint(g, 11.75);
   assert.throws(() => store.exportBackup('personagem-oeste'), /entre expedientes/, 'não exporta com expediente aberto');
-  assert.throws(() => store.importBackup(fresh), /expediente aberto/, 'não importa sobre expediente aberto');
+  assert.throws(() => store.importBackup(fresh), /Expediente .* aberto: importar/, 'não importa sobre expediente aberto');
   assert.throws(() => store.deleteCareer('personagem-oeste', 'Lia'), /aberto/, 'não apaga com expediente aberto');
   // Closed day (fast-forwarded by the real script), closed at home.
   const { g: done, hour } = playDay('personagem-oeste', 'moto-antiga');
   done.day.closedAtHome = null;
   const s2 = done.storage;
-  closeShiftAtHome(done.session, capture(done, hour), nextWorkday(0).index);
+  closeShiftAtHome(done.session, atHome(done, hour), nextWorkday(0).index, { vehicleStopped: true });
   const st2 = new CareerStore(s2);
   const closed = st2.read('personagem-oeste').save;
   const paid = closed.profile.balanceCents;
@@ -398,7 +403,7 @@ test('B1-01 F6 AC-13/17/26: encerramento só depois de tudo resolvido E de volta
     if (i % 997 === 0 || (hour > 21 && hour < 21.01)) {
       assert.equal(closureState(g.day), 'operacoes_pendentes');
       assert.equal(homeClosureCheck(g.day, home, atDoor, parked).ok, false, `não encerra com pendências (${hour.toFixed(2)}h)`);
-      assert.throws(() => closeShiftAtHome(g.session, capture(g, hour), 1), /pendências/);
+      assert.throws(() => closeShiftAtHome(g.session, atHome(g, hour), 1, { vehicleStopped: true }), /pendências/);
       checkpoint(g, hour);
       assert.throws(() => new CareerStore(storage).setActiveCareer('personagem-sul'), /troca de carreira só após finalizar/, 'troca bloqueada durante o expediente (AC-17)');
     }
@@ -418,14 +423,23 @@ test('B1-01 F6 AC-13/17/26: encerramento só depois de tudo resolvido E de volta
   assert.equal(homeClosureCheck(g.day, home, { ...alien.door, riding: false }, { ...alien.stop, stopped: true }).ok, false, 'casa de outro personagem não serve');
   assert.ok(homeClosureCheck(g.day, home, atDoor, parked).ok);
   const nextIndex = nextWorkday(0).index;
-  const closed = closeShiftAtHome(g.session, capture(g, hour), nextIndex);
+  // Reinforcement (audit 6916312263): the domain service itself refuses a remote closing.
+  const openBytes = storage.getItem(saveKey(careerId));
+  const away = capture(g, hour);
+  assert.throws(() => closeShiftAtHome(g.session, away, nextIndex, { vehicleStopped: true }), /própria casa: Vá até a porta/, 'serviço chamado fora de casa (na base) é recusado');
+  assert.throws(() => closeShiftAtHome(g.session, { ...atHome(g, hour), player: { ...atHome(g, hour).player, walker: { ...alien.door, yaw: 0 }, vehicle: { ...alien.stop, yaw: 0 } } }, nextIndex, { vehicleStopped: true }), /própria casa/, 'na casa de outro personagem também');
+  assert.throws(() => closeShiftAtHome(g.session, { ...atHome(g, hour), player: { ...atHome(g, hour).player, mode: 'riding' } }, nextIndex, { vehicleStopped: true }), /desça/, 'montado no veículo');
+  assert.throws(() => closeShiftAtHome(g.session, atHome(g, hour), nextIndex, { vehicleStopped: false }), /veículo/, 'veículo em movimento');
+  assert.throws(() => closeShiftAtHome(g.session, { ...atHome(g, hour), player: { ...atHome(g, hour).player, vehicle: { x: home.stop.x + 200, z: home.stop.z, yaw: 0 } } }, nextIndex, { vehicleStopped: true }), /veículo/, 'veículo longe de casa');
+  assert.equal(storage.getItem(saveKey(careerId)), openBytes, 'recusas não gravam nada');
+  const closed = closeShiftAtHome(g.session, atHome(g, hour), nextIndex, { vehicleStopped: true });
   g.day.closedAtHome = hour;
   assert.equal(closureState(g.day), 'expediente_encerrado');
   assert.equal(closed.shift, null); assert.equal(closed.profile.activeShiftId, null); assert.equal(closed.profile.calendarIndex, nextIndex);
   const sum = closed.profile.lastClosedShift!;
   assert.equal(sum.shiftId, `${careerId}/dia-0`); assert.equal(sum.delivered + sum.returned, g.day.load('jogador').length);
   assert.equal(sum.earnedCents, closed.profile.balanceCents);
-  assert.throws(() => closeShiftAtHome(g.session, capture(g, hour), nextIndex), /não retrocede/, 'não encerra duas vezes nem avança o dia de novo');
+  assert.throws(() => closeShiftAtHome(g.session, atHome(g, hour), nextIndex, { vehicleStopped: true }), /já encerrado|não retrocede/, 'não encerra duas vezes nem avança o dia de novo');
   for (const [c, main, prev] of others) { assert.equal(storage.getItem(saveKey(c as CareerId)), main, `${c} intacto`); assert.equal(storage.getItem(previousKey(c as CareerId)), prev); }
   new CareerStore(storage).setActiveCareer('personagem-sul');
   assert.equal(new CareerStore(storage).activeCareer(), 'personagem-sul', 'troca liberada depois do encerramento válido');

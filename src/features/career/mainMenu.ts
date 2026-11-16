@@ -229,6 +229,10 @@ export function runMainMenu(doc: Document, initial: MenuModel, actions: MenuActi
       const rows = q<HTMLElement>('#saves-rows'); rows.replaceChildren();
       const msg = q<HTMLElement>('#saves-message'); msg.textContent = message ?? ''; msg.hidden = !message;
       const confirmBox = q<HTMLElement>('#saves-confirm'); confirmBox.hidden = true; confirmBox.replaceChildren();
+      const working = model.cards.find((x) => x.saved && x.activeShiftId !== null) ?? null;
+      const lockLine = q<HTMLElement>('#saves-shift-lock');
+      lockLine.textContent = working ? `Expediente aberto de ${working.name}: importar e apagar saves fica bloqueado para TODOS os personagens até encerrá-lo em casa (exportar carreiras fechadas continua possível).` : '';
+      lockLine.hidden = !working;
       for (const c of model.cards) {
         const row = el(doc, 'div', 'save-row'); row.dataset.career = c.careerId;
         const status = c.problem && !c.saved ? `Save ilegível: ${c.problem}` : c.saved ? `${c.source === 'anterior' ? 'Cópia anterior utilizável' : 'Carreira salva'} · ${c.dayLabel} · checkpoint ${c.checkpoint}${c.balanceCents !== null ? ` · saldo ${money2(c.balanceCents)}` : ''}${c.activeShiftId ? ' · expediente aberto' : ''}` : c.source === 'legado' ? `Calendário antigo (Oeste) · ${c.dayLabel}` : 'Sem save';
@@ -236,9 +240,11 @@ export function runMainMenu(doc: Document, initial: MenuModel, actions: MenuActi
         const btns = el(doc, 'span', 'save-actions');
         const mk = (label: string, act: string, disabled: string | null) => { const b = el(doc, 'button', undefined, label); b.type = 'button'; b.dataset.save = act; b.disabled = disabled !== null || !writable() || !store; if (disabled) b.title = disabled; btns.append(b); return b; };
         const open = c.activeShiftId ? 'Expediente aberto: termine-o antes' : null;
+        // F6 audit fix (block 2): while ANY career works, no save of any character changes.
+        const mutate = working ? `Expediente aberto de ${working.name}: importar e apagar só depois de encerrá-lo em casa` : open;
         const exp = mk('Exportar backup', 'exportar', !c.saved ? 'Sem save gravado' : open);
-        const imp = mk('Importar backup', 'importar', open);
-        const del = mk('Apagar carreira', 'apagar', !c.saved && !c.problem && c.source !== 'legado' ? 'Sem save gravado' : open);
+        const imp = mk('Importar backup', 'importar', mutate);
+        const del = mk('Apagar carreira', 'apagar', !c.saved && !c.problem && c.source !== 'legado' ? 'Sem save gravado' : mutate);
         exp.onclick = () => { try { const text = store!.exportBackup(c.careerId); download(`brejo-alegre-${c.careerId}-checkpoint-${c.checkpoint}.json`, text); showSaves(`Backup de ${c.name} exportado (checkpoint ${c.checkpoint}).`); } catch (e) { showSaves(`Backup NÃO exportado: ${(e as Error).message}`); } };
         imp.onclick = () => {
           const input = q<HTMLInputElement>('#saves-file'); input.value = '';

@@ -79,21 +79,58 @@ export class CareerStore {
     return save;
   }
 
-  /** B1-01 F6: lineage → highest confirmed checkpoint (missing or unreadable = none known). */
+  /**
+   * B1-01 F6: lineage → highest confirmed checkpoint. Absent key = none known yet. A key that
+   * exists but cannot be read is NOT "none known" (that would let an old backup in): it throws.
+   */
   marks(careerId: CareerId): Readonly<Record<string, number>> {
-    try {
-      const raw = this.storage.getItem(marksKey(careerId));
-      const o = raw === null ? {} : JSON.parse(raw) as unknown;
-      if (typeof o !== 'object' || o === null || Array.isArray(o)) return {};
-      return Object.fromEntries(Object.entries(o as Record<string, unknown>).filter(([, v]) => Number.isSafeInteger(v) && (v as number) >= 0)) as Record<string, number>;
-    } catch { return {}; }
+    const raw = this.storage.getItem(marksKey(careerId));
+    if (raw === null) return {};
+    let o: unknown;
+    try { o = JSON.parse(raw); } catch { throw new SaveError(`Marcas anti-reversão de ${CHARACTERS[careerId].name} ilegíveis`); }
+    if (typeof o !== 'object' || o === null || Array.isArray(o) || !Object.values(o as Record<string, unknown>).every((v) => Number.isSafeInteger(v) && (v as number) >= 0)) throw new SaveError(`Marcas anti-reversão de ${CHARACTERS[careerId].name} ilegíveis`);
+    return o as Record<string, number>;
   }
-  private mark(save: CareerSave): void {
-    const m = { ...this.marks(save.careerId) };
-    const lineage = save.profile.lineageId;
-    if ((m[lineage] ?? -1) >= save.checkpointSequence) return;
+  /**
+   * F6 audit fix (comment 6916312263, block 1): the anti-rollback mark of `save` is written — and
+   * read back — BEFORE the save is confirmed. Any failure (quota, unreadable marks, read-back
+   * mismatch) is a failed checkpoint: nothing claims a protected save that is not protected.
+   * Returns how to undo the mark if the save write itself then fails (best effort: a mark left
+   * higher only makes restores MORE conservative, never less).
+   */
+  private persistMark(save: CareerSave): () => void {
+    const id = save.careerId; const lineage = save.profile.lineageId;
+    const m = { ...this.marks(id) };
+    if ((m[lineage] ?? -1) >= save.checkpointSequence) return () => {};
+    const before = this.storage.getItem(marksKey(id));
     m[lineage] = save.checkpointSequence;
-    try { this.storage.setItem(marksKey(save.careerId), canonicalJson(m)); } catch { /* best effort: the save itself still carries its sequence */ }
+    try { this.storage.setItem(marksKey(id), canonicalJson(m)); }
+    catch (e) { throw new SaveError(`Falha ao gravar a marca anti-reversão de ${CHARACTERS[id].name}: ${(e as Error).message} — checkpoint NÃO gravado`); }
+    if ((this.marks(id)[lineage] ?? -1) < save.checkpointSequence) throw new SaveError(`Marca anti-reversão de ${CHARACTERS[id].name} não confirmada — checkpoint NÃO gravado`);
+    return () => { try { if (before === null) this.storage.removeItem(marksKey(id)); else this.storage.setItem(marksKey(id), before); } catch { /* stays higher: conservative */ } };
+  }
+  /** Highest checkpoint of `lineage` known here: marks AND the saves still present. */
+  private protectedFloor(careerId: CareerId, lineage: string): number {
+    let floor = this.marks(careerId)[lineage] ?? -1;
+    for (const k of [saveKey(careerId), previousKey(careerId)]) {
+      try { const s = this.parseKey(k, careerId); if (s.profile.lineageId === lineage) floor = Math.max(floor, s.checkpointSequence); } catch { /* absent/unreadable */ }
+    }
+    return floor;
+  }
+  /**
+   * F6 audit fix (block 2): the open shift of ANY career (decision 8: only one career works at a
+   * time). While it exists no save of any character may be imported or deleted.
+   */
+  openShift(): { careerId: CareerId; shiftId: string } | null {
+    for (const id of CAREER_IDS) {
+      const r = this.read(id);
+      if (r.persisted && r.save.profile.activeShiftId !== null) return { careerId: id, shiftId: r.save.profile.activeShiftId };
+    }
+    return null;
+  }
+  private refuseDuringShift(what: string): void {
+    const open = this.openShift();
+    if (open) throw new SaveError(`Expediente ${open.shiftId} de ${CHARACTERS[open.careerId].name} aberto: ${what} só depois de encerrá-lo em casa`);
   }
   legacyDismissed(): boolean { return this.storage.getItem(LEGACY_DISMISSED_KEY) === '1'; }
 
@@ -150,6 +187,8 @@ export class CareerStore {
     const text = canonicalJson(valid);
     const oldPrevious = this.storage.getItem(previousKey(id));
     let promoted = false;
+    // Block 1: the anti-rollback mark first; if it cannot be made durable, nothing is written.
+    const undoMark = this.persistMark(valid);
     try {
       const current = this.storage.getItem(saveKey(id));
       if (current !== null) {
@@ -164,10 +203,10 @@ export class CareerStore {
       if (promoted) {
         try { if (oldPrevious === null) this.storage.removeItem(previousKey(id)); else this.storage.setItem(previousKey(id), oldPrevious); } catch { /* best effort */ }
       }
+      undoMark();
       throw new SaveError(`Falha ao gravar o save de ${id}: ${(e as Error).message}`);
     }
     this.parsed.set(saveKey(id), { text, save: valid });
-    this.mark(valid);
     return valid;
   }
 
@@ -214,6 +253,7 @@ export class CareerStore {
    * - the current save is kept as the previous copy (`…:anterior`) by the write itself.
    */
   exportBackup(careerId: CareerId): string {
+    // Read-only: exporting a CLOSED career stays possible while another one works (nothing changes).
     const r = this.read(careerId);
     if (!r.persisted) throw new SaveError(`${CHARACTERS[careerId].name} não tem save gravado para exportar`);
     if (r.save.profile.activeShiftId !== null) throw new SaveError('Backup só entre expedientes: termine o expediente aberto antes de exportar');
@@ -226,10 +266,11 @@ export class CareerStore {
     try { data = JSON.parse(text); } catch { throw new SaveError('Backup não é JSON válido'); }
     const backup = parseSave(data, expected);
     const id = backup.careerId;
+    this.refuseDuringShift('importar backups');
     if (backup.profile.activeShiftId !== null || backup.shift !== null) throw new SaveError('Backup com expediente aberto não é aceito: exporte entre expedientes');
     const current = this.read(id);
     if (current.persisted && current.save.profile.activeShiftId !== null) throw new SaveError('Não restaurar backup sobre expediente aberto');
-    const seen = this.marks(id)[backup.profile.lineageId] ?? -1;
+    const seen = this.protectedFloor(id, backup.profile.lineageId);
     if (backup.checkpointSequence < seen) throw new SaveError(`Backup desatualizado: esta carreira já chegou ao checkpoint ${seen} neste navegador (o backup é do ${backup.checkpointSequence}); restaurá-lo desfaria operações e pagamentos já confirmados`);
     const sameLineage = current.persisted && current.save.profile.lineageId === backup.profile.lineageId;
     if (sameLineage && backup.checkpointSequence <= current.save.checkpointSequence) throw new SaveError(backup.checkpointSequence === current.save.checkpointSequence ? 'Este backup já é o save atual (mesmo checkpoint): nada a restaurar' : `Backup desatualizado: o save atual está no checkpoint ${current.save.checkpointSequence}`);
@@ -261,7 +302,18 @@ export class CareerStore {
     if (confirmName !== name) throw new SaveError(`Confirmação inválida: digite ${name} para apagar`);
     const r = this.read(careerId);
     if (r.persisted && r.save.profile.activeShiftId !== null) throw new SaveError(`Expediente ${r.save.profile.activeShiftId} aberto: termine-o antes de apagar a carreira`);
+    this.refuseDuringShift('apagar carreiras');
     const keys = [previousKey(careerId), saveKey(careerId)];
+    // Block 1: before anything is removed, the marks must durably cover every readable copy
+    // (a save written before marks existed, or whose mark was lost, is protected now or not deleted).
+    for (const k of keys) {
+      let copy: CareerSave | null = null;
+      try { copy = this.parseKey(k, careerId); } catch { /* absent/unreadable: nothing to protect */ }
+      if (copy) {
+        try { this.persistMark(copy); }
+        catch (e) { throw new SaveError(`Carreira de ${name} NÃO apagada: ${(e as Error).message.replace(/ — checkpoint NÃO gravado$/, '')}`); }
+      }
+    }
     const before = keys.map((k) => this.storage.getItem(k));
     try {
       if (careerId === DEFAULT_CAREER && readLegacyCalendar(this.storage) !== null) this.storage.setItem(LEGACY_DISMISSED_KEY, '1');

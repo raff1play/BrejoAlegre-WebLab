@@ -526,8 +526,9 @@ async function persistenceMoto(browser){
  // pressed with a DOM click. Everything they do is the same handler.)
  await tab2.evaluate(()=>document.querySelector('[data-menu="tentar-novamente"]').click());
  await tab2.waitForFunction(()=>document.querySelector('#menu-lock').hidden,null,{timeout:15000}).catch(()=>{});
- const freed=await tab2.evaluate(()=>document.querySelector('#menu-lock').hidden&&[...document.querySelectorAll('#saves-rows [data-save="importar"]')].some(b=>!b.disabled));
- check('B1-01 F6 (two tabs): once the game tab is closed, "Tentar novamente" takes the lock — the menu is writable again',freed);
+ const freed=await tab2.evaluate(()=>({tab:document.querySelector('#menu-lock').hidden,shift:document.querySelector('#saves-shift-lock').textContent,why:document.querySelector('#saves-rows [data-save="importar"]').title}));
+ // Writable again; what still blocks import/delete is Lia's OPEN shift (audit block 2), no longer the other tab.
+ check('B1-01 F6 (two tabs): once the game tab is closed, "Tentar novamente" takes the lock — only Lia\'s open shift still blocks import/delete',freed.tab&&/Expediente aberto de Lia/.test(freed.shift)&&/Expediente aberto de Lia/.test(freed.why),freed);
  await tab2.evaluate(()=>{document.querySelector('#menu-saves [data-menu="voltar-opcoes"]').click();document.querySelector('#menu-options [data-menu="voltar-inicio"]').click();});
  await tab2.waitForSelector('#menu-home:not([hidden])',{timeout:10000});
  await tab2.evaluate(()=>document.querySelector('[data-menu-home="continuar"]').click());
@@ -608,6 +609,27 @@ async function savesMenu(browser){
  const back=await page.evaluate(()=>JSON.parse(localStorage.getItem('brejo-b1:carreira:personagem-norte')));
  check('B1-01 F6 AC-21: Rosa\'s latest export restores her career (day 3, checkpoint 1) into the freed slot',back.profile.calendarIndex===3&&back.checkpointSequence===1&&back.profile.lineageId==='personagem-norte:e2e-rosa',back.profile);
  await ctx.close();
+ // ---- F6 audit (block 2): with Lia's shift OPEN, no save of ANY character can be imported or deleted.
+ const lctx=await browser.newContext({viewport:{width:780,height:360},isMobile:true,hasTouch:true,deviceScaleFactor:1});
+ await lctx.addInitScript(seed=>{if(!sessionStorage.getItem('b1-saves-open')){sessionStorage.setItem('b1-saves-open','1');localStorage.clear();for(const [k,v] of Object.entries(seed))localStorage.setItem(k,v);}},fx.withOpenLia);
+ const lp=await lctx.newPage();lp.on('pageerror',e=>errors.push(e.message));
+ await lp.goto(url+'?gfx=mobile&trafego=0',{waitUntil:'domcontentloaded',timeout:120000});
+ await lp.waitForSelector('#menu-home:not([hidden])',{timeout:120000});
+ const lall=()=>lp.evaluate(()=>JSON.stringify(Object.fromEntries(Object.keys(localStorage).filter(k=>k.startsWith('brejo-b1:')).sort().map(k=>[k,localStorage.getItem(k)]))));
+ await lp.locator('[data-menu-home="opcoes"]').tap();await lp.locator('[data-menu="gerenciar-saves"]').tap();
+ await lp.waitForSelector('#menu-saves:not([hidden])');
+ const lstart=await lall();
+ const rows=await lp.locator('.save-row').evaluateAll(rs=>rs.map(r=>({id:r.dataset.career,imp:r.querySelector('[data-save="importar"]').disabled,del:r.querySelector('[data-save="apagar"]').disabled,exp:r.querySelector('[data-save="exportar"]').disabled,why:r.querySelector('[data-save="importar"]').title})));
+ const banner=await lp.locator('#saves-shift-lock').textContent();
+ check('B1-01 F6 audit (block 2): with Lia\'s shift open, "Importar" and "Apagar" are disabled on ALL four rows, with the reason; a clear banner explains it',rows.length===4&&rows.every(r=>r.imp&&r.del&&/Expediente aberto de Lia/.test(r.why))&&/Expediente aberto de Lia/.test(banner)&&/TODOS/.test(banner),{rows,banner});
+ check('B1-01 F6 audit (block 2): exporting a CLOSED career (read-only) stays possible; Lia\'s own export waits for the closing',rows.find(r=>r.id==='personagem-norte').exp===false&&rows.find(r=>r.id==='personagem-oeste').exp===true,rows);
+ // Forcing the click on a disabled button does nothing (and the domain refuses anyway: unit tests).
+ await lp.evaluate(()=>{for(const b of document.querySelectorAll('#saves-rows [data-save="apagar"],#saves-rows [data-save="importar"]')){b.disabled=false;}});
+ await lp.locator('.save-row[data-career="personagem-norte"] [data-save="apagar"]').tap();
+ await lp.locator('[data-save="confirmar-apagar"]').tap();await delay(300);
+ const refused=await lp.locator('#saves-message').textContent();
+ check('B1-01 F6 audit (block 2): even with the button forced on, deleting Rosa during Lia\'s shift is refused by the domain and no byte changes',/Nada foi apagado/.test(refused)&&/Expediente personagem-oeste\/dia-0 de Lia aberto/.test(refused)&&await lall()===lstart,refused);
+ await lctx.close();
 }
 /** B1-01 F3.5 (AC-17): a career with an open shift locks the others; an invalid save shows its error. */
 async function lockedMenu(browser){
