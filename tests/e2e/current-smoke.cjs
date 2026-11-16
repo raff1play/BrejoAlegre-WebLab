@@ -528,10 +528,13 @@ async function carLogistics(browser){
  check('B1-01 F4 AC-08: collected parcels are EM_TRANSPORTE in place "porta-malas", custody of the player, history counter → hands → boot',s.delivery.parcels.filter(p=>mine.includes(p.id)).every(p=>p.place==='porta-malas'&&p.state==='EM_TRANSPORTE'&&p.holder==='jogador'&&p.history.map(e=>e.operation).join('>').includes('estado:COLETADO>transferência:maos>estado:EM_TRANSPORTE>transferência:porta-malas')));
  for(const [w,h] of [[780,360],[915,412]]){await page.setViewportSize({width:w,height:h});await delay(300);assertLayout(`car logistics loaded ${w}×${h}`,await page.evaluate(layout));}
  await page.setViewportSize({width:780,height:360});
- check('B1-01 F4: objective sends the loaded car to a car bay of the base',/vaga de carro/.test((await snap()).delivery.objective.title),(await snap()).delivery.objective);
+ const away=(await snap()).delivery.objective;
+ check('B1-01 F4: out on the street the objective sends the loaded car back through the base entrance (porta-malas count)',/Retornar pela entrada da base/.test(away.title)&&/no porta-malas/.test(away.detail),away);
  // ---------------------------------------------------------------- AC-09: car bay → hands → receiving desk
  const bays=await page.evaluate(()=>window.__debug.carBays());
- await page.evaluate(b=>window.__debug.parkAt(b.x,b.z,b.yaw),bays[0]);await delay(300);
+ await page.evaluate(b=>window.__debug.parkAt(b.x,b.z,b.yaw),bays[0]);await delay(400);
+ const inBase=(await snap()).delivery.objective;
+ check('B1-01 F4: inside the base the objective points to the car bays and the tailgate unloading',/vaga de carro/.test(inBase.title)&&/porta-malas/.test(inBase.detail),inBase);
  await toBoot();await openBoot();
  const receiving=(await page.evaluate(()=>window.__debug.depotPlan())).spots.receiving;
  let trips=0;
