@@ -66,7 +66,20 @@ export class CareerStore {
     try { return { save: this.parseKey(saveKey(careerId), careerId), source: 'principal', problem, persisted: true }; }
     catch (e) { if (this.storage.getItem(saveKey(careerId)) !== null) problem = `Save principal rejeitado: ${(e as Error).message}`; }
     try { return { save: this.parseKey(previousKey(careerId), careerId), source: 'anterior', problem, persisted: true }; }
-    catch { /* sem cópia anterior válida */ }
+    catch (e) {
+      // F3.5.1 (auditoria 6903966725): a previous copy that exists but cannot be read is DATA, not
+      // an empty slot. It is reported (never ignored, never deleted) so nobody starts over it.
+      if (this.storage.getItem(previousKey(careerId)) !== null) {
+        const why = `Cópia anterior rejeitada: ${(e as Error).message}`;
+        problem = problem ? `${problem} · ${why}` : why;
+      }
+    }
+    // Unreadable data and no valid copy: a fresh profile is returned ONLY as a placeholder, flagged
+    // with the problem (callers must refuse to write it: menu, enterCareer). The legacy calendar is
+    // not used to "migrate" over unreadable data either.
+    if (problem !== null) {
+      return { save: sealSave({ careerId, checkpointSequence: 0, profile: defaultProfile(careerId), shift: null }), source: 'novo', problem, persisted: false };
+    }
     const legacy = careerId === DEFAULT_CAREER ? readLegacyCalendar(this.storage) : null;
     const save = sealSave({ careerId, checkpointSequence: 0, profile: defaultProfile(careerId, legacy ?? 0), shift: null });
     return { save, source: legacy === null ? 'novo' : 'legado', problem, persisted: false };
