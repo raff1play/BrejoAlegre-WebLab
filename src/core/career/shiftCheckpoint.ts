@@ -136,6 +136,15 @@ export class ShiftCheckpointer {
     }
   }
 
+  /**
+   * The extra attempt when the page is hidden/closed (decision 11: tried, never relied upon).
+   * `visibilitychange` and `pagehide` usually come together: one write is enough.
+   */
+  onExit(): boolean {
+    if (!this.enabled || this.now() - this.lastWrite < 1000) return false;
+    return this.checkpoint('saída do navegador');
+  }
+
   /** After a player interaction: write at once if custody (or the routine) changed. */
   afterAction(reason: string): boolean {
     if (!this.enabled) return false;

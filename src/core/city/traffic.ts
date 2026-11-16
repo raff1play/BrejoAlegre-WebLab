@@ -45,6 +45,11 @@ export type TrafficContext = Readonly<{
   time: number;
   player: Obstacle;
   obstacles?:readonly Obstacle[];
+  /**
+   * B1-01 F6 (AC-20): bodies already standing in the world (restored couriers' bikes, the player's
+   * parked vehicle) — a new street vehicle never spawns on top of them.
+   */
+  avoid?:readonly Obstacle[];
   /** True while a pedestrian is on the crosswalk of `road` at `node`. */
   crosswalkBusy: (node: string, road: string) => boolean;
   /** Spawning target for general traffic (0–1 of capacity) and logistics on/off. */
@@ -69,6 +74,8 @@ const LOOKAHEAD = 55;
 
 export type TrafficOptions = Readonly<{ capacity: number; seed?: number; buses?: number; vans?: number; trucks?: number }>;
 
+/** B1-01 F6: free space kept around `avoid` bodies when a vehicle is spawned (metres). */
+export const SPAWN_CLEARANCE = 8;
 export class Traffic {
   readonly vehicles: Vehicle[] = [];
   private readonly random: () => number;
@@ -152,6 +159,7 @@ export class Traffic {
       const s = useExit ? 4 : 6 + this.random() * (lane.path.length - 12);
       const p = pathPose(lane.path, s);
       if (!useExit && Math.hypot(p.x - ctx.player.x, p.z - ctx.player.z) < minDistance) continue;
+      if (ctx.avoid?.some((o) => Math.hypot(p.x - o.x, p.z - o.z) < o.radius + SPAWN_CLEARANCE)) continue;
       if (!this.laneFree(lane.index, s, 14)) continue;
       return this.make(kind, plan, lane.index, s);
     }

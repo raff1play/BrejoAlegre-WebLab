@@ -117,9 +117,29 @@
             <span>Toque: analógico flutuante no canto esquerdo · ▲ acelerar · ▼ freio/ré · botão amarelo = ação (montar, descer, entrar, porta-malas, retirar, entregar) · ☰ pausa e logística · toque no mapa para ampliar</span>
             <span>Teclado: WASD/setas · F ação · Q/E girar câmera · Z/X zoom · M mapa · P pausa</span>
           </div>
-          <p class="option-note" data-indisponivel="gerenciar-saves">Gerenciar saves (apagar carreira, exportar e importar backup): indisponível — previsto para a etapa F6.</p>
+          <button type="button" class="option" data-menu="gerenciar-saves">Gerenciar saves<small>exportar/importar backup, apagar carreira</small></button>
         </div>
       </section>
+      <section id="menu-saves" class="menu-options menu-saves" hidden aria-labelledby="menu-saves-title">
+        <div class="menu-list-head"><button type="button" class="menu-back" data-menu="voltar-opcoes">Voltar</button><h2 id="menu-saves-title">Gerenciar saves</h2></div>
+        <p id="saves-message" class="menu-reason" role="status" hidden></p>
+        <div id="saves-confirm" class="saves-confirm" role="alertdialog" hidden></div>
+        <div id="saves-rows" class="saves-rows"></div>
+        <p class="option-note">Backup = arquivo do save de UMA carreira (versão, checkpoint e soma de verificação). Só entre expedientes; um backup mais antigo que o progresso já gravado neste navegador é recusado.</p>
+        <input id="saves-file" type="file" accept="application/json,.json" hidden>
+      </section>
+      <div id="menu-lock" class="menu-lock" role="alert" hidden><span>Jogo aberto em outra aba deste navegador: este menu está somente para leitura.</span><button type="button" data-menu="tentar-novamente">Tentar novamente</button></div>
+    </div>
+    <div id="shift-end" class="pause shift-end" role="dialog" aria-modal="true" aria-labelledby="shift-end-title" hidden>
+      <div class="pause-card">
+        <h2 id="shift-end-title">Expediente encerrado em casa</h2>
+        <p id="shift-end-summary" class="about-text"></p>
+        <p class="about-text">O dia foi salvo. No menu principal você continua no próximo dia útil ou troca de carreira.</p>
+        <div class="pause-actions">
+          <button type="button" class="primary" data-shift-end="menu">Ir ao menu principal</button>
+          <button type="button" data-shift-end="ficar">Continuar na cidade</button>
+        </div>
+      </div>
     </div>
     <div id="fatal" class="fatal" role="alert" hidden></div>
     <div class="portrait-warning" role="group" aria-label="Iniciar jogo na horizontal">

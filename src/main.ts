@@ -1,16 +1,21 @@
 import { LogisticsPanel } from './features/hud/logisticsPanel';
 import { calendarDay,nextWorkday } from './core/delivery/operatingCalendar';
-import { commitNextDay, type CareerBoot } from './core/career/careerBoot';
+import type { CareerBoot } from './core/career/careerBoot';
 import { enterCareer, menuModel } from './core/career/careerMenu';
 import { runMainMenu } from './features/career/mainMenu';
 import { careerLook } from './features/career/characterPresets';
-import { browserStorage } from './core/career/careerStore';
+import { CareerStore, browserStorage } from './core/career/careerStore';
+import { acquireGameLock, type GameLock } from './features/career/tabLock';
+import { ShiftCheckpointer, closeShiftAtHome, closureState, homeClosureCheck, restoreShift, type ShiftCapture } from './core/career/shiftCheckpoint';
+import { formatCents, ledgerTotal } from './core/career/ledger';
+import { CHARACTERS, CAREER_IDS, careerHome } from './core/career/careers';
 import { isVehicleKind, type VehicleKind } from './core/career/careers';
 import { CAR, carFits, carToWorld, isCarStopped } from './core/carPhysics';
 import { PlayerCar } from './features/driving/playerCar';
 import { CarCargoView } from './features/driving/carCargo';
 import { CarTrunk, type Arrangement } from './core/delivery/carTrunk';
-import { canonicalJson, captureParcels, emptyShift, parseSave, sealSave, shiftIdOf, vehicleIdOf } from './core/career/snapshot';
+import { canonicalJson, parseSave, sealSave, vehicleIdOf } from './core/career/snapshot';
+import { captureShift } from './core/career/shiftCheckpoint';
 import { carVehicle, motoVehicle, type PlayerVehicle } from './features/driving/playerVehicle';
 import { askVehicle } from './features/career/vehicleChoice';
 import { DEPOT_SPOTS, HANDS_MAX, depotVisitAllowed } from './core/delivery/workday';
@@ -52,7 +57,7 @@ import { Minimap } from './features/hud/minimap';
 import { DeliveryGame, trunkSpot, type BikeSpot } from './features/delivery/deliveryGame';
 
 /** Composition root: wires input → simulation → presentation. Game rules live in core/ and features/. */
-type BrowserCareer = { career: CareerBoot; storage: ReturnType<typeof browserStorage>; vehicle: VehicleKind; note: string | null };
+type BrowserCareer = { career: CareerBoot; storage: ReturnType<typeof browserStorage>; vehicle: VehicleKind; note: string | null; lock: GameLock };
 
 /**
  * B1-01 F3.5: the main menu comes FIRST, before any engine, city, traffic or clock exists. Reading
@@ -65,6 +70,8 @@ async function bootBrowserCareer(): Promise<BrowserCareer> {
   const params = new URLSearchParams(window.location.search);
   const devTime = import.meta.env.DEV || params.get('devtime') === '1';
   const storage = browserStorage();
+  // B1-01 F6: one game tab writes the saves; a second tab opens the menu read-only.
+  const lock = await acquireGameLock(window, storage.storage, storage.durable);
   let entered: CareerBoot | null = null;
   const requested = params.get('veiculo');
   await runMainMenu(document, menuModel(storage.storage, storage.durable), {
@@ -72,12 +79,14 @@ async function bootBrowserCareer(): Promise<BrowserCareer> {
     enter: (careerId, choice) => { entered = enterCareer(storage.storage, careerId, choice); },
     refresh: () => menuModel(storage.storage, storage.durable),
     graphics: { choice: graphicsChoice, save: saveGraphicsPreference },
+    lock,
+    saves: new CareerStore(storage.storage),
   });
   const career = entered as CareerBoot | null;
   if (!career) throw new Error('Carreira não carregada');
   const vehicle = career.session.profile.vehicle?.kind;
   if (!vehicle) throw new Error('Carreira sem veículo gravado');
-  return { career, storage, vehicle, note: storage.durable ? null : 'Armazenamento indisponível: progresso desta sessão não será salvo' };
+  return { career, storage, vehicle, lock, note: storage.durable ? null : 'Armazenamento indisponível: progresso desta sessão não será salvo' };
 }
 
 function start(canvas: HTMLCanvasElement, boot: BrowserCareer): void {
@@ -105,7 +114,15 @@ function start(canvas: HTMLCanvasElement, boot: BrowserCareer): void {
     }
     return { x: bay.x, z: bay.z, yaw: depotYaw(0) };
   };
-  const SPAWN = boot.vehicle === 'carro-antigo' ? carSpawn() : { x: bay.x, z: bay.z, yaw: depotYaw(0) };
+  // B1-01 F6: an open shift with a saved world resumes at its last safe point (vehicle pose included).
+  const openShift = boot.career.session.save.shift;
+  const savedWorld = openShift?.world ?? null;
+  const savedPose = savedWorld?.player.vehicle ?? null;
+  const poseFits = (p: { x: number; z: number; yaw: number }): boolean => boot.vehicle === 'carro-antigo'
+    ? carFits(world.guard, p.x, p.z, p.yaw)
+    : world.guard(p.x + Math.sin(p.yaw) * MOTO.bodyOffset, p.z + Math.cos(p.yaw) * MOTO.bodyOffset, MOTO.bodyRadius) && world.guard(p.x - Math.sin(p.yaw) * MOTO.bodyOffset, p.z - Math.cos(p.yaw) * MOTO.bodyOffset, MOTO.bodyRadius);
+  const restoredPoseOk = savedPose !== null && poseFits(savedPose);
+  const SPAWN = restoredPoseOk ? { ...savedPose! } : boot.vehicle === 'carro-antigo' ? carSpawn() : { x: bay.x, z: bay.z, yaw: depotYaw(0) };
 
   // B1-01 F2: only the career's own vehicle exists in the world (no spare motorcycle beside a car).
   // B1-01 F3.5: the career's saved presets dress the player on the bike, on foot and in the car.
@@ -147,7 +164,9 @@ function start(canvas: HTMLCanvasElement, boot: BrowserCareer): void {
   const devTime = import.meta.env.DEV || params.get('devtime') === '1';
   const clock = new VirtualClock();
   const requestedHour = Number(params.get('hora'));
-  if (devTime && params.has('hora') && Number.isFinite(requestedHour)) clock.setHour(requestedHour);
+  if (devTime && params.has('hora') && Number.isFinite(requestedHour) && !openShift) clock.setHour(requestedHour);
+  // The shift clock never goes back (also for an open shift saved before its world existed).
+  if (openShift) clock.setShiftHour(openShift.shiftHour);
   let lighting = lightingAt(clock.hour);
   environment.applyLighting(lighting);
   let lightTimer = 0;
@@ -161,24 +180,34 @@ function start(canvas: HTMLCanvasElement, boot: BrowserCareer): void {
   if(!careerStorage.durable)console.warn('[carreira] armazenamento local indisponível: progresso não será persistido');
   const savedDay=career.calendarIndex;
   const queryDay=Number(params.get('dia'));
-  const dayIndex=import.meta.env.DEV&&params.has('seed')&&!params.has('dia')?undefined:
+  // B1-01 F6: an open shift is always resumed on ITS day (development ?dia/?seed are ignored then).
+  const dayIndex=openShift?openShift.calendarIndex:import.meta.env.DEV&&params.has('seed')&&!params.has('dia')?undefined:
    devTime&&params.has('dia')&&Number.isSafeInteger(queryDay)&&queryDay>=0&&queryDay<=36500?queryDay:savedDay;
+  /** Checkpoints only for the career's real day (a development day/seed override is never saved). */
+  const persistent=careerStorage.durable&&dayIndex===career.session.profile.calendarIndex;
   const day=dayIndex===undefined?null:calendarDay(dayIndex);
   /** Development only: a fixed overview camera for map comparisons (see __debug.view). */
   let freeView = false;
-  const delivery = new DeliveryGame(scene, world.materials, profile, environment.shadows, world.shutters, (x, z) => world.guard(x, z, 0.45), import.meta.env.DEV&&params.has('seed')?Number(params.get('seed')):undefined, import.meta.env.DEV && params.get('depotTest')==='partial'?3:2,dayIndex,career.roster);
+  const delivery = new DeliveryGame(scene, world.materials, profile, environment.shadows, world.shutters, (x, z) => world.guard(x, z, 0.45), !openShift&&import.meta.env.DEV&&params.has('seed')?Number(params.get('seed')):undefined, import.meta.env.DEV && params.get('depotTest')==='partial'?3:2,dayIndex,career.roster);
+  const resumed = openShift ? restoreShift(delivery.workday, openShift) : false;
+  if (resumed) delivery.restoreStores(clock.shiftHour);
+  /** B1-01 F6 (AC-20): the couriers' states right after the restore (before the world moves on). */
+  const resumedCouriers = resumed ? delivery.workday.couriers.map((c) => ({ id: c.id, state: c.state, bike: { ...c.bike } })) : null;
+  const home = careerHome(career.session.careerId);
+  delivery.workday.homeTarget = { x: home.door.x, z: home.door.z, label: home.street };
   let simTime = 0;
   // NPC vehicles are solid for the player; if one already overlaps (e.g. it was spawned there),
   // only the static world blocks so the player can always move away.
   let insideVehicle = false;
   const baseGuard: MotionGuard = (x, z, r) => world.guard(x, z, r) && (insideVehicle || !cityLife.blocks(x, z, r));
-  const logisticsPanel=new LogisticsPanel(document,delivery.workday,()=>clock.shiftHour,()=>{hud.setPaused(false);input.reset()},day,()=>{
-    if(delivery.workday.phase!=='CONCLUIDA')return;
-    const next=nextWorkday(dayIndex??savedDay);
-    try{commitNextDay(career.session,next.index);}catch(e){console.warn('[carreira] avanço de dia não gravado:',(e as Error).message);}
+  /** B1-01 F6: after the shift was closed at home, back to the main menu (next day or another career). */
+  const toMenu=():void=>{
     const url=new URL(window.location.href);
-    for(const key of ['seed','dia','hora','devtime','trafego'])url.searchParams.delete(key);
+    for(const key of ['seed','dia','hora','devtime','trafego','veiculo'])url.searchParams.delete(key);
     window.location.assign(url.toString());
+  };
+  const logisticsPanel=new LogisticsPanel(document,delivery.workday,()=>clock.shiftHour,()=>{hud.setPaused(false);input.reset()},day,()=>{
+    if(delivery.workday.closedAtHome!==null)toMenu();
   });
   const rideGuard: MotionGuard = (x, z, r) => baseGuard(x, z, r) && !delivery.doorBlocked(x, z, r, true, vehicle.view);
 
@@ -281,12 +310,58 @@ function start(canvas: HTMLCanvasElement, boot: BrowserCareer): void {
       },
     };
   };
+  /** B1-01 F6: what a checkpoint records of the running world right now. */
+  const captureNow = (): ShiftCapture => ({
+    day: delivery.workday, shiftHour: clock.shiftHour, vehicle: vehicle.kind,
+    player: { mode: mode === 'riding' ? 'riding' : 'walking', walker: { x: walker.state.x, z: walker.state.z, yaw: walker.state.yaw }, vehicle: { x: vehicle.view.x, z: vehicle.view.z, yaw: vehicle.view.yaw } },
+  });
+  const checkpoints = new ShiftCheckpointer(career.session, captureNow, { enabled: persistent });
+  let saveWarned = false;
+  checkpoints.onResult = (ok, st) => {
+    if (ok) { saveWarned = false; return; }
+    if (!saveWarned) { saveWarned = true; hud.toast(st.stale ? 'Save alterado por outra aba: este jogo não grava mais — recarregue' : `Checkpoint NÃO gravado (${st.error}) — nova tentativa em instantes`); }
+  };
+  if (resumed && openShift) checkpoints.resumedFrom(openShift, delivery.workday, career.session.save.checkpointSequence);
+  /**
+   * B1-01 F6 (contract C4): once every parcel of the four couriers is resolved, the shift is closed
+   * by a minimum interaction at the door of the career's OWN home, with the vehicle parked nearby
+   * (B1-09 expands it). Neither 21h nor the last delivery closes anything.
+   */
+  const homeJob = (here: { x: number; z: number; riding: boolean }) => {
+    const wd = delivery.workday;
+    if (here.riding || !wd.allResolved || wd.closedAtHome !== null) return null;
+    const other = CAREER_IDS.find((c) => c !== career.session.careerId && Math.hypot(careerHome(c).door.x - here.x, careerHome(c).door.z - here.z) < 2.4);
+    if (other) return { label: `Casa de ${CHARACTERS[other].name}: encerre na sua casa`, available: false, run: null };
+    if (Math.hypot(home.door.x - here.x, home.door.z - here.z) > 2.4) return null;
+    if (!persistent) return { label: 'Cenário de desenvolvimento: o expediente não é gravado', available: false, run: null };
+    const check = homeClosureCheck(wd, home, here, { x: vehicle.view.x, z: vehicle.view.z, stopped: vehicle.stopped() });
+    if (!check.ok) return { label: check.reason, available: false, run: null };
+    return { label: 'Encerrar o expediente em casa', available: true, run: () => {
+      try {
+        const saved = closeShiftAtHome(career.session, captureNow(), nextWorkday(career.session.profile.calendarIndex).index);
+        wd.closedAtHome = clock.shiftHour;
+        showShiftEnd(saved.profile.lastClosedShift!, saved.profile.balanceCents);
+        return 'Expediente encerrado e salvo — troca de carreira liberada';
+      } catch (e) { return `Expediente NÃO encerrado: ${(e as Error).message}`; }
+    } };
+  };
+  /** End-of-shift card: summary of the closed day and the way to the main menu. */
+  const showShiftEnd = (sum: { delivered: number; returned: number; earnedCents: number; payments: number }, balance: number): void => {
+    const box = document.querySelector<HTMLElement>('#shift-end');
+    if (!box) return;
+    box.querySelector<HTMLElement>('#shift-end-summary')!.textContent = `${sum.delivered} entregues · ${sum.returned} devolvidos e conferidos · ganhos do dia ${formatCents(sum.earnedCents)} (${sum.payments} lançamentos) · saldo ${formatCents(balance)}`;
+    box.hidden = false;
+    box.querySelector<HTMLButtonElement>('[data-shift-end="menu"]')!.onclick = toMenu;
+    box.querySelector<HTMLButtonElement>('[data-shift-end="ficar"]')!.onclick = () => { box.hidden = true; };
+  };
   /**
    * B1-01 F4: the car does the whole cycle through the SAME delivery domain as the motorcycle
    * (store counter, depot desks, sector dock, customer's gate); only its compartment differs (the
    * boot at the tailgate, above, instead of the top box).
    */
   const jobAt = (here: { x: number; z: number; riding: boolean }) => {
+    const atHome = homeJob(here);
+    if (atHome) return atHome;
     const atBoot = trunkJob(here);
     if (atBoot) return atBoot;
     return delivery.action(clock.shiftHour, here, bikeSpot());
@@ -319,6 +394,8 @@ function start(canvas: HTMLCanvasElement, boot: BrowserCareer): void {
     if (job?.available && job.run) {
       const msg = job.run();
       if (msg) hud.toast(msg);
+      // B1-01 F6 (decision 11): a custody action is checkpointed right away.
+      checkpoints.afterAction(job.label);
       // Top box: the lid opens and the rider reaches in; the hands change halfway through.
       if ('trunk' in job && job.trunk) { moto?.openTrunk(); walker.reachTrunk(); }
       // GFX-001C: every hand-over (counter, checker, customer's gate) plays the reach gesture.
@@ -329,7 +406,12 @@ function start(canvas: HTMLCanvasElement, boot: BrowserCareer): void {
     toggleMount();
   };
   const onAction = (action: Action): void => {
-    if (action === 'pause') { hud.setPaused(!hud.paused); input.reset(); return; }
+    if (action === 'pause') {
+      hud.setPaused(!hud.paused); input.reset();
+      // B1-01 F6 (decision 11): pausing writes a checkpoint.
+      if (hud.paused) checkpoints.checkpoint('pausa');
+      return;
+    }
     if (hud.paused && action !== 'graphics') return;
     if (action === 'mount') contextAction();
     else if (action === 'graphics') switchGraphicsProfile(profile);
@@ -342,6 +424,32 @@ function start(canvas: HTMLCanvasElement, boot: BrowserCareer): void {
   };
   const input = new GameInput(document, onAction);
 
+  // B1-01 F6: resume on foot where the checkpoint left the player (vehicle parked as it was).
+  if (resumed && savedWorld?.player.mode === 'walking') {
+    const out = vehicle.exit(baseGuard);
+    const w = savedWorld.player.walker;
+    const ok = world.guard(w.x, w.z, 0.3) && !vehicle.blocksPerson(w.x, w.z, 0.3);
+    const at = ok ? w : out.ok ? { x: out.x, z: out.z, yaw: vehicle.view.yaw } : { x: SPAWN.x + 2, z: SPAWN.z, yaw: SPAWN.yaw };
+    walker.place(at.x, at.z, at.yaw, ground(at.x, at.z));
+    walker.root.setEnabled(true);
+    mode = 'walking';
+  }
+  if (resumed) window.setTimeout(() => hud.toast(`Expediente retomado do último ponto seguro (checkpoint ${career.session.save.checkpointSequence}, ${clock.label}${clock.daysCrossed ? ' (+1)' : ''})${restoredPoseOk ? '' : ' · veículo na vaga da base'}`), 600);
+  // Another attempt when the page is hidden or closed (never relied upon).
+  const flushOnExit = (): void => { checkpoints.onExit(); };
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushOnExit(); });
+  window.addEventListener('pagehide', flushOnExit);
+  logisticsPanel.extra = () => {
+    const sh = career.session.save.shift; const pay = sh?.payments ?? [];
+    const st = checkpoints.status;
+    const fmtH = (h: number) => `${String(Math.floor(h % 24)).padStart(2, '0')}:${String(Math.floor((h % 1) * 60)).padStart(2, '0')}${h >= 24 ? ' (+1)' : ''}`;
+    return [
+      `Ganhos gravados no expediente: ${formatCents(ledgerTotal(pay))} (${pay.filter((q) => q.kind === 'ENTREGA').length} entregas · ${pay.filter((q) => q.kind === 'COLETA').length} coletas · tabela D07) · saldo ${formatCents(career.session.profile.balanceCents)}`,
+      !persistent ? 'Checkpoints desligados neste cenário (armazenamento indisponível ou dia de desenvolvimento)'
+        : st.error ? `ÚLTIMO CHECKPOINT FALHOU: ${st.error}` : st.lastSequence !== null ? `Salvo: checkpoint ${st.lastSequence} · ${st.lastShiftHour !== null ? fmtH(st.lastShiftHour) : ''} · ${st.lastReason ?? ''}` : 'Ainda sem checkpoint deste expediente',
+      `Fim do expediente: ${({ operacoes_pendentes: 'operações pendentes', retorno_pendente: `tudo resolvido — volte para casa (${home.street})`, expediente_encerrado: 'encerrado em casa' } as const)[closureState(delivery.workday)]}`,
+    ];
+  };
   const startFocus = new Vector3(SPAWN.x, 1, SPAWN.z);
   const narrow = Math.min(window.innerWidth, window.innerHeight) < 520;
   const rig = new IsometricCameraRig(scene, canvas, startFocus, narrow ? 15 : 18, cameraObstacles());
@@ -410,6 +518,9 @@ function start(canvas: HTMLCanvasElement, boot: BrowserCareer): void {
     const here = mode === 'riding' ? { x: m.x, z: m.z, riding: true } : { x: walker.state.x, z: walker.state.z, riding: false };
     delivery.update(dt, clock.shiftHour, cityLife.crowd, here, ground, (x,z,r)=>cityLife.blocks(x,z,r)||Math.hypot(x-player.x,z-player.z)<r+player.radius, bikeSpot());
     for (const msg of delivery.workday.events.splice(0)) hud.toast(msg);
+    // B1-01 F6: background custody events (NPCs, depot), periodic refresh and retries.
+    if (!hud.paused) checkpoints.tick();
+    cityLife.spawnAvoid.splice(0, cityLife.spawnAvoid.length, ...delivery.workday.couriers.map((c) => ({ x: c.bike.x, z: c.bike.z, radius: 1.2 })), { x: vehicle.view.x, z: vehicle.view.z, radius: 2.5 });
     logisticsPanel.update(delivery.workday,clock.shiftHour,performance.now()/1000);
     const objective = delivery.workday.objective(clock.shiftHour, vehicle.view);
     const wait = delivery.waiting === null ? delivery.waitOption(clock.shiftHour) : null;
@@ -557,16 +668,22 @@ function start(canvas: HTMLCanvasElement, boot: BrowserCareer): void {
          * It sets who answers the door (the day's absence schedule), never a parcel state.
          */
         markAbsent: (id: string) => { delivery.workday.absentAddresses.add(id); return delivery.workday.recipientAbsent(id); },
+        /** B1-01 F6 (AC-20): does any street vehicle overlap the player's vehicle or a courier's bike right now? */
+        overlaps: () => ({ player: cityLife.blocks(vehicle.view.x, vehicle.view.z, 1.0), couriers: delivery.workday.couriers.filter((c) => c.riding && cityLife.blocks(c.bike.x, c.bike.z, 0.8)).map((c) => c.id), vehicles: cityLife.stats().vehicles }),
+        /** B1-01 F6: writes a checkpoint now (same path as the pause). */
+        checkpoint: () => checkpoints.checkpoint('teste'),
+        /** B1-01 F6: the career's own home anchors (door on the pavement, stop on the street). */
+        homeSpot: () => ({ door: { ...home.door }, stop: { ...home.stop }, street: home.street }),
         /** B1-01 F3: a parked car's boot spot (behind the tailgate), in world coordinates. */
         trunkSpot: () => (car ? carToWorld(car.state, 0, -CAR.length / 2 - 0.55) : null),
         /**
-         * B1-01 F3 persistence PREPARATION: seals the live parcels (boot slots included) into a v2
-         * career save in memory and parses it back. Nothing is written; in-game checkpoints are F6.
+         * B1-01 F3/F6: seals the live world (boot slots included) into a career save IN MEMORY with
+         * the real checkpoint capture and parses it back. Nothing is written.
          */
         cargoRoundTrip: () => {
-          const id = career.session.careerId; const day = career.session.profile.calendarIndex;
-          const save = sealSave({ careerId: id, checkpointSequence: career.session.save.checkpointSequence + 1, profile: { ...career.session.profile, activeShiftId: shiftIdOf(id, day) }, shift: { ...emptyShift(id, day, career.roster), parcels: captureParcels(delivery.workday.parcels) } });
-          const text = canonicalJson(save);
+          const id = career.session.careerId;
+          const next = captureShift(career.session.profile, career.session.save.shift, captureNow());
+          const text = canonicalJson(sealSave({ careerId: id, checkpointSequence: career.session.save.checkpointSequence + 1, ...next }));
           const back = parseSave(JSON.parse(text), id);
           const inBoot = (list: readonly { id: string; place: string; stowage: unknown }[]) => list.filter((p) => p.place === 'porta-malas').map((p) => ({ id: p.id, stowage: p.stowage }));
           return { schemaVersion: back.schemaVersion, bytes: text.length, live: inBoot(delivery.workday.parcels), restored: inBoot(back.shift!.parcels) };
@@ -595,6 +712,8 @@ function start(canvas: HTMLCanvasElement, boot: BrowserCareer): void {
         clock: { label: clock.label, hour: clock.hour, shiftHour: clock.shiftHour, daysCrossed: clock.daysCrossed, workday: clock.isWorkday, night: lighting.night, devTime, speed: clock.speedFactor },
         /** B1-01 F3.5: presets saved in the career and the looks the player's 3D bodies were built with. */
         avatar: { appearance: career.session.profile.appearance, equipment: career.session.profile.equipment, walker: { ...walker.body.look }, rider: moto?.rider ? { ...moto.rider.look } : null, driver: car ? { ...car.driver.look } : null },
+        /** B1-01 F6: persistence of the running shift (checkpoint status, ledger, end of shift). */
+        save: { persistent, resumed, resumedCouriers, restoredPose: restoredPoseOk, status: { ...checkpoints.status }, closure: closureState(delivery.workday), closedAtHome: delivery.workday.closedAtHome, shiftId: career.session.save.shift?.shiftId ?? null, activeShiftId: career.session.profile.activeShiftId, balanceCents: career.session.profile.balanceCents, payments: (career.session.save.shift?.payments ?? []).map((q) => ({ ...q })), lastClosedShift: career.session.profile.lastClosedShift ? { ...career.session.profile.lastClosedShift } : null, lock: boot.lock.mode },
         career: { id: career.session.careerId, name: career.session.character.name, sector: delivery.workday.playerSector, home: career.home.id, roster: { ...career.roster }, calendarIndex: career.session.profile.calendarIndex, checkpoint: career.session.save.checkpointSequence, durable: careerStorage.durable, source: career.session.loadSource },
         delivery: {
           depot:{gateOpen:delivery.gateOpen,gateManual:delivery.gateManual,visibleIds:[...delivery.parcelViews.visibleIds],workers:delivery.workday.depot.workers.map(w=>({...w,task:w.task?{id:w.task.id,kind:w.task.kind,stage:w.task.stage}:null})),errors:[...delivery.workday.depot.errors]},

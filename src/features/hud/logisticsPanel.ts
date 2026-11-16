@@ -7,6 +7,8 @@ import {calendarWeek,type CalendarDay} from '../../core/delivery/operatingCalend
 export class LogisticsPanel {
  private readonly lines:HTMLDivElement;private readonly button:HTMLButtonElement;
  private readonly nextButton:HTMLButtonElement;private readonly calendarStatus:HTMLParagraphElement;private last=-1;
+ /** B1-01 F6: extra lines (pay ledger, checkpoint status) supplied by the game. */
+ extra:()=>string[]=()=>[];
  constructor(doc:Document,day:LogisticsDay,_hour:()=>number,resume:()=>void,selected:CalendarDay|null,nextDay:()=>void){
   const panel=doc.createElement('details');panel.id='logistics-panel';panel.open=true;
   const title=doc.createElement('summary');title.textContent='Logística — equipe e quatro setores';panel.append(title);
@@ -28,7 +30,7 @@ export class LogisticsPanel {
     const volumes=doc.createElement('small');volumes.textContent=entry.tier==='folga'?'Sem coleta':entry.minParcels+'–'+entry.maxParcels+' vol.';
     tile.append(name,date,tier,volumes);grid.append(tile);
   }
-  this.nextButton=doc.createElement('button');this.nextButton.id='next-workday';this.nextButton.textContent='Encerrar e iniciar próximo dia útil';this.nextButton.onclick=nextDay;this.nextButton.disabled=true;schedule.append(this.nextButton);
+  this.nextButton=doc.createElement('button');this.nextButton.id='next-workday';this.nextButton.textContent='Encerrar o expediente em casa';this.nextButton.onclick=nextDay;this.nextButton.disabled=true;schedule.append(this.nextButton);
   const note=doc.createElement('p');note.className='calendar-note';note.textContent='Quarta: normal; domingo: folga (configuração inicial). A demanda é sorteada por dia e permanece fixa durante a jornada.';schedule.append(note);
   panel.append(schedule);
   doc.querySelector('.pause-actions')!.after(panel);this.map(canvas,day);
@@ -40,11 +42,15 @@ export class LogisticsPanel {
   const expected=day.calendar?.depotTarget??15;
   this.calendarStatus.textContent=day.calendar?`${day.calendar.label} · demanda ${status} (${day.calendar.minParcels}–${day.calendar.maxParcels} pacotes) · meta de separação ${fmt(expected)}`:'Cenário de testes: seed fixa sem sazonalidade. O calendário semanal continua disponível.';
   // B1-01 F5 (AC-13): only with every parcel resolved (delivered or returned and checked) by all four.
-  this.nextButton.disabled=!day.calendar||day.phase!=='CONCLUIDA';
+  // B1-01 F6 (contract C4): and only after the minimum end of shift at the player's own home.
+  const closed=day.closedAtHome!==null;
+  this.nextButton.disabled=!day.calendar||!closed;
+  this.nextButton.textContent=closed?'Ir ao menu principal (próximo dia ou trocar de carreira)':day.allResolved?`Volte para casa${day.homeTarget?` (${day.homeTarget.label})`:''} para encerrar o expediente`:'Encerrar o expediente em casa — ainda há pendências';
   const pending=day.parcels.filter(p=>p.state!=='ENTREGUE'&&p.state!=='DEVOLVIDO_E_CONFERIDO').length;
   const who=(a:string)=>a==='jogador'?'Você':day.couriers.find(c=>c.id===a)?.name??a;
   const list:string[]=[
    `Seu setor: ${day.playerSector.toUpperCase()} · prazo 21h${hour<21?` · restam ${Math.floor((21-hour)*60)} min`:` · ATRASO ${Math.round((hour-21)*60)} min (o expediente continua)`}${hour>=24?' · madrugada, mesmo expediente':''}`,
+   ...this.extra(),
    `Pendências do dia: ${pending}${pending?' — o expediente só termina com todos entregues ou devolvidos e conferidos':' — tudo resolvido'}`,
    ...day.report(hour).map(r=>`${who(r.actor)}: ${r.delivered} entregues · ${r.returned} devolvidos e conferidos · ${r.pending} pendentes${r.finishedAt!==null?` · concluiu ${fmt(r.finishedAt%24)}`:''}${r.lateMinutes?` · atraso ${r.lateMinutes} min`:''}`),
    `NPCs: retorno ideal 14h · tolerância máxima 14h20 · triagem ${fmt(expected)} (meta)`,

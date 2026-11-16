@@ -4,6 +4,9 @@ import {
 import { ActivationError, mainScreen, type CareerCard, type CareerChoice, type MenuModel } from '../../core/career/careerMenu';
 import type { GraphicsChoice, GraphicsProfile } from '../../config/graphics';
 import { careerLook } from './characterPresets';
+import { CAREER_IDS, CHARACTERS } from '../../core/career/careers';
+import type { CareerStore } from '../../core/career/careerStore';
+import type { GameLock } from './tabLock';
 
 /**
  * B1-01 F3.5/F3.5.1: the main menu, shown BEFORE the 3D engine and the city exist. Main screen
@@ -21,7 +24,13 @@ export type MenuActions = {
   refresh: () => MenuModel;
   /** The real graphics profile setting (src/config/graphics.ts), applied before the engine exists. */
   graphics: { choice: () => GraphicsChoice; save: (name: GraphicsProfile['name']) => boolean };
+  /** B1-01 F6: the single-writer tab lock; without it the menu is read-only. */
+  lock?: GameLock;
+  /** B1-01 F6: save management (export/import backup, delete) through the real store. */
+  saves?: CareerStore;
 };
+
+const OTHER_TAB = 'O jogo já está aberto em outra aba deste navegador: feche-a e toque em "Tentar novamente". Enquanto isso, nada pode ser gravado aqui.';
 
 const APPEARANCE_LABEL: Readonly<Record<AppearancePreset, string>> = { masculino: 'Masculino', feminino: 'Feminino' };
 const money = (cents: number): string => `R$ ${(cents / 100).toFixed(2).replace('.', ',')}`;
@@ -54,8 +63,11 @@ export function runMainMenu(doc: Document, initial: MenuModel, actions: MenuActi
   const detail = q<HTMLElement>('#career-detail');
   const options = q<HTMLElement>('#menu-options');
   const notice = q<HTMLElement>('#menu-notice');
+  const savesScreen = q<HTMLElement>('#menu-saves');
+  const lockBox = q<HTMLElement>('#menu-lock');
+  const writable = (): boolean => actions.lock?.held ?? true;
   let model = initial;
-  let screen: 'home' | 'list' | 'detail' | 'options' = 'home';
+  let screen: 'home' | 'list' | 'detail' | 'options' | 'saves' = 'home';
   let listMode: 'novo' | 'carregar' = 'novo';
   doc.body.classList.add('in-menu');
   root.hidden = false;
@@ -67,13 +79,15 @@ export function runMainMenu(doc: Document, initial: MenuModel, actions: MenuActi
   };
   const show = (next: typeof screen): void => {
     screen = next; root.dataset.screen = next;
-    home.hidden = next !== 'home'; list.hidden = next !== 'list'; detail.hidden = next !== 'detail'; options.hidden = next !== 'options';
+    home.hidden = next !== 'home'; list.hidden = next !== 'list'; detail.hidden = next !== 'detail'; options.hidden = next !== 'options'; savesScreen.hidden = next !== 'saves';
+    lockBox.hidden = writable();
   };
 
   return new Promise((resolve) => {
     /** Writes through `actions.enter`; on failure re-reads the saves and reports exactly what happened. */
     const enter = async (c: CareerCard, appearance: AppearancePreset, equipment: EquipmentPresetId, error: HTMLElement | null): Promise<boolean> => {
       try {
+        if (!writable()) throw new Error(OTHER_TAB);
         let kind: VehicleKind | null = c.vehicle;
         if (kind === null) { root.hidden = true; kind = await actions.askVehicle(c.name); root.hidden = false; }
         actions.enter(c.careerId, { appearance, equipment, vehicle: kind });
@@ -197,6 +211,76 @@ export function runMainMenu(doc: Document, initial: MenuModel, actions: MenuActi
         paint();
       };
     };
+    /**
+     * B1-01 F6: save management. Every action goes through `CareerStore` (validation before any
+     * write); deleting needs an explicit second confirmation and offers the export first; nothing
+     * is offered while a shift is open; the other careers are never touched.
+     */
+    const money2 = money;
+    const download = (name: string, text: string): void => {
+      const blob = new Blob([text], { type: 'application/json' });
+      const a = doc.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+      doc.body.append(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    };
+    const showSaves = (message: string | null = null): void => {
+      const store = actions.saves;
+      model = actions.refresh();
+      const rows = q<HTMLElement>('#saves-rows'); rows.replaceChildren();
+      const msg = q<HTMLElement>('#saves-message'); msg.textContent = message ?? ''; msg.hidden = !message;
+      const confirmBox = q<HTMLElement>('#saves-confirm'); confirmBox.hidden = true; confirmBox.replaceChildren();
+      for (const c of model.cards) {
+        const row = el(doc, 'div', 'save-row'); row.dataset.career = c.careerId;
+        const status = c.problem && !c.saved ? `Save ilegível: ${c.problem}` : c.saved ? `${c.source === 'anterior' ? 'Cópia anterior utilizável' : 'Carreira salva'} · ${c.dayLabel} · checkpoint ${c.checkpoint}${c.balanceCents !== null ? ` · saldo ${money2(c.balanceCents)}` : ''}${c.activeShiftId ? ' · expediente aberto' : ''}` : c.source === 'legado' ? `Calendário antigo (Oeste) · ${c.dayLabel}` : 'Sem save';
+        const info = el(doc, 'span', 'save-info'); info.append(el(doc, 'strong', undefined, `${c.name} · ${c.sector}`), el(doc, 'small', undefined, status));
+        const btns = el(doc, 'span', 'save-actions');
+        const mk = (label: string, act: string, disabled: string | null) => { const b = el(doc, 'button', undefined, label); b.type = 'button'; b.dataset.save = act; b.disabled = disabled !== null || !writable() || !store; if (disabled) b.title = disabled; btns.append(b); return b; };
+        const open = c.activeShiftId ? 'Expediente aberto: termine-o antes' : null;
+        const exp = mk('Exportar backup', 'exportar', !c.saved ? 'Sem save gravado' : open);
+        const imp = mk('Importar backup', 'importar', open);
+        const del = mk('Apagar carreira', 'apagar', !c.saved && !c.problem && c.source !== 'legado' ? 'Sem save gravado' : open);
+        exp.onclick = () => { try { const text = store!.exportBackup(c.careerId); download(`brejo-alegre-${c.careerId}-checkpoint-${c.checkpoint}.json`, text); showSaves(`Backup de ${c.name} exportado (checkpoint ${c.checkpoint}).`); } catch (e) { showSaves(`Backup NÃO exportado: ${(e as Error).message}`); } };
+        imp.onclick = () => {
+          const input = q<HTMLInputElement>('#saves-file'); input.value = '';
+          input.onchange = async () => {
+            const file = input.files?.[0]; if (!file) return;
+            const text = await file.text();
+            try {
+              const pre = store!.previewBackup(text, c.careerId);
+              const p = pre.save.profile;
+              confirmBox.replaceChildren(el(doc, 'p', undefined, `Restaurar o backup de ${CHARACTERS[pre.save.careerId].name}: checkpoint ${pre.save.checkpointSequence}, dia ${p.calendarIndex}, saldo ${money2(p.balanceCents)}, veículo ${p.vehicle ? VEHICLE_LABEL[p.vehicle.kind] : 'a escolher'}.${pre.replaces ? ' ATENÇÃO: substitui OUTRA carreira deste personagem neste navegador (ela fica como cópia anterior).' : pre.unreadable ? ' O save atual está ilegível e será substituído.' : ''}`));
+              const ok = el(doc, 'button', 'primary', pre.replaces || pre.unreadable ? 'Substituir e restaurar' : 'Restaurar backup'); ok.type = 'button'; ok.dataset.save = 'confirmar-importar';
+              const cancel = el(doc, 'button', undefined, 'Cancelar'); cancel.type = 'button'; cancel.dataset.save = 'cancelar';
+              ok.onclick = () => { try { const r = store!.importBackup(text, c.careerId, { replace: pre.replaces !== null || pre.unreadable }); showSaves(`Backup restaurado: ${CHARACTERS[r.careerId].name}, checkpoint ${r.checkpointSequence}.`); } catch (e) { showSaves(`Backup NÃO restaurado: ${(e as Error).message}`); } };
+              cancel.onclick = () => showSaves('Importação cancelada: nada foi gravado.');
+              confirmBox.append(ok, cancel); confirmBox.hidden = false; ok.focus();
+            } catch (e) { showSaves(`Backup recusado (nada foi gravado): ${(e as Error).message}`); }
+          };
+          input.click();
+        };
+        del.onclick = () => {
+          confirmBox.replaceChildren(el(doc, 'p', undefined, `Apagar a carreira de ${c.name}? Remove o save principal e a cópia anterior DESTE navegador. As outras três carreiras não mudam. Exporte um backup antes se quiser guardá-la.`));
+          const ex = el(doc, 'button', undefined, 'Exportar backup antes'); ex.type = 'button'; ex.dataset.save = 'exportar-antes'; ex.disabled = !c.saved;
+          ex.onclick = () => { try { download(`brejo-alegre-${c.careerId}-checkpoint-${c.checkpoint}.json`, store!.exportBackup(c.careerId)); ex.textContent = 'Backup exportado'; } catch (e) { ex.textContent = (e as Error).message; } };
+          const ok = el(doc, 'button', 'danger', `Apagar ${c.name} definitivamente`); ok.type = 'button'; ok.dataset.save = 'confirmar-apagar';
+          const cancel = el(doc, 'button', undefined, 'Cancelar'); cancel.type = 'button'; cancel.dataset.save = 'cancelar';
+          ok.onclick = () => { try { store!.deleteCareer(c.careerId, c.name); showSaves(`Carreira de ${c.name} apagada. O personagem está livre em Novo jogo.`); } catch (e) { showSaves(`Nada foi apagado: ${(e as Error).message}`); } };
+          cancel.onclick = () => showSaves('Nada foi apagado.');
+          confirmBox.append(ex, ok, cancel); confirmBox.hidden = false; cancel.focus();
+        };
+        row.append(info, btns); rows.append(row);
+      }
+      show('saves');
+    };
+    void CAREER_IDS;
+    q<HTMLButtonElement>('[data-menu="gerenciar-saves"]').addEventListener('click', () => showSaves(writable() ? null : OTHER_TAB));
+    q<HTMLButtonElement>('#menu-saves [data-menu="voltar-opcoes"]').addEventListener('click', () => { model = actions.refresh(); showOptions(); });
+    q<HTMLButtonElement>('[data-menu="tentar-novamente"]').addEventListener('click', async () => {
+      if (actions.lock) await actions.lock.retry();
+      model = actions.refresh();
+      say(writable() ? null : OTHER_TAB);
+      if (screen === 'saves') showSaves(); else showHome();
+    });
     q<HTMLButtonElement>('[data-menu-home="continuar"]').addEventListener('click', async () => {
       const m = mainScreen(model);
       if (!m.continueCard) return;
@@ -210,9 +294,9 @@ export function runMainMenu(doc: Document, initial: MenuModel, actions: MenuActi
     for (const b of root.querySelectorAll<HTMLButtonElement>('[data-menu="voltar-inicio"]')) b.addEventListener('click', () => { say(null); showHome(); });
     root.addEventListener('keydown', (e) => {
       if (e.key !== 'Escape') return;
-      if (screen === 'detail') showList(listMode); else if (screen !== 'home') { say(null); showHome(); }
+      if (screen === 'detail') showList(listMode); else if (screen === 'saves') showOptions(); else if (screen !== 'home') { say(null); showHome(); }
     });
-    say(null);
+    say(writable() ? null : OTHER_TAB);
     showHome();
   });
 }

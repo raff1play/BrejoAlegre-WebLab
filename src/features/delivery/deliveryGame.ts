@@ -91,6 +91,14 @@ export class DeliveryGame {
     this.ring.material = mat; this.ring.isPickable = false;
   }
 
+  /**
+   * B1-01 F6: a resumed shift does not replay the stores' opening: shutters and staff start in the
+   * state of the hour (a person resumed inside a shop is never shut out or locked in).
+   */
+  restoreStores(hour: number): void {
+    for (const [kind, st] of this.stores) { const open = isOpen(kind, hour); st.ops.shutter = open ? 1 : 0; st.ops.employee = open ? 'atendendo' : 'fora'; }
+  }
+
   /** Every frame. Returns nothing; read `action()` and `objective` afterwards. */
   update(dt: number, hour: number, crowd: Crowd, player: { x: number; z: number; riding: boolean }, ground: (x: number, z: number) => number, playerNear: (x: number, z: number, r: number) => boolean, bike?:BikeSpot): void {
     this.time += dt;

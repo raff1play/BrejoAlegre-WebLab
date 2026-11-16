@@ -305,3 +305,17 @@ body.in-menu #hud { display: none; }
 .options-body { display: grid; gap: 10px; font-size: 12px; }
 .option-note { opacity: .8; font-size: 11px; margin: 0; }
 .controls-help { display: grid; gap: 4px; line-height: 1.35; }
+/* B1-01 F6: save management, read-only (other tab) banner, end-of-shift card */
+.menu-saves[hidden], .saves-confirm[hidden], .menu-lock[hidden] { display: none; }
+.saves-rows { display: grid; gap: 6px; }
+.save-row { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+.save-info { display: grid; gap: 2px; flex: 1; min-width: 0; font-size: 12px; }
+.save-info small { opacity: .85; font-size: 11px; overflow-wrap: anywhere; }
+.save-actions { display: flex; gap: 6px; flex: none; }
+.save-actions button, .saves-confirm button, .menu-lock button { min-height: 40px; padding: 6px 10px; border-radius: 10px; font-size: 12px; }
+.save-actions button:disabled { opacity: .45; cursor: not-allowed; }
+.saves-confirm { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px; border-radius: 10px; border: 1px solid #ffb4a8; background: rgba(107, 31, 31, .55); font-size: 12px; }
+.saves-confirm p { margin: 0; flex: 1 1 100%; }
+button.danger { background: #b3392c; color: #fff; border-color: #e06a5c; font-weight: 700; }
+.menu-lock { display: flex; align-items: center; gap: 10px; padding: 6px 10px; border-radius: 8px; background: #6b1f1f; font-size: 12px; }
+.shift-end[hidden] { display: none; }
