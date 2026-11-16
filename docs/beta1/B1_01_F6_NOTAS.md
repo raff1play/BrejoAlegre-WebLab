@@ -68,3 +68,29 @@
 - Concorrência: com Web Locks, a exclusão é garantida pelo navegador. No fallback de lease, duas abas abertas no mesmo milissegundo ainda podem disputar a vaga; a verificação de sequência impede gravação desatualizada.
 - O tamanho do save (≈ 170 kB) e o custo do checkpoint não foram medidos em Android. Com quatro carreiras e cópias anteriores, o uso fica perto de 1,4 MB de `localStorage`.
 - **Galaxy S24 físico: NÃO TESTADO.**
+
+## Correções da auditoria F6 (comentário 6916312263)
+
+1. **Marca anti-reversão durável (bloqueio 1).** Antes, `mark()` ignorava qualquer falha ao gravar `brejo-b1:marcas:<carreira>` e o checkpoint era dado como gravado. Se a marca se perdesse e a carreira fosse apagada, um backup antigo voltava a ser aceito. Agora, em `CareerStore.writeChecked`:
+   - A marca da linhagem é gravada e **relida antes** do save. Se falhar (cota, marcas ilegíveis, releitura divergente), o checkpoint falha com `SaveError` ("checkpoint NÃO gravado") e nada é escrito; o `ShiftCheckpointer` avisa e tenta de novo.
+   - Se o save falhar **depois** da marca, a marca volta ao valor anterior. Se até isso falhar, ela fica mais alta, o que só torna a restauração mais conservadora.
+   - Marcas ilegíveis **não** valem como "nenhuma marca": checkpoint, importação e exclusão são recusados.
+   - `deleteCareer` primeiro torna durável a marca de cada cópia legível (principal e anterior); se não conseguir, **não apaga**.
+   - `previewBackup` compara o backup com o maior checkpoint conhecido da linhagem: o das marcas e o dos saves presentes.
+   - Limite conhecido: com marcas ilegíveis, a carreira não grava até o armazenamento ser corrigido (falha fechada, avisada no jogo).
+2. **Nenhum save muda com expediente aberto (bloqueio 2).**
+   - `CareerStore.openShift()` varre as quatro carreiras. Importar (inclusive a prévia) e apagar **qualquer** personagem são recusados enquanto alguma carreira tem expediente aberto, com a mensagem "Expediente … de <nome> aberto: … só depois de encerrá-lo em casa".
+   - No menu, Importar/Apagar ficam desativados em todas as linhas, com o motivo e uma faixa explicativa.
+   - Exportar uma carreira **fechada** continua possível, porque é só leitura.
+3. **Reforço no encerramento.** `closeShiftAtHome(session, cap, next, { vehicleStopped })` agora prova no próprio domínio a condição da casa, usando as poses capturadas e a casa **da carreira** (o chamador não escolhe a casa): a pé, na porta, com o veículo parado perto. Chamado fora de casa, montado, na casa de outro personagem, com o veículo em movimento ou longe, é recusado sem gravar nada. O contrato C4 não muda.
+
+Testes:
+- `tests/b1-01-f6-audit.test.ts` (3 testes; os três falham no código de `8dcb510`):
+  - Reprodução pedida pela auditoria: marcas falhando com `QuotaExceededError` → o dia pago não é confirmado e nada muda. Com o armazenamento recuperado, o dia fecha. Com as marcas falhando de novo, apagar + importar o backup inicial é recusado.
+  - Falha antes do save, depois da marca, com marcas ilegíveis, e na remoção sem marca.
+  - Com o expediente de Lia aberto: apagar e importar Rosa (inclusive um backup mais novo), Davi e a própria Lia são recusados sem mudar nenhum byte; depois de encerrar, volta a funcionar.
+- `tests/b1-01-persistence.test.ts`: o encerramento é chamado fora de casa, na casa de outro personagem, montado, com o veículo em movimento ou longe → recusado sem gravar.
+- E2E `savesMenu`:
+  - Com o expediente de Lia aberto, Importar e Apagar ficam desativados nas quatro linhas, com o motivo.
+  - Mesmo com o botão reativado à força, o domínio recusa e nenhum byte muda.
+  - A troca de aba passou a conferir que o bloqueio que resta é o expediente, não a outra aba.
