@@ -338,12 +338,19 @@ export class Workday {
       if (!this.parcels.some((p) => p.destination === addressId && p.state === 'EM_ROTA')) this.route = this.route.filter((id) => id !== addressId);
       if (this.inHands().length === 0) this.sackInHands = false;
       this.say(`Entregue: ${this.byAddress.get(addressId)!.label}`);
-      if (this.parcels.every(isFinal)) { this.phase = 'CONCLUIDA'; this.say('Rota concluída! Jornada encerrada.'); }
+      if (this.dayComplete()) { this.phase = 'CONCLUIDA'; this.say('Rota concluída! Jornada encerrada.'); }
     }
     return list.length;
   }
 
   // ------------------------------------------------------------------ depot simulation
+
+  /**
+   * Whether the WHOLE day is over after a delivery. A lone workday (one courier): every parcel has
+   * a final result. `LogisticsDay` (B1-01 F5) overrides it: the collective shift ends only in its
+   * own update, once the four couriers are done — never as a side effect of the last delivery.
+   */
+  protected dayComplete(): boolean { return this.parcels.every(isFinal); }
 
   /** Advances the depot staff and the parcel flow. `truckDocked` comes from the traffic (or 13h fallback). */
   update(hour: number, dt: number, truckDocked = false): void {

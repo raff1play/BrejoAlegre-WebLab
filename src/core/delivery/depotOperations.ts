@@ -8,6 +8,14 @@ import { WORKDAY_END } from '../city/clock.ts';
  * real worker who receives and checks returns (also after 00h, same shift).
  */
 export const ON_DUTY_ROLES: readonly string[] = ['conferente'];
+/**
+ * Intake still to be processed by the depot team (not returns, which the on-duty checker handles):
+ * a parcel at the base that has not reached its sector sack yet.
+ */
+export function pendingIntake(parcels: readonly Parcel[], truckAvailable: boolean): boolean {
+  return parcels.some((p) => (p.place === 'caminhao' && truckAvailable)
+    || (['recebimento', 'conferencia', 'transferencia', 'triagem', 'gaiola', 'doca'].includes(p.place) && p.state !== 'TENTATIVA_FRUSTRADA' && p.state !== 'DEVOLVIDO_E_CONFERIDO'));
+}
 /** Shelf of checked returns, beside the receiving desk (depot-local metres). */
 export const depotReturnPosition = (index: number): ParcelPosition => ({ x: 97.2 + (index % 4) * 0.42, y: 0.35 + Math.floor(index / 4) * 0.3, z: -123.6 });
 
@@ -96,12 +104,15 @@ export class DepotOperations {
  update(parcels:readonly Parcel[],hour:number,seconds:number):void {
   if(!(seconds>0))return;
   const dt=Math.min(seconds,.4);
-  // B1-01 F5: 21h ends the normal shifts, not the work: whoever has a task finishes it, and only
-  // the on-duty checker takes new tasks afterwards (also after 00h — `hour` is the shift hour).
+  // B1-01 F5: 21h ends the normal shifts, not the work. The on-duty checker always stays. The
+  // other real workers are HELD BACK only while intake already at the base is still unresolved
+  // (truck, desk, check, sorting, cages, docks) and released as soon as none is left — so a late
+  // load still reaches its sack (also after 00h — `hour` is the shift hour); nobody is spawned.
   const late=hour>=WORKDAY_END;
+  const retained=!late||pendingIntake(parcels,this.truckAvailable);
   for(const w of this.allWorkers){
    if(!w.active)continue;
-   w.activity='idle';if(!w.task&&(!late||ON_DUTY_ROLES.includes(w.role)))this.assign(w,parcels);
+   w.activity='idle';if(!w.task&&(retained||ON_DUTY_ROLES.includes(w.role)))this.assign(w,parcels);
    const t=w.task;if(!t)continue;const p=parcels.find(p=>p.id===t.id);
    if(!p||p.place!==t.expected||p.state!==t.state){this.errors.push(`${t.id}: tarefa invalidada ${t.kind}`);w.task=null;w.parcel=null;continue;}
    switch(t.stage){

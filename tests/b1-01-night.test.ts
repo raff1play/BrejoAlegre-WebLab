@@ -5,7 +5,7 @@ import { LogisticsDay, absentByCalendar, ABSENT_PERCENT } from '../src/core/deli
 import { DEPOT_SPOTS, releaseWithinReach, carBootSpot } from '../src/core/delivery/workday.ts';
 import { attemptFailed, confirmReturn, createParcel, advance, move, isFinal, ParcelError, type Parcel } from '../src/core/delivery/parcels.ts';
 import { CarTrunk } from '../src/core/delivery/carTrunk.ts';
-import { ON_DUTY_ROLES } from '../src/core/delivery/depotOperations.ts';
+import { ON_DUTY_ROLES, pendingIntake } from '../src/core/delivery/depotOperations.ts';
 import { buildRoster, type CareerId } from '../src/core/career/careers.ts';
 import { ACTORS, type ActorId } from '../src/core/delivery/dailyDemand.ts';
 import { SECTOR_DATA } from '../src/core/delivery/sectors.ts';
@@ -248,8 +248,14 @@ for (const [label, at] of [['21h01', H(21, 1)], ['00h01', H(24, 1)]] as const) t
     const sorted = p.history.find((e) => e.state === 'TRIADO')!;
     assert.ok(sorted.hour >= at, `${id} triado depois da entrega tardia`);
   }
-  // Once nothing is pending, the regular team stops again; the on-duty checker stays.
-  for (let t = 0; t < 120; t += 0.1) d.update(hour + 0.5 + t / 150, 0.1);
+  // Once nothing at the base is pending any more (van, NPC loads too), the regular team stops; the
+  // on-duty checker stays.
+  let h = hour;
+  const bagged = () => d.parcels.every((p) => ['NA_SACA', 'EM_ROTA', 'ENTREGUE', 'TENTATIVA_FRUSTRADA', 'DEVOLVIDO_E_CONFERIDO'].includes(p.state));
+  for (let t = 0; t < 6000 && (!bagged() || pendingIntake(d.parcels, d.depot.truckAvailable) || d.depot.workers.some((w) => w.task && !ON_DUTY_ROLES.includes(w.role))); t += 0.1) { h = hour + t / 150; d.update(h, 0.1); }
+  assert.ok(bagged(), 'a carga inteira do dia (van e NPCs inclusive) chegou às sacas depois das 21h');
+  assert.ok(!pendingIntake(d.parcels, d.depot.truckAvailable), 'toda a entrada da base foi processada');
+  for (let t = 0; t < 120; t += 0.1) d.update(h + 0.1 + t / 150, 0.1);
   const busy = d.depot.workers.filter((w) => w.task);
   assert.ok(busy.every((w) => ON_DUTY_ROLES.includes(w.role)), `sem trabalho pendente só o plantão: ${busy.map((w) => w.role).join(',')}`);
   const staff = new Map(d.staff.map((s) => [s.role, s.state]));
@@ -273,7 +279,9 @@ test('B1-01 F5 auditoria 2: a última entrega do jogador com um NPC ainda na rua
   const last = d.load('jogador')[0]!;
   last.state = 'EM_ROTA'; last.place = 'maos'; last.holder = 'jogador';
   for (const c of d.couriers) c.state = 'complete';
-  d.couriers[1]!.state = 'return-address';     // Caio is still walking back to his bike
+  const caio = d.couriers[1]!;
+  caio.state = 'return-address';                 // Caio is still walking back to his bike, 80 m away
+  caio.route = [{ x: caio.person.x + 80, z: caio.person.z }];
   d.update(22, 0.01);
   d.events.length = 0;
   assert.ok(d.deliver(last.destination, 22) > 0, 'última entrega do jogador acontece');

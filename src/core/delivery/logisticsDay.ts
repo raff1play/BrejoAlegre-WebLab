@@ -103,6 +103,8 @@ export class LogisticsDay extends Workday {
     finishedAt:done,lateMinutes:end===null?null:Math.max(0,Math.round((end-WORKDAY_END)*60))};
   });
  }
+ /** The last delivery never closes the collective shift by itself (see `update`). */
+ protected override dayComplete():boolean{return false;}
  /** Every parcel of the day has a valid final result and all four couriers are done. */
  get allResolved():boolean{return this.parcels.length>0&&this.parcels.every(isFinal)&&ACTORS.every(a=>this.finishedAt[a]!==null);}
  override update(hour:number,dt:number,truckDocked=false):void{
@@ -124,7 +126,7 @@ export class LogisticsDay extends Workday {
    this.finishedAt[a]=hour;
    if(hour>WORKDAY_END)this.events.push(`${a==='jogador'?'Você':this.couriers.find(c=>c.id===a)!.name} concluiu o setor com ${Math.round((hour-WORKDAY_END)*60)} min de atraso`);
   }
-  if(this.allResolved)this.phase='CONCLUIDA';
+  if(this.allResolved){if(this.phase!=='CONCLUIDA')this.events.push('Expediente concluído: todos os pacotes resolvidos pelos quatro entregadores');this.phase='CONCLUIDA';}
   else if(this.load('jogador').some(p=>p.state==='EM_ROTA'||isFinal(p)||p.state==='TENTATIVA_FRUSTRADA'))this.phase='ENTREGAS';
   else if(this.load('jogador').length&&this.load('jogador').every(p=>p.state==='NA_SACA'&&p.place==='saca'))this.phase='SACA';
  }
