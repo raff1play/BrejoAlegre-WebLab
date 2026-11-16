@@ -7,6 +7,7 @@ import {DEPOT_POINTS} from '../../world/city/depotPlan.ts';
 import {advance,move} from './parcels.ts';
 import {depotVisitAllowed} from './workday.ts';
 import {calendarDay,type CalendarDay} from './operatingCalendar.ts';
+import type {CarTrunk} from './carTrunk.ts';
 import {CHARACTERS,DEFAULT_CAREER,assertRoster,buildRoster,type Roster} from '../career/careers.ts';
 export type LogisticsDayOptions=WorkdayOptions&DemandOptions&{roster?:Roster};
 /**
@@ -56,11 +57,14 @@ export class LogisticsDay extends Workday {
  }
  override canTakeSack(hour:number):boolean{return this.canTakeLoad('jogador',hour);}
  override takeSack(hour:number,visit?:DepotVisit):number{return depotVisitAllowed(visit,this.playerDispatchLocal)?this.takeLoad('jogador',hour,visit!.player):0;}
- get playerReady():boolean{return this.load('jogador').length>0&&this.load('jogador').every(p=>p.state==='EM_ROTA'&&p.place==='bau'&&p.holder==='jogador');}
+ /** Ready to leave: the whole sector load in the player's own vehicle (top box or, B1-01 F4, car boot). */
+ get playerReady():boolean{return this.load('jogador').length>0&&this.load('jogador').every(p=>p.state==='EM_ROTA'&&(p.place==='bau'||p.place==='porta-malas')&&p.holder==='jogador');}
  get teamReady():boolean{return this.playerReady&&this.couriers.every(c=>c.state==='ready');}
  release(hour:number):boolean{if(!this.teamReady||this.released||hour<15||hour>=21)return false;this.released=true;this.releaseHour=hour;this.couriers.forEach(c=>c.timer=0);this.events.push('Equipe liberada — quatro rotas iniciadas');return true;}
  releaseDelay(id:string):number{return (this.couriers.findIndex(c=>c.id===id)+1)*3;}
  override takeForAddress(id:string,hour:number,moving=false):number{return this.released&&hour<21?super.takeForAddress(id,hour,moving):0;}
+ /** B1-01 F4: same rule as the top box (team released, before 21h — F5 revises the 21h rule for both). */
+ override takeFromCarForAddress(trunk:CarTrunk,id:string,hour:number,parked:boolean):number{return this.released&&hour<21?super.takeFromCarForAddress(trunk,id,hour,parked):0;}
  override deliver(id:string,hour:number):number{return this.released&&hour<21?super.deliver(id,hour):0;}
  override update(hour:number,dt:number,truckDocked=false):void{
   this.trafficTime+=dt;
@@ -82,7 +86,8 @@ export class LogisticsDay extends Workday {
  }
  override objective(hour:number,bike?:{x:number;z:number}):Objective{
   if(this.phase==='ENTREGAS'&&!this.released){
-   if(this.sackInHands)return {title:`Guardar a saca ${this.playerSector} no baú`,detail:this.cargoLabel(),target:bike?{kind:'moto',id:'moto',...bike,label:'Baú da moto'}:null,waitUntil:null};
+   const car=this.vehicleKind==='carro-antigo';
+   if(this.sackInHands)return {title:`Guardar a saca ${this.playerSector} no ${this.compartment}`,detail:this.cargoLabel(),target:bike?{kind:'moto',id:'moto',...bike,label:car?'Porta-malas do carro':'Baú da moto'}:null,waitUntil:null};
    return {title:this.teamReady?'Equipe pronta — iniciar rota de entregas':'Preparação da equipe para saída conjunta',detail:`${this.couriers.map(c=>`${c.name}: ${COURIER_LABEL[c.state]}`).join(' · ')} · menu Logística · jornada até 21h`,target:null,waitUntil:null};
   }
   if(this.phase==='ENTREGAS'&&!this.route.length)return {title:`Setor ${this.playerSector} concluído — acompanhando a equipe`,detail:this.couriers.map(c=>`${c.name}: ${COURIER_LABEL[c.state]}`).join(' · '),target:null,waitUntil:null};

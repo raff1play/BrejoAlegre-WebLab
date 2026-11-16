@@ -3,7 +3,9 @@ import { DepotOperations } from './depotOperations.ts';
 /** Keep depot throughput per virtual hour after shortening the real-time clock. */
 /** Calibrated for the later 11:47 courier departure while keeping real physical parcel tasks. */
 const DEPOT_OPERATION_SECONDS_PER_VIRTUAL_HOUR = 360;
-import { DEPOT_POINTS, validDepotParking, depotFree, DISPATCH_DOCK, MIXED_LOAD } from '../../world/city/depotPlan.ts';
+import { DEPOT_POINTS, validDepotParking, depotFree, depotCarBay, CAR_PARKING, DISPATCH_DOCK, MIXED_LOAD } from '../../world/city/depotPlan.ts';
+import { CAR, carToWorld } from '../carPhysics.ts';
+import type { CarTrunk } from './carTrunk.ts';
 import { DEPOT, STORES, depotWorld, depotYaw, depotLocal, type StoreKind } from '../../world/city/cityPlan.ts';
 import { yawOf } from '../../world/layout.ts';
 import { rng } from '../city/traffic.ts';
@@ -40,12 +42,28 @@ export const DEPOT_SPOTS = Object.freeze(Object.fromEntries(
 export type DepotRole = 'porteiro' | 'conferente' | 'conferente-2' | 'descarregador-1' | 'descarregador-2' | 'separador-1' | 'separador-2' | 'separador-3' | 'expedidor' | 'expedidor-2' | 'supervisor';
 export type DepotStaff = { role: DepotRole; state: string; station: { x: number; z: number }; shift: [number, number]; carrying: boolean };
 
-export type DepotVisit = {player:{x:number;z:number;riding:boolean};bike:{x:number;z:number;yaw:number;moving:boolean}};
+/**
+ * `bike` is the player's own vehicle pose (the name is historical). B1-01 F4: `car: true` when it is
+ * the car — then it must stand inside a painted CAR bay (all four corners) and "parking" means
+ * standing at its tailgate, instead of the motorcycle bays and the top box.
+ */
+export type DepotVisit = {player:{x:number;z:number;riding:boolean};bike:{x:number;z:number;yaw:number;moving:boolean};car?:boolean};
+/** B1-01 F4: the four body corners of the car at a pose, in depot-local coordinates. */
+export function carCornersLocal(c:{x:number;z:number;yaw:number}):{x:number;z:number}[] {
+ const hw=CAR.width/2,hl=CAR.length/2;
+ return [[-hw,-hl],[hw,-hl],[hw,hl],[-hw,hl]].map(([r,f])=>{const w=carToWorld(c,r!,f!);return depotLocal(w.x,w.z);});
+}
+/** B1-01 F4: where a person stands to reach into the car boot (behind the tailgate). */
+export const carBootSpot=(c:{x:number;z:number;yaw:number}):{x:number;z:number}=>carToWorld(c,0,-CAR.length/2-.55);
 /** `at`: a named depot point, or (B1-01) an explicit depot-local counter such as the player's sector dock. */
 export function depotVisitAllowed(visit:DepotVisit|undefined,at:'receiving'|'dispatch'|'parking'|{x:number;z:number}):boolean {
  if(!visit||visit.player.riding||visit.bike.moving)return false;
  const b=depotLocal(visit.bike.x,visit.bike.z),p=depotLocal(visit.player.x,visit.player.z);
- if(!validDepotParking({...b,yaw:visit.bike.yaw-depotYaw(0),moving:visit.bike.moving})||!depotFree(p,.25))return false;
+ if(visit.car){
+  if(depotCarBay(carCornersLocal(visit.bike),false)===null||!depotFree(p,.25))return false;
+  if(at==='parking'){const r=carBootSpot(visit.bike);return Math.hypot(visit.player.x-r.x,visit.player.z-r.z)<1.1;}
+ }
+ else if(!validDepotParking({...b,yaw:visit.bike.yaw-depotYaw(0),moving:visit.bike.moving})||!depotFree(p,.25))return false;
  if(at==='parking')return Math.hypot(visit.player.x-(visit.bike.x-Math.sin(visit.bike.yaw)*1.25),visit.player.z-(visit.bike.z-Math.cos(visit.bike.yaw)*1.25))<1.1;
  const q=typeof at==='string'?DEPOT_POINTS[at]:at;
  return Math.hypot(p.x-q.x,p.z-q.z)<1.45;
@@ -136,6 +154,41 @@ export class Workday {
   inTrunk(): Parcel[] { return this.parcels.filter((p) => p.place === 'bau' && p.holder === 'jogador'); }
   /** B1-01 F3: parcels in the boot of the player's own car (slots in `stowage`). */
   inCarBoot(): Parcel[] { return this.parcels.filter((p) => p.place === 'porta-malas' && p.holder === 'jogador'); }
+  /** B1-01 F4: the player's own vehicle kind (texts and which compartment is used). */
+  vehicleKind: 'moto-antiga' | 'carro-antigo' = 'moto-antiga';
+  /** B1-01 F4: parcels the player carries in the vehicle, whichever it is (top box or car boot). */
+  inVehicle(): Parcel[] { return this.parcels.filter((p) => (p.place === 'bau' || p.place === 'porta-malas') && p.holder === 'jogador'); }
+  private get carMode(): boolean { return this.vehicleKind === 'carro-antigo'; }
+  /** Name of the compartment in player-facing texts. */
+  get compartment(): string { return this.carMode ? 'porta-malas' : 'baú'; }
+  carForDepot(): Parcel[] { return this.inCarBoot().filter((p) => p.state === 'EM_TRANSPORTE'); }
+  carForRoute(): Parcel[] { return this.inCarBoot().filter((p) => p.state === 'EM_ROTA'); }
+
+  /**
+   * B1-01 F4 (AC-09): at the base, with the car in a car bay and the person at the open tailgate,
+   * takes collected volumes out of the boot into the hands (up to a hands-full; boxes on top first),
+   * through the boot's own custody transition. The same desk hand-over as the motorcycle follows.
+   */
+  unloadCarForDepot(trunk: CarTrunk, hour: number, visit?: DepotVisit): number {
+    if (!visit?.car || !depotVisitAllowed(visit, 'parking') || this.sackInHands) return 0;
+    const room = HANDS_MAX - this.inHands().length;
+    if (room <= 0) return 0;
+    const top = [...trunk.contents(this.parcels)].filter((p) => p.state === 'EM_TRANSPORTE')
+      .sort((a, b) => (b.stowage!.y + b.stowage!.h) - (a.stowage!.y + a.stowage!.h) || b.stowage!.z - a.stowage!.z || (a.id < b.id ? -1 : 1));
+    const r = trunk.take(this.parcels, top.slice(0, room).map((p) => p.id), hour, { parked: true }, room);
+    if (r.taken.length) this.say(r.taken.length === 1 ? '1 volume retirado do porta-malas' : `${r.taken.length} volumes retirados do porta-malas`);
+    return r.taken.length;
+  }
+
+  /** B1-01 F4 (AC-10): at a stop, takes the parcel(s) of ONE address out of the car boot. */
+  takeFromCarForAddress(trunk: CarTrunk, addressId: string, hour: number, parked: boolean): number {
+    if (!parked || this.inHands().length) return 0;
+    const ids = this.carForRoute().filter((p) => p.destination === addressId).slice(0, HANDS_MAX).map((p) => p.id);
+    if (!ids.length) return 0;
+    const r = trunk.take(this.parcels, ids, hour, { parked }, HANDS_MAX);
+    if (r.taken.length) this.route = [addressId, ...this.route.filter((id) => id !== addressId)];
+    return r.taken.length;
+  }
   /** Trunk parcels still to be handed to the checker / still to be delivered. */
   trunkForDepot(): Parcel[] { return this.inTrunk().filter((p) => p.state === 'EM_TRANSPORTE'); }
   trunkForRoute(): Parcel[] { return this.inTrunk().filter((p) => p.state === 'EM_ROTA'); }
@@ -294,12 +347,13 @@ export class Workday {
 
   /** `bike`: where the parked bike is (target of the "store it in the trunk" steps). */
   objective(hour: number, bike?: { x: number; z: number }): Objective {
-    const toBike = (title: string): Objective => ({ title, detail: `${this.cargoLabel()} · vá até o baú da moto`, target: bike ? { kind: 'moto', id: 'moto', x: bike.x, z: bike.z, label: 'Baú da moto' } : null, waitUntil: null });
+    const car = this.carMode;
+    const toBike = (title: string): Objective => ({ title, detail: `${this.cargoLabel()} · ${car ? 'vá até a traseira do carro' : 'vá até o baú da moto'}`, target: bike ? { kind: 'moto', id: 'moto', x: bike.x, z: bike.z, label: car ? 'Porta-malas do carro' : 'Baú da moto' } : null, waitUntil: null });
     const depot = (label: string): Target => ({ kind: 'galpao', id: 'galpao', ...DEPOT_SPOTS.receiving, label, yaw: depotYaw(-Math.PI / 2) });
     switch (this.phase) {
       case 'ANTES': return { title: 'Aguardando o início da jornada', detail: 'A designação das lojas sai às 11h', target: null, waitUntil: ROUTINE.assign };
       case 'COLETA': {
-        if (this.inHands().length) return toBike('Guardar os volumes no baú');
+        if (this.inHands().length) return toBike(`Guardar os volumes no ${this.compartment}`);
         const next = this.assigned.find((k) => this.readyAt(k).length > 0)!;
         const store = this.storeOf(next);
         const early = hour < ROUTINE.pickupFrom;
@@ -310,11 +364,13 @@ export class Workday {
         };
       }
       case 'RETORNO': {
-        const hands=this.inHands().length,trunk=this.trunkForDepot().length;
+        const hands=this.inHands().length,trunk=this.inVehicle().filter((p)=>p.state==='COLETADO'||p.state==='EM_TRANSPORTE').length;
+        const box=this.compartment;
         const b=bike?depotLocal(bike.x,bike.z):null;
-        if(b&&(b.x<76.2||b.x>139.8||b.z<-150||b.z>-92.2))return {title:'Retornar pela entrada da base',detail:`${trunk} volume(s) no baú • acesso pela portaria`,target:{kind:'galpao',id:'entrada',...DEPOT_SPOTS.entry,label:'Entrada da base'},waitUntil:null};
-        return hands?{title:'Depositar os volumes no recebimento',detail:`${hands} nas mãos • ${trunk} no baú • várias viagens se necessário`,target:depot('Descarga / recebimento'),waitUntil:null}
-        :{title:'Estacionar na zona de descarga',detail:`${trunk} no baú • pare, desça e retire até ${HANDS_MAX} volumes por viagem`,target:{kind:'galpao',id:'descarga',...DEPOT_SPOTS.parking,label:'Vagas de descarga'},waitUntil:null};
+        if(b&&(b.x<76.2||b.x>139.8||b.z<-150||b.z>-92.2))return {title:'Retornar pela entrada da base',detail:`${trunk} volume(s) no ${box} • acesso pela portaria`,target:{kind:'galpao',id:'entrada',...DEPOT_SPOTS.entry,label:'Entrada da base'},waitUntil:null};
+        if(hands)return {title:'Depositar os volumes no recebimento',detail:`${hands} nas mãos • ${trunk} no ${box} • várias viagens se necessário`,target:depot('Descarga / recebimento'),waitUntil:null};
+        if(car){const bay=CAR_PARKING[0]!;return {title:'Estacionar numa vaga de carro da base',detail:`${trunk} no porta-malas • pare na vaga, saia, abra o porta-malas e retire até ${HANDS_MAX} volumes por viagem`,target:{kind:'galpao',id:'vaga-carro',...depotWorld((bay.minX+bay.maxX)/2,(bay.minZ+bay.maxZ)/2),label:'Vagas de carro'},waitUntil:null};}
+        return {title:'Estacionar na zona de descarga',detail:`${trunk} no baú • pare, desça e retire até ${HANDS_MAX} volumes por viagem`,target:{kind:'galpao',id:'descarga',...DEPOT_SPOTS.parking,label:'Vagas de descarga'},waitUntil:null};
       }
       case 'CONFERENCIA': {
         const checked = this.parcels.filter(p => ['RECEBIDO_BASE', 'TRIADO', 'NA_SACA', 'EM_ROTA', 'ENTREGUE'].includes(p.state)).length;
@@ -340,10 +396,10 @@ export class Workday {
         return { title: waiting ? 'Saca liberada às 15h' : 'Retirar a saca na doca 02', detail: `Saca mista ML/SHP com ${this.count('NA_SACA')} volume(s)`, target: { kind: 'galpao', id: 'galpao', ...DEPOT_SPOTS.dispatch, label: 'Expedição' }, waitUntil: waiting ? ROUTINE.sackFrom : null };
       }
       case 'ENTREGAS': {
-        if (this.sackInHands) return toBike('Guardar a saca no baú');
+        if (this.sackInHands) return toBike(`Guardar a saca no ${this.compartment}`);
         const held = this.inHands()[0];
         const a = this.byAddress.get(held ? held.destination : this.route[0]!)!;
-        const where = held ? 'pacote nas mãos' : 'estacione e retire o pacote no baú';
+        const where = held ? 'pacote nas mãos' : `estacione e retire o pacote no ${this.compartment}`;
         return { title: `Entregar em ${a.street}, ${a.number}`, detail: `${a.bairro} · ${where} · ${this.count('ENTREGUE')}/${this.parcels.length} entregues`, target: { kind: 'endereco', id: a.id, x: a.door.x, z: a.door.z, label: a.label, yaw: yawOf(a.frame) }, waitUntil: null };
       }
       case 'CONCLUIDA': return { title: 'Jornada concluída', detail: `${this.count('ENTREGUE')}/${this.parcels.length} volumes entregues${this.late ? ' (retorno após 14h)' : ''}`, target: null, waitUntil: null };
