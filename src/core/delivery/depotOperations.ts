@@ -24,6 +24,10 @@ export type WorkerRole='conferente'|'conferente-2'|'descarregador-1'|'descarrega
 export type DepotWorker={role:WorkerRole;x:number;z:number;yaw:number;activity:'idle'|'work'|'carry';parcel:string|null;task:DepotTask|null;active:boolean};
 type TaskKind='truck'|'check'|'feed'|'belt'|'region'|'dispatch';
 export type DepotTask={id:string;kind:TaskKind;stage:'approach'|'lift'|'carry'|'drop'|'process';route:{x:number;z:number}[];timer:number;origin:ParcelPosition;destination:ParcelPosition;to:{x:number;z:number};expected:Parcel['place'];state:Parcel['state']};
+export type DepotSnapshot={workers:DepotWorker[];assistants:DepotWorker[];errors:string[];truckAvailable:boolean;handoffIndex:number};
+export const TASK_KINDS:readonly TaskKind[]=['truck','check','feed','belt','region','dispatch'];
+export const TASK_STAGES:readonly DepotTask['stage'][]=['approach','lift','carry','drop','process'];
+const copyTask=(t:DepotTask):DepotTask=>({...t,route:t.route.map(p=>({x:p.x,z:p.z})),origin:{...t.origin},destination:{...t.destination},to:{...t.to}});
 const receivingStand={x:101,z:-120.7},feedStand={x:105.7,z:-128.35},outStand={x:116.3,z:-128.35},dispatchStand={x:104,z:-121.3};
 const mix=(a:ParcelPosition,b:ParcelPosition,t:number):ParcelPosition=>({x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t,z:a.z+(b.z-a.z)*t});
 export const depotReceivingPosition=(index:number):ParcelPosition=>({x:99.55+(index%6)*.55,y:.95+Math.floor(index/6)*.28,z:-122.3});
@@ -52,6 +56,22 @@ export class DepotOperations {
  readonly errors:string[]=[];
  truckAvailable=false;
  private handoffIndex=0;
+ /**
+  * B1-01 F6 (contract C3/C5): the depot as a checkpoint sees it — every worker (and courier assistant)
+  * with pose and the physical task in progress, so a parcel being carried resumes in the same hands.
+  */
+ toState():DepotSnapshot{
+  const copy=(w:DepotWorker):DepotWorker=>({...w,task:w.task?copyTask(w.task):null});
+  return {workers:this.workers.map(copy),assistants:this.assistants.map(copy),errors:this.errors.slice(-50),truckAvailable:this.truckAvailable,handoffIndex:this.handoffIndex};
+ }
+ restoreState(s:DepotSnapshot):void{
+  const apply=(list:DepotWorker[],saved:readonly DepotWorker[])=>{
+   if(saved.length!==list.length)throw new Error('Base: número de trabalhadores diferente do checkpoint');
+   list.forEach((w,i)=>{const v=saved[i]!;if(v.role!==w.role)throw new Error(`Base: posto ${w.role} ≠ ${v.role}`);Object.assign(w,{...v,task:v.task?copyTask(v.task):null});});
+  };
+  apply(this.workers,s.workers);apply(this.assistants,s.assistants);
+  this.errors.splice(0,this.errors.length,...s.errors);this.truckAvailable=s.truckAvailable;this.handoffIndex=s.handoffIndex;
+ }
  private receivingSlot(parcels:readonly Parcel[]):ParcelPosition|null {
   const used=[...parcels.filter(p=>p.place==='recebimento'||p.place==='conferencia').map(p=>p.position),...this.allWorkers.filter(w=>w.task?.kind==='truck').map(w=>w.task!.destination)];
   for(let i=0;i<12;i++){const at=depotReceivingPosition(i);if(!used.some(p=>p&&Math.hypot(p.x-at.x,p.y-at.y,p.z-at.z)<.1))return at;}return null;

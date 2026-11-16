@@ -11,12 +11,30 @@ export type CourierState='waiting'|'to-store'|'parking'|'walk-counter'|'pickup'|
 export const COURIER_LABEL:Record<CourierState,string>={waiting:'aguardando coleta','to-store':'a caminho da loja',parking:'estacionando','walk-counter':'indo ao balcão',pickup:'retirando volumes','walk-bike':'voltando à moto',stow:'guardando no baú','return-base':'retornando à base',unload:'retirando do baú','walk-receiving':'levando ao recebimento',deposit:'descarregando','walk-parking':'voltando à vaga','waiting-load':'aguardando carga','help-sort':'ajudando na triagem','walk-dock':'indo à doca','take-load':'retirando saca','return-load':'levando saca à moto',ready:'pronto para saída','to-address':'a caminho da entrega','park-address':'estacionando na entrega','take-parcel':'retirando encomenda','walk-address':'indo ao destinatário',handoff:'entregando','return-address':'voltando à moto',complete:'rota concluída',blocked:'acesso bloqueado'};
 /** B1-01 F5: courier states while bringing failed attempts back (same physical steps as the morning return). */
 export const RETURN_LABEL='devolvendo à base';
+export const COURIER_STATES=Object.keys(COURIER_LABEL) as CourierState[];
+/**
+ * B1-01 F6 (contract C5, AC-20): everything a courier needs to resume exactly where the checkpoint
+ * left it (state machine, stores, bike and person poses, the route being driven/walked, stops).
+ * Plain data, deep-copied both ways; the diagnostic `routeLog` is not persisted.
+ */
+export type CourierSnapshot={id:Exclude<ActorId,'jogador'>;state:CourierState;stores:StoreKind[];storeIndex:number;bike:Point;person:Point;route:CourierRoutePoint[];stopTimer:number;returning:boolean;returnedAt:number|null;deadlineReported:boolean;yieldingToTraffic:boolean;stops:string[];timer:number;error:string|null};
+const copyPoint=(p:CourierRoutePoint):CourierRoutePoint=>p.control?{x:p.x,z:p.z,control:{...p.control}}:{x:p.x,z:p.z};
 export class Courier {
  readonly id:Exclude<ActorId,'jogador'>;readonly name:string;readonly sector:Sector;
  stores:StoreKind[]=[];storeIndex=0;state:CourierState='waiting';bike:Point;person:Point;route:CourierRoutePoint[]=[];private stopTimer=0;
  /** B1-01 F5: on the way back with failed-attempt parcels (ends in 'complete', not in sorting help). */
  returning=false;
  readonly targetReturnHour=14;readonly latestReturnHour=14+20/60;returnedAt:number|null=null;deadlineReported=false;yieldingToTraffic=false;stops:string[]=[];timer=0;error:string|null=null;routeLog:{from:{x:number;z:number};to:{x:number;z:number};points:{x:number;z:number}[]}[]=[];
+ toState():CourierSnapshot{
+  return {id:this.id,state:this.state,stores:[...this.stores],storeIndex:this.storeIndex,bike:{...this.bike},person:{...this.person},route:this.route.map(copyPoint),stopTimer:this.stopTimer,
+   returning:this.returning,returnedAt:this.returnedAt,deadlineReported:this.deadlineReported,yieldingToTraffic:this.yieldingToTraffic,stops:[...this.stops],timer:this.timer,error:this.error};
+ }
+ /** B1-01 F6: resumes from a validated snapshot of THIS courier (same id). */
+ restoreState(s:CourierSnapshot):void{
+  if(s.id!==this.id)throw new Error(`Courier ${this.id}: snapshot de ${s.id}`);
+  this.state=s.state;this.stores=[...s.stores];this.storeIndex=s.storeIndex;this.bike={...s.bike};this.person={...s.person};this.route=s.route.map(copyPoint);this.stopTimer=s.stopTimer;
+  this.returning=s.returning;this.returnedAt=s.returnedAt;this.deadlineReported=s.deadlineReported;this.yieldingToTraffic=s.yieldingToTraffic;this.stops=[...s.stops];this.timer=s.timer;this.error=s.error;this.routeLog=[];
+ }
  constructor(id:Exclude<ActorId,'jogador'>,name:string,sector:Sector){this.id=id;this.name=name;this.sector=sector;this.bike={...depotWorld(COURIER_BAYS[id].x,COURIER_BAYS[id].z),yaw:depotYaw(0)};this.person={...this.bike};}
  get riding():boolean{return ['waiting','to-store','parking','return-base','ready','to-address','park-address','complete'].includes(this.state);}
  hands(day:LogisticsDay):Parcel[]{return day.parcels.filter(p=>p.holder===this.id&&p.place==='maos');}

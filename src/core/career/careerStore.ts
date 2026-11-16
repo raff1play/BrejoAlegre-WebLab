@@ -36,6 +36,17 @@ export const STORAGE_PREFIX = 'brejo-b1:carreira:';
 export const ACTIVE_CAREER_KEY = 'brejo-b1:carreira-ativa';
 export const saveKey = (id: CareerId): string => `${STORAGE_PREFIX}${id}`;
 export const previousKey = (id: CareerId): string => `${saveKey(id)}:anterior`;
+/**
+ * B1-01 F6: highest checkpoint ever confirmed in this browser, per career INCARNATION (lineage).
+ * Kept when a career is deleted, so an older backup of the same incarnation can never be restored
+ * over progress (and paid events) that were already confirmed here.
+ */
+export const marksKey = (id: CareerId): string => `brejo-b1:marcas:${id}`;
+/**
+ * B1-01 F6: set when the Oeste career is deleted on purpose, so the legacy calendar index (kept for
+ * older builds, never deleted) is not migrated back into a "new" Oeste career.
+ */
+export const LEGACY_DISMISSED_KEY = 'brejo-b1:legado-descartado';
 
 export type LoadSource = 'principal' | 'anterior' | 'legado' | 'novo';
 export type LoadResult = Readonly<{ save: CareerSave; source: LoadSource; problem: string | null; persisted: boolean }>;
@@ -51,13 +62,40 @@ export class CareerStore {
   readonly storage: KeyValueStorage;
   constructor(storage: KeyValueStorage) { this.storage = storage; }
 
+  /**
+   * B1-01 F6: parsed saves by their exact stored text. A checkpoint is a few hundred kB; the same
+   * bytes are never validated twice (any change in the text is a cache miss and is re-validated).
+   */
+  private readonly parsed = new Map<string, { text: string; save: CareerSave }>();
   private parseKey(key: string, careerId: CareerId): CareerSave {
     const raw = this.storage.getItem(key);
     if (raw === null) throw new SaveError('ausente');
+    const hit = this.parsed.get(key);
+    if (hit && hit.text === raw && hit.save.careerId === careerId) return hit.save;
     let data: unknown;
     try { data = JSON.parse(raw); } catch { throw new SaveError('JSON inválido'); }
-    return parseSave(data, careerId);
+    const save = parseSave(data, careerId);
+    this.parsed.set(key, { text: raw, save });
+    return save;
   }
+
+  /** B1-01 F6: lineage → highest confirmed checkpoint (missing or unreadable = none known). */
+  marks(careerId: CareerId): Readonly<Record<string, number>> {
+    try {
+      const raw = this.storage.getItem(marksKey(careerId));
+      const o = raw === null ? {} : JSON.parse(raw) as unknown;
+      if (typeof o !== 'object' || o === null || Array.isArray(o)) return {};
+      return Object.fromEntries(Object.entries(o as Record<string, unknown>).filter(([, v]) => Number.isSafeInteger(v) && (v as number) >= 0)) as Record<string, number>;
+    } catch { return {}; }
+  }
+  private mark(save: CareerSave): void {
+    const m = { ...this.marks(save.careerId) };
+    const lineage = save.profile.lineageId;
+    if ((m[lineage] ?? -1) >= save.checkpointSequence) return;
+    m[lineage] = save.checkpointSequence;
+    try { this.storage.setItem(marksKey(save.careerId), canonicalJson(m)); } catch { /* best effort: the save itself still carries its sequence */ }
+  }
+  legacyDismissed(): boolean { return this.storage.getItem(LEGACY_DISMISSED_KEY) === '1'; }
 
   /** Lê o save de UMA carreira. Não grava nada (nem ao migrar o legado ou criar um perfil novo). */
   read(careerId: CareerId): LoadResult {
@@ -80,7 +118,7 @@ export class CareerStore {
     if (problem !== null) {
       return { save: sealSave({ careerId, checkpointSequence: 0, profile: defaultProfile(careerId), shift: null }), source: 'novo', problem, persisted: false };
     }
-    const legacy = careerId === DEFAULT_CAREER ? readLegacyCalendar(this.storage) : null;
+    const legacy = careerId === DEFAULT_CAREER && !this.legacyDismissed() ? readLegacyCalendar(this.storage) : null;
     const save = sealSave({ careerId, checkpointSequence: 0, profile: defaultProfile(careerId, legacy ?? 0), shift: null });
     return { save, source: legacy === null ? 'novo' : 'legado', problem, persisted: false };
   }
@@ -101,11 +139,14 @@ export class CareerStore {
    * a um conteúdo antigo "vencer" um mais novo só por ter número maior). Preserva a cópia íntegra
    * atual em `…:anterior`.
    */
-  write(save: CareerSave): CareerSave {
-    const valid = parseSave(JSON.parse(JSON.stringify(save)));
+  write(save: CareerSave): CareerSave { return this.writeChecked(save, false); }
+
+  private writeChecked(save: CareerSave, importing: boolean): CareerSave {
+    const valid = parseSave(JSON.parse(canonicalJson(save)));
     const id = valid.careerId;
     const stored = this.storedSequence(id);
-    if (valid.checkpointSequence !== stored + 1) throw new SaveError(`Checkpoint ${valid.checkpointSequence} fora da sequência: o gravado é ${stored}, esperado ${stored + 1} (sessão desatualizada?)`);
+    // An imported backup keeps its own (higher) checkpoint number: that is its place in its lineage.
+    if (importing ? valid.checkpointSequence <= stored : valid.checkpointSequence !== stored + 1) throw new SaveError(`Checkpoint ${valid.checkpointSequence} fora da sequência: o gravado é ${stored}, esperado ${stored + 1} (sessão desatualizada?)`);
     const text = canonicalJson(valid);
     const oldPrevious = this.storage.getItem(previousKey(id));
     let promoted = false;
@@ -125,6 +166,8 @@ export class CareerStore {
       }
       throw new SaveError(`Falha ao gravar o save de ${id}: ${(e as Error).message}`);
     }
+    this.parsed.set(saveKey(id), { text, save: valid });
+    this.mark(valid);
     return valid;
   }
 
@@ -160,26 +203,79 @@ export class CareerStore {
     this.storage.setItem(ACTIVE_CAREER_KEY, next);
   }
 
-  /** Backup exportável de UMA carreira: o próprio save canônico, com versão e checksum. */
+  /**
+   * B1-01 F6 — backup policy (decision 12; engineering policy, auditable):
+   * - a backup is the career's own canonical save (format, schema version, career, lineage,
+   *   checkpoint, checksum), exported only between shifts: never with an open shift;
+   * - importing validates EVERYTHING before writing (JSON, checksum, schema/migration, career);
+   * - refused: a backup with an open shift, over an open shift, of an incarnation already seen
+   *   at a HIGHER checkpoint in this browser (it would undo confirmed operations and pay again),
+   *   or over a different incarnation without explicit `replace`;
+   * - the current save is kept as the previous copy (`…:anterior`) by the write itself.
+   */
   exportBackup(careerId: CareerId): string {
-    return canonicalJson(this.read(careerId).save);
+    const r = this.read(careerId);
+    if (!r.persisted) throw new SaveError(`${CHARACTERS[careerId].name} não tem save gravado para exportar`);
+    if (r.save.profile.activeShiftId !== null) throw new SaveError('Backup só entre expedientes: termine o expediente aberto antes de exportar');
+    return canonicalJson(r.save);
   }
 
-  /**
-   * Restaura um backup. Toda a validação ocorre antes de qualquer escrita: JSON inválido, checksum
-   * errado, versão desconhecida ou carreira diferente da esperada são rejeitados sem tocar no save
-   * íntegro. O conteúdo restaurado entra como checkpoint NOVO (a sequência não retrocede).
-   * Política de conflito/ledger de pagamentos entre backup e save atual: F6 (pendência registrada).
-   */
-  importBackup(text: string, expected?: CareerId): CareerSave {
+  /** What an import would do, without writing (shown to the player before confirming). */
+  previewBackup(text: string, expected?: CareerId): BackupPreview {
     let data: unknown;
     try { data = JSON.parse(text); } catch { throw new SaveError('Backup não é JSON válido'); }
     const backup = parseSave(data, expected);
     const id = backup.careerId;
-    if (id === this.activeCareer() && this.read(id).save.profile.activeShiftId !== null) throw new SaveError('Não restaurar backup sobre expediente aberto');
-    return this.commit(id, backup.profile, backup.shift, this.storedSequence(id));
+    if (backup.profile.activeShiftId !== null || backup.shift !== null) throw new SaveError('Backup com expediente aberto não é aceito: exporte entre expedientes');
+    const current = this.read(id);
+    if (current.persisted && current.save.profile.activeShiftId !== null) throw new SaveError('Não restaurar backup sobre expediente aberto');
+    const seen = this.marks(id)[backup.profile.lineageId] ?? -1;
+    if (backup.checkpointSequence < seen) throw new SaveError(`Backup desatualizado: esta carreira já chegou ao checkpoint ${seen} neste navegador (o backup é do ${backup.checkpointSequence}); restaurá-lo desfaria operações e pagamentos já confirmados`);
+    const sameLineage = current.persisted && current.save.profile.lineageId === backup.profile.lineageId;
+    if (sameLineage && backup.checkpointSequence <= current.save.checkpointSequence) throw new SaveError(backup.checkpointSequence === current.save.checkpointSequence ? 'Este backup já é o save atual (mesmo checkpoint): nada a restaurar' : `Backup desatualizado: o save atual está no checkpoint ${current.save.checkpointSequence}`);
+    return Object.freeze({ save: backup, replaces: current.persisted && !sameLineage ? current.save : null, unreadable: !current.persisted && current.problem !== null });
+  }
+
+  /**
+   * Restores a backup (see `previewBackup` for every refusal). `replace` must be true to put it
+   * over a DIFFERENT incarnation of the same character (explicit confirmation by the player).
+   */
+  importBackup(text: string, expected?: CareerId, options: { replace?: boolean } = {}): CareerSave {
+    const preview = this.previewBackup(text, expected);
+    if (preview.replaces && !options.replace) throw new SaveError(`Já existe outra carreira de ${CHARACTERS[preview.save.careerId].name} neste navegador: confirme a substituição (exporte-a antes)`);
+    if (preview.unreadable && !options.replace) throw new SaveError(`O save atual de ${CHARACTERS[preview.save.careerId].name} está ilegível: confirme a substituição`);
+    const b = preview.save;
+    const stored = this.storedSequence(b.careerId);
+    return this.writeChecked(sealSave({ careerId: b.careerId, checkpointSequence: Math.max(stored + 1, b.checkpointSequence), profile: b.profile, shift: null }), true);
+  }
+
+  /**
+   * B1-01 F6: deletes ONE career (main save and previous copy) after explicit confirmation by the
+   * character's name. Refused with an open shift. Unreadable data can be deleted (that is how a
+   * corrupted slot is freed). Oeste: the legacy calendar key is KEPT (older builds), but marked as
+   * dismissed so it does not come back as this career. Other careers are never touched.
+   */
+  deleteCareer(careerId: CareerId, confirmName: string): void {
+    if (!isCareerId(careerId)) throw new SaveError(`Carreira inválida: ${String(careerId)}`);
+    const name = CHARACTERS[careerId].name;
+    if (confirmName !== name) throw new SaveError(`Confirmação inválida: digite ${name} para apagar`);
+    const r = this.read(careerId);
+    if (r.persisted && r.save.profile.activeShiftId !== null) throw new SaveError(`Expediente ${r.save.profile.activeShiftId} aberto: termine-o antes de apagar a carreira`);
+    const keys = [previousKey(careerId), saveKey(careerId)];
+    const before = keys.map((k) => this.storage.getItem(k));
+    try {
+      if (careerId === DEFAULT_CAREER && readLegacyCalendar(this.storage) !== null) this.storage.setItem(LEGACY_DISMISSED_KEY, '1');
+      for (const k of keys) this.storage.removeItem(k);
+    } catch (e) {
+      // All or nothing: put back what was removed.
+      keys.forEach((k, i) => { try { if (before[i] !== null) this.storage.setItem(k, before[i]!); } catch { /* best effort */ } });
+      throw new SaveError(`Falha ao apagar a carreira de ${name}: ${(e as Error).message}`);
+    }
+    for (const k of keys) this.parsed.delete(k);
   }
 }
+
+export type BackupPreview = Readonly<{ save: CareerSave; replaces: CareerSave | null; unreadable: boolean }>;
 
 /**
  * Sessão da carreira ATIVA. É o único caminho de escrita do jogo: as três carreiras que atuam

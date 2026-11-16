@@ -1,6 +1,9 @@
 import {Workday,type WorkdayOptions,type DepotVisit,type Objective,DEPOT_SPOTS} from './workday.ts';
 import {dailyDemand,type DemandOptions,type ActorId} from './dailyDemand.ts';
-import {Courier,COURIER_LABEL} from './couriers.ts';
+import {Courier,COURIER_LABEL,type CourierSnapshot} from './couriers.ts';
+import type {DepotSnapshot} from './depotOperations.ts';
+import type {Parcel} from './parcels.ts';
+import type {Phase} from './workday.ts';
 import {SECTOR_DATA,recommendedRoute,type Sector} from './sectors.ts';
 import {depotLocal,depotWorld,type StoreKind} from '../../world/city/cityPlan.ts';
 import {DEPOT_POINTS} from '../../world/city/depotPlan.ts';
@@ -24,6 +27,17 @@ export function absentByCalendar(seed:number,addressId:string):boolean{
  return (h>>>0)%100<ABSENT_PERCENT;
 }
 /** Per-courier report (AC-26): when each of the four finished and how late. */
+/**
+ * B1-01 F6 (contract C5, AC-18–AC-20): the whole running shift as plain data — routine, team
+ * release, per-courier progress and lateness, the depot team with its tasks in progress, the van.
+ * Parcels are NOT here: they travel once, in the save's own parcel list (single source of truth).
+ */
+export type LogisticsSnapshot=Readonly<{
+ phase:Phase;assignments:Record<ActorId,StoreKind[]>;route:string[];sackInHands:boolean;late:boolean;absent:string[];
+ released:boolean;releaseHour:number|null;allSortedAt:number|null;readinessWarned:boolean;finishedAt:Record<ActorId,number|null>;
+ trafficTime:number;gateOpen:number;van:{state:'scheduled'|'opening'|'unloading'|'closing'|'departed';door:number};
+ depot:DepotSnapshot;couriers:CourierSnapshot[];closedAtHome:number|null;
+}>;
 export type ActorReport=Readonly<{actor:ActorId;delivered:number;returned:number;pending:number;lateDeliveries:number;finishedAt:number|null;lateMinutes:number|null}>;
 /**
  * Four actors share inherited parcels/depot. Actor inventories are queries, never copies.
@@ -36,7 +50,7 @@ export class LogisticsDay extends Workday {
  readonly playerDispatchLocal:{x:number;z:number};readonly playerDispatch:{x:number;z:number};
  assignments:Record<ActorId,StoreKind[]>={jogador:[],npc1:[],npc2:[],npc3:[]};
  readonly demandOptions:DemandOptions;readonly calendar:CalendarDay|null;
- allSortedAt:number|null=null;private readinessWarned=false;
+ allSortedAt:number|null=null;readinessWarned=false;
  trafficTime=0;trafficBlocked:((id:string,x:number,z:number,yaw:number)=>'traffic'|'player'|'courier'|null)|null=null;
  gateOpen=1;released=false;releaseHour:number|null=null;private previousHour:number|null=null;
  readonly local=(p:{x:number;z:number})=>depotLocal(p.x,p.z);
@@ -47,6 +61,30 @@ export class LogisticsDay extends Workday {
   this.playerDispatchLocal=Object.freeze({x:SECTOR_DATA[this.playerSector].x,z:DEPOT_POINTS.dispatch.z});
   this.playerDispatch=Object.freeze(depotWorld(this.playerDispatchLocal.x,this.playerDispatchLocal.z));
   this.couriers=(['npc1','npc2','npc3'] as const).map(id=>{const c=CHARACTERS[this.roster[id]];return new Courier(id,c.name,c.sector);});
+ }
+ /** B1-01 F6: hour the player closed the shift at home (after every parcel was resolved), else null. */
+ closedAtHome:number|null=null;
+ /** B1-01 F6: the player's own home door, target of the minimum end-of-shift step (B1-09 expands it). */
+ homeTarget:{x:number;z:number;label:string}|null=null;
+ captureState():LogisticsSnapshot{
+  return {phase:this.phase,assignments:Object.fromEntries(ACTORS.map(a=>[a,[...this.assignments[a]]])) as Record<ActorId,StoreKind[]>,route:[...this.route],sackInHands:this.sackInHands,late:this.late,
+   absent:[...this.absentAddresses].sort(),released:this.released,releaseHour:this.releaseHour,allSortedAt:this.allSortedAt,readinessWarned:this.readinessWarned,
+   finishedAt:{...this.finishedAt},trafficTime:this.trafficTime,gateOpen:this.gateOpen,van:this.van.toState(),depot:this.depot.toState(),couriers:this.couriers.map(c=>c.toState()),closedAtHome:this.closedAtHome};
+ }
+ /**
+  * B1-01 F6: resumes the shift of a validated checkpoint. `parcels` are fresh domain objects built
+  * from the save (never the live ones); nothing is re-generated (no `start`), so no parcel is ever
+  * re-created at a store or paid again.
+  */
+ restoreState(s:LogisticsSnapshot,parcels:readonly Parcel[]):void{
+  if(this.phase!=='ANTES'||this.parcels.length)throw new Error('Restaurar só num expediente ainda não iniciado');
+  this.restoreWorkday({phase:s.phase,assigned:s.assignments.jogador,route:s.route,sackInHands:s.sackInHands,late:s.late,absent:s.absent},parcels);
+  this.assignments=Object.fromEntries(ACTORS.map(a=>[a,[...s.assignments[a]]])) as Record<ActorId,StoreKind[]>;
+  this.released=s.released;this.releaseHour=s.releaseHour;this.allSortedAt=s.allSortedAt;this.readinessWarned=s.readinessWarned;
+  for(const a of ACTORS)this.finishedAt[a]=s.finishedAt[a];
+  this.trafficTime=s.trafficTime;this.gateOpen=s.gateOpen;this.van.restoreState(s.van);this.depot.restoreState(s.depot);
+  for(const c of this.couriers){const saved=s.couriers.find(q=>q.id===c.id);if(!saved)throw new Error(`Checkpoint sem ${c.id}`);c.restoreState(saved);}
+  this.previousHour=null;this.closedAtHome=s.closedAtHome;
  }
  override start(hour:number):void{
   if(this.phase!=='ANTES')return;const d=dailyDemand(this.addresses,hour,this.demandOptions);
@@ -131,6 +169,12 @@ export class LogisticsDay extends Workday {
   else if(this.load('jogador').length&&this.load('jogador').every(p=>p.state==='NA_SACA'&&p.place==='saca'))this.phase='SACA';
  }
  override objective(hour:number,bike?:{x:number;z:number}):Objective{
+  // B1-01 F6 (AC-26, contract C4): everything resolved — the minimum end of shift is going home.
+  if(this.phase==='CONCLUIDA'&&this.allResolved){
+   if(this.closedAtHome!==null)return {title:'Expediente encerrado em casa',detail:'Dia salvo · troca de carreira liberada no menu principal',target:null,waitUntil:null};
+   const h=this.homeTarget;
+   return {title:h?`Voltar para casa — ${h.label}`:'Voltar para casa',detail:'Todos os pacotes resolvidos pelos quatro entregadores · estacione perto de casa e encerre o expediente na porta',target:h?{kind:'endereco',id:'casa',x:h.x,z:h.z,label:'Sua casa'}:null,waitUntil:null};
+  }
   if(this.phase==='ENTREGAS'&&!this.released){
    const car=this.vehicleKind==='carro-antigo';
    if(this.sackInHands)return {title:`Guardar a saca ${this.playerSector} no ${this.compartment}`,detail:this.cargoLabel(),target:bike?{kind:'moto',id:'moto',...bike,label:car?'Porta-malas do carro':'Baú da moto'}:null,waitUntil:null};

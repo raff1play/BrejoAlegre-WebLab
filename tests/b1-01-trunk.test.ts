@@ -1,4 +1,5 @@
 import test from 'node:test';
+import { worldOf } from './helpers/world.ts';
 import assert from 'node:assert/strict';
 import {
   CAR_TRUNK, CarTrunk, PARCEL_SIZES, SUPPORT_MIN, arrange, arrangeAfterRemoval, insideCompartment, layoutProblem,
@@ -11,7 +12,7 @@ import { SECTORS } from '../src/core/delivery/sectors.ts';
 import { rng } from '../src/core/city/traffic.ts';
 import {
   SAVE_SCHEMA_VERSION, SaveError, canonicalJson, captureParcels, checksumOf, chooseStartingVehicle, defaultProfile,
-  emptyShift, parseSave, sealSave, vehicleIdOf, type CareerProfile,
+  emptyShift, parseSave, sealSave, vehicleIdOf, SAVE_MIGRATIONS, type CareerProfile,
 } from '../src/core/career/snapshot.ts';
 import { CareerStore, MemoryStorage, saveKey } from '../src/core/career/careerStore.ts';
 
@@ -184,13 +185,13 @@ test('B1-01 F3: transições de custódia do porta-malas — só pelas mãos, s�
 function carProfile(day = 0): CareerProfile {
   return { ...chooseStartingVehicle(defaultProfile('personagem-oeste', day), 'carro-antigo'), activeShiftId: `personagem-oeste/dia-${day}` };
 }
-function shiftWith(parcels: Parcel[], day = 0) { return { ...emptyShift('personagem-oeste', day), parcels: captureParcels(parcels) }; }
+function shiftWith(parcels: Parcel[], day = 0) { return { ...emptyShift('personagem-oeste', day), parcels: captureParcels(parcels), phase: 'COLETA', world: worldOf('personagem-oeste', 'COLETA') }; }
 const reseal = (o: any) => { delete o.checksum; return { ...o, checksum: checksumOf(o) }; };
 
 test('B1-01 F3 persistência: snapshot v2 guarda e restaura cada posição de carga exatamente; layout reconstruído é idêntico', () => {
   const all = collected(12, 'P'); const trunk = new CarTrunk(VEH); trunk.setOpen(true); trunk.stow(all, 12.9, ctx);
   const save = sealSave({ careerId: 'personagem-oeste', checkpointSequence: 1, profile: carProfile(), shift: shiftWith(all) });
-  assert.equal(save.schemaVersion, SAVE_SCHEMA_VERSION); assert.equal(SAVE_SCHEMA_VERSION, 2);
+  assert.equal(save.schemaVersion, SAVE_SCHEMA_VERSION); assert.equal(SAVE_SCHEMA_VERSION, 3);
   const back = parseSave(JSON.parse(canonicalJson(save)));
   assert.deepEqual(back.shift!.parcels.map((p) => p.stowage), all.map((p) => p.stowage));
   // Rebuild live parcels from the save and check the boot is the same, physically valid one.
@@ -224,32 +225,42 @@ test('B1-01 F3 persistência: save com carga fisicamente impossível ou incoeren
   assert.doesNotThrow(() => parseSave(JSON.parse(canonicalJson(good))));
 });
 
-test('B1-01 F3 migração: save v1 (F1/F2, como o laboratório publicado) abre na v2 sem perder dados; v1 adulterado é recusado', () => {
+test('B1-01 F3 migração (F6: até a v3): save v1 (F1/F2, como o laboratório publicado) abre sem perder dados; v1 adulterado é recusado', () => {
   const parcel = collected(1, 'V')[0]!;
   // A v1 body, byte-for-byte as F2 wrote it: no `stowage` field, checksum over the v1 content.
   const v1Parcel = (() => { const { stowage: _s, ...rest } = captureParcels([parcel])[0]!; return rest; })();
-  const profile = carProfile(3);
-  const body = { format: 'brejo-alegre-carreira', schemaVersion: 1, careerId: 'personagem-oeste', checkpointSequence: 7, profile, shift: { ...emptyShift('personagem-oeste', 3), parcels: [v1Parcel] } };
+  const v1Profile = (() => { const { lineageId: _l, lastClosedShift: _c, ...rest } = carProfile(3); return rest; })();
+  const v1Shift = (() => { const { shiftHour: _h, openingBalanceCents: _o, world: _w, ...rest } = emptyShift('personagem-oeste', 3); return rest; })();
+  // The v1 → v2 step itself adds the empty boot slot to every parcel and keeps the rest.
+  const step = SAVE_MIGRATIONS[1]!({ schemaVersion: 1, shift: { ...v1Shift, parcels: [v1Parcel] } } as any, null) as any;
+  assert.equal(step.schemaVersion, 2); assert.equal(step.shift.parcels[0].stowage, null);
+  assert.deepEqual({ ...step.shift.parcels[0], stowage: undefined }, { ...v1Parcel, stowage: undefined });
+  // F6: a v1/v2 OPEN shift that already holds parcels has no world to resume from (F1–F5 never
+  // wrote one): it is refused with the reason, never half-restored.
+  const withParcels = { format: 'brejo-alegre-carreira', schemaVersion: 1, careerId: 'personagem-oeste', checkpointSequence: 7, profile: v1Profile, shift: { ...v1Shift, parcels: [v1Parcel] } };
+  assert.throws(() => parseSave({ ...withParcels, checksum: checksumOf(withParcels as any) }), /sem o estado do mundo/);
+  // An open shift with no parcel yet (the F3.5 lock fixture) and the profile alone migrate in full.
+  const body = { format: 'brejo-alegre-carreira', schemaVersion: 1, careerId: 'personagem-oeste', checkpointSequence: 7, profile: v1Profile, shift: { ...v1Shift, elapsedVirtualMinutes: 30 } };
   const v1 = { ...body, checksum: checksumOf(body as any) };
   const migrated = parseSave(JSON.parse(JSON.stringify(v1)));
-  assert.equal(migrated.schemaVersion, 2);
-  assert.equal(migrated.checkpointSequence, 7); assert.deepEqual({ ...migrated.profile }, { ...profile });
-  assert.equal(migrated.shift!.parcels[0]!.stowage, null);
-  assert.deepEqual({ ...migrated.shift!.parcels[0]!, stowage: undefined }, { ...v1Parcel, stowage: undefined });
+  assert.equal(migrated.schemaVersion, 3);
+  assert.equal(migrated.checkpointSequence, 7); assert.deepEqual({ ...migrated.profile, lineageId: undefined, lastClosedShift: undefined }, { ...v1Profile, lineageId: undefined, lastClosedShift: undefined });
+  assert.match(migrated.profile.lineageId, /^personagem-oeste:v2-/); assert.equal(migrated.profile.lastClosedShift, null);
+  assert.equal(migrated.shift!.shiftHour, 11.75 + 30 / 60); assert.equal(migrated.shift!.world, null); assert.equal(migrated.shift!.openingBalanceCents, 0);
   assert.equal(migrated.checksum, checksumOf((({ checksum: _c, ...b }) => b)(migrated) as any), 'checksum do conteúdo migrado');
   // Perfil sem expediente (o caso real do laboratório F2) também migra.
-  const bare = { format: 'brejo-alegre-carreira', schemaVersion: 1, careerId: 'personagem-oeste', checkpointSequence: 2, profile: chooseStartingVehicle(defaultProfile('personagem-oeste'), 'carro-antigo'), shift: null };
-  assert.equal(parseSave({ ...bare, checksum: checksumOf(bare as any) }).schemaVersion, 2);
+  const bare = { format: 'brejo-alegre-carreira', schemaVersion: 1, careerId: 'personagem-oeste', checkpointSequence: 2, profile: (({ lineageId: _l, lastClosedShift: _c, ...r }) => r)(chooseStartingVehicle(defaultProfile('personagem-oeste'), 'carro-antigo')), shift: null };
+  assert.equal(parseSave({ ...bare, checksum: checksumOf(bare as any) }).schemaVersion, 3);
   // Adulterar a v1 (checksum antigo não confere) é recusado ANTES da migração.
   assert.throws(() => parseSave({ ...v1, checkpointSequence: 8 }), /Checksum inválido/);
-  // Pelo store: o save v1 gravado continua legível, e o próximo checkpoint sai em v2 sem retroceder.
+  // Pelo store: o save v1 gravado continua legível, e o próximo checkpoint sai em v3 sem retroceder.
   const storage = new MemoryStorage(); storage.setItem(saveKey('personagem-oeste'), JSON.stringify(v1));
   const store = new CareerStore(storage);
   const read = store.read('personagem-oeste');
   assert.equal(read.source, 'principal'); assert.equal(read.save.checkpointSequence, 7);
   assert.equal(JSON.parse(storage.getItem(saveKey('personagem-oeste'))!).schemaVersion, 1, 'ler não reescreve o save');
   const next = store.commit('personagem-oeste', read.save.profile, read.save.shift, 7);
-  assert.equal(next.checkpointSequence, 8); assert.equal(JSON.parse(storage.getItem(saveKey('personagem-oeste'))!).schemaVersion, 2);
+  assert.equal(next.checkpointSequence, 8); assert.equal(JSON.parse(storage.getItem(saveKey('personagem-oeste'))!).schemaVersion, 3);
   assert.throws(() => parseSave({ ...v1, schemaVersion: SAVE_SCHEMA_VERSION + 1 }), SaveError);
 });
 

@@ -10,9 +10,16 @@ import {
 } from '../src/core/career/careerStore.ts';
 import { CALENDAR_STORAGE_KEY } from '../src/core/delivery/operatingCalendar.ts';
 import { createParcel, advance, move } from '../src/core/delivery/parcels.ts';
+import { minutes, worldOf } from './helpers/world.ts';
 
-/** Próximo checkpoint baseado no último gravado (uso direto do store, fora de uma sessão). */
-const next = (store: CareerStore, id: CareerId, profile: ReturnType<typeof defaultProfile>, shift: null = null) => store.commit(id, profile, shift, store.baseSequence(id));
+/**
+ * Próximo checkpoint baseado no último gravado (uso direto do store, fora de uma sessão). F6: a
+ * mesma carreira continua na mesma linhagem (encarnação); `defaultProfile` sorteia uma nova.
+ */
+const next = (store: CareerStore, id: CareerId, profile: ReturnType<typeof defaultProfile>, shift: null = null) => {
+  const r = store.read(id);
+  return store.commit(id, r.persisted ? { ...profile, lineageId: r.save.profile.lineageId } : profile, shift, store.baseSequence(id));
+};
 const fresh = () => { const storage = new MemoryStorage(); return { storage, store: new CareerStore(storage) }; };
 const reparse = (s: CareerSave) => JSON.parse(canonicalJson(s)) as Record<string, unknown>;
 const tamper = (s: CareerSave, f: (o: any) => void): any => { const o = reparse(s); f(o); return o; };
@@ -65,7 +72,7 @@ test('B1-01 F1 AC-03 (dados): veículo inicial por carreira, próprio, quitado e
 
 test('B1-01 F1 schema: envelope versionado, checksum determinístico e ida/volta exata', () => {
   const save = sealSave({ careerId: 'personagem-leste', checkpointSequence: 4, profile: defaultProfile('personagem-leste', 9), shift: null });
-  assert.equal(save.format, SAVE_FORMAT); assert.equal(save.schemaVersion, SAVE_SCHEMA_VERSION); assert.equal(SAVE_SCHEMA_VERSION, 2, "F3: v2 acrescenta a posição no porta-malas");
+  assert.equal(save.format, SAVE_FORMAT); assert.equal(save.schemaVersion, SAVE_SCHEMA_VERSION); assert.equal(SAVE_SCHEMA_VERSION, 3, "F3: v2 acrescenta a posição no porta-malas; F6: v3 acrescenta linhagem, mundo e razão de pagamentos");
   assert.match(save.checksum, /^fnv1a32:[0-9a-f]{8}$/);
   const back = parseSave(JSON.parse(canonicalJson(save)));
   assert.deepEqual(back, save);
@@ -97,10 +104,10 @@ test('B1-01 F1 schema: expediente com ID estável, roster fixo, pacotes íntegro
   advance(p, 'COLETADO', 'jogador', 12.2); move(p, 'maos', 'jogador', 12.2);
   const parcels = captureParcels([p]);
   assert.notEqual(parcels[0]!.history, p.history, 'cópia profunda, sem referência ao objeto vivo');
-  const shift = { ...emptyShift(careerId, 7), parcels, elapsedVirtualMinutes: 845, phase: 'COLETA' };
+  const shift = { ...emptyShift(careerId, 7), parcels, ...minutes(845), phase: 'COLETA', world: worldOf(careerId, 'COLETA') };
   assert.equal(shift.shiftId, shiftIdOf(careerId, 7));
   assert.equal(shift.shiftId, 'personagem-oeste/dia-7', 'ID depende do dia de calendário, não da hora: 00h não cria outro');
-  const profile = { ...defaultProfile(careerId, 7), activeShiftId: shift.shiftId };
+  const profile = { ...chooseStartingVehicle(defaultProfile(careerId, 7), 'moto-antiga'), activeShiftId: shift.shiftId };
   const save = sealSave({ careerId, checkpointSequence: 2, profile, shift });
   assert.deepEqual(parseSave(reparse(save)).shift!.parcels[0]!.history.length, p.history.length);
   const reseal = (f: (o: any) => void) => { const o = tamper(save, f); delete o.checksum; return () => sealSave({ careerId, checkpointSequence: 2, profile: o.profile, shift: o.shift }); };
@@ -145,7 +152,7 @@ test('B1-01 F1 isolamento: uma chave por carreira, sequência monotônica e cóp
   assert.deepEqual([a.checkpointSequence, b.checkpointSequence], [0, 1]);
   assert.equal(parseSave(JSON.parse(storage.getItem(previousKey('personagem-norte'))!)).profile.calendarIndex, 1);
   assert.throws(() => store.write(a), /fora da sequência/, 'checkpoint antigo não sobrescreve o novo');
-  assert.deepEqual(storage.keys().filter((k) => k.includes('personagem-')), [saveKey('personagem-norte'), previousKey('personagem-norte')]);
+  assert.deepEqual(storage.keys().filter((k) => k.includes('personagem-') && !k.startsWith('brejo-b1:marcas:')), [saveKey('personagem-norte'), previousKey('personagem-norte')]);
   // Principal corrompido: lê a cópia anterior, e a próxima gravação não a destrói.
   storage.setItem(saveKey('personagem-norte'), '{"quebrado":');
   const r = store.read('personagem-norte');
@@ -198,20 +205,26 @@ test('B1-01 F1 AC-17 base: troca de carreira bloqueada com expediente aberto', (
   assert.equal(store.activeCareer(), DEFAULT_CAREER, 'ponteiro inválido não cria quinto personagem');
 });
 
-test('B1-01 F1 AC-21 base: backup reabre a carreira correta; corrompido/versão inválida não sobrescreve', () => {
+test('B1-01 F1 AC-21 base (F6: política de backup): backup reabre a carreira correta; corrompido/versão inválida/desatualizado não sobrescreve', () => {
   const { storage, store } = fresh();
   next(store, 'personagem-leste', { ...defaultProfile('personagem-leste', 5), experience: 7 }, null);
   const backup = store.exportBackup('personagem-leste');
   next(store, 'personagem-leste', { ...defaultProfile('personagem-leste', 6), experience: 9 }, null);
   const intact = storage.getItem(saveKey('personagem-leste'));
-  for (const broken of [backup.slice(0, -5), backup.replace('"experience":7', '"experience":700'), backup.replace('"schemaVersion":2', '"schemaVersion":99'), '[]']) {
+  for (const broken of [backup.slice(0, -5), backup.replace('"experience":7', '"experience":700'), backup.replace(`"schemaVersion":${SAVE_SCHEMA_VERSION}`, '"schemaVersion":99'), '[]']) {
     assert.throws(() => store.importBackup(broken), SaveError);
     assert.equal(storage.getItem(saveKey('personagem-leste')), intact, 'save íntegro preservado');
   }
   assert.throws(() => store.importBackup(backup, 'personagem-norte'), /esperado personagem-norte/);
   assert.equal(storage.getItem(saveKey('personagem-norte')), null, 'backup de outra carreira não cria/mistura perfil');
-  const restored = store.importBackup(backup, 'personagem-leste');
+  // F6 (reauditoria F1): o backup do checkpoint 0 é mais antigo que o save atual (1): restaurá-lo
+  // reverteria progresso confirmado — recusado, save intacto.
+  assert.throws(() => store.importBackup(backup, 'personagem-leste'), /desatualizado/);
+  assert.equal(storage.getItem(saveKey('personagem-leste')), intact);
+  // Num navegador sem esta carreira (ex.: aparelho novo) o mesmo backup reabre a carreira correta.
+  const other = fresh();
+  const restored = other.store.importBackup(backup, 'personagem-leste');
   assert.equal(restored.profile.calendarIndex, 5); assert.equal(restored.profile.experience, 7);
-  assert.equal(restored.checkpointSequence, 2, 'restauração entra como checkpoint novo, sequência não retrocede');
-  for (const other of CAREER_IDS.filter((c) => c !== 'personagem-leste')) assert.equal(storage.getItem(saveKey(other)), null);
+  assert.equal(restored.checkpointSequence, 0, 'o checkpoint do backup é mantido (lugar dele na linhagem)');
+  for (const c of CAREER_IDS.filter((c) => c !== 'personagem-leste')) { assert.equal(storage.getItem(saveKey(c)), null); assert.equal(other.storage.getItem(saveKey(c)), null); }
 });

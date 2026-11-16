@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { CAREER_IDS, CHARACTERS, careerHome, type CareerId } from '../src/core/career/careers.ts';
 import { ActivationError, enterCareer, mainScreen, menuModel } from '../src/core/career/careerMenu.ts';
 import { ACTIVE_CAREER_KEY, CareerStore, MemoryStorage, previousKey, saveKey } from '../src/core/career/careerStore.ts';
-import { chooseStartingVehicle, defaultProfile, emptyShift, shiftIdOf, SaveError } from '../src/core/career/snapshot.ts';
+import { chooseStartingVehicle, defaultProfile, emptyShift, shiftHourOf, shiftIdOf, SaveError } from '../src/core/career/snapshot.ts';
 import { CALENDAR_STORAGE_KEY } from '../src/core/delivery/operatingCalendar.ts';
 import { EQUIPMENT_LOOK, careerLook } from '../src/features/career/characterPresets.ts';
 
@@ -91,7 +91,7 @@ test('B1-01 F3.5 AC-03: veículo fica fixo — outra escolha é recusada sem gra
 test('B1-01 F3.5 AC-17: expediente aberto bloqueia as outras carreiras e permite continuar a mesma, sem reiniciar dia/expediente', () => {
   const storage = new MemoryStorage(); const store = new CareerStore(storage);
   const profile = { ...chooseStartingVehicle(defaultProfile('personagem-norte', 3), 'moto-antiga'), activeShiftId: shiftIdOf('personagem-norte', 3) };
-  store.commit('personagem-norte', profile, { ...emptyShift('personagem-norte', 3), elapsedVirtualMinutes: 200 }, -1);
+  store.commit('personagem-norte', profile, { ...emptyShift('personagem-norte', 3), elapsedVirtualMinutes: 200, shiftHour: shiftHourOf(200) }, -1);
   store.setActiveCareer('personagem-norte');
   const before = dump(storage);
   const m = menuModel(storage);
@@ -248,7 +248,7 @@ test('B1-01 F3.5.1: calendário legado e save corrompido não aparecem como pers
 test('B1-01 F3.5.1 AC-17: expediente aberto — Continuar abre só a carreira travada; Novo jogo e as outras ficam bloqueados', () => {
   const storage = new MemoryStorage(); const store = new CareerStore(storage);
   const profile = { ...chooseStartingVehicle(defaultProfile('personagem-norte', 3), 'moto-antiga'), activeShiftId: shiftIdOf('personagem-norte', 3) };
-  store.commit('personagem-norte', profile, { ...emptyShift('personagem-norte', 3), elapsedVirtualMinutes: 90 }, -1);
+  store.commit('personagem-norte', profile, { ...emptyShift('personagem-norte', 3), elapsedVirtualMinutes: 90, shiftHour: shiftHourOf(90) }, -1);
   store.setActiveCareer('personagem-norte');
   const m = mainScreen(menuModel(storage));
   assert.equal(m.continueCard!.careerId, 'personagem-norte'); assert.equal(m.continueCard!.activeShiftId, 'personagem-norte/dia-3');

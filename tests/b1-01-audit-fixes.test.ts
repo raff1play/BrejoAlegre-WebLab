@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { CareerSession, CareerStore, MemoryStorage, saveKey } from '../src/core/career/careerStore.ts';
 import { commitNextDay } from '../src/core/career/careerBoot.ts';
 import { DEFAULT_CAREER, type CareerId } from '../src/core/career/careers.ts';
-import { SaveError, captureParcels, defaultProfile, emptyShift, sealSave, type PaymentRecord } from '../src/core/career/snapshot.ts';
+import { SaveError, captureParcels, chooseStartingVehicle, defaultProfile, emptyShift, sealSave, type PaymentRecord } from '../src/core/career/snapshot.ts';
+import { minutes, worldOf } from './helpers/world.ts';
 import { advance, createParcel, move, type Parcel } from '../src/core/delivery/parcels.ts';
 
 /**
@@ -33,17 +34,25 @@ test('Auditoria 1: sessão desatualizada (outra aba) não sobrescreve progresso 
   assert.throws(() => commitNextDay(a, 7), /desatualizada/, 'agora A é que ficou para trás');
 });
 
-test('Auditoria 1: restauração de backup também invalida a sessão aberta', () => {
+test('Auditoria 1 (F6): restauração de backup mais NOVO invalida a sessão aberta; backup mais antigo é recusado', () => {
   const storage = new MemoryStorage(), store = new CareerStore(storage);
   const s = new CareerSession(store, 'personagem-sul');
   commitNextDay(s, 1);
-  const backup = store.exportBackup('personagem-sul');
+  const old = store.exportBackup('personagem-sul');
   commitNextDay(s, 3);
+  // F6: o backup do dia 1 desfaria o checkpoint do dia 3 já confirmado — recusado (antes era aceito).
+  assert.throws(() => store.importBackup(old, 'personagem-sul'), /desatualizado/);
+  assert.equal(store.read('personagem-sul').save.profile.calendarIndex, 3);
+  // Outro navegador da MESMA carreira avança mais (checkpoint 3) e exporta; aqui ele é mais novo.
+  const elsewhere = new MemoryStorage(), far = new CareerStore(elsewhere);
+  far.importBackup(store.exportBackup('personagem-sul'), 'personagem-sul');
+  commitNextDay(new CareerSession(far, 'personagem-sul'), 4);
+  commitNextDay(new CareerSession(far, 'personagem-sul'), 5);
+  const newer = far.exportBackup('personagem-sul');
   const other = new CareerSession(store, 'personagem-sul');
-  store.importBackup(backup, 'personagem-sul');
-  assert.throws(() => commitNextDay(other, 4), /desatualizada/);
-  const seqs = [store.read('personagem-sul').save.checkpointSequence];
-  assert.deepEqual(seqs, [2], 'sequência monotônica: 0 (dia 1), 1 (dia 3), 2 (backup restaurado)');
+  store.importBackup(newer, 'personagem-sul');
+  assert.throws(() => commitNextDay(other, 6), /desatualizada/);
+  assert.deepEqual([store.read('personagem-sul').save.checkpointSequence, store.read('personagem-sul').save.profile.calendarIndex], [3, 5], 'sequência monotônica: 0 (dia 1), 1 (dia 3), backup com o checkpoint 3 da linhagem (dia 5)');
 });
 
 test('Auditoria 1: gravação direta com checkpoint fora da sequência é recusada', () => {
@@ -61,8 +70,8 @@ test('Auditoria 1: gravação direta com checkpoint fora da sequência é recusa
 
 // ---------------------------------------------------------------- 2. dia do perfil × dia do expediente
 
-const openShift = (careerId: CareerId, day: number, minutes = 0) => {
-  const shift = { ...emptyShift(careerId, day), elapsedVirtualMinutes: minutes, phase: 'ENTREGAS' };
+const openShift = (careerId: CareerId, day: number, m = 0) => {
+  const shift = { ...emptyShift(careerId, day), ...minutes(m), phase: 'ENTREGAS' };
   return { profile: { ...defaultProfile(careerId, day), activeShiftId: shift.shiftId }, shift };
 };
 
@@ -109,26 +118,31 @@ function parcelUpTo(stage: 'COLETADO' | 'EM_ROTA' | 'ENTREGUE'): Parcel {
   advance(p, 'ENTREGUE', 'jogador', 16); move(p, 'destinatario', 'jogador', 16);
   return p;
 }
-const withPayment = (p: Parcel, payment: Partial<PaymentRecord> = {}) => {
+/** F6: pagamento numa carreira de MOTO (D07: ML moto R$ 7,00), com o mundo e o saldo coerentes. */
+const withPayment = (p: Parcel, payment: Partial<PaymentRecord> = {}, extra: PaymentRecord[] = []) => {
   const { profile, shift } = openShift(DEFAULT_CAREER, 7);
-  const pay: PaymentRecord = { eventId: `${shift.shiftId}/${p.id}/ENTREGA`, shiftId: shift.shiftId, parcelId: p.id, kind: 'ENTREGA', amountCents: 450, ...payment };
-  return () => sealSave({ careerId: DEFAULT_CAREER, checkpointSequence: 0, profile, shift: { ...shift, parcels: captureParcels([p]), payments: [pay] } });
+  const pay: PaymentRecord = { eventId: `${shift.shiftId}/${p.id}/ENTREGA`, shiftId: shift.shiftId, parcelId: p.id, kind: 'ENTREGA', amountCents: 700, vehicle: 'moto-antiga', platform: 'ML', ...payment };
+  const payments = [pay, ...extra];
+  const moto = { ...chooseStartingVehicle(profile, 'moto-antiga'), balanceCents: payments.reduce((t, q) => t + q.amountCents, 0) };
+  return () => sealSave({ careerId: DEFAULT_CAREER, checkpointSequence: 0, profile: moto, shift: { ...shift, parcels: captureParcels([p]), payments, world: worldOf(DEFAULT_CAREER, 'ENTREGAS') } });
 };
 
-test('Auditoria 3: pagamento de entrega só para pacote ENTREGUE ao destinatário', () => {
+test('Auditoria 3 (F6: razão D07): pagamento de entrega só para pacote ENTREGUE pelo jogador, no valor aprovado', () => {
   assert.doesNotThrow(withPayment(parcelUpTo('ENTREGUE')), 'entregue: remunerável');
   assert.throws(withPayment(parcelUpTo('COLETADO')), /não entregue/, 'coletado não paga entrega');
   assert.throws(withPayment(parcelUpTo('EM_ROTA')), /não entregue/, 'tentativa frustrada/pendente não paga');
   const delivered = parcelUpTo('ENTREGUE');
   assert.throws(withPayment(delivered, { eventId: 'outro-id' }), /evento de pagamento/, 'eventId determinístico: um por pacote/expediente');
-  const twice = () => {
-    const { profile, shift } = openShift(DEFAULT_CAREER, 7);
-    const pay: PaymentRecord = { eventId: `${shift.shiftId}/${delivered.id}/ENTREGA`, shiftId: shift.shiftId, parcelId: delivered.id, kind: 'ENTREGA', amountCents: 450 };
-    return sealSave({ careerId: DEFAULT_CAREER, checkpointSequence: 0, profile, shift: { ...shift, parcels: captureParcels([delivered]), payments: [pay, { ...pay }] } });
-  };
-  assert.throws(twice, /Pagamento duplicado/, 'o mesmo ID entregue não paga duas vezes (AC-22)');
-  assert.throws(withPayment(delivered, { kind: 'COLETA' as 'ENTREGA' }), /Tipo de pagamento/, 'coleta não é evento remunerado aprovado');
+  assert.throws(withPayment(delivered, {}, [{ eventId: `personagem-oeste/dia-7/${delivered.id}/ENTREGA`, shiftId: 'personagem-oeste/dia-7', parcelId: delivered.id, kind: 'ENTREGA', amountCents: 700, vehicle: 'moto-antiga', platform: 'ML' }]), /Pagamento duplicado/, 'o mesmo ID entregue não paga duas vezes (AC-22)');
+  assert.throws(withPayment(delivered, { amountCents: 450 }), /fora da tabela aprovada D07/, 'valor inventado recusado');
+  assert.throws(withPayment(delivered, { amountCents: 900, vehicle: 'carro-antigo' }), /fora da tabela aprovada D07/, 'valor de carro numa carreira de moto recusado');
+  // F6 (reauditoria F1): COLETA é evento aprovado (R$ 0,50), mas só com coleta pelo jogador + recebimento físico na base.
+  assert.throws(withPayment(delivered, { kind: 'COLETA', eventId: `personagem-oeste/dia-7/${delivered.id}/COLETA`, amountCents: 50 }), /coleta sem coleta do jogador/, 'pacote sem coletor jogador não paga coleta');
+  const mine = parcelUpTo('ENTREGUE'); mine.collector = 'jogador';
+  assert.doesNotThrow(withPayment(mine, {}, [{ eventId: `personagem-oeste/dia-7/${mine.id}/COLETA`, shiftId: 'personagem-oeste/dia-7', parcelId: mine.id, kind: 'COLETA', amountCents: 50, vehicle: 'moto-antiga', platform: 'ML' }]), 'coleta do jogador recebida na base: R$ 0,50');
   assert.throws(withPayment(delivered, { kind: 'DEVOLUCAO' as 'ENTREGA' }), /Tipo de pagamento/, 'devolução nunca paga');
+  const { profile, shift } = openShift(DEFAULT_CAREER, 7);
+  assert.throws(() => sealSave({ careerId: DEFAULT_CAREER, checkpointSequence: 0, profile: { ...chooseStartingVehicle(profile, 'moto-antiga'), balanceCents: 999 }, shift: { ...shift, parcels: captureParcels([delivered]), world: worldOf(DEFAULT_CAREER, 'ENTREGAS') } }), /Saldo inconsistente/, 'saldo sem lastro na razão recusado');
 });
 
 test('Auditoria 3 (atualizado na F5): DEVOLVIDO_E_CONFERIDO forjado, sem tentativa/devolução/conferência reais, é rejeitado (nunca pago)', () => {
@@ -136,5 +150,5 @@ test('Auditoria 3 (atualizado na F5): DEVOLVIDO_E_CONFERIDO forjado, sem tentati
   const forged = JSON.parse(JSON.stringify(captureParcels([parcelUpTo('ENTREGUE')])));
   forged[0].state = 'DEVOLVIDO_E_CONFERIDO'; forged[0].history[forged[0].history.length - 1].state = 'DEVOLVIDO_E_CONFERIDO';
   const { profile, shift } = openShift(DEFAULT_CAREER, 7);
-  assert.throws(() => sealSave({ careerId: DEFAULT_CAREER, checkpointSequence: 0, profile, shift: { ...shift, parcels: forged, payments: [] } }), /DEVOLVIDO_E_CONFERIDO sem tentativa registrada|devolução de pacote já entregue/);
+  assert.throws(() => sealSave({ careerId: DEFAULT_CAREER, checkpointSequence: 0, profile: chooseStartingVehicle(profile, 'moto-antiga'), shift: { ...shift, parcels: forged, payments: [], world: worldOf(DEFAULT_CAREER, 'ENTREGAS') } }), /DEVOLVIDO_E_CONFERIDO sem tentativa registrada|devolução de pacote já entregue/);
 });

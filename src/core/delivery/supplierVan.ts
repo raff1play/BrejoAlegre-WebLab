@@ -2,6 +2,9 @@
 export class SupplierVan {
  state:'scheduled'|'opening'|'unloading'|'closing'|'departed'='scheduled';
  door=0;
+ /** B1-01 F6: the van's state for checkpoints (plain data). */
+ toState():{state:SupplierVan['state'];door:number}{return {state:this.state,door:this.door};}
+ restoreState(s:{state:SupplierVan['state'];door:number}):void{this.state=s.state;this.door=s.door;}
  get present():boolean{return this.state!=='scheduled'&&this.state!=='departed';}
  get unloading():boolean{return this.state==='unloading';}
  update(hour:number,dt:number,pending:boolean,busy:boolean):boolean {

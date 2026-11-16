@@ -21,6 +21,7 @@ import { advance, attemptFailed, createParcel, isFinal, move, arriveTruck, type 
  */
 export const ROUTINE = Object.freeze({ assign: 11, pickupFrom: 12, returnBy: 14, sackFrom: 15, deliveriesFrom: 16, end: 21 });
 
+export const PHASES = ['ANTES', 'COLETA', 'RETORNO', 'CONFERENCIA', 'TRIAGEM', 'SACA', 'ENTREGAS', 'CONCLUIDA', 'ENCERRADA'] as const;
 export type Phase = 'ANTES' | 'COLETA' | 'RETORNO' | 'CONFERENCIA' | 'TRIAGEM' | 'SACA' | 'ENTREGAS' | 'CONCLUIDA' | 'ENCERRADA';
 /** `yaw`: heading that faces the counter/desk/gate from the target spot (CORE-015: real frontages face any direction). */
 export type Target = Readonly<{ kind: 'loja' | 'galpao' | 'endereco' | 'moto'; id: string; x: number; z: number; label: string; yaw?: number }>;
@@ -112,6 +113,18 @@ export class Workday {
       st('separador-3', depotWorld(112,-128.35), [11,21]),
       st('expedidor-2', depotWorld(110.5,-123.8), [11,21]),
     ];
+  }
+
+  /**
+   * B1-01 F6 (contract C5): replaces the day's whole inventory by the restored parcels (same IDs,
+   * state, place, custody, slot and history) and the player's own routine state. The previous
+   * frame's hour is forgotten, so the first update after a restore does no catch-up work.
+   */
+  protected restoreWorkday(s: Readonly<{ phase: Phase; assigned: readonly StoreKind[]; route: readonly string[]; sackInHands: boolean; late: boolean; absent: readonly string[] }>, parcels: readonly Parcel[]): void {
+    this.parcels.splice(0, this.parcels.length, ...parcels);
+    this.phase = s.phase; this.assigned = [...s.assigned]; this.route = [...s.route]; this.sackInHands = s.sackInHands; this.late = s.late;
+    this.absentAddresses.clear(); for (const id of s.absent) this.absentAddresses.add(id);
+    this.lastHour = null; this.events.length = 0;
   }
 
   // ------------------------------------------------------------------ helpers

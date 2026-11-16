@@ -13,7 +13,8 @@ import { depotWorld, depotYaw, CITY_BOUNDS } from '../src/world/city/cityPlan.ts
 import { CAR_PARKING } from '../src/world/city/depotPlan.ts';
 import { solidPolygons } from '../src/world/city/cityLayout.ts';
 import { createMotionGuard } from '../src/core/collision.ts';
-import { captureParcels, chooseStartingVehicle, defaultProfile, emptyShift, paymentEventIdOf, sealSave, shiftIdOf, vehicleIdOf } from '../src/core/career/snapshot.ts';
+import { chooseStartingVehicle, defaultProfile, paymentEventIdOf, sealSave, vehicleIdOf } from '../src/core/career/snapshot.ts';
+import { captureShift } from '../src/core/career/shiftCheckpoint.ts';
 
 /**
  * B1-01 F5 — decisões 9, 13, 14, 17; AC-11, AC-12, AC-13, AC-14, AC-15, AC-24, AC-25, AC-26 (parte F5).
@@ -169,11 +170,16 @@ for (const careerId of ['personagem-oeste', 'personagem-norte'] as CareerId[]) t
   // AC-22: a returned parcel is never payable (the save schema rejects a delivery payment for it).
   const returned = d.load('jogador').find((p) => p.state === 'DEVOLVIDO_E_CONFERIDO')!;
   const delivered = d.load('jogador').find((p) => p.state === 'ENTREGUE')!;
-  const profile = { ...chooseStartingVehicle(defaultProfile(careerId, 0), 'moto-antiga'), activeShiftId: shiftIdOf(careerId, 0) };
-  const shift = { ...emptyShift(careerId, 0), parcels: captureParcels(d.parcels), elapsedVirtualMinutes: Math.round((hour - 11.75) * 60) };
-  const pay = (p: Parcel) => ({ eventId: paymentEventIdOf(shift.shiftId, p.id), shiftId: shift.shiftId, parcelId: p.id, kind: 'ENTREGA' as const, amountCents: 500 });
-  assert.doesNotThrow(() => sealSave({ careerId, checkpointSequence: 0, profile, shift: { ...shift, payments: [pay(delivered)] } }), 'save do fim do dia, com devoluções reais, é válido');
-  assert.throws(() => sealSave({ careerId, checkpointSequence: 0, profile, shift: { ...shift, payments: [pay(returned)] } }), /não entregue/);
+  // F6: the real checkpoint of the end of the day (D07 ledger settled from the histories).
+  const profile = chooseStartingVehicle(defaultProfile(careerId, 0), 'moto-antiga');
+  const cap = { day: d, shiftHour: hour, vehicle: 'moto-antiga' as const, player: { mode: 'walking' as const, walker: { x: 0, z: 0, yaw: 0 }, vehicle: { x: 1, z: 0, yaw: 0 } } };
+  const end = captureShift(profile, null, cap);
+  assert.doesNotThrow(() => sealSave({ careerId, checkpointSequence: 0, ...end }), 'save do fim do dia, com devoluções reais, é válido');
+  assert.ok(end.shift.payments.some((q) => q.parcelId === delivered.id && q.kind === 'ENTREGA'), 'entrega do jogador paga');
+  assert.ok(!end.shift.payments.some((q) => q.parcelId === returned.id && q.kind === 'ENTREGA'), 'devolução não paga entrega (AC-12/AC-22)');
+  const pay = (p: Parcel) => ({ eventId: paymentEventIdOf(end.shift.shiftId, p.id), shiftId: end.shift.shiftId, parcelId: p.id, kind: 'ENTREGA' as const, amountCents: p.platform === 'ML' ? 700 : 500, vehicle: 'moto-antiga' as const, platform: p.platform });
+  const forged = [...end.shift.payments, pay(returned)];
+  assert.throws(() => sealSave({ careerId, checkpointSequence: 0, profile: { ...end.profile, balanceCents: end.profile.balanceCents + forged[forged.length - 1]!.amountCents }, shift: { ...end.shift, payments: forged } }), /não entregue/);
 });
 
 test('B1-01 F5 AC-13: o expediente não conclui com pendência (tentativa sem devolução, NPC na rua, conferência por fazer)', () => {
