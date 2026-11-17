@@ -796,8 +796,10 @@ async function carLogistics(browser){
   await until(()=>window.__weblab.snapshot().delivery.cargo.hands===0);
   // F6: right AFTER the first physical transfer to the checker (the rest still in the boot).
   if(trips===1){
-   const live=await page.evaluate(()=>window.__weblab.snapshot().save.status);
-   check('B1-01 F6 AC-18: the hand-over at the desk was checkpointed right away (custody action)',live.error===null&&/Entregar ao conferente/.test(live.lastReason),live);
+   // (F7: NPC/base events are now saved in their own frame too, so the LAST reason may be theirs;
+   // what matters is that the save already holds the hand-over.)
+   const live=await page.evaluate(()=>({st:window.__weblab.snapshot().save.status,desk:JSON.parse(localStorage.getItem('brejo-b1:carreira:personagem-oeste')).shift.parcels.filter(p=>p.collector==='jogador'&&p.history.some(e=>e.operation==='transferência:recebimento')).length,live:window.__weblab.snapshot().delivery.parcels.filter(p=>p.collector==='jogador'&&p.history.some(e=>e.operation==='transferência:recebimento')).length}));
+   check('B1-01 F6 AC-18: the hand-over at the desk was checkpointed right away (custody action)',live.st.error===null&&live.desk>0&&live.desk===live.live,live);
    await resume('logo depois da 1ª transferência ao conferente');
    await page.evaluate(b=>window.__debug.parkAt(b.x,b.z,b.yaw),bays[0]);await delay(300);
    await toBoot();await openBoot();
@@ -806,6 +808,20 @@ async function carLogistics(browser){
  s=await snap();
  const atDesk=s.delivery.parcels.filter(p=>mine.includes(p.id));
  check('B1-01 F4 AC-09: unloaded at the car bay in hands-full trips and handed to the receiving desk — boot → hands → recebimento, nothing teleported',trips>=2&&s.delivery.cargo.carBoot.parcels.length===0&&atDesk.every(p=>{const o=p.history.map(e=>e.operation).join('>');return o.includes('transferência:porta-malas>transferência:maos>transferência:recebimento')&&p.history.every(e=>e.place!=='galpao');}),{trips,places:atDesk.map(p=>p.place)});
+ // ---------------------------------------------------------------- F7 audit (AC-18/19): NPC/base custody in the save in its own frame
+ // Real frames (no time fixture), traffic on: between two frames, every parcel's history in the save
+ // must equal the live one — an autonomous event (checker, sorters, couriers) is never only in memory.
+ {
+  let samples=0,moved=0,mismatch=[];
+  let prev=null;
+  for(let k=0;k<40;k++){
+   const r=await page.evaluate(()=>{const saved=JSON.parse(localStorage.getItem('brejo-b1:carreira:personagem-oeste')).shift.parcels;const live=window.__weblab.snapshot().delivery.parcels;const by=new Map(saved.map(p=>[p.id,p.history.length]));
+    return {total:live.reduce((t,p)=>t+p.history.length,0),bad:live.filter(p=>by.get(p.id)!==p.history.length).map(p=>[p.id,p.history.length,by.get(p.id),p.history.at(-1).operation,p.history.at(-1).holder]),paused:window.__weblab.snapshot().paused};});
+   samples++;if(prev!==null&&r.total>prev)moved++;prev=r.total;if(r.bad.length)mismatch.push(r.bad);
+   await delay(250);
+  }
+  check('B1-01 F7 audit (AC-18/19): during real depot/NPC work (no fixture, traffic on) the save equals the live custody of EVERY parcel at every sample — autonomous events are written in their own frame',mismatch.length===0&&moved>0,{samples,moved,mismatch:mismatch.slice(0,2)});
+ }
  // ---------------------------------------------------------------- depot pipeline runs (same domain update, time fixture)
  const sector=s.career.sector;
  // The player walks away from the desk (NPC couriers yield to a person standing in their way).

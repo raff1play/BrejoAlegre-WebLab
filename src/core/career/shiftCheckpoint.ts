@@ -80,7 +80,7 @@ export type CheckpointStatus = {
   stale: boolean;
 };
 
-export type CheckpointOptions = Readonly<{ enabled: boolean; now?: () => number; minGapMs?: number; periodicMs?: number; retryMs?: number }>;
+export type CheckpointOptions = Readonly<{ enabled: boolean; now?: () => number; periodicMs?: number; retryMs?: number }>;
 
 /** Custody signature: changes with every recorded parcel event and with the routine's own steps. */
 export function custodySignature(day: LogisticsDay): string {
@@ -91,7 +91,7 @@ export function custodySignature(day: LogisticsDay): string {
 
 /**
  * When to write (decision 11): right after the player's custody actions and on pause (immediate),
- * after NPC/depot custody events (at most every `minGapMs`), periodically while the world moves
+ * after NPC/depot custody events (in the same frame, F7), periodically while the world moves
  * (`periodicMs`), and one more attempt when the page is hidden/closed — never relying on it.
  */
 export class ShiftCheckpointer {
@@ -100,7 +100,7 @@ export class ShiftCheckpointer {
   private lastWrite = -Infinity;
   private retryAt = -Infinity;
   private readonly now: () => number;
-  private readonly minGap: number; private readonly periodic: number; private readonly retry: number;
+  private readonly periodic: number; private readonly retry: number;
   /** Called after every attempt (UI: toast on a new failure, status line). */
   onResult: ((ok: boolean, status: CheckpointStatus) => void) | null = null;
 
@@ -110,7 +110,7 @@ export class ShiftCheckpointer {
   constructor(session: CareerSession, capture: () => ShiftCapture, options: CheckpointOptions) {
     this.session = session; this.capture = capture; this.options = options;
     this.now = options.now ?? (() => Date.now());
-    this.minGap = options.minGapMs ?? 8000; this.periodic = options.periodicMs ?? 30000; this.retry = options.retryMs ?? 5000;
+    this.periodic = options.periodicMs ?? 30000; this.retry = options.retryMs ?? 5000;
   }
 
   get enabled(): boolean { return this.options.enabled && !this.status.stale; }
@@ -141,7 +141,9 @@ export class ShiftCheckpointer {
    * `visibilitychange` and `pagehide` usually come together: one write is enough.
    */
   onExit(): boolean {
-    if (!this.enabled || this.now() - this.lastWrite < 1000) return false;
+    if (!this.enabled) return false;
+    // Skipped only when the last write is < 1 s old AND nothing in custody changed since (duplicate event).
+    if (this.now() - this.lastWrite < 1000 && custodySignature(this.capture().day) === this.lastSignature) return false;
     return this.checkpoint('saída do navegador');
   }
 
@@ -163,7 +165,9 @@ export class ShiftCheckpointer {
     if (this.lastSignature === null) { this.checkpoint('abertura do expediente'); return; }
     // After a failed write, try again as soon as the retry delay is over (whatever the gap).
     if (this.status.error !== null) { this.checkpoint('nova tentativa'); return; }
-    if (changed && t - this.lastWrite >= this.minGap) { this.checkpoint('operação da equipe/base'); return; }
+    // F7 (audit 6918411665, AC-18/19): a custody event of an NPC or a depot worker is written in the
+    // SAME frame it happened (no interval): closing the tab right after it can never undo it.
+    if (changed) { this.checkpoint('operação da equipe/base'); return; }
     if (t - this.lastWrite >= this.periodic) this.checkpoint('periódico');
   }
 

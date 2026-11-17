@@ -203,17 +203,29 @@ export function canonicalJson(value: unknown): string {
 }
 
 /** FNV-1a 32 bits. Detecta corrupção/edição acidental; NÃO é proteção criptográfica contra fraude. */
-export function checksumOf(body: CareerSaveBody): string {
-  const text = canonicalJson(body);
+export function checksumOf(body: CareerSaveBody): string { return checksumOfText(canonicalJson(body)); }
+function checksumOfText(text: string): string {
   let h = 0x811c9dc5;
   for (let i = 0; i < text.length; i++) { h ^= text.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
   return `fnv1a32:${h.toString(16).padStart(8, '0')}`;
 }
 
-export function sealSave(body: Omit<CareerSaveBody, 'format' | 'schemaVersion'>): CareerSave {
+export function sealSave(body: Omit<CareerSaveBody, 'format' | 'schemaVersion'>): CareerSave { return sealSaveText(body).save; }
+
+/**
+ * B1-01 F7 (audit 6918411665): the sealed save AND its canonical text from ONE serialisation.
+ * Keys are sorted, so `checksum` goes right after the top-level `checkpointSequence` (before
+ * `format`): the stored text is the body text with that one field inserted — byte-identical to
+ * `canonicalJson(save)` (unit-tested), at half the cost. Validation runs in full, as always.
+ */
+export function sealSaveText(body: Omit<CareerSaveBody, 'format' | 'schemaVersion'>): { save: CareerSave; text: string } {
   const full: CareerSaveBody = { format: SAVE_FORMAT, schemaVersion: SAVE_SCHEMA_VERSION, ...body };
   validateBody(full);
-  return deepFreeze({ ...full, checksum: checksumOf(full) });
+  const bodyText = canonicalJson(full);
+  const checksum = checksumOfText(bodyText);
+  const at = bodyText.indexOf(',"format":');
+  const text = `${bodyText.slice(0, at)},"checksum":${JSON.stringify(checksum)}${bodyText.slice(at)}`;
+  return { save: deepFreeze({ ...full, checksum }), text };
 }
 
 // ------------------------------------------------------------------ validation

@@ -1,7 +1,7 @@
 import { CALENDAR_STORAGE_KEY } from '../delivery/operatingCalendar.ts';
 import { CAREER_IDS, CHARACTERS, DEFAULT_CAREER, isCareerId, type CareerId } from './careers.ts';
 import {
-  SaveError, canonicalJson, defaultProfile, deepFreeze, parseSave, sealSave,
+  SaveError, canonicalJson, defaultProfile, deepFreeze, parseSave, sealSave, sealSaveText,
   type CareerProfile, type CareerSave, type ShiftSnapshot,
 } from './snapshot.ts';
 
@@ -178,13 +178,14 @@ export class CareerStore {
    */
   write(save: CareerSave): CareerSave { return this.writeChecked(save, false); }
 
-  private writeChecked(save: CareerSave, importing: boolean): CareerSave {
-    const valid = parseSave(JSON.parse(canonicalJson(save)));
+  private writeChecked(save: CareerSave, importing: boolean, sealedText?: string): CareerSave {
+    // `sealedText` only from `commit`, for a save sealed in the same call; anything else is re-parsed.
+    const valid = sealedText !== undefined ? save : parseSave(JSON.parse(canonicalJson(save)));
     const id = valid.careerId;
     const stored = this.storedSequence(id);
     // An imported backup keeps its own (higher) checkpoint number: that is its place in its lineage.
     if (importing ? valid.checkpointSequence <= stored : valid.checkpointSequence !== stored + 1) throw new SaveError(`Checkpoint ${valid.checkpointSequence} fora da sequência: o gravado é ${stored}, esperado ${stored + 1} (sessão desatualizada?)`);
-    const text = canonicalJson(valid);
+    const text = sealedText ?? canonicalJson(valid);
     const oldPrevious = this.storage.getItem(previousKey(id));
     let promoted = false;
     // Block 1: the anti-rollback mark first; if it cannot be made durable, nothing is written.
@@ -218,7 +219,10 @@ export class CareerStore {
   commit(careerId: CareerId, profile: CareerProfile, shift: ShiftSnapshot | null, baseSequence: number): CareerSave {
     const stored = this.storedSequence(careerId);
     if (baseSequence !== stored) throw new SaveError(`Sessão desatualizada: baseada no checkpoint ${baseSequence}, mas o gravado é ${stored}. Recarregue a carreira.`);
-    return this.write(sealSave({ careerId, checkpointSequence: stored + 1, profile, shift }));
+    // F7: sealed (fully validated) here, in this call — written with its own canonical text,
+    // without a second parse of the same bytes (checkpoints may now come every few seconds).
+    const sealed = sealSaveText({ careerId, checkpointSequence: stored + 1, profile, shift });
+    return this.writeChecked(sealed.save, false, sealed.text);
   }
 
   /** Checkpoint persistido atual de uma carreira (-1 se nenhum): base para a próxima escrita. */

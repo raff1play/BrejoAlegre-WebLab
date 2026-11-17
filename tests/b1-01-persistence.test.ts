@@ -290,12 +290,12 @@ test('B1-01 F6 AC-18: falha de gravação (QuotaExceeded) mantém o save anterio
   assert.equal(saved.checkpointSequence, 2, 'sequência sem salto');
 });
 
-test('B1-01 F6: agendamento — ação do jogador grava na hora, NPC/base no máximo a cada intervalo, periódico, nada com o dia antes do início', () => {
+test('B1-01 F6/F7: agendamento — ação do jogador e evento de NPC/base gravam no mesmo quadro, periódico, nada com o dia antes do início', () => {
   const storage = new MemoryStorage();
   newCareer(storage, 'personagem-sul', 'moto-antiga');
   const g = open(storage).game;
   let now = 0, hour = 11.75;
-  const cp = new ShiftCheckpointer(g.session, () => capture(g, hour), { enabled: true, now: () => now, minGapMs: 4000, periodicMs: 30000 });
+  const cp = new ShiftCheckpointer(g.session, () => capture(g, hour), { enabled: true, now: () => now, periodicMs: 30000 });
   cp.tick(); assert.equal(cp.status.writes, 0, 'antes da designação (ANTES) não abre expediente');
   g.day.start(11.75); cp.tick(); assert.equal(cp.status.writes, 1);
   assert.equal(new CareerStore(storage).read('personagem-sul').save.profile.activeShiftId, 'personagem-sul/dia-0', 'expediente aberto gravado (AC-17)');
@@ -304,10 +304,11 @@ test('B1-01 F6: agendamento — ação do jogador grava na hora, NPC/base no má
   const sig = custodySignature(g.day);
   for (let k = 0; k < 20000 && custodySignature(g.day) === sig; k++) { hour += 0.1 / 150; g.day.update(hour, 0.1); }
   assert.notEqual(custodySignature(g.day), sig, 'um NPC/a base mudou a custódia');
-  now = 1000; cp.tick(); assert.equal(cp.status.writes, 2, 'evento de NPC espera o intervalo mínimo');
-  now = 4500; cp.tick(); assert.equal(cp.status.writes, 3);
+  // F7 (audit 6918411665): an NPC/depot custody event is written in the SAME tick (no 8 s window).
+  now = 1000; cp.tick(); assert.equal(cp.status.writes, 3, 'evento de NPC/base grava no mesmo quadro');
+  now = 1100; cp.tick(); assert.equal(cp.status.writes, 3, 'sem novo evento não grava');
   now = 20000; cp.tick(); assert.equal(cp.status.writes, 3);
-  now = 34600; cp.tick(); assert.equal(cp.status.writes, 4, 'periódico');
+  now = 31100; cp.tick(); assert.equal(cp.status.writes, 4, 'periódico');
   hour = 11.9; now = 70000; cp.tick();
   assert.match(cp.status.error!, /regrediu/, 'relógio do expediente não regride'); assert.equal(cp.status.writes, 4);
   const disabled = new ShiftCheckpointer(g.session, () => capture(g, 12.5), { enabled: false });

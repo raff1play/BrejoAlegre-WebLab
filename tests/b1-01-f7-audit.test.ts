@@ -98,44 +98,33 @@ test('Auditoria F7 (AC-18/19): se a gravação do evento autônomo FALHA, nada p
     getItem: (k) => inner.getItem(k), removeItem: (k) => inner.removeItem(k),
     setItem: (k, v) => { if (full && k.startsWith('brejo-b1:')) { const e = new Error('The quota has been exceeded.'); e.name = 'QuotaExceededError'; throw e; } inner.setItem(k, v); },
   };
-  let failedAt: { id: string; before: number; bytes: string | null; frame: number } | null = null;
-  let recovered = false;
-  const known = new Map<string, number>();
+  let phase: 'antes' | 'armado' | 'falhou' | 'ok' = 'antes';
+  let armedBytes: string | null = null, failFrame = -1, lastEvents = 0;
+  const events = (day: LogisticsDay) => day.parcels.reduce((t, p) => t + p.history.length, 0);
   playDay(storage, (day, i, cp) => {
-    if (recovered) return true;
-    if (failedAt) {
-      // Storage is back: the retry (≤ 5 s later) writes the event.
-      if (i === failedAt.frame + 1) full = false;
-      const saved = reopened(storage, failedAt.id);
-      if (cp.status.error === null && saved && saved.history.length > failedAt.before) recovered = true;
-      return false;
+    const n = events(day);
+    if (phase === 'antes' && day.parcels.some((p) => p.history.some((e) => e.operation === 'transferência:triagem'))) {
+      // From now on the storage refuses writes (quota): the next autonomous event cannot be saved.
+      phase = 'armado'; full = true; armedBytes = inner.getItem(saveKey('personagem-oeste')); lastEvents = n;
+    } else if (phase === 'armado' && n !== lastEvents) {
+      phase = 'falhou'; failFrame = i;
+      assert.match(cp.status.error ?? '', /quota/i, 'a falha do evento autônomo é registrada (o jogo avisa)');
+      assert.equal(inner.getItem(saveKey('personagem-oeste')), armedBytes, 'save íntegro intacto, nada parcial');
+      // A tab reopened now resumes from that intact checkpoint: valid, same IDs, nothing lost or duplicated.
+      const save = parseSave(JSON.parse(armedBytes!));
+      const again = new LogisticsDay({ seed: 2026, free, roster: buildRoster('personagem-oeste') });
+      assert.ok(restoreShift(again, save.shift!));
+      assert.deepEqual(again.parcels.map((q) => q.id), day.parcels.map((q) => q.id));
+      assert.ok(events(again) < n, 'o passo não confirmado não aparece como feito');
+      full = false; // storage healthy again
+    } else if (phase === 'falhou') {
+      const saved = new CareerStore(storage).read('personagem-oeste').save;
+      const savedEvents = saved.shift!.parcels.reduce((t, p) => t + p.history.length, 0);
+      if (cp.status.error === null && savedEvents === n) { phase = 'ok'; assert.ok(i - failFrame <= 51, `nova tentativa em ≤ 5 s (${i - failFrame} quadros)`); return true; }
     }
-    for (const p of day.parcels) {
-      const n = known.get(p.id) ?? 0;
-      if (p.history.length === n) continue;
-      known.set(p.id, p.history.length);
-      if (failedAt || lastOp(p).operation !== 'transferência:triagem') continue;
-      // Next autonomous step of THIS parcel fails to save: arm the failure, keep the bytes.
-      full = true;
-      failedAt = { id: p.id, before: p.history.length, bytes: inner.getItem(saveKey('personagem-oeste')), frame: -1 };
-    }
-    if (failedAt && failedAt.frame === -1) {
-      const p = day.parcels.find((q) => q.id === failedAt!.id)!;
-      if (p.history.length > failedAt.before) {
-        failedAt.frame = i;
-        assert.match(cp.status.error ?? '', /quota/i, 'a falha é registrada e avisada');
-        assert.equal(inner.getItem(saveKey('personagem-oeste')), failedAt.bytes, 'save íntegro intacto, nada parcial');
-        // A tab reopened now resumes from that intact checkpoint: valid, same IDs, the step not confirmed.
-        const save = parseSave(JSON.parse(failedAt.bytes!));
-        const again = new LogisticsDay({ seed: 2026, free, roster: buildRoster('personagem-oeste') });
-        assert.ok(restoreShift(again, save.shift!));
-        assert.equal(new Set(again.parcels.map((q) => q.id)).size, day.parcels.length);
-        assert.ok(again.parcels.find((q) => q.id === p.id)!.history.length <= failedAt.before);
-        failedAt.before = again.parcels.find((q) => q.id === p.id)!.history.length;
-      } else full = false; // nothing happened to it this frame: let other writes through
-      if (failedAt.frame === -1) { full = false; failedAt = null; }
-    }
+    return false;
   });
+  const recovered = phase === 'ok';
   assert.ok(recovered, 'depois da falha, a nova tentativa gravou o evento');
 });
 
@@ -156,4 +145,19 @@ test('Auditoria F7: desempenho — o dia inteiro grava um checkpoint por quadro 
   assert.ok(cp.status.writes >= changed, 'todo quadro com evento gravou');
   console.log(`[F7] ${cp.status.writes} checkpoints em ${frames} quadros (${changed} com evento); ${(ms / frames).toFixed(2)} ms/quadro no Node, incluindo a simulação`);
   void canonicalJson; void ({} as Parcel);
+});
+
+test('Auditoria F7: o texto gravado pelo caminho rápido é byte a byte o JSON canônico do save, relido e validado inteiro', () => {
+  const storage = new MemoryStorage();
+  let saved: string | null = null;
+  playDay(storage, (_d, i) => { if (i === 6000) { saved = storage.getItem(saveKey('personagem-oeste')); return true; } return false; });
+  assert.ok(saved);
+  const parsed = parseSave(JSON.parse(saved!));
+  assert.equal(canonicalJson(parsed), saved, 'texto gravado = JSON canônico (checksum na posição ordenada)');
+  assert.ok(parsed.shift!.world, 'com o mundo do expediente');
+  // Per-write cost on this machine (Node, desktop CPU) for a mid-day save — measured, not assumed.
+  const session = new CareerSession(new CareerStore(storage));
+  const t = performance.now();
+  for (let k = 0; k < 10; k++) session.commit(session.careerId, (p, s) => ({ profile: p, shift: s }));
+  console.log(`[F7] checkpoint de ${(saved!.length / 1024).toFixed(0)} kB: ${((performance.now() - t) / 10).toFixed(1)} ms por gravação (Node desktop)`);
 });
