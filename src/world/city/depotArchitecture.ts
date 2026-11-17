@@ -96,8 +96,21 @@ export function buildDepotArchitecture(scene:Scene,set:BatchSet,flat:BatchSet,ma
  floor(mats.paint('#466653'),92.55,94.3,-120.2,-92.6,FLOOR_PAINT_LAYERS.lane);
  for(let z=-105;z<-94;z+=2)floor(mats.lineWhite,105.96,106.04,z,z+.8);
  for(let z=-114;z<-99;z+=1.2)floor(mats.lineWhite,94.4,99,z,z+.35);
- for(const r of [...CAR_PARKING,...MOTO_PARKING]){
+ // Motorcycles keep white markings; car bays get visible yellow outlines and ground labels.
+ // Raised 23 mm above the concrete to prevent depth-fighting on Android GPUs. The visual
+ // rectangles are identical to CAR_PARKING used by depotCarBay (no change to collisions).
+ for(const r of MOTO_PARKING){
   floor(mats.lineWhite,r.minX,r.minX+.07,r.minZ,r.maxZ);floor(mats.lineWhite,r.maxX-.07,r.maxX,r.minZ,r.maxZ);floor(mats.lineWhite,r.minX+.07,r.maxX-.07,r.minZ,r.minZ+.07);
+ }
+ const carYellow=mats.paint('#ffd347');
+ const carStripe=(x0:number,x1:number,z0:number,z1:number)=>flat.box(carYellow,x0,x1,Y+.023,Y+.023,z0,z1,{sides:false});
+ for(const [i,r]of CAR_PARKING.entries()){
+  const w=.16;
+  carStripe(r.minX,r.minX+w,r.minZ,r.maxZ);carStripe(r.maxX-w,r.maxX,r.minZ,r.maxZ);
+  carStripe(r.minX+w,r.maxX-w,r.minZ,r.minZ+w);carStripe(r.minX+w,r.maxX-w,r.maxZ-w,r.maxZ);
+  const label=mats.sign(`art002-car-vaga-${i}`,'#284e4b','#ffd347',[{text:`CARRO ${i+1}`,size:.75,color:'#ffd347',weight:'800'}],2.6,128);
+  label.material.backFaceCulling=false;
+  flat.of(label).quad([r.minX+.25,Y+.028,r.maxZ-.36],[r.maxX-.25,Y+.028,r.maxZ-.36],[r.maxX-.25,Y+.028,r.maxZ-1.04],[r.minX+.25,Y+.028,r.maxZ-1.04],1,1);
  }
  // Individual bay labels replace the overhead sign that obscured the riding camera.
  // Paint-only label stands at ground edge have no physical posts in the circulation lane.

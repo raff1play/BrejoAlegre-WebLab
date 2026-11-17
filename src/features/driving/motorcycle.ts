@@ -13,7 +13,7 @@ import { approach, clamp } from '../../core/math';
 import { MOTO, createMotoState, stepMotorcycle, type MotoControls, type MotoState } from '../../core/motorcyclePhysics';
 import { BatchSet, type P3 } from '../../world/geometry';
 import type { LabMaterial, Materials } from '../../world/materials';
-import { Character, RIDER_LOOK, type Pose } from '../shared/character';
+import { Character, RIDER_LOOK, type CharacterLook, type Pose } from '../shared/character';
 import { ballPart, boxPart, discPart, ringPart, rodPart, tyrePart, type Xyz } from '../../world/modelParts';
 
 /** Outer tyre radius (18" rim class). The simulation does not depend on it. */
@@ -29,7 +29,8 @@ export type MotorcycleLook = { paint: string; box: string; helmet: string; strip
 /** CORE-010 livery from the references: yellow bike and top box with black accents. */
 export const PLAYER_LOOK: MotorcycleLook = { paint: '#d29b32', box: '#e6c067', helmet: '#26282c', stripe: '#16181a' };
 
-export type MotorcycleOptions = { withRider?: boolean; static?: boolean };
+/** `riderLook` (B1-01 F3.5): the player's career presets; default = CORE-010 rider with the bike's helmet. */
+export type MotorcycleOptions = { withRider?: boolean; static?: boolean; riderLook?: CharacterLook };
 
 /** Grip points in the upper-steering node space (x side, y up, z towards the front axle). */
 const GRIP: Xyz = [0.36, 1.1, -0.36];
@@ -63,7 +64,7 @@ export class Motorcycle {
   private readonly cargo: Mesh | null = null;
   private cargoCount = 0;
   private brake = 0;
-  private readonly rider: Character | null;
+  readonly rider: Character | null;
   private readonly playerArt: boolean;
   private ridden: boolean;
   private groundY = 0;
@@ -176,7 +177,7 @@ export class Motorcycle {
     }
 
     this.ridden = withRider;
-    this.rider = withRider ? new Character(scene, mats, 'piloto', { ...RIDER_LOOK, helmet: look.helmet }) : null;
+    this.rider = withRider ? new Character(scene, mats, 'piloto', options.riderLook ?? { ...RIDER_LOOK, helmet: look.helmet }) : null;
     if (this.rider) {
       this.rider.root.parent = this.chassis;
       this.meshes.push(...this.rider.meshes);

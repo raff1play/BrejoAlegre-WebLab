@@ -1,5 +1,6 @@
 import { CourierViews } from './courierViews';
 import { LogisticsDay } from '../../core/delivery/logisticsDay';
+import type { Roster } from '../../core/career/careers';
 import { SupplierVanView } from './supplierVanView';
 import { DepotParcels } from './depotParcels';
 import { gateLeaves, INBOUND_TRUCK, INBOUND_TAIL, D05_SHUTTER } from '../../world/city/depotPlan';
@@ -12,7 +13,7 @@ import type { Scene } from '@babylonjs/core/scene';
 import type { ShadowGenerator } from '@babylonjs/core/Lights/Shadows/shadowGenerator';
 import type { Crowd, Pedestrian as CrowdPed } from '../../core/city/pedestrians';
 import { STORE_HOURS, STORE_STAFF, createStoreOps, isOpen, joinQueue, stepStore, type StoreOps } from '../../core/delivery/stores';
-import { DEPOT_SPOTS, depotVisitAllowed, HANDS_MAX, ROUTINE, type DepotRole } from '../../core/delivery/workday';
+import { DEPOT_SPOTS, depotVisitAllowed, HANDS_MAX, ROUTINE, releaseWithinReach, type DepotRole } from '../../core/delivery/workday';
 import type { Address } from '../../core/delivery/addresses';
 import type { GraphicsProfile } from '../../config/graphics';
 import { circleIntersectsPoly, pointInPoly } from '../../core/collision';
@@ -26,8 +27,8 @@ import { NpcPerson, civilianLook } from '../city/npcPerson';
  * (parcels, routine, store state machines) live in core/delivery.
  */
 export type ContextAction = Readonly<{ label: string; available: boolean; run: (() => string | null) | null; /** Opens the top box (animation). */ trunk?: boolean }>;
-/** The parked bike, as the cargo interactions see it. */
-export type BikeSpot = Readonly<{ x: number; z: number; yaw: number; moving: boolean }>;
+/** The player's parked vehicle, as the cargo interactions see it (`kind` 'carro' = B1-01 F4 car). */
+export type BikeSpot = Readonly<{ x: number; z: number; yaw: number; moving: boolean; kind?: 'moto' | 'carro' }>;
 /** Where the rider stands to use the top box: behind the bike. */
 export const TRUNK_REACH = 1.05;
 export const trunkSpot = (b: BikeSpot): { x: number; z: number } => ({ x: b.x - Math.sin(b.yaw) * 1.25, z: b.z - Math.cos(b.yaw) * 1.25 });
@@ -62,8 +63,8 @@ export class DeliveryGame {
   private time = 0;
   private waitUntil: number | null = null;
 
-  constructor(scene: Scene, mats: Materials, profile: GraphicsProfile, shadows: ShadowGenerator, private readonly shutters: Map<string, Mesh>, free: (x: number, z: number) => boolean, seed?: number, _perStore=2, dayIndex?:number) {
-    this.workday = new LogisticsDay({ seed, free, dayIndex });
+  constructor(scene: Scene, mats: Materials, profile: GraphicsProfile, shadows: ShadowGenerator, private readonly shutters: Map<string, Mesh>, free: (x: number, z: number) => boolean, seed?: number, _perStore=2, dayIndex?:number, roster?: Roster) {
+    this.workday = new LogisticsDay({ seed, free, dayIndex, roster });
     this.courierViews=new CourierViews(scene,mats,this.workday);
     this.parcelViews = new DepotParcels(scene,mats);
     this.vanView=new SupplierVanView(scene,mats);
@@ -88,6 +89,14 @@ export class DeliveryGame {
     this.marker.material = mat; this.marker.isPickable = false;
     this.ring = CreateTorus('objetivo-anel', { diameter: 1.6, thickness: 0.08, tessellation: 28 }, scene);
     this.ring.material = mat; this.ring.isPickable = false;
+  }
+
+  /**
+   * B1-01 F6: a resumed shift does not replay the stores' opening: shutters and staff start in the
+   * state of the hour (a person resumed inside a shop is never shut out or locked in).
+   */
+  restoreStores(hour: number): void {
+    for (const [kind, st] of this.stores) { const open = isOpen(kind, hour); st.ops.shutter = open ? 1 : 0; st.ops.employee = open ? 'atendendo' : 'fora'; }
   }
 
   /** Every frame. Returns nothing; read `action()` and `objective` afterwards. */
@@ -237,28 +246,39 @@ export class DeliveryGame {
    */
   action(hour: number, player: { x: number; z: number; riding: boolean }, bike?: BikeSpot): ContextAction | null {
     const w = this.workday;
-    if(w.teamReady&&!w.released&&bike&&!bike.moving){const p=depotLocal(bike.x,bike.z);if(p.x>76.4&&p.x<139.6&&p.z<-92.5&&p.z>-149.8)return {label:'Equipe pronta — iniciar rota de entregas',available:true,run:()=>w.release(hour)?'Quatro rotas liberadas':null};}
+    if(w.teamReady&&!w.released&&bike&&!bike.moving&&releaseWithinReach(player,bike)){const p=depotLocal(bike.x,bike.z);if(p.x>76.4&&p.x<139.6&&p.z<-92.5&&p.z>-149.8)return {label:'Equipe pronta — iniciar rota de entregas',available:true,run:()=>w.release(hour)?'Quatro rotas liberadas':null};}
     if (player.riding) return null;
-    const visit=bike?{player,bike}:undefined;
+    const car = bike?.kind === 'carro';
+    const box = car ? 'porta-malas' : 'baú';
+    const visit=bike?{player,bike,car}:undefined;
     const close = (p: Spot, r: number) => Math.hypot(player.x - p.x, player.z - p.z) < r;
     const control=depotWorld(95,-97.1);
     if(close(control,1.6))return {label:this.gateManual===false?'Abrir portão de veículos':'Fechar portão de veículos',available:true,run:()=>{this.gateManual=this.gateManual===false;return this.gateManual?'Portão abrindo':'Portão fechando'}};
     const hands = w.inHands();
     const n = (k: number) => `${k} ${k === 1 ? 'volume' : 'volumes'}`;
-    // Top box: behind the bike (with the hands full, anywhere within reach of the bike).
-    if (bike && !bike.moving) {
+    // Top box: behind the bike (with the hands full, anywhere within reach of the bike). The car's
+    // boot is handled by the car presentation (open/close tailgate, CarTrunk), not here.
+    if (bike && !bike.moving && !car) {
       const atTrunk = close(trunkSpot(bike), TRUNK_REACH);
       const nearBike = Math.hypot(player.x - bike.x, player.z - bike.z) < 2.2;
       if (hands.length && (atTrunk || nearBike)) {
         return { label: w.sackInHands ? 'Guardar a saca no baú' : `Guardar no baú (${hands.length})`, available: true, trunk: true, run: () => `${n(w.stow(hour))} no baú` };
       }
       if (atTrunk && !hands.length) {
+        // B1-01 F5: on the route, a failed-attempt return in the box does not block the next stop.
+        if (w.released && w.trunkForRoute().length) {
+          const stop = this.nearestStop(bike, w.trunkForRoute());
+          if (stop && stop.d < 60) {
+            const a = stop.address;
+            return { label: `Retirar pacote · nº ${a.number}`, available: true, trunk: true, run: () => (w.takeForAddress(a.id, hour) ? `Pacote de ${a.street}, ${a.number} nas mãos` : null) };
+          }
+        }
         if(w.trunkForDepot().length){
           if(!depotVisitAllowed(visit,'parking'))return {label:'Estacione nas vagas de descarga e pare a moto',available:false,run:null};
           return {label:`Retirar do baú (${Math.min(w.trunkForDepot().length,HANDS_MAX)})`,available:true,trunk:true,run:()=>`${n(w.unloadForDepot(hour,false,visit))} nas mãos — leve ao recebimento`};
         }
         if (w.trunkForRoute().length) {
-          const stop = this.nearestStop(bike);
+          const stop = this.nearestStop(bike, w.trunkForRoute());
           if (stop && stop.d < 60) {
             const a = stop.address;
             return { label: `Retirar pacote · nº ${a.number}`, available: true, trunk: true, run: () => (w.takeForAddress(a.id, hour) ? `Pacote de ${a.street}, ${a.number} nas mãos` : null) };
@@ -275,37 +295,43 @@ export class DeliveryGame {
       const name = STORE_STAFF[kind].name;
       if (!isOpen(kind, hour)) return { label: `Fechado (abre ${STORE_HOURS[kind].open}h)`, available: false, run: null };
       if (can === 'cedo') return { label: 'Volumes às 12h', available: false, run: null };
-      if (can === 'cheio') return { label: 'Mãos cheias: guarde no baú', available: false, run: null };
-      return { label: `Retirar com ${name}`, available: true, run: () => `${name} conferiu e entregou ${n(w.collect(kind, hour))} — guarde no baú` };
+      if (can === 'cheio') return { label: `Mãos cheias: guarde no ${box}`, available: false, run: null };
+      return { label: `Retirar com ${name}`, available: true, run: () => `${name} conferiu e entregou ${n(w.collect(kind, hour))} — guarde no ${box}` };
     }
-    if (close(DEPOT_SPOTS.receiving, 1.45) && w.carrying().length) {
-      const mine = hands.filter((p) => p.state === 'COLETADO' || p.state === 'EM_TRANSPORTE').length;
-      if (!mine) return { label: 'Volumes no baú: retire na moto', available: false, run: null };
-      if(!depotVisitAllowed(visit,'receiving'))return {label:'Estacione a moto nas vagas de descarga',available:false,run:null};
-      return { label: `Entregar ao conferente (${mine})`, available: true, run: () => `Conferente recebendo ${n(w.handOver(hour,visit))}` };
+    if (close(DEPOT_SPOTS.receiving, 1.45) && (w.carrying().length || w.returnsPending().length)) {
+      const mine = hands.filter((p) => p.state === 'COLETADO' || p.state === 'EM_TRANSPORTE' || p.state === 'TENTATIVA_FRUSTRADA');
+      if (!mine.length) return { label: car ? 'Vaga amarela de carro: retire os volumes no porta-malas' : 'Volumes no baú: retire na moto', available: false, run: null };
+      if(!depotVisitAllowed(visit,'receiving'))return {label:car?'Estacione o carro numa vaga de carro da base':'Estacione a moto nas vagas de descarga',available:false,run:null};
+      // B1-01 F5 (AC-12/25): failed attempts are handed back to the on-duty checker at the same desk.
+      const returns = mine.every((p) => p.state === 'TENTATIVA_FRUSTRADA');
+      return { label: returns ? `Devolver ao conferente (${mine.length})` : `Entregar ao conferente (${mine.length})`, available: true, run: () => `${returns ? 'Conferente de plantão recebendo a devolução de' : 'Conferente recebendo'} ${n(w.handOver(hour,visit))}` };
     }
-    if (close(DEPOT_SPOTS.dispatch, 1.45) && (w.phase === 'SACA' || w.phase === 'TRIAGEM')) {
+    if (close(w.playerDispatch, 1.45) && (w.phase === 'SACA' || w.phase === 'TRIAGEM')) {
       if (hands.length) return { label: 'Mãos cheias', available: false, run: null };
-      if(!depotVisitAllowed(visit,'dispatch'))return {label:'Use as vagas de descarga da base',available:false,run:null};
+      if(!depotVisitAllowed(visit,w.playerDispatchLocal))return {label:'Use as vagas de descarga da base',available:false,run:null};
       if (!w.canTakeSack(hour)) return { label: hour < ROUTINE.sackFrom ? 'Saca às 15h' : 'Triagem em curso', available: false, run: null };
-      return { label: 'Retirar a saca', available: true, run: () => `Saca com ${n(w.takeSack(hour,visit))} — guarde no baú da moto` };
+      return { label: 'Retirar a saca', available: true, run: () => `Saca com ${n(w.takeSack(hour,visit))} — guarde no ${car ? 'porta-malas do carro' : 'baú da moto'}` };
     }
     if (w.phase === 'ENTREGAS') {
       for (const id of w.route) {
         const a = w.byAddress.get(id)!;
         if (!close(a.door, 2.4)) continue;
-        if (hands.some((p) => p.destination === id)) return { label: `Entregar nº ${a.number}`, available: true, run: () => (w.deliver(id, hour) ? `Entregue em ${a.street}, ${a.number}` : null) };
-        return { label: hands.length ? 'Pacote de outro endereço' : 'Pacote no baú: retire na moto', available: false, run: null };
+        if (hands.some((p) => p.destination === id && p.state === 'EM_ROTA')) {
+          // B1-01 F5 (AC-11): nobody at home — the attempt is recorded, never a delivery.
+          if (w.recipientAbsent(id)) return { label: `Ninguém atende · registrar tentativa nº ${a.number}`, available: true, run: () => (w.registerAttempt(id, hour) ? `Tentativa registrada em ${a.street}, ${a.number} — guarde e devolva na base` : null) };
+          return { label: `Entregar nº ${a.number}`, available: true, run: () => (w.deliver(id, hour) ? `Entregue em ${a.street}, ${a.number}` : null) };
+        }
+        return { label: hands.length ? 'Pacote de outro endereço' : car ? 'Pacote no porta-malas: retire no carro' : 'Pacote no baú: retire na moto', available: false, run: null };
       }
     }
     return null;
   }
 
-  /** The route stop closest to the parked bike that still has a parcel in the top box. */
-  private nearestStop(bike: BikeSpot): { address: Address; d: number } | null {
+  /** The route stop closest to the parked vehicle that still has a parcel in its compartment. */
+  nearestStop(bike: { x: number; z: number }, inVehicle: readonly { destination: string }[]): { address: Address; d: number } | null {
     const w = this.workday;
     let best: { address: Address; d: number } | null = null;
-    for (const id of new Set(w.trunkForRoute().map((p) => p.destination))) {
+    for (const id of new Set(inVehicle.map((p) => p.destination))) {
       const a = w.byAddress.get(id)!;
       const d = Math.hypot(a.door.x - bike.x, a.door.z - bike.z);
       if (!best || d < best.d) best = { address: a, d };

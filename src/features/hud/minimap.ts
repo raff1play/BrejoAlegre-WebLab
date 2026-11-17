@@ -3,7 +3,7 @@ import {
   type Instruction, type Maneuver, type RerouteState,
 } from '../../core/city/navigation';
 import { streetRoute, type StreetRoute } from '../../core/city/streetRoute';
-import { SECTORS, SECTOR_CENTRE, SECTOR_DATA } from '../../core/delivery/sectors';
+import { SECTORS, SECTOR_CENTRE, SECTOR_DATA, type Sector } from '../../core/delivery/sectors';
 import { approach } from '../../core/math';
 import { BLOCKS, CITY_BOUNDS, CITY_LOTS, DEPOT, ROADS, STORES, depotPoly, pointsOfInterest, type Poi } from '../../world/city/cityPlan';
 import { OPEN_SPACES } from '../../world/geo/geoCity';
@@ -61,6 +61,8 @@ export function formatDistance(m: number): string {
 }
 
 export class Minimap {
+  /** B1-01: the active career's sector (legacy default Oeste), highlighted on the expanded map. */
+  playerSector: Sector = 'Oeste';
   private readonly root: HTMLElement;
   private readonly canvas: HTMLCanvasElement;
   private readonly ctx: CanvasRenderingContext2D;
@@ -96,7 +98,8 @@ export class Minimap {
   /** Delivery stops still to do (the next one is highlighted). */
   setStops(stops: readonly MapStop[]): void { this.stops = stops; }
   /** The parked bike while the rider is on foot (null while riding). */
-  setBike(bike: { x: number; z: number } | null): void { this.bike = bike; }
+  setBike(bike: { x: number; z: number } | null, label = 'M'): void { this.bike = bike; this.bikeLabel = label; }
+  private bikeLabel = 'M';
 
   constructor(doc: Document) {
     const root = doc.querySelector<HTMLElement>('#minimap');
@@ -344,7 +347,7 @@ export class Minimap {
       }
     }
     this.drawStops(c, proj, inView, r, dpr, expanded);
-    if (this.bike) { const q = proj(this.bike.x, this.bike.z); if (inView(q, r)) disc(q[0], q[1], r * 0.95, COLOR.bike, 'M'); }
+    if (this.bike) { const q = proj(this.bike.x, this.bike.z); if (inView(q, r)) disc(q[0], q[1], r * 0.95, COLOR.bike, this.bikeLabel); }
     this.drawTarget(c, proj, size, r, dpr, now, disc);
     // Player: halo + arrow (up while heading-up, turning with the heading on a north-up map).
     const me = proj(this.x, this.z);
@@ -385,7 +388,7 @@ export class Minimap {
     c.font = `800 ${Math.round(size * 0.024)}px system-ui, sans-serif`; c.textAlign = 'center'; c.textBaseline = 'middle';
     const pad = size * 0.02;
     for (const s of SECTORS) {
-      const text = s === 'Oeste' ? 'OESTE · seu setor' : s.toUpperCase();
+      const text = s === this.playerSector ? `${s.toUpperCase()} · seu setor` : s.toUpperCase();
       const half = c.measureText(text).width / 2 + pad;
       // Kept inside the window (local coordinates are centred on it).
       const [rx, ry] = local(o.x + at[s][0], o.z + at[s][1]);

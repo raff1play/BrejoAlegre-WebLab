@@ -242,3 +242,80 @@ button.pressed { transform: scale(.97); filter: brightness(1.12); }
   .nav-turn { font-size: 12.5px; padding: 2px 6px 3px; }
   .pad button.wide { font-size: 13px; }
 }
+/* B1-01 F2: one-time vehicle choice of the active career (above the HUD and the pause card). */
+.vehicle-choice { z-index: 9; }
+.vehicle-options button { flex: 1; display: grid; gap: 2px; min-height: 64px; }
+.vehicle-options button small { font-size: 11px; font-weight: 500; opacity: .8; }
+
+/* ---------------------------------------------------------------- B1-01 F3.5 main menu (before the 3D world) */
+body.in-menu #hud { display: none; }
+.main-menu {
+  position: fixed; inset: 0; z-index: 8; overflow-y: auto; color: #fff;
+  background: radial-gradient(120% 140% at 20% 0%, #1d3347 0%, #0d1823 60%, #0a121b 100%);
+  padding: var(--edge-t) var(--edge-r) var(--edge-b) var(--edge-l);
+  display: flex; flex-direction: column; gap: 8px; font-family: system-ui, sans-serif;
+}
+.main-menu[hidden] { display: none; }
+.menu-header h1 { margin: 0; font-size: clamp(18px, 5vh, 26px); letter-spacing: .04em; }
+.menu-header h1 small { font-size: .55em; color: var(--amber); letter-spacing: .14em; margin-left: 8px; text-transform: uppercase; }
+.menu-sub { margin: 2px 0 0; font-size: 12px; opacity: .78; }
+.menu-notice, .menu-error { margin: 0; padding: 6px 10px; border-radius: 8px; background: #6b1f1f; font-size: 12px; }
+.career-cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; flex: 1; min-height: 0; }
+.career-cards[hidden], .career-detail[hidden] { display: none; }
+.career-card {
+  display: flex; flex-direction: column; gap: 6px; text-align: left; padding: 8px; min-height: 0;
+  background: var(--panel); color: #fff; border: 1px solid var(--line); border-radius: 12px; font: inherit; cursor: pointer;
+}
+.career-card.is-current { border-color: var(--amber); box-shadow: inset 0 0 0 1px var(--amber); }
+.career-card:disabled { opacity: .5; cursor: not-allowed; }
+.career-card:focus-visible, .option:focus-visible, .menu-actions button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+.career-head { display: flex; align-items: center; gap: 6px; }
+.career-head svg { width: 34px; height: 51px; flex: none; }
+.career-title { display: grid; }
+.career-name { font-size: 16px; }
+.career-sector { color: var(--amber); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+.career-lines { display: grid; gap: 2px; font-size: 11px; line-height: 1.25; opacity: .92; }
+.career-shift { color: var(--amber); font-weight: 600; }
+.career-problem, .career-blocked { color: #ffb4a8; }
+.career-detail { display: flex; gap: 14px; flex: 1; min-height: 0; align-items: center; }
+.career-preview { flex: none; width: clamp(80px, 22vw, 150px); }
+.career-preview svg { width: 100%; height: auto; max-height: 62vh; }
+.career-options { display: grid; gap: 8px; flex: 1; }
+.career-options h2 { margin: 0; font-size: 18px; }
+.option-group { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.option-label { width: 96px; font-size: 12px; opacity: .8; }
+.option { min-height: 40px; padding: 6px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); color: #fff; font: inherit; font-size: 13px; }
+.option[aria-checked="true"] { background: var(--amber); color: #1b1408; border-color: var(--amber); font-weight: 700; }
+.career-vehicle-line { margin: 0; font-size: 12px; opacity: .9; }
+.menu-actions { display: flex; gap: 8px; }
+.menu-actions button { min-height: 44px; padding: 8px 16px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); color: #fff; font: inherit; font-weight: 600; }
+.menu-actions .primary { background: var(--amber); color: #1b1408; border-color: var(--amber); }
+@media (max-height: 420px) { .menu-sub { display: none; } .career-lines { font-size: 10.5px; } }
+/* B1-01 F3.5.1: main screen, lists and options */
+.menu-home { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; flex: 1; align-content: center; max-width: 720px; width: 100%; margin: 0 auto; }
+.menu-home[hidden], .menu-list[hidden], .menu-options[hidden] { display: none; }
+.menu-home button { display: grid; gap: 3px; min-height: 64px; padding: 10px 14px; border-radius: 14px; text-align: left; font-size: 18px; font-weight: 800; }
+.menu-home button small { font-size: 11px; font-weight: 500; opacity: .85; }
+.menu-home button:disabled { opacity: .55; cursor: not-allowed; }
+.menu-list, .menu-options { display: flex; flex-direction: column; gap: 6px; flex: 1; min-height: 0; }
+.menu-list-head { display: flex; align-items: center; gap: 10px; }
+.menu-list-head h2 { margin: 0; font-size: 16px; }
+.menu-back { min-height: 40px; padding: 6px 14px; border-radius: 10px; font-size: 13px; }
+.menu-reason { margin: 0; padding: 6px 10px; border-radius: 8px; background: rgba(242, 178, 51, .16); border: 1px solid rgba(242, 178, 51, .5); font-size: 12px; }
+.options-body { display: grid; gap: 10px; font-size: 12px; }
+.option-note { opacity: .8; font-size: 11px; margin: 0; }
+.controls-help { display: grid; gap: 4px; line-height: 1.35; }
+/* B1-01 F6: save management, read-only (other tab) banner, end-of-shift card */
+.menu-saves[hidden], .saves-confirm[hidden], .menu-lock[hidden] { display: none; }
+.saves-rows { display: grid; gap: 6px; }
+.save-row { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+.save-info { display: grid; gap: 2px; flex: 1; min-width: 0; font-size: 12px; }
+.save-info small { opacity: .85; font-size: 11px; overflow-wrap: anywhere; }
+.save-actions { display: flex; gap: 6px; flex: none; }
+.save-actions button, .saves-confirm button, .menu-lock button { min-height: 40px; padding: 6px 10px; border-radius: 10px; font-size: 12px; }
+.save-actions button:disabled { opacity: .45; cursor: not-allowed; }
+.saves-confirm { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px; border-radius: 10px; border: 1px solid #ffb4a8; background: rgba(107, 31, 31, .55); font-size: 12px; }
+.saves-confirm p { margin: 0; flex: 1 1 100%; }
+button.danger { background: #b3392c; color: #fff; border-color: #e06a5c; font-weight: 700; }
+.menu-lock { display: flex; align-items: center; gap: 10px; padding: 6px 10px; border-radius: 8px; background: #6b1f1f; font-size: 12px; }
+.shift-end[hidden] { display: none; }

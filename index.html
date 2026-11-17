@@ -38,7 +38,7 @@
           <li><i style="background:#ff4d2e;color:#fff">▲</i>Você</li><li><i style="background:#ff5a3c;color:#fff">★</i>Objetivo</li>
           <li><i class="line"></i>Rota pelas ruas</li><li><i class="sq next">1</i>Próxima entrega</li>
           <li><i class="sq" style="background:#6fb7ff">2</i><span id="legend-stops">0 paradas restantes</span></li>
-          <li><i style="background:#ffd84a">M</i>Moto</li><li><i style="background:#ffd84a">G</i>Galpão</li><li><i style="background:#f2b233">L</i>Lojas</li>
+          <li><i id="legend-vehicle-mark" style="background:#ffd84a">M</i><span id="legend-vehicle">Moto</span></li><li><i style="background:#ffd84a">G</i>Galpão</li><li><i style="background:#f2b233">L</i>Lojas</li>
           <li><i class="sectors"></i>Setores (Oeste: seu)</li><li><i style="background:#7fd06a">P</i>Praça</li>
           <li><i style="background:#8fc1e3">C</i>Campo</li><li><i style="background:#c9c2b2">✝</i>Cemitério</li>
           <li class="credit">© OpenStreetMap contributors</li>
@@ -73,6 +73,73 @@
         <p class="about-text osm-credit">Mapa: © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>, dados sob licença ODbL 1.0 (extração de 13/11/2026).</p>
         <p class="about-text"><strong id="mode">Pilotando</strong> · <span id="tips"></span> · <span id="fps">— FPS</span></p>
         <p class="about-text keys">Teclado: WASD/setas · F ação/montar · Q/E girar câmera · Z/X zoom · M mapa · P pausa</p>
+      </div>
+    </div>
+    <div id="vehicle-choice" class="pause vehicle-choice" role="dialog" aria-modal="true" aria-labelledby="vehicle-choice-title" hidden>
+      <div class="pause-card">
+        <h2 id="vehicle-choice-title">Veículo de <span id="vehicle-choice-name">—</span></h2>
+        <p class="about-text">Escolha o veículo próprio e quitado desta carreira. <strong>A escolha é permanente</strong> até existir garagem no jogo; cada carreira escolhe o seu.</p>
+        <div class="pause-actions vehicle-options">
+          <button type="button" data-vehicle="moto-antiga" class="primary">Moto antiga<small>ágil, baú traseiro</small></button>
+          <button type="button" data-vehicle="carro-antigo" class="primary">Carro popular antigo<small>porta-malas com caixas · coleta pelo carro em desenvolvimento</small></button>
+        </div>
+      </div>
+    </div>
+    <div id="main-menu" class="main-menu" role="dialog" aria-modal="true" aria-labelledby="main-menu-title" hidden>
+      <header class="menu-header">
+        <h1 id="main-menu-title">Brejo Alegre <small>Escolha a carreira</small></h1>
+        <p class="menu-sub">Quatro entregadores, um setor e uma casa cada. Os outros três trabalham como colegas na cidade.</p>
+      </header>
+      <p id="menu-notice" class="menu-notice" role="alert" hidden></p>
+      <nav id="menu-home" class="menu-home" aria-label="Menu principal">
+        <button type="button" class="primary" data-menu-home="continuar">Continuar<small id="menu-continue-info"></small></button>
+        <button type="button" data-menu-home="novo">Novo jogo<small id="menu-new-info"></small></button>
+        <button type="button" data-menu-home="carregar">Carregar jogo<small>as quatro carreiras salvas</small></button>
+        <button type="button" data-menu-home="opcoes">Opções<small>gráficos e controles</small></button>
+      </nav>
+      <div id="menu-list" class="menu-list" hidden>
+        <div class="menu-list-head"><button type="button" class="menu-back" data-menu="voltar-inicio">Voltar</button><h2 id="menu-list-title"></h2></div>
+        <p id="menu-list-reason" class="menu-reason" hidden></p>
+        <div id="career-cards" class="career-cards" aria-label="Carreiras"></div>
+      </div>
+      <div id="career-detail" class="career-detail" hidden></div>
+      <section id="menu-options" class="menu-options" hidden aria-labelledby="menu-options-title">
+        <div class="menu-list-head"><button type="button" class="menu-back" data-menu="voltar-inicio">Voltar</button><h2 id="menu-options-title">Opções</h2></div>
+        <div class="options-body">
+          <div class="option-group" role="radiogroup" aria-label="Gráficos">
+            <span class="option-label">Gráficos</span>
+            <button type="button" class="option" role="radio" data-gfx="mobile">Leve (celular)</button>
+            <button type="button" class="option" role="radio" data-gfx="desktop">Completo (computador)</button>
+            <small id="menu-gfx-info" class="option-note"></small>
+          </div>
+          <div class="controls-help">
+            <strong>Controles</strong>
+            <span>Toque: analógico flutuante no canto esquerdo · ▲ acelerar · ▼ freio/ré · botão amarelo = ação (montar, descer, entrar, porta-malas, retirar, entregar) · ☰ pausa e logística · toque no mapa para ampliar</span>
+            <span>Teclado: WASD/setas · F ação · Q/E girar câmera · Z/X zoom · M mapa · P pausa</span>
+          </div>
+          <button type="button" class="option" data-menu="gerenciar-saves">Gerenciar saves<small>exportar/importar backup, apagar carreira</small></button>
+        </div>
+      </section>
+      <section id="menu-saves" class="menu-options menu-saves" hidden aria-labelledby="menu-saves-title">
+        <div class="menu-list-head"><button type="button" class="menu-back" data-menu="voltar-opcoes">Voltar</button><h2 id="menu-saves-title">Gerenciar saves</h2></div>
+        <p id="saves-message" class="menu-reason" role="status" hidden></p>
+        <p id="saves-shift-lock" class="menu-reason" role="note" hidden></p>
+        <div id="saves-confirm" class="saves-confirm" role="alertdialog" hidden></div>
+        <div id="saves-rows" class="saves-rows"></div>
+        <p class="option-note">Backup = arquivo do save de UMA carreira (versão, checkpoint e soma de verificação). Só entre expedientes; um backup mais antigo que o progresso já gravado neste navegador é recusado.</p>
+        <input id="saves-file" type="file" accept="application/json,.json" hidden>
+      </section>
+      <div id="menu-lock" class="menu-lock" role="alert" hidden><span>Jogo aberto em outra aba deste navegador: este menu está somente para leitura.</span><button type="button" data-menu="tentar-novamente">Tentar novamente</button></div>
+    </div>
+    <div id="shift-end" class="pause shift-end" role="dialog" aria-modal="true" aria-labelledby="shift-end-title" hidden>
+      <div class="pause-card">
+        <h2 id="shift-end-title">Expediente encerrado em casa</h2>
+        <p id="shift-end-summary" class="about-text"></p>
+        <p class="about-text">O dia foi salvo. No menu principal você continua no próximo dia útil ou troca de carreira.</p>
+        <div class="pause-actions">
+          <button type="button" class="primary" data-shift-end="menu">Ir ao menu principal</button>
+          <button type="button" data-shift-end="ficar">Continuar na cidade</button>
+        </div>
       </div>
     </div>
     <div id="fatal" class="fatal" role="alert" hidden></div>

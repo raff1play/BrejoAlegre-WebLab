@@ -3,12 +3,14 @@ import { DepotOperations } from './depotOperations.ts';
 /** Keep depot throughput per virtual hour after shortening the real-time clock. */
 /** Calibrated for the later 11:47 courier departure while keeping real physical parcel tasks. */
 const DEPOT_OPERATION_SECONDS_PER_VIRTUAL_HOUR = 360;
-import { DEPOT_POINTS, validDepotParking, depotFree, DISPATCH_DOCK, MIXED_LOAD } from '../../world/city/depotPlan.ts';
+import { DEPOT_POINTS, validDepotParking, depotFree, depotCarBay, CAR_PARKING, DISPATCH_DOCK, MIXED_LOAD } from '../../world/city/depotPlan.ts';
+import { CAR, carToWorld } from '../carPhysics.ts';
+import type { CarTrunk } from './carTrunk.ts';
 import { DEPOT, STORES, depotWorld, depotYaw, depotLocal, type StoreKind } from '../../world/city/cityPlan.ts';
 import { yawOf } from '../../world/layout.ts';
 import { rng } from '../city/traffic.ts';
 import { buildAddresses, type Address } from './addresses.ts';
-import { advance, createParcel, move, arriveTruck, type Parcel, type ParcelState, type Platform } from './parcels.ts';
+import { advance, attemptFailed, createParcel, isFinal, move, arriveTruck, type Parcel, type ParcelState, type Platform } from './parcels.ts';
 
 /**
  * CORE-014 delivery workday (vertical slice) following the approved routine, on the virtual
@@ -19,6 +21,7 @@ import { advance, createParcel, move, arriveTruck, type Parcel, type ParcelState
  */
 export const ROUTINE = Object.freeze({ assign: 11, pickupFrom: 12, returnBy: 14, sackFrom: 15, deliveriesFrom: 16, end: 21 });
 
+export const PHASES = ['ANTES', 'COLETA', 'RETORNO', 'CONFERENCIA', 'TRIAGEM', 'SACA', 'ENTREGAS', 'CONCLUIDA', 'ENCERRADA'] as const;
 export type Phase = 'ANTES' | 'COLETA' | 'RETORNO' | 'CONFERENCIA' | 'TRIAGEM' | 'SACA' | 'ENTREGAS' | 'CONCLUIDA' | 'ENCERRADA';
 /** `yaw`: heading that faces the counter/desk/gate from the target spot (CORE-015: real frontages face any direction). */
 export type Target = Readonly<{ kind: 'loja' | 'galpao' | 'endereco' | 'moto'; id: string; x: number; z: number; label: string; yaw?: number }>;
@@ -40,13 +43,39 @@ export const DEPOT_SPOTS = Object.freeze(Object.fromEntries(
 export type DepotRole = 'porteiro' | 'conferente' | 'conferente-2' | 'descarregador-1' | 'descarregador-2' | 'separador-1' | 'separador-2' | 'separador-3' | 'expedidor' | 'expedidor-2' | 'supervisor';
 export type DepotStaff = { role: DepotRole; state: string; station: { x: number; z: number }; shift: [number, number]; carrying: boolean };
 
-export type DepotVisit = {player:{x:number;z:number;riding:boolean};bike:{x:number;z:number;yaw:number;moving:boolean}};
-export function depotVisitAllowed(visit:DepotVisit|undefined,at:'receiving'|'dispatch'|'parking'):boolean {
+/**
+ * `bike` is the player's own vehicle pose (the name is historical). B1-01 F4: `car: true` when it is
+ * the car — then it must stand inside a painted CAR bay (all four corners) and "parking" means
+ * standing at its tailgate, instead of the motorcycle bays and the top box.
+ */
+export type DepotVisit = {player:{x:number;z:number;riding:boolean};bike:{x:number;z:number;yaw:number;moving:boolean};car?:boolean};
+/** B1-01 F4: the four body corners of the car at a pose, in depot-local coordinates. */
+export function carCornersLocal(c:{x:number;z:number;yaw:number}):{x:number;z:number}[] {
+ const hw=CAR.width/2,hl=CAR.length/2;
+ return [[-hw,-hl],[hw,-hl],[hw,hl],[-hw,hl]].map(([r,f])=>{const w=carToWorld(c,r!,f!);return depotLocal(w.x,w.z);});
+}
+/** B1-01 F4: where a person stands to reach into the car boot (behind the tailgate). */
+export const carBootSpot=(c:{x:number;z:number;yaw:number}):{x:number;z:number}=>carToWorld(c,0,-CAR.length/2-.55);
+/**
+ * B1-01 F5 (F4 audit): the team release is a physical interaction — from the vehicle's seat, or
+ * standing beside the parked vehicle, never from across the yard.
+ */
+export const RELEASE_REACH = 3;
+export function releaseWithinReach(player:{x:number;z:number;riding:boolean},vehicle:{x:number;z:number}):boolean {
+ return player.riding||Math.hypot(player.x-vehicle.x,player.z-vehicle.z)<=RELEASE_REACH;
+}
+/** `at`: a named depot point, or (B1-01) an explicit depot-local counter such as the player's sector dock. */
+export function depotVisitAllowed(visit:DepotVisit|undefined,at:'receiving'|'dispatch'|'parking'|{x:number;z:number}):boolean {
  if(!visit||visit.player.riding||visit.bike.moving)return false;
  const b=depotLocal(visit.bike.x,visit.bike.z),p=depotLocal(visit.player.x,visit.player.z);
- if(!validDepotParking({...b,yaw:visit.bike.yaw-depotYaw(0),moving:visit.bike.moving})||!depotFree(p,.25))return false;
+ if(visit.car){
+  if(depotCarBay(carCornersLocal(visit.bike),false)===null||!depotFree(p,.25))return false;
+  if(at==='parking'){const r=carBootSpot(visit.bike);return Math.hypot(visit.player.x-r.x,visit.player.z-r.z)<1.1;}
+ }
+ else if(!validDepotParking({...b,yaw:visit.bike.yaw-depotYaw(0),moving:visit.bike.moving})||!depotFree(p,.25))return false;
  if(at==='parking')return Math.hypot(visit.player.x-(visit.bike.x-Math.sin(visit.bike.yaw)*1.25),visit.player.z-(visit.bike.z-Math.cos(visit.bike.yaw)*1.25))<1.1;
- return Math.hypot(p.x-DEPOT_POINTS[at].x,p.z-DEPOT_POINTS[at].z)<1.45;
+ const q=typeof at==='string'?DEPOT_POINTS[at]:at;
+ return Math.hypot(p.x-q.x,p.z-q.z)<1.45;
 }
 export type WorkdayOptions = Readonly<{ seed?: number; stores?: number; perStore?: number; marketplace?: number; free?: (x: number, z: number) => boolean }>;
 
@@ -76,7 +105,7 @@ export class Workday {
     const S = DEPOT_SPOTS;
     const st = (role: DepotRole, station: { x: number; z: number }, shift: [number, number]): DepotStaff => ({ role, state: 'fora', station, shift, carrying: false });
     this.staff = [
-      st('porteiro', S.gatehouse, [6, 22]), st('conferente', S.receiving, [10, 21]),
+      st('porteiro', S.gatehouse, [6, 22]), st('conferente', S.receiving, [10, 72]),
       st('descarregador-1', depotWorld(104, -121), [10, 21]), st('descarregador-2', depotWorld(120, -121), [10, 21]),
       st('separador-1', depotWorld(108, -128), [11, 21]), st('separador-2', depotWorld(113, -131), [11, 21]),
       st('expedidor', S.dispatch, [11, 21.5]), st('supervisor', S.office, [9, 21]),
@@ -85,6 +114,20 @@ export class Workday {
       st('expedidor-2', depotWorld(110.5,-123.8), [11,21]),
     ];
   }
+
+  /**
+   * B1-01 F6 (contract C5): replaces the day's whole inventory by the restored parcels (same IDs,
+   * state, place, custody, slot and history) and the player's own routine state. The previous
+   * frame's hour is forgotten, so the first update after a restore does no catch-up work.
+   */
+  protected restoreWorkday(s: Readonly<{ phase: Phase; assigned: readonly StoreKind[]; route: readonly string[]; sackInHands: boolean; late: boolean; absent: readonly string[]; lastHour: number | null }>, parcels: readonly Parcel[]): void {
+    this.parcels.splice(0, this.parcels.length, ...parcels);
+    this.phase = s.phase; this.assigned = [...s.assigned]; this.route = [...s.route]; this.sackInHands = s.sackInHands; this.late = s.late;
+    this.absentAddresses.clear(); for (const id of s.absent) this.absentAddresses.add(id);
+    this.lastHour = s.lastHour; this.events.length = 0;
+  }
+  /** B1-01 F6: hour of the previous depot step (the resumed world continues the same pacing). */
+  protected get lastUpdateHour(): number | null { return this.lastHour; }
 
   // ------------------------------------------------------------------ helpers
 
@@ -132,15 +175,77 @@ export class Workday {
   sackInHands = false;
   inHands(): Parcel[] { return this.parcels.filter((p) => p.place === 'maos' && p.holder === 'jogador'); }
   inTrunk(): Parcel[] { return this.parcels.filter((p) => p.place === 'bau' && p.holder === 'jogador'); }
+  /** B1-01 F3: parcels in the boot of the player's own car (slots in `stowage`). */
+  inCarBoot(): Parcel[] { return this.parcels.filter((p) => p.place === 'porta-malas' && p.holder === 'jogador'); }
+  /** B1-01 F4: the player's own vehicle kind (texts and which compartment is used). */
+  vehicleKind: 'moto-antiga' | 'carro-antigo' = 'moto-antiga';
+  /** B1-01 F4: parcels the player carries in the vehicle, whichever it is (top box or car boot). */
+  inVehicle(): Parcel[] { return this.parcels.filter((p) => (p.place === 'bau' || p.place === 'porta-malas') && p.holder === 'jogador'); }
+  private get carMode(): boolean { return this.vehicleKind === 'carro-antigo'; }
+  /** Name of the compartment in player-facing texts. */
+  get compartment(): string { return this.carMode ? 'porta-malas' : 'baú'; }
+  carForDepot(): Parcel[] { return this.inCarBoot().filter((p) => p.state === 'EM_TRANSPORTE' || p.state === 'TENTATIVA_FRUSTRADA'); }
+  /** B1-01 F5: failed-attempt parcels the player still has to bring back to the base (hands or vehicle). */
+  returnsPending(): Parcel[] { return this.parcels.filter((p) => p.holder === 'jogador' && p.state === 'TENTATIVA_FRUSTRADA'); }
+  /**
+   * B1-01 F5: addresses whose recipient is not there today (failed attempt). Decided once per day by
+   * `LogisticsDay` (deterministic, from the calendar), empty in the legacy single-player workday.
+   */
+  readonly absentAddresses = new Set<string>();
+  recipientAbsent(addressId: string): boolean { return this.absentAddresses.has(addressId); }
+  /**
+   * B1-01 F5 (AC-11): at the gate, nobody answers. Every parcel of that address IN THE HANDS gets
+   * the attempt recorded; it stays in the hands (same custody) and must go back to the base.
+   */
+  registerAttempt(addressId: string, hour: number, by = 'jogador'): number {
+    if (!this.recipientAbsent(addressId)) return 0;
+    const list = this.parcels.filter((p) => p.place === 'maos' && p.holder === by && p.destination === addressId && p.state === 'EM_ROTA');
+    for (const p of list) attemptFailed(p, by, hour);
+    if (list.length && by === 'jogador') {
+      if (!this.parcels.some((p) => p.destination === addressId && p.state === 'EM_ROTA' && p.holder === 'jogador')) this.route = this.route.filter((id) => id !== addressId);
+      if (!this.inHands().some((p) => p.state === 'EM_ROTA')) this.sackInHands = false;
+      this.say(`Ninguém atendeu: tentativa registrada (${list.length}) — devolva na base`);
+    }
+    return list.length;
+  }
+  carForRoute(): Parcel[] { return this.inCarBoot().filter((p) => p.state === 'EM_ROTA'); }
+
+  /**
+   * B1-01 F4 (AC-09): at the base, with the car in a car bay and the person at the open tailgate,
+   * takes collected volumes out of the boot into the hands (up to a hands-full; boxes on top first),
+   * through the boot's own custody transition. The same desk hand-over as the motorcycle follows.
+   */
+  unloadCarForDepot(trunk: CarTrunk, hour: number, visit?: DepotVisit): number {
+    if (!visit?.car || !depotVisitAllowed(visit, 'parking') || this.sackInHands) return 0;
+    const room = HANDS_MAX - this.inHands().length;
+    if (room <= 0) return 0;
+    // Collected volumes and (B1-01 F5) failed-attempt returns both go to the receiving desk.
+    const top = [...trunk.contents(this.parcels)].filter((p) => p.state === 'EM_TRANSPORTE' || p.state === 'TENTATIVA_FRUSTRADA')
+      .sort((a, b) => (b.stowage!.y + b.stowage!.h) - (a.stowage!.y + a.stowage!.h) || b.stowage!.z - a.stowage!.z || (a.id < b.id ? -1 : 1));
+    const r = trunk.take(this.parcels, top.slice(0, room).map((p) => p.id), hour, { parked: true }, room);
+    if (r.taken.length) this.say(r.taken.length === 1 ? '1 volume retirado do porta-malas' : `${r.taken.length} volumes retirados do porta-malas`);
+    return r.taken.length;
+  }
+
+  /** B1-01 F4 (AC-10): at a stop, takes the parcel(s) of ONE address out of the car boot. */
+  takeFromCarForAddress(trunk: CarTrunk, addressId: string, hour: number, parked: boolean): number {
+    if (!parked || this.inHands().length) return 0;
+    const ids = this.carForRoute().filter((p) => p.destination === addressId).slice(0, HANDS_MAX).map((p) => p.id);
+    if (!ids.length) return 0;
+    const r = trunk.take(this.parcels, ids, hour, { parked }, HANDS_MAX);
+    if (r.taken.length) this.route = [addressId, ...this.route.filter((id) => id !== addressId)];
+    return r.taken.length;
+  }
   /** Trunk parcels still to be handed to the checker / still to be delivered. */
-  trunkForDepot(): Parcel[] { return this.inTrunk().filter((p) => p.state === 'EM_TRANSPORTE'); }
+  trunkForDepot(): Parcel[] { return this.inTrunk().filter((p) => p.state === 'EM_TRANSPORTE' || p.state === 'TENTATIVA_FRUSTRADA'); }
   trunkForRoute(): Parcel[] { return this.inTrunk().filter((p) => p.state === 'EM_ROTA'); }
   cargoLabel(): string {
-    const h = this.inHands().length; const t = this.inTrunk().length;
+    const h = this.inHands().length; const t = this.inTrunk().length; const c = this.inCarBoot().length;
     const parts: string[] = [];
     const n = (k: number) => `${k} ${k === 1 ? 'volume' : 'volumes'}`;
     if (h) parts.push(this.sackInHands ? `saca com ${n(h)} nas mãos` : `${n(h)} nas mãos`);
     if (t) parts.push(`${n(t)} no baú`);
+    if (c) parts.push(`${n(c)} no porta-malas`);
     return parts.join(' · ');
   }
 
@@ -195,26 +300,28 @@ export class Workday {
   }
 
   /** Parcels the player still has to bring to the base (in the hands or in the trunk). */
-  carrying(): Parcel[] { return this.parcels.filter((p) => p.holder === 'jogador' && (p.place === 'maos' || p.place === 'bau') && (p.state === 'COLETADO' || p.state === 'EM_TRANSPORTE')); }
+  carrying(): Parcel[] { return this.parcels.filter((p) => p.holder === 'jogador' && (p.place === 'maos' || p.place === 'bau' || p.place === 'porta-malas') && (p.state === 'COLETADO' || p.state === 'EM_TRANSPORTE')); }
 
   /** At the receiving desk: the checker takes the parcels the player has IN THE HANDS. */
   handOver(hour: number,visit?:DepotVisit): number {
     if(!depotVisitAllowed(visit,'receiving'))return 0;
-    const list = this.inHands().filter(p=>p.state==='COLETADO'||p.state==='EM_TRANSPORTE');
-    let deposited=0;
+    const list = this.inHands().filter(p=>p.state==='COLETADO'||p.state==='EM_TRANSPORTE'||p.state==='TENTATIVA_FRUSTRADA');
+    let deposited=0,returned=0;
     for(const p of list){
       if(p.state==='COLETADO')advance(p,'EM_TRANSPORTE','jogador',hour);
-      if(this.depot.receive(p,hour,this.parcels))deposited++;
+      const back=p.state==='TENTATIVA_FRUSTRADA';
+      if(this.depot.receive(p,hour,this.parcels)){deposited++;if(back)returned++;}
     }
-    if(deposited){
+    if(deposited>returned){
       if(hour>ROUTINE.returnBy)this.late=true;
-      if(!this.carrying().length&&this.assigned.every(s=>!this.readyAt(s).length))this.phase='CONFERENCIA';
-      this.say(`${deposited} volume(s) depositados no recebimento`);
+      if(!this.carrying().length&&this.assigned.every(s=>!this.readyAt(s).length)&&this.phase==='RETORNO')this.phase='CONFERENCIA';
+      this.say(`${deposited-returned} volume(s) depositados no recebimento`);
     }
+    if(returned)this.say(`${returned} devolução(ões) entregue(s) ao conferente de plantão para conferência`);
     return deposited;
   }
   canTakeSack(hour:number):boolean {
-    return hour>=ROUTINE.sackFrom&&hour<ROUTINE.end&&!this.inHands().length&&this.parcels.length>0&&this.parcels.every(p=>p.state==='NA_SACA'&&p.place==='saca'&&p.dock===DISPATCH_DOCK&&p.load===MIXED_LOAD&&p.position!==null);
+    return hour>=ROUTINE.sackFrom&&!this.inHands().length&&this.parcels.length>0&&this.parcels.every(p=>p.state==='NA_SACA'&&p.place==='saca'&&p.dock===DISPATCH_DOCK&&p.load===MIXED_LOAD&&p.position!==null);
   }
 
   /** At the dispatch counter: the mixed sack is released to the player (carried in the hands). */
@@ -246,19 +353,24 @@ export class Workday {
       if (!this.parcels.some((p) => p.destination === addressId && p.state === 'EM_ROTA')) this.route = this.route.filter((id) => id !== addressId);
       if (this.inHands().length === 0) this.sackInHands = false;
       this.say(`Entregue: ${this.byAddress.get(addressId)!.label}`);
-      if (this.count('EM_ROTA') === 0) { this.phase = 'CONCLUIDA'; this.say('Rota concluída! Jornada encerrada.'); }
+      if (this.dayComplete()) { this.phase = 'CONCLUIDA'; this.say('Rota concluída! Jornada encerrada.'); }
     }
     return list.length;
   }
 
   // ------------------------------------------------------------------ depot simulation
 
+  /**
+   * Whether the WHOLE day is over after a delivery. A lone workday (one courier): every parcel has
+   * a final result. `LogisticsDay` (B1-01 F5) overrides it: the collective shift ends only in its
+   * own update, once the four couriers are done — never as a side effect of the last delivery.
+   */
+  protected dayComplete(): boolean { return this.parcels.every(isFinal); }
+
   /** Advances the depot staff and the parcel flow. `truckDocked` comes from the traffic (or 13h fallback). */
   update(hour: number, dt: number, truckDocked = false): void {
     if (this.phase === 'ANTES' && hour >= ROUTINE.assign) this.start(hour);
-    if (this.phase !== 'CONCLUIDA' && this.phase !== 'ANTES' && hour >= ROUTINE.end && this.count('ENTREGUE') < this.parcels.length) {
-      this.phase = 'ENCERRADA';
-    }
+    // B1-01 F5: 21h is a deadline (lateness), never an automatic end of the shift (decisions 9/14/17).
     if(this.van.update(truckDocked?Math.max(hour,13):hour,dt,this.parcels.some(p=>p.place==='caminhao'),this.depot.allWorkers.some(w=>w.task?.kind==='truck'))&&this.phase!=='ANTES'){
       this.parcels.filter(p=>p.place==='caminhao').forEach((p,i)=>arriveTruck(p,hour,{x:127.25+(i%3)*.55,y:1.25+(Math.floor(i/3)%2)*.32,z:-117.15+Math.floor(i/6)*.85}));
       this.say('Van na D05 — estacionamento assistido; abrindo portas para descarga');
@@ -276,12 +388,14 @@ export class Workday {
   private updateStaff(hour:number):void {
     for(const st of this.staff){
       st.carrying=false;
-      if(hour<st.shift[0]||hour>=st.shift[1]){st.state='fora do turno';continue;}
       const worker=this.depot.workers.find(w=>w.role===st.role);
+      // A worker whose shift ended still finishes the parcel in hand (it is never dropped).
+      if((hour<st.shift[0]||hour>=st.shift[1])&&!worker?.task){st.state='fora do turno';continue;}
       if(worker){
         st.station=depotWorld(worker.x,worker.z);st.carrying=worker.activity==='carry';
         st.state=worker.task?`${worker.task.kind}: ${worker.task.id} (${worker.task.stage})`:'aguardando tarefa';
       }else st.state=st.role==='porteiro'?'controle de acesso':'supervisionando a operação';
+      if(hour>=ROUTINE.end&&st.role==='conferente'&&!worker?.task)st.state='plantão de conferência — aguardando devoluções';
     }
   }
 
@@ -289,12 +403,13 @@ export class Workday {
 
   /** `bike`: where the parked bike is (target of the "store it in the trunk" steps). */
   objective(hour: number, bike?: { x: number; z: number }): Objective {
-    const toBike = (title: string): Objective => ({ title, detail: `${this.cargoLabel()} · vá até o baú da moto`, target: bike ? { kind: 'moto', id: 'moto', x: bike.x, z: bike.z, label: 'Baú da moto' } : null, waitUntil: null });
+    const car = this.carMode;
+    const toBike = (title: string): Objective => ({ title, detail: `${this.cargoLabel()} · ${car ? 'vá até a traseira do carro' : 'vá até o baú da moto'}`, target: bike ? { kind: 'moto', id: 'moto', x: bike.x, z: bike.z, label: car ? 'Porta-malas do carro' : 'Baú da moto' } : null, waitUntil: null });
     const depot = (label: string): Target => ({ kind: 'galpao', id: 'galpao', ...DEPOT_SPOTS.receiving, label, yaw: depotYaw(-Math.PI / 2) });
     switch (this.phase) {
       case 'ANTES': return { title: 'Aguardando o início da jornada', detail: 'A designação das lojas sai às 11h', target: null, waitUntil: ROUTINE.assign };
       case 'COLETA': {
-        if (this.inHands().length) return toBike('Guardar os volumes no baú');
+        if (this.inHands().length) return toBike(`Guardar os volumes no ${this.compartment}`);
         const next = this.assigned.find((k) => this.readyAt(k).length > 0)!;
         const store = this.storeOf(next);
         const early = hour < ROUTINE.pickupFrom;
@@ -305,11 +420,13 @@ export class Workday {
         };
       }
       case 'RETORNO': {
-        const hands=this.inHands().length,trunk=this.trunkForDepot().length;
+        const hands=this.inHands().length,trunk=this.inVehicle().filter((p)=>p.state==='COLETADO'||p.state==='EM_TRANSPORTE').length;
+        const box=this.compartment;
         const b=bike?depotLocal(bike.x,bike.z):null;
-        if(b&&(b.x<76.2||b.x>139.8||b.z<-150||b.z>-92.2))return {title:'Retornar pela entrada da base',detail:`${trunk} volume(s) no baú • acesso pela portaria`,target:{kind:'galpao',id:'entrada',...DEPOT_SPOTS.entry,label:'Entrada da base'},waitUntil:null};
-        return hands?{title:'Depositar os volumes no recebimento',detail:`${hands} nas mãos • ${trunk} no baú • várias viagens se necessário`,target:depot('Descarga / recebimento'),waitUntil:null}
-        :{title:'Estacionar na zona de descarga',detail:`${trunk} no baú • pare, desça e retire até ${HANDS_MAX} volumes por viagem`,target:{kind:'galpao',id:'descarga',...DEPOT_SPOTS.parking,label:'Vagas de descarga'},waitUntil:null};
+        if(b&&(b.x<76.2||b.x>139.8||b.z<-150||b.z>-92.2))return {title:'Retornar pela entrada da base',detail:`${trunk} volume(s) no ${box} • acesso pela portaria`,target:{kind:'galpao',id:'entrada',...DEPOT_SPOTS.entry,label:'Entrada da base'},waitUntil:null};
+        if(hands)return {title:'Depositar os volumes no recebimento',detail:`${hands} nas mãos • ${trunk} no ${box} • várias viagens se necessário`,target:depot('Descarga / recebimento'),waitUntil:null};
+        if(car){const bay=CAR_PARKING[0]!;return {title:'Estacionar numa vaga de carro da base',detail:`${trunk} no porta-malas • pare na vaga, saia, abra o porta-malas e retire até ${HANDS_MAX} volumes por viagem`,target:{kind:'galpao',id:'vaga-carro',...depotWorld((bay.minX+bay.maxX)/2,(bay.minZ+bay.maxZ)/2),label:'Vagas de carro'},waitUntil:null};}
+        return {title:'Estacionar na zona de descarga',detail:`${trunk} no baú • pare, desça e retire até ${HANDS_MAX} volumes por viagem`,target:{kind:'galpao',id:'descarga',...DEPOT_SPOTS.parking,label:'Vagas de descarga'},waitUntil:null};
       }
       case 'CONFERENCIA': {
         const checked = this.parcels.filter(p => ['RECEBIDO_BASE', 'TRIADO', 'NA_SACA', 'EM_ROTA', 'ENTREGUE'].includes(p.state)).length;
@@ -335,10 +452,10 @@ export class Workday {
         return { title: waiting ? 'Saca liberada às 15h' : 'Retirar a saca na doca 02', detail: `Saca mista ML/SHP com ${this.count('NA_SACA')} volume(s)`, target: { kind: 'galpao', id: 'galpao', ...DEPOT_SPOTS.dispatch, label: 'Expedição' }, waitUntil: waiting ? ROUTINE.sackFrom : null };
       }
       case 'ENTREGAS': {
-        if (this.sackInHands) return toBike('Guardar a saca no baú');
+        if (this.sackInHands) return toBike(`Guardar a saca no ${this.compartment}`);
         const held = this.inHands()[0];
         const a = this.byAddress.get(held ? held.destination : this.route[0]!)!;
-        const where = held ? 'pacote nas mãos' : 'estacione e retire o pacote no baú';
+        const where = held ? 'pacote nas mãos' : `estacione e retire o pacote no ${this.compartment}`;
         return { title: `Entregar em ${a.street}, ${a.number}`, detail: `${a.bairro} · ${where} · ${this.count('ENTREGUE')}/${this.parcels.length} entregues`, target: { kind: 'endereco', id: a.id, x: a.door.x, z: a.door.z, label: a.label, yaw: yawOf(a.frame) }, waitUntil: null };
       }
       case 'CONCLUIDA': return { title: 'Jornada concluída', detail: `${this.count('ENTREGUE')}/${this.parcels.length} volumes entregues${this.late ? ' (retorno após 14h)' : ''}`, target: null, waitUntil: null };

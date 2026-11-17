@@ -8,16 +8,20 @@ export const WORKDAY_START = 11 + 45 / 60;
 /** Couriers wait for two VIRTUAL minutes after the visible game starts. */
 export const COURIER_DEPART_DELAY_VIRTUAL_MINUTES = 2;
 export const COURIER_DEPART_HOUR = WORKDAY_START + COURIER_DEPART_DELAY_VIRTUAL_MINUTES / 60;
+/** 21h: deadline after which work is LATE (decisions 14/17). It never ends the shift by itself. */
 export const WORKDAY_END = 21;
 
 export class VirtualClock {
-  /** Minutes since midnight, [0, 1440). */
-  private minutes: number;
+  /**
+   * B1-01 F5 (decisions 14/17, AC-15): minutes since midnight of the SHIFT's first day. It only
+   * grows: crossing 00:00 does not restart anything; the visible hour wraps, the shift hour does not.
+   */
+  private total: number;
   /** Development fast-forward factor (1 = the approved scale). */
   speedFactor = 1;
 
   constructor(startHour = WORKDAY_START) {
-    this.minutes = VirtualClock.wrap(startHour * 60);
+    this.total = Math.max(0, startHour * 60);
   }
 
   private static wrap(m: number): number {
@@ -26,22 +30,35 @@ export class VirtualClock {
 
   advance(realSeconds: number): void {
     if (!(realSeconds > 0) || !Number.isFinite(realSeconds)) return;
-    this.minutes = VirtualClock.wrap(this.minutes + (realSeconds * 60 * this.speedFactor) / REAL_SECONDS_PER_VIRTUAL_HOUR);
+    this.total += (realSeconds * 60 * this.speedFactor) / REAL_SECONDS_PER_VIRTUAL_HOUR;
   }
 
-  /** Development only: jump to an hour (0–24). */
+  /** Development only: jump to an hour (0–24) of the shift's first day. */
   setHour(hour: number): void {
-    this.minutes = VirtualClock.wrap(hour * 60);
+    this.total = VirtualClock.wrap(hour * 60);
   }
 
-  get hour(): number { return this.minutes / 60; }
+  /** Development only: jump to a shift hour (may be ≥ 24 = after midnight, same shift). */
+  setShiftHour(hour: number): void {
+    if (Number.isFinite(hour) && hour >= 0 && hour < 72) this.total = hour * 60;
+  }
+
+  /** Visible time of day, [0, 24): lighting, traffic, the HUD clock. */
+  get hour(): number { return VirtualClock.wrap(this.total) / 60; }
+
+  /** Monotonic hour of the shift (25.5 = 01:30 after midnight, same shift): every work rule. */
+  get shiftHour(): number { return this.total / 60; }
+
+  /** Whole days crossed since the shift started (0 before midnight). */
+  get daysCrossed(): number { return Math.floor(this.total / 1440); }
 
   get label(): string {
-    const total = Math.floor(this.minutes);
+    const total = Math.floor(VirtualClock.wrap(this.total));
     return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
   }
 
-  get isWorkday(): boolean { return this.hour >= WORKDAY_START && this.hour < WORKDAY_END; }
+  /** Inside the planned working hours (21h is a deadline for lateness, not the end of work). */
+  get isWorkday(): boolean { return this.shiftHour >= WORKDAY_START && this.shiftHour < WORKDAY_END; }
 }
 
 /** City activity (0–1) by hour for pedestrians, general traffic and logistics. */

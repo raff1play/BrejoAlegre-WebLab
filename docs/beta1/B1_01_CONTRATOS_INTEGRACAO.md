@@ -2,7 +2,7 @@
 
 **Status:** alinhamento técnico de dependências concluído para planejamento. **Não é implementação do B1-01 nem revisão das 17 decisões/26 critérios congelados.**  
 **Base de análise:** código da `preview` auditado em 15/11/2026; `docs/BETA_1_0_SPEC.md`, `docs/BETA_1_0_DECISIONS.md` e `docs/beta1/STATE.json`.  
-**Estado verificável:** B1-00 `APROVADO`; B1-01 `PENDENTE`. A autorização recebida foi para **esta etapa de alinhamento**, não para programar o B1-01, mudar o estado para EM_DESENVOLVIMENTO ou publicar gameplay.
+**Atualização de execução (15/11/2026):** B1-00 `APROVADO` e B1-01 `EM_DESENVOLVIMENTO` na `preview`; F1–F3 entregues e F3 auditada tecnicamente no SHA `b8767e6` (CI `43768493838`). **F3.5 inserida entre F3 e F4**, conforme [`B1_01_F3_5_MENU_CARREIRAS.md`](B1_01_F3_5_MENU_CARREIRAS.md). O diagnóstico original abaixo é histórico da `preview`; as regras B1-01 congeladas permanecem intactas.
 
 ## 1. Resultado do alinhamento
 
@@ -75,24 +75,26 @@ Backup deve permitir exportar/importar com validação, identificar carreira e v
 | B1-08 — Audiovisual | Ações/eventos de domínio expostos à apresentação | Sons, animações e humor, sem reescrever custódia |
 | B1-09 — Fim do expediente | Resolução dos quatro entregadores, horário contínuo, casa vinculada e término válido | Retorno doméstico completo dos NPCs, resumo financeiro, próximo dia e calendário |
 
-## 5. Ordem de implementação interna proposta — um B1-01, não oito novos módulos
+## 5. Ordem interna atualizada — F1–F7 com F3.5 (um único B1-01)
 
 Todos os passos abaixo ficam na **mesma branch `feat/beta1-01-carreiras`** com commits pequenos, regressões por etapa e PR destinado à `preview`. São marcos **internos**, não aceites parciais que liberem B1-02.
 
 1. **F1 — Identidades, snapshots e cenários base:** abstrair `careerId` de `ActorId`; testes de quatro perfis sem progressão dos inativos; migrador não destrutivo do calendário; base de snapshot e pontos seguros.
 2. **F2 — Veículo neutro:** preservar joystick/controles moto (CTRL-002), adicionar carro dirigível/estacionável com câmera, colisão e entrada/saída; controles Android, teclado e HU(D) coerentes.
 3. **F3 — Caixas e porta-malas:** dados dimensionais mínimos, arrumação automática, abrir/fechar porta-malas, posições visuais reais, limites de capacidade; integração com inventário único e recarga.
-4. **F4 — Coleta/base/entrega com carro:** adaptar `DepotVisit`, `DeliveryGame`, `Workday` e `LogisticsDay`; ciclo completo de coleta/recebimento/expedição/entrega; preservar fluxo de moto.
-5. **F5 — Exceções e madrugada:** tentativas frustradas/devolução conferida, plantão real, quatro entregadores ativos depois de 21h, atrasos individuais, continuidade em 00h, encerramento só com todas as pendências resolvidas.
-6. **F6 — Recuperação, backup, fim de turno mínimo:** testar interrupção em operações, retomada em local seguro, restauração e isolamento dos quatro perfis; troca de carreira apenas após expediente validamente encerrado.
-7. **F7 — Matriz integral de aceite:** executar e evidenciar **AC-01 a AC-26**, regressões de todos os testes antigos, CI e browser E2E com tráfego. O teste em Galaxy S24 físico é do usuário, não resultado inventado pelo runner.
+4. **F3.5 — Menu/seleção de personagens (marco interno):** interface inicial para quatro carreiras, presets realmente visíveis em gameplay, veículo inicial por carreira, save isolado e bloqueio de troca de expediente ativo; escopo e testes em [`B1_01_F3_5_MENU_CARREIRAS.md`](B1_01_F3_5_MENU_CARREIRAS.md).
+4.1. **F3.5.1 — Menu principal completo (marco interno):** tela principal Continuar / Novo jogo / Carregar jogo / Opções reaproveitando o menu, `CareerStore` e `enterCareer` da F3.5; sem novo sistema de saves, sem sobrescrever personagem com save, Opções com o perfil gráfico existente; gerenciar/apagar/exportar/importar fica para a F6. Escopo no adendo de [`B1_01_F3_5_MENU_CARREIRAS.md`](B1_01_F3_5_MENU_CARREIRAS.md).
+5. **F4 — Coleta/base/entrega com carro:** adaptar `DepotVisit`, `DeliveryGame`, `Workday` e `LogisticsDay`; ciclo completo de coleta/recebimento/expedição/entrega; preservar fluxo de moto.
+6. **F5 — Exceções e madrugada:** tentativas frustradas/devolução conferida, plantão real, quatro entregadores ativos depois de 21h, atrasos individuais, continuidade em 00h, encerramento só com todas as pendências resolvidas.
+7. **F6 — Recuperação, backup, fim de turno mínimo:** testar interrupção em operações, retomada em local seguro, restauração e isolamento dos quatro perfis; troca de carreira apenas após expediente validamente encerrado.
+8. **F7 — Matriz integral de aceite:** executar e evidenciar **AC-01 a AC-26**, regressões de todos os testes antigos, CI e browser E2E com tráfego. O teste em Galaxy S24 físico é do usuário, não resultado inventado pelo runner.
 
 **Entrega vertical obrigatória de validação interna:** provar **um personagem + um carro + uma coleta + base + entrega + retorno** com dados reais de pacote e save, depois ampliar e demonstrar os quatro perfis e os casos de madrugada. Esta prova interna **não substitui** as 26 condições de aceite.
 
 ## 6. Regra operacional de próxima etapa
 
 - Este alinhamento é documental; não toca em `src/`, `public/`, `index.html`, `docs/beta1/STATE.json` nem em workflow.
-- `B1-00=APROVADO`; `B1-01=PENDENTE` permanece assim até **autorização específica de implementação**. Ao autorizar, seguir `docs/beta1/B1_00_RUNBOOK.md`: registrar `EM_DESENVOLVIMENTO` em `preview`, criar branch `feat/beta1-01-carreiras`, executar F1–F7 e entregar para testes/aceite, sem encostar em `main`.
+- **Atualização operacional de 15/11/2026:** B1-01 já está `EM_DESENVOLVIMENTO`, o PR draft #15 usa `feat/beta1-01-carreiras` e F3.5 foi incluída no plano interno. A regra original de kickoff acima já foi cumprida; continuar nesta branch e auditar cada marco antes de integrar, sem encostar em `main`, `preview` ou publicar F3/F3.5 sem autorização.
 - Especificação B1-01 de **17 decisões/26 AC congelados não muda** por esta proposta de arquitetura. Se algum detalhe técnico não puder satisfazer o contrato, abrir desvio explícito e pedir decisão antes de enfraquecer os testes; não fingir cumprimento.
 - A fase operacional existente de `preview` (11h45, 8 lojas, moto, corte 21h) **não é** a Beta implementada. A documentação congelada de B1-01 contém uma referência histórica a B1-00 pendente; o **estado atual** de aprovação deve ser consultado em `docs/beta1/STATE.json`. Esta nota não reabre nem modifica o texto funcional congelado.
 
