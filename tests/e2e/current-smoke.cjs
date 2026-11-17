@@ -700,6 +700,8 @@ async function carLogistics(browser){
  const snap=()=>page.evaluate(()=>window.__weblab.snapshot());
  const action=page.locator('[data-action="mount"]');
  const label=()=>page.evaluate(()=>document.querySelector('[data-action="mount"]').textContent);
+ /** The button text drawn for the CURRENT state: read after two animation frames (≥ one full render). */
+ const settledLabel=async()=>{await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));return label();};
  const tapWhen=async(re,what)=>{
   const ok=await page.waitForFunction(src=>new RegExp(src).test(document.querySelector('[data-action="mount"]').textContent),re.source,{timeout:20000}).then(()=>true).catch(()=>false);
   if(!ok)throw new Error(`${what}: o botão mostra "${await label()}"`);
@@ -908,14 +910,32 @@ async function carLogistics(browser){
  const outside={x:bays[0].x+Math.sin(bays[0].yaw)*3.9,z:bays[0].z+Math.cos(bays[0].yaw)*3.9,yaw:bays[0].yaw};
  await page.evaluate(b=>window.__debug.parkAt(b.x,b.z,b.yaw),outside);await delay(300);
  await toBoot();await openBoot();
- const offBay=await snap(),offLabel=await label();
+ const offBay=await snap(),offLabel=await settledLabel();
  check('B1-01 F7 devolução: objetivo leva primeiro à vaga amarela de CARRO, não ao recebimento',offBay.delivery.objective.target?.id==='vaga-carro-devolucao'&&/AMARELA/.test(offBay.delivery.objective.detail),offBay.delivery.objective);
  check('B1-01 F7 devolução: fora da vaga há instrução em vez de Fechar ou Retirar',/vaga amarela/.test(offLabel)&&!/Retirar do porta-malas|Fechar porta-malas/.test(offLabel),offLabel);
  for(const [w,h]of [[780,360],[915,412]]){await page.setViewportSize({width:w,height:h});await delay(150);assertLayout(`devolução carro fora da vaga ${w}×${h}`,await page.evaluate(layout));}
  await page.setViewportSize({width:780,height:360});
  await page.evaluate(b=>window.__debug.parkAt(b.x,b.z,b.yaw),bays[0]);await delay(300);
+ // Diagnosis of the CI failure (run 44094529615): after the car jumps 3.9 m into the bay, the person is
+ // still at the OLD tailgate spot — now beside the car's doors — so the HUD shows "Entrar no carro".
+ // Moving the person and reading the button IN THE SAME TASK (no frame in between) shows that the
+ // button is the previous frame's text while the game's real action is already "Retirar…".
+ const stale=await page.evaluate(()=>{const s0=window.__weblab.snapshot();const before={label:document.querySelector('[data-action="mount"]').textContent,job:s0.delivery.action};
+  const t=window.__debug.trunkSpot();window.__debug.placeWalker(t.x,t.z,s0.vehicle.yaw);
+  return {before,afterMove:{label:document.querySelector('[data-action="mount"]').textContent,job:window.__weblab.snapshot().delivery.action}};});
+ console.log('[F7 diag] botão no mesmo instante do reposicionamento:',JSON.stringify(stale));
+ // (Which old text it shows depends on how many frames ran since the viewport changes: "Entrar no carro"
+ // in CI run 44094529615, "Vaga inválida…" locally. The deterministic part is checked.)
+ check('B1-01 F7 diagnóstico: o botão é desenhado a cada quadro — no instante em que o personagem é movido ele ainda mostra um texto antigo, enquanto a ação real do jogo já é "Retirar do porta-malas"',stale.afterMove.label===stale.before.label&&!/^Retirar do porta-malas/.test(stale.afterMove.label)&&/^Retirar do porta-malas \(\d\)$/.test(stale.afterMove.job),stale);
  await toBoot();
- check('B1-01 F7 devolução: na vaga válida permite retirar',/^Retirar do porta-malas \(\d\)$/.test(await label()),await label());
+ // The check reads the button only after the HUD redrew it for the CURRENT position (as tapWhen does).
+ await settledLabel();
+ // Diagnosis of the exact state at the check (audit 6950252553): mode, vehicle, bay, boot, person, job.
+ const diag=()=>page.evaluate(()=>{const s=window.__weblab.snapshot();const v=s.vehicle,w=s.walker,t=window.__debug.trunkSpot();const dx=w.x-v.x,dz=w.z-v.z,c=Math.cos(v.yaw),n=Math.sin(v.yaw);
+  return {label:document.querySelector('[data-action="mount"]').textContent,job:s.delivery.action,mode:s.mode,vehicle:{x:v.x,z:v.z,yaw:v.yaw,bay:v.bay,parked:v.parked,stopped:v.stopped,speed:v.speed},boot:{open:s.delivery.cargo.carBoot.open,n:s.delivery.cargo.carBoot.parcels.length,states:s.delivery.cargo.carBoot.parcels.map(p=>p.state)},walker:{x:w.x,z:w.z},trunkSpot:t,rel:{right:dx*c-dz*n,forward:dx*n+dz*c},hands:s.delivery.cargo.hands};});
+ const atCheck=await diag();
+ console.log('[F7 diag] devolução na vaga, logo após toBoot:',JSON.stringify(atCheck));
+ check('B1-01 F7 devolução: na vaga válida permite retirar',/^Retirar do porta-malas \(\d\)$/.test(await settledLabel()),await diag());
  let backTrips=0;
  while((await snap()).delivery.cargo.carBoot.parcels.length&&backTrips++<4){
   await toBoot();await openBoot();

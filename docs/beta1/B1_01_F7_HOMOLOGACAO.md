@@ -27,8 +27,8 @@ Os deslocamentos entre lojas, base e endereços usam fixture. O roteiro manual n
 
 | Comando | Resultado |
 |---|---|
-| `npm run check` (local, depois da correção 6918411665) | exit 0: `validate:repo` OK (37 arquivos), **276/276 unitários**, typecheck, `build:staging` OK |
-| `npm run test:e2e` (local, depois da correção 6918411665) | exit 0: **309 checks**, `no fatal JavaScript errors` (a contagem varia ±2 com o número de paradas da rota) |
+| `npm run check` (local, após a sinalização das vagas `da75634`/`5352dd5` e a correção do E2E de devolução) | exit 0: `validate:repo` OK (37 arquivos), **276/276 unitários**, typecheck, `build:staging` OK |
+| `npm run test:e2e` (local, mesmo HEAD) | exit 0: **319 checks**, `no fatal JavaScript errors`, trânsito ligado, 780×360 e 915×412 (a contagem varia ±2 com o número de paradas da rota) |
 | CI oficial no SHA final | registrado no comentário de entrega do PR #15 |
 
 ## Matriz
@@ -79,6 +79,17 @@ Status: **aprovado** = comportamento exercitado de verdade e observado; **parcia
      - para não pesar, `CareerStore.commit` grava o save selado com o texto canônico produzido numa única serialização (`sealSaveText`, byte a byte igual a `canonicalJson`, coberto por teste), sem uma segunda leitura do mesmo conteúdo.
    - **Custo medido (Node desktop, não Android):** ≈ 5,4 ms por checkpoint de 182 kB; antes eram ≈ 24 ms. Um dia inteiro de moto teve 527 checkpoints em 19.441 quadros (481 com evento), no pico ≈ 1,5 quadro/s com evento. O desempenho em Android continua não medido.
    - Nenhum outro inventário foi criado; validação completa, checksum, marcas anti-reversão e idempotência inalterados.
+
+4. **Falha do CI [44094529615](https://github.com/raff1play/BrejoAlegre-WebLab/actions/runs/44094529615) no novo check de devolução — leitura do botão antes do redesenho do HUD (defeito do TESTE, não do jogo).** O check "na vaga válida permite retirar" (`tests/e2e/current-smoke.cjs`, cenário `carLogistics`) leu "Entrar no carro" no runner.
+   - **Causa, reproduzida com diagnóstico:** o botão de ação é um texto do DOM reescrito a cada quadro de renderização. O teste leva o carro 3,9 m para dentro da vaga (`parkAt`); o personagem continua no ponto da traseira antiga, que agora fica junto às portas do carro (por isso "Entrar no carro" é o texto daquele quadro). Depois o personagem vai para a traseira e o botão é lido 150 ms depois.
+   - Logo após as trocas de tamanho de tela, o SwiftShader passa mais que isso sem renderizar. O diagnóstico novo move o personagem e lê o botão **na mesma tarefa**: o botão continua com o texto antigo, enquanto a ação real do jogo (`snapshot().delivery.action`) já é "Retirar do porta-malas (4)".
+   - Localmente o texto atrasado foi "Vaga inválida…"; no CI, "Entrar no carro". O mesmo efeito também derrubou o check vizinho "fora da vaga…", que leu "Abrir porta-malas" logo depois de abrir.
+   - **No instante do check, o estado era o correto:** modo a pé, carro na vaga 0, estacionado e parado, tampa aberta, cinco volumes `TENTATIVA_FRUSTRADA`, personagem exatamente no ponto da traseira (0,55 m atrás da tampa, centralizado).
+   - **Correção (só no teste, as asserções não mudaram):** os dois checks leem o botão depois de dois `requestAnimationFrame`, o que garante ao menos uma renderização com o estado atual. O mesmo princípio já existe em `tapWhen`, que espera o texto.
+   - Acrescentados o check de diagnóstico e o registro do estado completo no instante do check.
+   - **Jogo, colisões, tolerâncias, vagas, economia e saves: sem alteração.**
+   - A sequência exigida passa no E2E com trânsito: fora da vaga há instrução, dentro da vaga o carro é reconhecido, abrir, "Retirar do porta-malas (N)", mãos, conferente, `DEVOLVIDO_E_CONFERIDO`, sem pagamento de devolução e com as entregas seguintes depois da tentativa.
+   - As vagas amarelas (`da75634`, `5352dd5`) **ainda não foram retestadas pelo usuário em Android**. O núcleo da devolução já tinha sido validado por ele na prévia `7e8f64f` (comentário 6950252553).
 
 Nenhum defeito de regra de jogo foi encontrado; nenhuma regra congelada foi alterada.
 
