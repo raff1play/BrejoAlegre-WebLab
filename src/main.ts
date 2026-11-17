@@ -283,7 +283,10 @@ function start(canvas: HTMLCanvasElement, boot: BrowserCareer): void {
       // B1-01 F4 (AC-09): at the base, collected volumes come out of the boot towards the desk.
       const visit = { player: { x: here.x, z: here.z, riding: false }, bike: { ...bikeSpot() }, car: true };
       const forDepot = wd.carForDepot().length;
-      if (forDepot && depotVisitAllowed(visit, 'parking') && !wd.sackInHands) {
+      if (forDepot && !wd.sackInHands) {
+        // Do not silently fall through to "Fechar porta-malas" outside a valid car bay.
+        if (carBay() === null) return { label: 'Vaga inválida: pare o carro inteiro na vaga amarela', available: false, run: null };
+        if (!depotVisitAllowed(visit, 'parking')) return { label: 'Fique atrás do carro na vaga de descarga', available: false, run: null };
         return { label: `Retirar do porta-malas (${Math.min(forDepot, HANDS_MAX)})`, available: true, trunk: true, run: () => `${wd.unloadCarForDepot(trunk, clock.shiftHour, visit)} nas mãos — leve ao recebimento` };
       }
       // B1-01 F4 (AC-10): on the route, the parcels of the nearest stop come out of the boot.

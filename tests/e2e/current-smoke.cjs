@@ -904,7 +904,18 @@ async function carLogistics(browser){
  await resume('depois de 00h01, com a tentativa frustrada no porta-malas');
  const pendingPanel=await page.evaluate(()=>window.__weblab.snapshot().delivery.objective.title);
  check('B1-01 F5 AC-13: with the failed attempt in the boot the objective is to return it — the shift is not over',/Devolver \d+ volume\(s\) na base/.test(pendingPanel)&&(await snap()).delivery.phase!=='CONCLUIDA',pendingPanel);
+ // F7 manual Android regression: close to receiving but outside any painted CAR bay.
+ const outside={x:bays[0].x+Math.sin(bays[0].yaw)*3.9,z:bays[0].z+Math.cos(bays[0].yaw)*3.9,yaw:bays[0].yaw};
+ await page.evaluate(b=>window.__debug.parkAt(b.x,b.z,b.yaw),outside);await delay(300);
+ await toBoot();await openBoot();
+ const offBay=await snap(),offLabel=await label();
+ check('B1-01 F7 devolução: objetivo leva primeiro à vaga amarela de CARRO, não ao recebimento',offBay.delivery.objective.target?.id==='vaga-carro-devolucao'&&/AMARELA/.test(offBay.delivery.objective.detail),offBay.delivery.objective);
+ check('B1-01 F7 devolução: fora da vaga há instrução em vez de Fechar ou Retirar',/vaga amarela/.test(offLabel)&&!/Retirar do porta-malas|Fechar porta-malas/.test(offLabel),offLabel);
+ for(const [w,h]of [[780,360],[915,412]]){await page.setViewportSize({width:w,height:h});await delay(150);assertLayout(`devolução carro fora da vaga ${w}×${h}`,await page.evaluate(layout));}
+ await page.setViewportSize({width:780,height:360});
  await page.evaluate(b=>window.__debug.parkAt(b.x,b.z,b.yaw),bays[0]);await delay(300);
+ await toBoot();
+ check('B1-01 F7 devolução: na vaga válida permite retirar',/^Retirar do porta-malas \(\d\)$/.test(await label()),await label());
  let backTrips=0;
  while((await snap()).delivery.cargo.carBoot.parcels.length&&backTrips++<4){
   await toBoot();await openBoot();

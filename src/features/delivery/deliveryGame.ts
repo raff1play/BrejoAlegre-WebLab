@@ -300,7 +300,7 @@ export class DeliveryGame {
     }
     if (close(DEPOT_SPOTS.receiving, 1.45) && (w.carrying().length || w.returnsPending().length)) {
       const mine = hands.filter((p) => p.state === 'COLETADO' || p.state === 'EM_TRANSPORTE' || p.state === 'TENTATIVA_FRUSTRADA');
-      if (!mine.length) return { label: car ? 'Volumes no porta-malas: retire no carro' : 'Volumes no baú: retire na moto', available: false, run: null };
+      if (!mine.length) return { label: car ? 'Vaga amarela de carro: retire os volumes no porta-malas' : 'Volumes no baú: retire na moto', available: false, run: null };
       if(!depotVisitAllowed(visit,'receiving'))return {label:car?'Estacione o carro numa vaga de carro da base':'Estacione a moto nas vagas de descarga',available:false,run:null};
       // B1-01 F5 (AC-12/25): failed attempts are handed back to the on-duty checker at the same desk.
       const returns = mine.every((p) => p.state === 'TENTATIVA_FRUSTRADA');

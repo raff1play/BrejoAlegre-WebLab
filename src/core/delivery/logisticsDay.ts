@@ -6,7 +6,7 @@ import type {Parcel} from './parcels.ts';
 import type {Phase} from './workday.ts';
 import {SECTOR_DATA,recommendedRoute,type Sector} from './sectors.ts';
 import {depotLocal,depotWorld,type StoreKind} from '../../world/city/cityPlan.ts';
-import {DEPOT_POINTS} from '../../world/city/depotPlan.ts';
+import {DEPOT_POINTS,CAR_PARKING} from '../../world/city/depotPlan.ts';
 import {advance,move,isFinal} from './parcels.ts';
 import {WORKDAY_END} from '../city/clock.ts';
 import {ACTORS} from './dailyDemand.ts';
@@ -187,7 +187,15 @@ export class LogisticsDay extends Workday {
   if(this.phase==='ENTREGAS'&&this.released&&returns.length){
    const box=this.compartment,inHands=returns.filter(p=>p.place==='maos').length,car=this.vehicleKind==='carro-antigo';
    if(inHands&&this.route.length)return {title:`Guardar a devolução no ${box}`,detail:`${inHands} com tentativa frustrada · continue a rota e devolva na base`,target:bike?{kind:'moto',id:'moto',...bike,label:car?'Porta-malas do carro':'Baú da moto'}:null,waitUntil:null};
-   if(!this.route.length)return {title:`Devolver ${returns.length} volume(s) na base`,detail:`tentativa frustrada · ${inHands?'leve ao recebimento':`retire do ${box} na vaga e leve ao conferente`} · plantão de conferência`,target:{kind:'galpao',id:'galpao',...DEPOT_SPOTS.receiving,label:'Recebimento / devoluções'},waitUntil:null};
+   if(!this.route.length){
+    // First guide the car to the actual CAR_PARKING rectangle; the receiving desk
+    // cannot take parcels which have not yet left the boot physically.
+    const parkCar=car&&!inHands;
+    const bay=CAR_PARKING[1]!;
+    return {title:`Devolver ${returns.length} volume(s) na base`,
+     detail:parkCar?'Estacione o carro inteiro numa vaga AMARELA de CARRO, saia, abra o porta-malas e retire os volumes':`tentativa frustrada · ${inHands?'leve ao recebimento':`retire do ${box} na vaga e leve ao conferente`} · plantão de conferência`,
+     target:parkCar?{kind:'galpao',id:'vaga-carro-devolucao',...depotWorld((bay.minX+bay.maxX)/2,(bay.minZ+bay.maxZ)/2),label:'Vagas amarelas de carro'}:{kind:'galpao',id:'galpao',...DEPOT_SPOTS.receiving,label:'Recebimento / devoluções'},waitUntil:null};
+   }
   }
   if(this.phase==='ENTREGAS'&&!this.route.length)return {title:`Setor ${this.playerSector} concluído — acompanhando a equipe`,detail:this.couriers.map(c=>`${c.name}: ${COURIER_LABEL[c.state]}`).join(' · '),target:null,waitUntil:null};
   const base=super.objective(hour,bike);
