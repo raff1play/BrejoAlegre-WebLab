@@ -283,7 +283,12 @@ function start(canvas: HTMLCanvasElement, boot: BrowserCareer): void {
       // B1-01 F4 (AC-09): at the base, collected volumes come out of the boot towards the desk.
       const visit = { player: { x: here.x, z: here.z, riding: false }, bike: { ...bikeSpot() }, car: true };
       const forDepot = wd.carForDepot().length;
-      if (forDepot && !wd.sackInHands) {
+      // A failed attempt may stay in the boot while the OTHER addresses are still on the route.
+      // Only offer depot-specific parking guidance inside the base. Outside, keep the normal
+      // route action below available (AC-10/11: never block later deliveries).
+      const dp = depotLocal(car.state.x, car.state.z);
+      const insideDepot = dp.x > 76.4 && dp.x < 139.6 && dp.z < -92.5 && dp.z > -149.8;
+      if (forDepot && insideDepot && !wd.sackInHands) {
         // Do not silently fall through to "Fechar porta-malas" outside a valid car bay.
         if (carBay() === null) return { label: 'Vaga inválida: pare o carro inteiro na vaga amarela', available: false, run: null };
         if (!depotVisitAllowed(visit, 'parking')) return { label: 'Fique atrás do carro na vaga de descarga', available: false, run: null };
