@@ -66,6 +66,16 @@ export function validDepotParking(b:{x:number;z:number;yaw:number;moving:boolean
  const aligned=Math.abs(Math.sin(b.yaw))<.4;
  return !b.moving&&aligned&&MOTO_PARKING.some(r=>insideRect(r,b,.18));
 }
+/**
+ * B1-01 F2: car bay the player's car is parked in (index into CAR_PARKING), or null. The four
+ * body corners, already in depot-local coordinates, must all lie inside the painted bay, so a car
+ * across two bays or half out does not count; it must also be stopped.
+ */
+export function depotCarBay(corners:readonly {x:number;z:number}[],moving:boolean):number|null {
+ if(moving||corners.length!==4)return null;
+ const i=CAR_PARKING.findIndex(r=>corners.every(c=>insideRect(r,c,.05)));
+ return i<0?null:i;
+}
 export function depotFree(p:{x:number;z:number},r=.34):boolean {
  return insideRect(rect(76.4,139.6,-149.8,-92.5),p,r)&&!depotFixtures().some(b=>circleIntersectsBox(p.x,p.z,r,b));
 }

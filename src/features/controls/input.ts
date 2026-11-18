@@ -1,5 +1,5 @@
 import { InputState } from '../../core/inputState';
-import { blendAxis, motoTurnFraction, steerForTurn } from '../../core/analogStick.ts';
+import { blendAxis, carTurnFraction, motoTurnFraction, steerForTurn } from '../../core/analogStick.ts';
 import { VirtualJoystick } from './virtualJoystick';
 
 export type Control =
@@ -105,6 +105,10 @@ export class GameInput {
    */
   steer(speed = 0): number {
     return blendAxis(this.axis('right', 'left'), steerForTurn(motoTurnFraction(this.joystick.steerX, speed), speed));
+  }
+  /** B1-01 F2: car steering wheel from the same stick (own curve); keyboard keys keep full lock. */
+  carSteer(): number {
+    return blendAxis(this.axis('right', 'left'), carTurnFraction(this.joystick.steerX));
   }
   /** Full 360-degree movement while on foot. */
   walkingAxes(): { forward: number; right: number } {

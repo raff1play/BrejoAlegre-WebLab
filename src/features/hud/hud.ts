@@ -24,6 +24,9 @@ export class Hud {
   private toastTimer = 0;
   private current: HudContext | null = null;
   private mode: HudMode | null = null;
+  /** B1-01 F2: texts of the active vehicle (motorcycle defaults keep the HUD-001 wording). */
+  private ridingTip = TIPS.riding;
+  private ridingLabel = CONTEXT_LABEL.riding;
 
   constructor(private readonly root: ParentNode) {
     const pick = (selector: string): HTMLElement => {
@@ -56,7 +59,19 @@ export class Hud {
     if (context === this.current) return;
     this.current = context;
     this.els.hud!.dataset.context = context;
-    this.write(this.els.mode!, CONTEXT_LABEL[context]);
+    this.write(this.els.mode!, context === 'riding' ? this.ridingLabel : CONTEXT_LABEL[context]);
+  }
+
+  /** B1-01 F2: "Pilotando"/"Dirigindo" and the driving tip follow the career's own vehicle. */
+  setVehicle(kind: string, label: string, tip: string): void {
+    this.ridingLabel = label; this.ridingTip = tip;
+    this.els.hud!.dataset.vehicle = kind;
+    const car = kind === 'carro-antigo';
+    const legend = this.root.querySelector<HTMLElement>('#legend-vehicle');
+    const mark = this.root.querySelector<HTMLElement>('#legend-vehicle-mark');
+    if (legend) legend.textContent = car ? 'Seu carro' : 'Moto';
+    if (mark) mark.textContent = car ? 'C' : 'M';
+    if (this.current === 'riding') this.write(this.els.mode!, label);
   }
 
   setVersion(version: string, environment: string): void {
@@ -70,7 +85,7 @@ export class Hud {
   /** Contextual action: label and whether it can be used now. */
   update(mode: HudMode, speedKmh: number, fps: number, action: string, actionAvailable: boolean): void {
     this.write(this.els.speed!, String(Math.round(speedKmh)));
-    this.write(this.els.tips!, TIPS[mode]);
+    this.write(this.els.tips!, mode === 'riding' ? this.ridingTip : TIPS[mode]);
     this.write(this.els.fps!, `${Math.round(fps)} FPS`);
     this.write(this.els.action!, action);
     this.els.action!.classList.toggle('unavailable', !actionAvailable);

@@ -38,6 +38,9 @@ export class IsometricCameraRig {
   private manualLook = 0;
   private wasRiding = true;
   private lifted = 0;
+  /** B1-01 F2: chase framing while driving; defaults are the CTRL-002 motorcycle values. */
+  private driveRadius: number = CHASE.ridingRadius;
+  private driveBeta: number = CHASE.ridingBeta;
 
   constructor(
     scene: Scene, private readonly canvas: HTMLCanvasElement, start: Vector3, radius: number,
@@ -59,12 +62,19 @@ export class IsometricCameraRig {
 
   get mode(): CameraMode { return this.modeValue; }
 
+  /** B1-01 F2: framing behind the active vehicle (the car sits further back and a bit lower). */
+  setDriveFraming(radius: number, beta: number): void {
+    this.driveRadius = clamp(radius, CHASE.minRadius, CHASE.maxRadius);
+    this.driveBeta = clamp(beta, CHASE.minBeta, CHASE.maxBeta);
+  }
+  get driveFraming(): { radius: number; beta: number } { return { radius: this.driveRadius, beta: this.driveBeta }; }
+
   /** Faces the camera behind a heading (spawn, teleport). */
   resetBehind(heading: number, riding: boolean): void {
     this.alpha = behindHeadingAlpha(heading);
     this.camera.alpha = this.alpha;
-    this.beta = riding ? CHASE.ridingBeta : CHASE.walkingBeta;
-    this.radius = riding ? CHASE.ridingRadius : CHASE.walkingRadius;
+    this.beta = riding ? this.driveBeta : CHASE.walkingBeta;
+    this.radius = riding ? this.driveRadius : CHASE.walkingRadius;
     this.manualLook = 0;
   }
 
@@ -112,8 +122,8 @@ export class IsometricCameraRig {
   ): void {
     if (this.modeValue === 'third-person' && riding !== this.wasRiding) {
       // Smoothly adapt distance when mounting/dismounting. Reframe without a sudden camera cut.
-      this.radius = riding ? CHASE.ridingRadius : CHASE.walkingRadius;
-      this.beta = riding ? CHASE.ridingBeta : CHASE.walkingBeta;
+      this.radius = riding ? this.driveRadius : CHASE.walkingRadius;
+      this.beta = riding ? this.driveBeta : CHASE.walkingBeta;
       if (riding) this.alpha = behindHeadingAlpha(heading);
       this.manualLook = 0;
     }

@@ -66,6 +66,8 @@ export type CityLife = {
   traffic: Traffic; crowd: Crowd; graph: RoadGraph; plans: Map<string, SignalPlan>;
   update(dt: number, time: number, hour: number, night: number, player: { x: number; z: number; radius: number }, ground: (x: number, z: number) => number): void;
   courierObstacles:{x:number;z:number;radius:number}[];
+  /** B1-01 F6: bodies a newly spawned street vehicle must keep clear of (restored couriers, parked vehicle). */
+  spawnAvoid:{x:number;z:number;radius:number}[];
   /** EXPERIMENTO kit: pontos das placas de PARE (braços secundários de cruzamentos `stop`). */
   stopSigns: SignalFixture[];
   /** EXPERIMENTO kit: modelos GLB de carro carregados (vazio = carros procedurais). */
@@ -76,6 +78,7 @@ export type CityLife = {
 
 export function buildCityLife(scene: Scene, mats: Materials, profile: GraphicsProfile, shadows: ShadowGenerator, free: (x: number, z: number) => boolean, traffic0 = true): CityLife {
   const courierObstacles:{x:number;z:number;radius:number}[]=[];
+  const spawnAvoid:{x:number;z:number;radius:number}[]=[];
   const graph = buildRoadGraph();
   const plans = buildSignalPlans(graph);
   const light = profile.name === 'mobile';
@@ -289,12 +292,12 @@ export function buildCityLife(scene: Scene, mats: Materials, profile: GraphicsPr
   let lastTime = 0;
 
   return {
-    traffic, crowd, graph, plans,courierObstacles, stopSigns,
+    traffic, crowd, graph, plans,courierObstacles,spawnAvoid, stopSigns,
     kitCars: () => carVariants.length === CAR_FILES.length ? [...CAR_FILES] : [],
     update(dt, time, hour, night, player, ground) {
       lastTime = time;
       const act = activityAt(hour);
-      const tctx = { time, player,obstacles:courierObstacles, crosswalkBusy: (n: string, r: string) => crowd.crosswalkBusy(n, r), density: act.traffic, logistics: act.logistics > 0.5 };
+      const tctx = { time, player,obstacles:courierObstacles,avoid:spawnAvoid, crosswalkBusy: (n: string, r: string) => crowd.crosswalkBusy(n, r), density: act.traffic, logistics: act.logistics > 0.5 };
       const pctx = {
         time, hour, people: act.people, commerceOpen: act.commerceOpen, player,
         pedAspect: (n: string) => { const p = plans.get(n); return p ? signalState(p, time).ped : null; },
