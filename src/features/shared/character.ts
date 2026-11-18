@@ -4,6 +4,7 @@ import type { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
 import type { Scene } from '@babylonjs/core/scene';
 import { solveTwoBone, type Vec3 } from '../../core/ik';
 import { RigidSkin } from './rigidSkin';
+import { GlbRig } from './glbRig';
 import { BatchSet } from '../../world/geometry';
 import type { Materials } from '../../world/materials';
 import { ballPart, boxPart, ringPart, rodPart } from '../../world/modelParts';
@@ -23,6 +24,8 @@ export type CharacterLook = {
    * the original CORE-010 rider body.
    */
   figure?: 'masculino' | 'feminino';
+  /** EXPERIMENTO kit: rigged GLB (public/assets/models/characters/<model>.glb) drawn instead of the procedural body. */
+  model?: string;
 };
 export const RIDER_LOOK: CharacterLook = {
   // CORE-010: black riding jacket with yellow panels, dark trousers, dark helmet with yellow stripe.
@@ -193,6 +196,26 @@ export class Character {
       this.feet.push(foot);
     }
     this.meshes.push(...skin.build({ min: new Vector3(-1.2, -0.3, -1.2), max: new Vector3(1.2, 2.2, 1.2) }));
+    if (look.model) this.attachModel(scene, look.model);
+  }
+
+  /** EXPERIMENTO kit: the GLB, once loaded, replaces the procedural body (kept as the fallback). */
+  private rig: GlbRig | null = null;
+  private lastPose: Pose | null = null;
+  /** 'procedural' | 'loading' | 'glb' | 'failed' — read by tests and the debug snapshot. */
+  modelState: 'procedural' | 'loading' | 'glb' | 'failed' = 'procedural';
+  private attachModel(scene: Scene, model: string): void {
+    this.modelState = 'loading';
+    GlbRig.load(scene, `${import.meta.env.BASE_URL}assets/models/characters/${model}.glb`, this.root).then((rig) => {
+      this.rig = rig;
+      for (const m of this.meshes) m.setEnabled(false);
+      for (const light of scene.lights) { const g = light.getShadowGenerator(); for (const m of rig.meshes) (g as { addShadowCaster?: (m: AbstractMesh) => void } | null)?.addShadowCaster?.(m); }
+      if (this.lastPose) rig.apply(this.lastPose);
+      this.modelState = 'glb';
+    }).catch((error: unknown) => {
+      console.warn(`EXPERIMENTO kit: personagem ${model} não carregou; mantendo o procedural.`, error);
+      this.modelState = 'failed';
+    });
   }
 
   /** Pelvis-space shoulder (side -1 left / 1 right) after the torso rotation, in root space. */
@@ -219,6 +242,8 @@ export class Character {
   }
 
   apply(pose: Pose): void {
+    this.lastPose = pose;
+    if (this.rig) { this.rig.apply(pose); return; }
     this.pelvis.position.set(pose.pelvis.x, pose.pelvis.y, pose.pelvis.z);
     Quaternion.RotationYawPitchRollToRef(pose.yaw, pose.pitch, pose.roll, this.torso.rotationQuaternion!);
     Quaternion.RotationYawPitchRollToRef(pose.headYaw, pose.headPitch - pose.pitch * 0.6, -pose.roll * 0.5, this.head.rotationQuaternion!);

@@ -129,7 +129,9 @@ function start(canvas: HTMLCanvasElement, boot: BrowserCareer): void {
 
   // B1-01 F2: only the career's own vehicle exists in the world (no spare motorcycle beside a car).
   // B1-01 F3.5: the career's saved presets dress the player on the bike, on foot and in the car.
-  const look = careerLook(boot.career.session.profile.appearance, boot.career.session.profile.equipment);
+  const baseLook = careerLook(boot.career.session.profile.appearance, boot.career.session.profile.equipment);
+  // EXPERIMENTO kit: a carreira da zona norte usa o personagem GLB "luca" (a pé, na moto e no carro).
+  const look = KIT_ASSETS && boot.career.session.careerId === 'personagem-norte' ? { ...baseLook, model: 'luca' } : baseLook;
   const moto = boot.vehicle === 'moto-antiga' ? new Motorcycle(scene, world.materials, PLAYER_LOOK, SPAWN.x, SPAWN.z, SPAWN.yaw, ground(SPAWN.x, SPAWN.z), { riderLook: look }) : null;
   const car = moto ? null : new PlayerCar(scene, world.materials, SPAWN.x, SPAWN.z, SPAWN.yaw, ground(SPAWN.x, SPAWN.z), undefined, look);
   car?.setDriven(true);
@@ -602,6 +604,7 @@ function start(canvas: HTMLCanvasElement, boot: BrowserCareer): void {
         act: () => contextAction(),
         /** EXPERIMENTO kit: pontos para inspecionar placas, postes e carros GLB. */
         kitSpots: () => ({
+          player: { rider: moto?.rider?.modelState ?? null, driver: car?.driver.modelState ?? null, walker: walker.body.modelState, model: look.model ?? null },
           stopSigns: cityLife.stopSigns.map((p) => ({ x: p.x, z: p.z, yaw: p.yaw })),
           cars: cityLife.traffic.vehicles.filter((v) => v.active && v.kind === 'car').map((v) => ({ x: v.x, z: v.z, yaw: v.yaw })),
           meshes: scene.meshes.filter((m) => m.name.startsWith('npc-carro') || m.name.startsWith('kit-light')).slice(0, 12).map((m) => ({
@@ -609,10 +612,10 @@ function start(canvas: HTMLCanvasElement, boot: BrowserCareer): void {
             n: (m as { thinInstanceCount?: number }).thinInstanceCount ?? -1, box: m.getBoundingInfo().boundingBox.extendSize.asArray().map((v) => +v.toFixed(2)),
           })),
         }),
-        view: (alpha: number, beta: number, radius: number, x: number, z: number) => {
+        view: (alpha: number, beta: number, radius: number, x: number, z: number, y = 0) => {
           freeView = true;
           Object.assign(rig.camera, { alpha, beta, radius });
-          rig.camera.target.set(x, 0, z);
+          rig.camera.target.set(x, y, z);
           rig.camera.maxZ = 5000;
           scene.fogEnabled = false;
           scene.getMeshByName('ceu-domo')?.setEnabled(false);

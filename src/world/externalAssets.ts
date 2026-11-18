@@ -6,6 +6,7 @@ import type { Material } from '@babylonjs/core/Materials/material';
 import type { BaseTexture } from '@babylonjs/core/Materials/Textures/baseTexture';
 import type { Nullable } from '@babylonjs/core/types';
 import { Mesh } from '@babylonjs/core/Meshes/mesh';
+import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
 import type { ShadowGenerator } from '@babylonjs/core/Lights/Shadows/shadowGenerator';
 import type { Scene } from '@babylonjs/core/scene';
@@ -129,6 +130,31 @@ export async function loadGlb(scene: Scene, url: string, tweak?: MaterialTweak):
   for (const mesh of container.meshes) if (!meshes.includes(mesh as Mesh)) mesh.dispose();
   for (const material of converted.keys()) (material as PbrLike).dispose(false, false);
   return meshes;
+}
+
+/**
+ * EXPERIMENTO kit: loads a skinned GLB keeping its node hierarchy (bones drive the skin), with the
+ * materials converted to the scene's StandardMaterial. The caller parents `root` and poses `nodes`.
+ */
+export async function loadSkinnedGlb(scene: Scene, url: string): Promise<{ root: TransformNode; nodes: TransformNode[]; meshes: AbstractMesh[] }> {
+  if (!loadersRegistered) { registerGltfLoader(); loadersRegistered = true; }
+  const container = await LoadAssetContainerAsync(url, scene);
+  for (const g of container.animationGroups) g.dispose();
+  container.addAllToScene();
+  const converted = new Map<Material, StandardMaterial>();
+  const meshes: AbstractMesh[] = [];
+  for (const mesh of container.meshes) {
+    const pbr = mesh.material;
+    if (isPbr(pbr)) {
+      let standard = converted.get(pbr);
+      if (!standard) { standard = toStandard(scene, pbr); standard.specularColor.set(0.06, 0.06, 0.06); converted.set(pbr, standard); }
+      mesh.material = standard;
+    }
+    mesh.isPickable = false;
+    if (mesh.getTotalVertices() > 0) { mesh.alwaysSelectAsActiveMesh = true; mesh.receiveShadows = true; meshes.push(mesh); }
+  }
+  for (const material of converted.keys()) material.dispose(false, false);
+  return { root: container.rootNodes[0] as TransformNode, nodes: container.transformNodes, meshes };
 }
 
 /**

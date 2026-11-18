@@ -50,3 +50,9 @@ Arquivos enviados pelo usuário em 18/11/2026 (`kenney_city-kit-roads.zip`, `Car
 | `models/cars/{sedan,hatch,suv,taxi,sport,sport2,police}.glb` | "Cars Bundle" (low poly, gerado por obj2gltf; estilo e nomes de nós do Quaternius, IDs no padrão Poly Pizza) | **A confirmar** — o zip não trouxe arquivo de licença; presumida CC0 do Quaternius até verificação | 164752–181608 cada (≈1,2 MB total) | Substituem o sedã procedural do trânsito; normalizados para 4,2 m (comprimento da simulação), mesclados em uma malha por modelo e desenhados com thin instances. |
 
 Peças de rua do kit (`road-*`) **não** foram usadas: são ladrilhos em grade 1×1 e a malha viária vem do OSM real, com ângulos irregulares.
+
+### Personagem GLB "luca" (EXPERIMENTO kit, carreira da zona norte)
+
+| Arquivo | Origem / autor | Licença | Bytes | Uso / otimizações |
+|---|---|---|---:|---|
+| `models/characters/luca.glb` | `luca-smart.glb` enviado pelo usuário em 18/11/2026 (exportado pelo three.js r170; esqueleto Mixamo) | **A confirmar com o usuário** | 479400 (original 30 959 156) | Otimizado com glTF-Transform 4.2.1 fora do projeto: 13 animações removidas (a pose vem do IK do jogo), 52 blendshapes faciais removidos, texturas de cor WebP 1024 px e normais WebP 512 px, mapas metal/rugosidade e extensões specular/sheen descartados (o jogo usa StandardMaterial). 6 740 triângulos, 80 ossos. |

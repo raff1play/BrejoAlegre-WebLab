@@ -18,6 +18,7 @@ import type { LabMaterial, Materials } from '../../world/materials';
 import { boxPart, rodPart } from '../../world/modelParts';
 import { RigidSkin } from '../shared/rigidSkin';
 import { Character, RIDER_LOOK, type CharacterLook, type Pose } from '../shared/character';
+import type { Vec3 } from '../../core/ik';
 
 /**
  * B1-01 F2: the player's own old popular car (generic boxy hatch, no real brand or model is
@@ -212,13 +213,25 @@ export class PlayerCar {
     // Seated driver (same articulated character as the rider), hidden while the car is parked.
     this.driver = new Character(scene, mats, 'motorista', { ...driverLook });
     this.driver.root.parent = this.body;
-    this.driver.root.position.set(-0.36, 0.25, 0);
+    // EXPERIMENTO kit: a GLB driver's torso is taller than the procedural one; it sits 10 cm deeper
+    // (hands and feet stay on the wheel and pedals, see `driverPose`) so the head clears the roof.
+    this.seatDrop = driverLook.model ? 0.1 : 0;
+    this.driver.root.position.set(-0.36, 0.25 - this.seatDrop, 0);
     this.meshes.push(...this.driver.meshes);
-    this.driver.apply(SEATED);
+    this.driver.apply(this.driverPose(SEATED));
     this.driver.root.setEnabled(false);
 
     this.groundY = groundHeight;
     this.sync(0, groundHeight);
+  }
+
+  private readonly seatDrop: number;
+  /** Keeps hands and feet where the car puts them when the seat is dropped for a GLB driver. */
+  private driverPose(p: Pose): Pose {
+    if (!this.seatDrop) return p;
+    const up = (v: Vec3): Vec3 => ({ x: v.x, y: v.y + this.seatDrop, z: v.z });
+    return { ...p, hands: [up(p.hands[0]), up(p.hands[1])], feet: [up(p.feet[0]), up(p.feet[1])],
+      elbowPoles: [up(p.elbowPoles[0]), up(p.elbowPoles[1])], kneePoles: [up(p.kneePoles[0]), up(p.kneePoles[1])] };
   }
 
   get isDriven(): boolean { return this.driven; }
@@ -292,7 +305,7 @@ export class PlayerCar {
     }
     this.tailgateOpen = dt > 0 ? approach(this.tailgateOpen, this.tailgateWanted ? 1 : 0, 5, dt) : (this.tailgateWanted ? 1 : 0);
     this.tailgate.rotation.x = this.tailgateOpen * TAILGATE_OPEN;
-    if (this.driven) this.driver.apply({ ...SEATED, yaw: s.steer * 0.1, headYaw: s.steer * 0.25, hands: steeringHands(s.steer) });
+    if (this.driven) this.driver.apply(this.driverPose({ ...SEATED, yaw: s.steer * 0.1, headYaw: s.steer * 0.25, hands: steeringHands(s.steer) }));
   }
 }
 
