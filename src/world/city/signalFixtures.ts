@@ -91,3 +91,37 @@ export function signalFixturePositions(
   }
   return positions;
 }
+
+/**
+ * EXPERIMENTO kit: placas de PARE onde a simulação já obriga a parar — braços secundários de
+ * cruzamentos `stop` (mesma regra de `Traffic`: prioridade menor que a maior do nó). Usa a mesma
+ * busca no passeio da direita que os semáforos e evita os equipamentos já posicionados.
+ */
+export function stopSignPositions(graph: RoadGraph, nodes: readonly { id: string; control: string }[], taken: readonly FixturePoint[]): SignalFixture[] {
+  const stopNodes = new Set(nodes.filter((n) => n.control === 'stop').map((n) => n.id));
+  const maxPriority = new Map<string, number>();
+  for (const l of graph.lanes) if (stopNodes.has(l.to)) maxPriority.set(l.to, Math.max(maxPriority.get(l.to) ?? -Infinity, l.road.priority));
+  const shop = shopFurniture();
+  const occupied: FixturePoint[] = [...shop.lamps, ...shop.planters, ...streetLightPositions(), ...cityTrees(), ...taken];
+  const out: SignalFixture[] = [];
+  for (const lane of graph.lanes) {
+    if (!stopNodes.has(lane.to) || lane.road.priority >= maxPriority.get(lane.to)!) continue;
+    const end = lane.path.points[lane.path.points.length - 1]!;
+    const d = lane.endDir;
+    const laneShift = lane.road.oneway ? 0.4 : 1.9;
+    const rx = d.z, rz = -d.x;
+    let found: SignalFixture | null = null;
+    for (const back of [0.5, 1.5, 3, 4.5, 6]) {
+      for (const outward of [0.2, 0.6, 1.0, 0, 1.5]) {
+        const cross = ROAD_HALF + 0.55 + outward - laneShift;
+        const p = { x: end.x - d.x * back + rx * cross, z: end.z - d.z * back + rz * cross };
+        if (!validFixtureSite(p, 0.15) || !clearOfFixtures(p, occupied, 1.6)) continue;
+        found = { ...p, yaw: Math.atan2(-d.x, -d.z), faceX: -d.x, faceZ: -d.z, node: lane.to, lane: lane.index, ped: false };
+        break;
+      }
+      if (found) break;
+    }
+    if (found) { out.push(found); occupied.push(found); }
+  }
+  return out;
+}

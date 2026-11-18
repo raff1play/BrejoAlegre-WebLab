@@ -66,7 +66,9 @@ type PbrLike = Material & {
 const isPbr = (m: Nullable<Material>): m is PbrLike => !!m && m.getClassName() === 'PBRMaterial';
 
 /** Glass and bulbs keep their character; everything else gets the scene's matte-ish shading. */
-function toStandard(scene: Scene, source: PbrLike): StandardMaterial {
+export type MaterialTweak = (material: StandardMaterial, sourceName: string) => void;
+
+function toStandard(scene: Scene, source: PbrLike, tweak?: MaterialTweak): StandardMaterial {
   const m = new StandardMaterial(`ext-${source.name}`, scene);
   m.diffuseTexture = source.albedoTexture;
   m.diffuseColor = source.albedoColor.clone();
@@ -89,14 +91,19 @@ function toStandard(scene: Scene, source: PbrLike): StandardMaterial {
     m.emissiveColor = new Color3(1, 0.86, 0.6);
     m.disableLighting = true;
   }
+  tweak?.(m, source.name);
   source.metallicTexture?.dispose();
   return m;
 }
 
 /** Loads one GLB and returns standalone, hidden source meshes (transforms baked, materials converted). */
 async function loadModel(scene: Scene, id: ExternalModelId): Promise<Mesh[]> {
+  return loadGlb(scene, `${import.meta.env.BASE_URL}assets/models/${id}.glb`);
+}
+
+/** Generic form of `loadModel` for any shipped GLB path (experimental kit assets reuse it). */
+export async function loadGlb(scene: Scene, url: string, tweak?: MaterialTweak): Promise<Mesh[]> {
   if (!loadersRegistered) { registerGltfLoader(); loadersRegistered = true; }
-  const url = `${import.meta.env.BASE_URL}assets/models/${id}.glb`;
   const container = await LoadAssetContainerAsync(url, scene);
   container.addAllToScene();
   const converted = new Map<unknown, StandardMaterial>();
@@ -110,7 +117,7 @@ async function loadModel(scene: Scene, id: ExternalModelId): Promise<Mesh[]> {
     const pbr = mesh.material;
     if (isPbr(pbr)) {
       let standard = converted.get(pbr);
-      if (!standard) { standard = toStandard(scene, pbr); converted.set(pbr, standard); }
+      if (!standard) { standard = toStandard(scene, pbr, tweak); converted.set(pbr, standard); }
       mesh.material = standard;
     }
     mesh.isVisible = false;

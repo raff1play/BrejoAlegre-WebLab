@@ -38,3 +38,15 @@ Os ícones abaixo foram criados especificamente para este protótipo por código
 | `public/icons/icon-192.png` | Arte geométrica original produzida para o Web Lab | Sem dependências de terceiros; ícone do próprio projeto | 9.500 | PNG indexado de 2 bits, 192×192 |
 | `public/icons/icon-512.png` | Arte geométrica original produzida para o Web Lab | Sem dependências de terceiros; ícone do próprio projeto | 66.145 | PNG indexado de 2 bits, 512×512 |
 
+
+## EXPERIMENTO kit (branch isolada `ccr-55378d11-ot7x00`, fora do B1-01 — não integrar sem decisão)
+
+Arquivos enviados pelo usuário em 18/11/2026 (`kenney_city-kit-roads.zip`, `Cars_Bundle-glb.zip`), copiados sem reotimização. `?kit=0` na URL desliga tudo e volta ao visual procedural.
+
+| Arquivo (em `public/assets/`) | Origem / autor | Licença | Bytes | Uso / otimizações |
+|---|---|---|---:|---|
+| `models/kenney/light-curved.glb` + `models/kenney/Textures/colormap.png` | Kenney — City Kit Roads 2.2 — https://kenney.nl | CC0 1.0 (`License.txt` do pacote) | 9492 + 11428 | Substitui os postes procedurais (mesmas posições), escala ×11, cor trocada para cinza-galvanizado. |
+| `models/kenney/road-sign-stop.glb` | Kenney — City Kit Roads 2.2 | CC0 1.0 (`License.txt` do pacote) | 10720 | Placas de PARE nos braços secundários dos cruzamentos `stop` da simulação, escala ×5. |
+| `models/cars/{sedan,hatch,suv,taxi,sport,sport2,police}.glb` | "Cars Bundle" (low poly, gerado por obj2gltf; estilo e nomes de nós do Quaternius, IDs no padrão Poly Pizza) | **A confirmar** — o zip não trouxe arquivo de licença; presumida CC0 do Quaternius até verificação | 164752–181608 cada (≈1,2 MB total) | Substituem o sedã procedural do trânsito; normalizados para 4,2 m (comprimento da simulação), mesclados em uma malha por modelo e desenhados com thin instances. |
+
+Peças de rua do kit (`road-*`) **não** foram usadas: são ladrilhos em grade 1×1 e a malha viária vem do OSM real, com ângulos irregulares.
