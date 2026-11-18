@@ -16,6 +16,7 @@ import { buildAddresses } from '../../core/delivery/addresses';
 import { BLOCKS, DEPOT, NODES, ROADS, STORES, STORE_SETBACK, depotWorld, storePlan, type Rect, type Store } from './cityPlan';
 import { DEPOT_SITE, OPEN_SPACES } from '../geo/geoCity';
 import { GEO } from '../geo/brejoAlegreData';
+import { KIT_ASSETS } from '../../config/kitAssets';
 
 /**
  * CORE-015 renderer of the REAL town (OpenStreetMap geometry): asphalt ribbons along every OSM
@@ -164,7 +165,7 @@ export function buildRoads(flat: BatchSet, upright: BatchSet, mats: Materials): 
   void SIDEWALK; void upright;
 }
 
-function buildStreetLights(set: BatchSet, mats: Materials, scene: Scene): void {
+export function buildStreetLights(set: BatchSet, mats: Materials, scene: Scene): void {
   const pole = mats.paint('#9a968e');
   for (const p of streetLightPositions()) {
     const shaft = CreateCylinder('poste-luz', { diameterTop: 0.14, diameterBottom: 0.24, height: 7.5, tessellation: 7 }, scene);
@@ -521,7 +522,8 @@ export function buildCity(scene: Scene, mats: Materials, shared: SharedBatches):
   const { flat, upright } = shared;
   const bodies: Mesh[] = [];
   buildRoads(flat, upright, mats);
-  buildStreetLights(upright, mats, scene);
+  // EXPERIMENTO kit: postes da Kenney carregam em segundo plano (world/kitAssets.ts), com recuo procedural.
+  if (!KIT_ASSETS) buildStreetLights(upright, mats, scene);
   buildOpenSpaces(flat, upright, mats);
   // Depot: the CORE-014 layout, rigidly placed on its real block.
   const toWorld = (p: P3): P3 => { const w = depotWorld(p[0], p[2]); return [w.x, p[1], w.z]; };

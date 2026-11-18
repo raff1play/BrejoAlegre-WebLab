@@ -20,7 +20,10 @@ import { NpcPerson, civilianLook } from './npcPerson';
 import { rodPart, ballPart, boxPart } from '../../world/modelParts';
 import type { Materials } from '../../world/materials';
 import { CURB_H } from '../../world/layout';
-import { signalFixturePositions } from '../../world/city/signalFixtures';
+import { signalFixturePositions, stopSignPositions, type SignalFixture } from '../../world/city/signalFixtures';
+import { Mesh as BabylonMesh } from '@babylonjs/core/Meshes/mesh';
+import { loadGlb } from '../../world/externalAssets';
+import { KIT_ASSETS } from '../../config/kitAssets';
 import { NODES } from '../../world/city/cityPlan';
 import { streetLightPositions } from '../../world/city/cityLayout';
 
@@ -63,6 +66,10 @@ export type CityLife = {
   traffic: Traffic; crowd: Crowd; graph: RoadGraph; plans: Map<string, SignalPlan>;
   update(dt: number, time: number, hour: number, night: number, player: { x: number; z: number; radius: number }, ground: (x: number, z: number) => number): void;
   courierObstacles:{x:number;z:number;radius:number}[];
+  /** EXPERIMENTO kit: pontos das placas de PARE (braços secundários de cruzamentos `stop`). */
+  stopSigns: SignalFixture[];
+  /** EXPERIMENTO kit: modelos GLB de carro carregados (vazio = carros procedurais). */
+  kitCars(): string[];
   blocks(x: number, z: number, r: number): boolean;
   stats(): { vehicles: number; moving: number; pedestrians: number; visiblePedestrians: number; byKind: Record<string, number>; signals: Record<string, string>; vehicleIds: number[]; fingerprint: number };
 };
@@ -111,6 +118,61 @@ export function buildCityLife(scene: Scene, mats: Materials, profile: GraphicsPr
     protos.set(kind, proto);
   }
 
+  // EXPERIMENTO kit: carros GLB (pacote "Cars Bundle") no lugar do sedã procedural. Os carros
+  // procedurais continuam valendo até todos os modelos carregarem, e de vez se algum falhar.
+  const CAR_FILES = ['sedan', 'hatch', 'suv', 'taxi', 'sport', 'sport2', 'police'] as const;
+  // Frota de cidade pequena: sedã/hatch/SUV comuns, táxi e esportivos raros, uma viatura ocasional.
+  const CAR_PICK = [0, 1, 2, 0, 1, 2, 0, 1, 3, 4, 0, 1, 5, 2, 0, 1, 3, 2, 0, 6];
+  const carVariants: Proto[] = [];
+  if (KIT_ASSETS) void (async () => {
+    const spec = VEHICLE_SPECS.car;
+    const tweak = (m: StandardMaterial, name: string) => {
+      const n = name.toLowerCase();
+      if (n.includes('window')) { m.diffuseColor = new Color3(0.08, 0.11, 0.14); m.specularColor = new Color3(0.7, 0.7, 0.7); m.specularPower = 96; }
+      else if (n.includes('headlight') || n.includes('whitelight')) m.emissiveColor = new Color3(0.9, 0.85, 0.7);
+      else if (n.includes('taillight')) m.emissiveColor = new Color3(0.6, 0.06, 0.04);
+      else if (n.includes('bluelight')) m.emissiveColor = new Color3(0.1, 0.25, 0.9);
+      else m.specularColor = new Color3(0.25, 0.25, 0.25);
+    };
+    try {
+      const loaded = await Promise.all(CAR_FILES.map((f) => loadGlb(scene, `${import.meta.env.BASE_URL}assets/models/cars/${f}.glb`, tweak)));
+      loaded.forEach((parts, i) => {
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, minZ = Infinity, maxZ = -Infinity;
+        for (const m of parts) {
+          const b = m.getBoundingInfo().boundingBox;
+          minX = Math.min(minX, b.minimum.x); maxX = Math.max(maxX, b.maximum.x); minY = Math.min(minY, b.minimum.y);
+          minZ = Math.min(minZ, b.minimum.z); maxZ = Math.max(maxZ, b.maximum.z);
+        }
+        // Normaliza para o comprimento da simulação (4,2 m), rodas no chão, centrado na origem.
+        const k = spec.length / (maxZ - minZ);
+        for (const m of parts) {
+          m.scaling.setAll(k);
+          m.position.set(-(minX + maxX) / 2 * k, -minY * k, -(minZ + maxZ) / 2 * k);
+          m.bakeCurrentTransformIntoVertices();
+        }
+        const merged = BabylonMesh.MergeMeshes(parts, true, true, undefined, false, true) ?? parts[0]!;
+        merged.name = `npc-carro-${CAR_FILES[i]}`;
+        const beam = CreateDisc(`npc-carro-${CAR_FILES[i]}-feixe`, { radius: 1, tessellation: 10 }, scene);
+        beam.rotation.x = Math.PI / 2;
+        beam.scaling.set(spec.width * 0.9, 3.2, 1);
+        beam.position.set(0, 0.03, spec.length / 2 + 3);
+        beam.bakeCurrentTransformIntoVertices();
+        beam.material = beamMat;
+        const proto: Proto = { meshes: [merged, beam], tinted: [], beams: beam, matrices: new Float32Array(MAXV * 16), colors: new Float32Array(MAXV * 4) };
+        for (const m of proto.meshes) {
+          m.thinInstanceSetBuffer('matrix', proto.matrices, 16, false);
+          m.thinInstanceCount = 1; m.setEnabled(false); m.isPickable = false; m.alwaysSelectAsActiveMesh = true;
+        }
+        merged.isVisible = true; merged.receiveShadows = true;
+        if (!light) shadows.addShadowCaster(merged, false);
+        carVariants.push(proto);
+      });
+    } catch (error) {
+      console.warn('EXPERIMENTO kit: carros GLB não carregaram; mantendo carros procedurais.', error);
+      carVariants.length = 0;
+    }
+  })();
+
   // Pedestrians: torso + arms (shirt), head (skin), one leg mesh instanced twice (trousers).
   const torso = new BatchSet(); const headSet = new BatchSet(); const legSet = new BatchSet();
   const w = mats.paint('#ffffff');
@@ -157,6 +219,7 @@ export function buildCityLife(scene: Scene, mats: Materials, profile: GraphicsPr
     lampMatrices.push(...tmp.asArray());
   };
   const fixtureSites = signalFixturePositions(graph, plans, crowd.graph);
+  const stopSigns = KIT_ASSETS ? stopSignPositions(graph, NODES, fixtureSites) : [];
   for (const f of fixtureSites) {
     const plan = plans.get(f.node)!;
     if (f.ped) {
@@ -226,7 +289,8 @@ export function buildCityLife(scene: Scene, mats: Materials, profile: GraphicsPr
   let lastTime = 0;
 
   return {
-    traffic, crowd, graph, plans,courierObstacles,
+    traffic, crowd, graph, plans,courierObstacles, stopSigns,
+    kitCars: () => carVariants.length === CAR_FILES.length ? [...CAR_FILES] : [],
     update(dt, time, hour, night, player, ground) {
       lastTime = time;
       const act = activityAt(hour);
@@ -243,9 +307,21 @@ export function buildCityLife(scene: Scene, mats: Materials, profile: GraphicsPr
 
       // Vehicles → per-kind instance buffers (hidden beyond the haze).
       const counts = new Map<VehicleKind, number>(KINDS.map((k) => [k, 0]));
+      const kitReady = carVariants.length === CAR_FILES.length;
+      const variantCounts = carVariants.map(() => 0);
       for (const v of traffic.vehicles) {
         if (!v.active) continue;
         if (Math.hypot(v.x - player.x, v.z - player.z) > 190) continue;
+        if (kitReady && v.kind === 'car') {
+          const vi = CAR_PICK[(v.id * 7 + v.colour) % CAR_PICK.length]!;
+          const vp = carVariants[vi]!; const j = variantCounts[vi]!;
+          if (j >= MAXV) continue;
+          Matrix.RotationYToRef(v.yaw, m1);
+          m1.setTranslationFromFloats(v.x, ground(v.x, v.z), v.z);
+          m1.copyToArray(vp.matrices, j * 16);
+          variantCounts[vi] = j + 1;
+          continue;
+        }
         const proto = protos.get(v.kind)!;
         const i = counts.get(v.kind)!;
         if (i >= MAXV) continue;
@@ -264,6 +340,11 @@ export function buildCityLife(scene: Scene, mats: Materials, profile: GraphicsPr
         for (const m of proto.tinted) m.thinInstanceBufferUpdated('color');
         proto.beams.setEnabled(night > 0.45 && n > 0);
       }
+      carVariants.forEach((vp, vi) => {
+        const n = variantCounts[vi] ?? 0;
+        for (const m of vp.meshes) { m.thinInstanceCount = Math.max(1, n); m.thinInstanceBufferUpdated('matrix'); if (m !== vp.beams) m.setEnabled(n > 0); }
+        vp.beams.setEnabled(night > 0.45 && n > 0);
+      });
 
       // Pedestrians, near LOD: the closest ones are drawn by articulated characters (one per look).
       const nearIds = new Set<number>();

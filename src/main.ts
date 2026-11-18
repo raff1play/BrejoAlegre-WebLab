@@ -36,6 +36,9 @@ import { BatchSet } from './world/geometry';
 import { VirtualClock } from './core/city/clock';
 import { lightingAt } from './core/city/dayNight';
 import { buildCityLife } from './features/city/cityLife';
+import { KIT_ASSETS } from './config/kitAssets';
+import { populateKitProps, type KitStatus } from './world/kitAssets';
+import { buildStreetLights } from './world/city/cityBuild';
 import { Minimap } from './features/hud/minimap';
 import { DeliveryGame, trunkSpot, type BikeSpot } from './features/delivery/deliveryGame';
 
@@ -83,6 +86,15 @@ function start(canvas: HTMLCanvasElement): void {
   // CORE-013: living city (traffic, pedestrians, signals) and the virtual clock driving the light.
   const cityLife = buildCityLife(scene, world.materials, profile, environment.shadows, (x, z) => world.guard(x, z, 0.3),
     new URLSearchParams(window.location.search).get('trafego') !== '0');
+  // EXPERIMENTO kit (branch isolada): postes e placas de PARE da Kenney; carros GLB ficam em cityLife.
+  let kit: KitStatus | 'loading' | 'off' = KIT_ASSETS ? 'loading' : 'off';
+  if (KIT_ASSETS) {
+    void populateKitProps(scene, environment.shadows, profile.detailShadows, cityLife.stopSigns, () => {
+      const set = new BatchSet();
+      buildStreetLights(set, world.materials, scene);
+      for (const mesh of set.build('fallback-postes', scene)) environment.shadows.addShadowCaster(mesh, false);
+    }).then((s) => { kit = s; }).catch((error: unknown) => { console.error(error); kit = { loaded: [], failed: ['kit'], instances: 0 }; });
+  }
   const params = new URLSearchParams(window.location.search);
   const devTime = import.meta.env.DEV || params.get('devtime') === '1';
   const clock = new VirtualClock();
@@ -321,6 +333,15 @@ function start(canvas: HTMLCanvasElement): void {
           walker.place(x, z, yaw, ground(x, z));
         },
         act: () => contextAction(),
+        /** EXPERIMENTO kit: pontos para inspecionar placas, postes e carros GLB. */
+        kitSpots: () => ({
+          stopSigns: cityLife.stopSigns.map((p) => ({ x: p.x, z: p.z, yaw: p.yaw })),
+          cars: cityLife.traffic.vehicles.filter((v) => v.active && v.kind === 'car').map((v) => ({ x: v.x, z: v.z, yaw: v.yaw })),
+          meshes: scene.meshes.filter((m) => m.name.startsWith('npc-carro') || m.name.startsWith('kit-light')).slice(0, 12).map((m) => ({
+            name: m.name, enabled: m.isEnabled(), visible: m.isVisible, verts: m.getTotalVertices(),
+            n: (m as { thinInstanceCount?: number }).thinInstanceCount ?? -1, box: m.getBoundingInfo().boundingBox.extendSize.asArray().map((v) => +v.toFixed(2)),
+          })),
+        }),
         view: (alpha: number, beta: number, radius: number, x: number, z: number) => {
           freeView = true;
           Object.assign(rig.camera, { alpha, beta, radius });
@@ -401,6 +422,7 @@ function start(canvas: HTMLCanvasElement): void {
         houses: houses.stats(),
         minimap: { expanded: minimap.isExpanded, arrow: minimap.arrowAt(), ...minimap.state(), distance: minimap.targetDistance() },
         externalAssets: external,
+        kitAssets: kit === 'loading' || kit === 'off' ? kit : { ...kit, cars: cityLife.kitCars(), stopSigns: cityLife.stopSigns.length },
         fps: engine.getFps(),
         perf: instrumentation ? {
           drawCalls: instrumentation.drawCallsCounter.current,
